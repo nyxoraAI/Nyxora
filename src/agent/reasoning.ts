@@ -1,56 +1,102 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+import fs from 'fs';
+import path from 'path';
 import { OpenAI } from 'openai';
 import { loadConfig } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance';
 import { transferToolDefinition, transferNative } from '../web3/skills/transfer';
+import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
+import { swapTokenToolDefinition, swapToken } from '../web3/skills/swapToken';
 
 export const logger = new Logger();
 
-// Lazy initialize OpenAI client to prevent crash on startup if .env is not set yet
-let openaiClient: OpenAI | null = null;
-let currentProvider: string | null = null;
+let currentKeyIndex = 0;
 
 function getOpenAI(): OpenAI {
   const config = loadConfig();
-  if (!openaiClient || currentProvider !== config.llm.provider) {
-    currentProvider = config.llm.provider;
-    
-    if (config.llm.provider === 'ollama') {
-      openaiClient = new OpenAI({
-        baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1',
-        apiKey: 'ollama', // API key is not required for local Ollama
-      });
-    } else if (config.llm.provider === 'gemini') {
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY is not set in .env file.");
-      }
-      openaiClient = new OpenAI({
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-        apiKey: process.env.GEMINI_API_KEY,
-      });
-    } else {
-      if (!process.env.OPENAI_API_KEY) {
-        throw new Error("OPENAI_API_KEY is not set in .env file.");
-      }
-      openaiClient = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+  
+  if (config.llm.provider === 'ollama') {
+    return new OpenAI({
+      baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1',
+      apiKey: 'ollama', // API key is not required for local Ollama
+    });
+  }
+
+  // Get API key from config (UI) or fallback to .env
+  let apiKey = '';
+  
+  if (config.llm.api_keys && config.llm.api_keys.length > 0) {
+    // Filter out empty keys
+    const keys = config.llm.api_keys.filter(k => k.trim() !== '');
+    if (keys.length > 0) {
+      currentKeyIndex = currentKeyIndex % keys.length;
+      apiKey = keys[currentKeyIndex];
+      console.log(`[LLM] Using rotated API Key (${currentKeyIndex + 1}/${keys.length}): ${apiKey.substring(0, 4)}...`);
+      currentKeyIndex++; // Increment for next request
     }
   }
-  return openaiClient;
+
+  // Fallbacks if no valid keys found in config
+  if (!apiKey) {
+    if (config.llm.provider === 'gemini') {
+      apiKey = process.env.GEMINI_API_KEY || '';
+    } else {
+      apiKey = process.env.OPENAI_API_KEY || '';
+    }
+    if (!apiKey) {
+      throw new Error(`No API Key found for ${config.llm.provider} in config or .env`);
+    }
+    console.log(`[LLM] Using default API Key from .env`);
+  }
+
+  if (config.llm.provider === 'gemini') {
+    return new OpenAI({
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      apiKey: apiKey,
+    });
+  } else {
+    return new OpenAI({
+      apiKey: apiKey,
+    });
+  }
 }
 
 function getSystemPrompt() {
   const config = loadConfig();
-  return `You are an autonomous Web3 agent operating on EVM chains.
+  let basePrompt = `You are an autonomous Web3 agent operating on EVM chains.
 You are equipped with a native wallet. 
+CRITICAL RULE: You must always reply in the exact same language that the user uses to talk to you. If the user speaks Indonesian, reply in Indonesian. If they speak English, reply in English.
 CRITICAL RULE: If the user asks to check "my balance", "saldo saya", or anything about their own wallet, DO NOT ask them for an address. You must immediately call the get_balance tool and LEAVE THE ADDRESS PARAMETER EMPTY. The system will automatically use the injected private key wallet.
 Always use the tools to interact with the blockchain.
 If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`;
+
+  // Read IDENTITY.md for core AI persona
+  try {
+    const identityPath = path.resolve(process.cwd(), 'IDENTITY.md');
+    if (fs.existsSync(identityPath)) {
+      const identityInstructions = fs.readFileSync(identityPath, 'utf8');
+      basePrompt += `\n\n--- CORE IDENTITY & PERSONA ---\n${identityInstructions}`;
+    }
+  } catch (error) {
+    console.error('Failed to read IDENTITY.md:', error);
+  }
+
+  // Read user.md for custom instructions
+  try {
+    const userMdPath = path.resolve(process.cwd(), 'user.md');
+    if (fs.existsSync(userMdPath)) {
+      const customInstructions = fs.readFileSync(userMdPath, 'utf8');
+      basePrompt += `\n\n--- CUSTOM USER INSTRUCTIONS ---\n${customInstructions}`;
+    }
+  } catch (error) {
+    console.error('Failed to read user.md:', error);
+  }
+
+  return basePrompt;
 }
 
 export async function processUserInput(input: string): Promise<string> {
@@ -82,7 +128,7 @@ export async function processUserInput(input: string): Promise<string> {
       model: config.llm.model,
       temperature: config.llm.temperature,
       messages: messages,
-      tools: [getBalanceToolDefinition as any, transferToolDefinition as any],
+      tools: [getBalanceToolDefinition as any, transferToolDefinition as any, getPriceToolDefinition as any, swapTokenToolDefinition as any],
       tool_choice: "auto",
     });
 
@@ -125,6 +171,26 @@ export async function processUserInput(input: string): Promise<string> {
             tool_call_id: toolCall.id,
             name: toolCall.function.name,
             content: transferResult,
+          });
+        } else if (toolCall.function.name === 'get_price') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const priceResult = await getPrice(args.coinId);
+          
+          logger.addEntry({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: priceResult,
+          });
+        } else if (toolCall.function.name === 'swap_token') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const swapResult = await swapToken(args.chainName, args.fromToken, args.toToken, args.amount);
+          
+          logger.addEntry({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: swapResult,
           });
         }
       }

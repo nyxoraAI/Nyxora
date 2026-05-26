@@ -3,7 +3,7 @@ import { Save } from 'lucide-react';
 
 interface Config {
   agent: { name: string; default_chain: string };
-  llm: { provider: string; model: string; temperature: number };
+  llm: { provider: string; model: string; temperature: number; api_keys?: string[] };
 }
 
 interface SettingsProps {
@@ -31,6 +31,33 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           [field]: field === 'temperature' ? Number(value) : value
         }
       };
+    });
+  };
+
+  const handleAddApiKey = () => {
+    setFormData(prev => {
+      if (!prev) return prev;
+      const currentKeys = prev.llm.api_keys || [];
+      if (currentKeys.length >= 10) return prev;
+      return { ...prev, llm: { ...prev.llm, api_keys: [...currentKeys, ''] } };
+    });
+  };
+
+  const handleUpdateApiKey = (index: number, value: string) => {
+    setFormData(prev => {
+      if (!prev) return prev;
+      const newKeys = [...(prev.llm.api_keys || [])];
+      newKeys[index] = value;
+      return { ...prev, llm: { ...prev.llm, api_keys: newKeys } };
+    });
+  };
+
+  const handleRemoveApiKey = (index: number) => {
+    setFormData(prev => {
+      if (!prev) return prev;
+      const newKeys = [...(prev.llm.api_keys || [])];
+      newKeys.splice(index, 1);
+      return { ...prev, llm: { ...prev.llm, api_keys: newKeys } };
     });
   };
 
@@ -128,14 +155,48 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
         </div>
       </div>
 
-      <div className="attention-panel" style={{ background: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
-        <div className="attention-header" style={{ color: '#3b82f6' }}>
-          <span className="attention-icon">ℹ️</span>
-          <h4>API Keys Note</h4>
+      <div className="panel">
+        <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>API Keys (Rotation)</h3>
+          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+            {formData.llm.api_keys?.length || 0} / 10 Keys
+          </span>
         </div>
-        <div className="attention-content">
-          <p>API keys for Gemini and OpenAI are loaded securely from your <code>.env</code> file.</p>
-          <span className="text-secondary">If you need to change your API keys or injected wallet private key, please edit the .env file and restart the backend server manually.</span>
+        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
+          Add up to 10 API keys. The system will automatically rotate through them (Round-Robin) for each request to prevent rate limits. Leave empty to fallback to .env file.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {(formData.llm.api_keys || []).map((key, index) => (
+            <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input 
+                type="password" 
+                value={key}
+                placeholder="sk-..."
+                onChange={(e) => handleUpdateApiKey(index, e.target.value)}
+                style={{ flex: 1, padding: '10px 14px', background: 'rgba(15, 23, 42, 0.5)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white' }}
+              />
+              <button 
+                onClick={() => handleRemoveApiKey(index)}
+                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', padding: '10px 14px', cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+
+          {(!formData.llm.api_keys || formData.llm.api_keys.length < 10) && (
+            <button 
+              onClick={handleAddApiKey}
+              style={{ alignSelf: 'flex-start', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px dashed #3b82f6', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', marginTop: '8px', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+            >
+              + Add API Key
+            </button>
+          )}
         </div>
       </div>
 
