@@ -1,5 +1,5 @@
 agent:
-  name: OpenWeb-EVM-Agent
+  name: Nyxora-EVM-Agent
   default_chain: sepolia
 llm:
   provider: gemini

@@ -1,5 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import * as dotenv from 'dotenv';
+import { getPath } from '../config/paths';
+
+dotenv.config({ path: getPath('.env') });
+
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
@@ -26,6 +32,9 @@ console.error = function (...args) {
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend from dashboard/dist
+app.use(express.static(path.join(__dirname, '../../../dashboard/dist')));
 
 app.get('/api/history', (req, res) => {
   try {
@@ -101,10 +110,22 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🤖 OpenWeb API Server running on port ${PORT}`);
-  
-  // Start the Telegram bot listener
-  startTelegramBot();
+// Fallback for React Router (Single Page Application)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../../dashboard/dist/index.html'));
 });
+
+export function startServer() {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🤖 Nyxora API Server running on port ${PORT}`);
+    
+    // Start the Telegram bot listener
+    startTelegramBot();
+  });
+}
+
+// Start server if this file is run directly
+if (require.main === module) {
+  startServer();
+}

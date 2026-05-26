@@ -257,7 +257,7 @@ function App() {
             <Bot size={28} color="#3b82f6" />
           </div>
           <div className="agent-info">
-            <div className="agent-name">OpenWeb AI</div>
+            <div className="agent-name">Nyxora AI</div>
             <div className="agent-status">
               <span className="status-dot"></span> ONLINE
             </div>
@@ -312,7 +312,7 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div className="topbar-left">
-            <span>OpenWeb</span>
+            <span>Nyxora</span>
             <span style={{color: '#3b82f6'}}>•</span>
             <span style={{color: '#fff'}}>Chat</span>
           </div>
@@ -437,7 +437,7 @@ function App() {
                 <input
                   type="text"
                   className="chat-input"
-                  placeholder="Message OpenWeb Agent (Enter to send)..."
+                  placeholder="Message Nyxora Agent (Enter to send)..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={isLoading}

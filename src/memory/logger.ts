@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config/parser';
+import { getPath } from '../config/paths';
 
 export interface MemoryEntry {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -16,7 +17,7 @@ export class Logger {
 
   constructor() {
     const config = loadConfig();
-    this.logFilePath = path.resolve(process.cwd(), config.memory.path || 'memory.json');
+    this.logFilePath = getPath(config.memory.path || 'memory.json');
     this.loadMemory();
   }
 

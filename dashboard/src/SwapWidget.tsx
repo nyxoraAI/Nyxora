@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowDownUp, CheckCircle2, RefreshCcw, Activity } from 'lucide-react';
+import { ArrowDownUp, CheckCircle2, RefreshCcw } from 'lucide-react';
 
 interface SwapWidgetProps {
   data: string;

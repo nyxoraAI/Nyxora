@@ -1,4 +1,4 @@
-Tuliskan instruksi kustom, aturan khusus, profil pengguna, atau persona yang Anda inginkan untuk OpenWeb AI di file ini.
+Tuliskan instruksi kustom, aturan khusus, profil pengguna, atau persona yang Anda inginkan untuk Nyxora AI di file ini.
 
 Setiap kali agen membaca pesan Anda, ia akan membaca file ini terlebih dahulu sebagai pedoman utama.
 
