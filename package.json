@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "main": "dist/gateway/cli.js",
   "files": [
@@ -20,7 +20,7 @@
     "start": "node dist/gateway/cli.js",
     "dashboard": "npm run build && node dist/gateway/cli.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "npm run build && git add . && git commit -m \"chore: auto-deploy new feature\" && git push && npm publish"
+    "deploy": "npm run build && git add . && git commit -m \"chore: auto-deploy new feature\" && git push && git push --tags && npm publish"
   },
   "keywords": [],
   "author": "",

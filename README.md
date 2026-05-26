@@ -12,7 +12,7 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 *   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
 *   **Multi-Lingual Auto-Sync**: The agent natively detects your language and replies in the exact same language automatically.
 
-### 🛡️ Production-Ready Security (NEW in v1.0.9)
+### 🛡️ Production-Ready Security (NEW in v1.0.10)
 *   **Encrypted Local Keystore**: No more `.env` leaks. Your Private Key is encrypted using `AES-256-GCM` and locked behind a custom **Master Password**.
 *   **Human-in-the-Loop Sandboxing**: The agent CANNOT execute transactions on its own. All transactions (Transfers & Swaps) are queued in a **Transaction Manager** and require explicit 1-click Approval from you.
 *   **Omnichannel Approvals**: Approve or reject pending transactions directly from the Web Dashboard's UI or via Telegram Inline Keyboard buttons on the go!
