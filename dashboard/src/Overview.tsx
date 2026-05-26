@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Activity, Server, Cpu, Database, Wallet } from 'lucide-react';
 import './overview.css';
 
 interface Config {

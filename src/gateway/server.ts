@@ -3,6 +3,8 @@ import cors from 'cors';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
+import { getBalanceToolDefinition } from '../web3/skills/getBalance';
+import { transferToolDefinition } from '../web3/skills/transfer';
 
 // Intercept console.log and console.error
 const originalLog = console.log;
@@ -69,6 +71,13 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/logs', (req, res) => {
   res.json(Tracker.getLogs());
+});
+
+app.get('/api/skills', (req, res) => {
+  res.json([
+    getBalanceToolDefinition,
+    transferToolDefinition
+  ]);
 });
 
 app.post('/api/chat', async (req, res) => {
