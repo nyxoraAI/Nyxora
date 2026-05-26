@@ -7,7 +7,6 @@ memory.json
 
 # Vite dashboard ignores
 dashboard/node_modules/
-dashboard/dist/
 dashboard/.env
 dashboard/.env.*
 dashboard/.eslintcache
