@@ -1,8 +1,17 @@
 {
   "name": "nyxora",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "dist/gateway/cli.js",
+  "files": [
+    "dist",
+    "dashboard/dist",
+    "config.yaml",
+    "user.md",
+    "IDENTITY.md",
+    "SECURITY.md",
+    "README.md"
+  ],
   "bin": {
     "nyxora": "./dist/gateway/cli.js"
   },
