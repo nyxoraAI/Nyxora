@@ -7,18 +7,27 @@ import * as dotenv from 'dotenv';
 import open from 'open';
 import { getAppDir } from '../config/paths';
 import { startServer } from './server';
+import { runSetupWizard } from './setup';
 
-// 1. Determine configuration directory
-const appDir = getAppDir();
-const isGlobalMode = appDir !== process.cwd();
+async function main() {
+  // 1. Determine configuration directory
+  const appDir = getAppDir();
+  const isGlobalMode = appDir !== process.cwd();
 
 console.log(`================================`);
 console.log(`🤖 Nyxora CLI Agent Booting Up...`);
 console.log(`📂 Config Directory: ${appDir}`);
 console.log(`================================`);
 
-// 2. Setup boilerplate files if in global mode and they don't exist
-if (isGlobalMode) {
+  // Check for explicit wizard command
+  if (process.argv.includes('setup') || process.argv.includes('--wizard')) {
+    await runSetupWizard();
+    process.exit(0);
+  }
+
+  // 2. Setup boilerplate files if in global mode and they don't exist
+  let isFirstBoot = false;
+  if (isGlobalMode) {
   const globalEnvPath = path.join(appDir, '.env');
   const globalConfigPath = path.join(appDir, 'config.yaml');
   const globalUserMdPath = path.join(appDir, 'user.md');
@@ -26,12 +35,12 @@ if (isGlobalMode) {
 
   // Copy .env.example to ~/.nyxora/.env if it doesn't exist
   if (!fs.existsSync(globalEnvPath)) {
+    isFirstBoot = true;
     const exampleEnvPath = path.resolve(__dirname, '../../../.env.example');
     if (fs.existsSync(exampleEnvPath)) {
       fs.copyFileSync(exampleEnvPath, globalEnvPath);
-      console.log(`[Setup] Created default .env at ${globalEnvPath}`);
     } else {
-      fs.writeFileSync(globalEnvPath, '# Nyxora Environment Variables\nOPENAI_API_KEY=\nGEMINI_API_KEY=\nTELEGRAM_BOT_TOKEN=\n');
+      fs.writeFileSync(globalEnvPath, '# Nyxora Environment Variables\nPRIVATE_KEY=\n');
     }
   }
 
@@ -54,16 +63,24 @@ if (isGlobalMode) {
   }
 }
 
-// 3. Load Environment Variables from the determined directory
-dotenv.config({ path: path.join(appDir, '.env') });
+  if (isFirstBoot) {
+    console.log('[Setup] Instalasi baru terdeteksi. Memulai Setup Wizard...');
+    await runSetupWizard();
+  }
 
-// 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
-startServer();
+  // 3. Load Environment Variables from the determined directory
+  dotenv.config({ path: path.join(appDir, '.env') });
 
-// 5. Open the Dashboard in the default browser
-const PORT = process.env.PORT || 3000;
-setTimeout(() => {
-  const url = `http://localhost:${PORT}`;
-  console.log(`🌐 Opening Dashboard at ${url}`);
-  open(url);
-}, 1500);
+  // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
+  startServer();
+
+  // 5. Open the Dashboard in the default browser
+  const PORT = process.env.PORT || 3000;
+  setTimeout(() => {
+    const url = `http://localhost:${PORT}`;
+    console.log(`🌐 Opening Dashboard at ${url}`);
+    open(url);
+  }, 1500);
+}
+
+main().catch(console.error);

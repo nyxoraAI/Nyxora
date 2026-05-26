@@ -343,20 +343,56 @@ function App() {
                 >
                   <option value="gemini">Google Gemini</option>
                   <option value="openai">OpenAI</option>
+                  <option value="openrouter">OpenRouter</option>
                   <option value="ollama">Local Ollama</option>
                 </select>
 
-                <select 
+                <input 
+                  type="text"
+                  list="model-suggestions"
                   className="config-dropdown" 
                   value={config.llm.model}
                   onChange={(e) => updateConfig({ ...config, llm: { ...config.llm, model: e.target.value }})}
-                >
-                  {config.llm.provider === 'gemini' && <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>}
-                  {config.llm.provider === 'gemini' && <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>}
-                  {config.llm.provider === 'openai' && <option value="gpt-4o">GPT-4o</option>}
-                  {config.llm.provider === 'openai' && <option value="gpt-4o-mini">GPT-4o Mini</option>}
-                  {config.llm.provider === 'ollama' && <option value="llama3">Llama 3</option>}
-                </select>
+                  placeholder="Enter model name..."
+                  style={{ width: '200px' }}
+                />
+                <datalist id="model-suggestions">
+                  {config.llm.provider === 'gemini' && (
+                    <>
+                      <option value="gemini-2.5-flash" />
+                      <option value="gemini-2.5-pro" />
+                      <option value="gemini-1.5-flash" />
+                      <option value="gemini-1.5-pro" />
+                    </>
+                  )}
+                  {config.llm.provider === 'openai' && (
+                    <>
+                      <option value="gpt-4o" />
+                      <option value="gpt-4o-mini" />
+                      <option value="gpt-4-turbo" />
+                      <option value="o1-mini" />
+                    </>
+                  )}
+                  {config.llm.provider === 'openrouter' && (
+                    <>
+                      <option value="anthropic/claude-3.5-sonnet" />
+                      <option value="anthropic/claude-3-opus" />
+                      <option value="meta-llama/llama-3.1-70b-instruct" />
+                      <option value="google/gemini-1.5-pro" />
+                      <option value="x-ai/grok-2" />
+                      <option value="mistralai/mixtral-8x7b-instruct" />
+                      <option value="deepseek/deepseek-coder" />
+                    </>
+                  )}
+                  {config.llm.provider === 'ollama' && (
+                    <>
+                      <option value="llama3" />
+                      <option value="llama3.1" />
+                      <option value="mistral" />
+                      <option value="qwen2" />
+                    </>
+                  )}
+                </datalist>
               </>
             )}
           </div>

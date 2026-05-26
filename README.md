@@ -7,7 +7,7 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 ## Features ✨
 
 ### 🧠 Core Agent Capabilities
-*   **Multi-LLM Support**: Seamlessly switch between Google Gemini, OpenAI, or local Ollama models dynamically.
+*   **Multi-LLM Support**: Seamlessly switch between Google Gemini, OpenAI, OpenRouter (unlimited models!), or local Ollama models dynamically.
 *   **Round-Robin API Rotation**: Add up to 10 API keys via the dashboard. The system will auto-rotate them to prevent rate-limiting and token drain.
 *   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
 *   **Multi-Lingual Auto-Sync**: The agent natively detects your language and replies in the exact same language automatically.
@@ -41,15 +41,18 @@ No need to navigate to any specific folder! Just type:
 ```bash
 nyxora
 ```
+On first launch, Nyxora will greet you with an **Interactive Setup Wizard**. This CLI wizard will guide you to securely configure your LLM providers, API keys, and Web3 Wallet.
+
 Nyxora will automatically:
-1. Initialize a secure vault in your `~/.nyxora/` directory (where your `.env` and `memory.json` will safely live).
-2. Start the local server.
-3. Open the gorgeous Web Dashboard automatically in your default browser!
+1. Initialize a secure vault in your `~/.nyxora/` directory.
+2. Store your Wallet Private Key securely in `~/.nyxora/.env`.
+3. Store operational data (API Keys, RPCs) in `~/.nyxora/config.yaml`.
+4. Start the local server and open the Web Dashboard automatically!
+
+> 💡 **Tip:** You can invoke the setup wizard at any time to update your keys by running `nyxora setup`.
 
 ### 3. Configuration
-When the dashboard opens, simply enter your **OpenAI/Gemini API Key** and your **Wallet Private Key** in the Settings tab. These are securely saved in your local OS environment (`~/.nyxora/.env`) and never exposed to the internet.
-
----
+When the dashboard opens, you can modify any operational parameters in the **Settings** tab. The dashboard allows you to type custom model names, switch RPCs, and rotate your API keys effortlessly.
 
 ## Local Development (For Contributors) 🏗️
 

@@ -13,10 +13,24 @@ export interface NyxoraConfig {
     model: string;
     temperature: number;
     api_keys?: string[];
+    credentials?: {
+      openai_key?: string;
+      gemini_key?: string;
+      openrouter_key?: string;
+    };
   };
   memory: {
     type: string;
     path: string;
+  };
+  web3?: {
+    rpc_urls?: Record<string, string>;
+  };
+  integrations?: {
+    telegram?: {
+      enabled: boolean;
+      bot_token?: string;
+    };
   };
 }
 
@@ -30,8 +44,18 @@ export function loadConfig(): NyxoraConfig {
     console.error('Failed to load config.yaml. Using default configuration.', error);
     return {
       agent: { name: 'Nyxora-Default', default_chain: 'base' },
-      llm: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.2, api_keys: [] },
-      memory: { type: 'file', path: './memory.json' }
+      llm: { 
+        provider: 'openai', 
+        model: 'gpt-4o-mini', 
+        temperature: 0.2, 
+        api_keys: [],
+        credentials: {}
+      },
+      memory: { type: 'file', path: './memory.json' },
+      web3: { rpc_urls: {} },
+      integrations: {
+        telegram: { enabled: false }
+      }
     };
   }
 }

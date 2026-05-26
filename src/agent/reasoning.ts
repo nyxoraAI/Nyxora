@@ -45,6 +45,8 @@ function getOpenAI(): OpenAI {
   if (!apiKey) {
     if (config.llm.provider === 'gemini') {
       apiKey = process.env.GEMINI_API_KEY || '';
+    } else if (config.llm.provider === 'openrouter') {
+      apiKey = process.env.OPENROUTER_API_KEY || '';
     } else {
       apiKey = process.env.OPENAI_API_KEY || '';
     }
@@ -57,6 +59,11 @@ function getOpenAI(): OpenAI {
   if (config.llm.provider === 'gemini') {
     return new OpenAI({
       baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      apiKey: apiKey,
+    });
+  } else if (config.llm.provider === 'openrouter') {
+    return new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
       apiKey: apiKey,
     });
   } else {
@@ -120,8 +127,8 @@ export async function processUserInput(input: string): Promise<string> {
   ];
 
   try {
-    if (config.llm.provider !== 'openai' && config.llm.provider !== 'ollama' && config.llm.provider !== 'gemini') {
-      return `Provider ${config.llm.provider} is configured, but currently only OpenAI, Ollama, and Gemini adapters are implemented.`;
+    if (config.llm.provider !== 'openai' && config.llm.provider !== 'ollama' && config.llm.provider !== 'gemini' && config.llm.provider !== 'openrouter') {
+      return `Provider ${config.llm.provider} is configured, but currently only OpenAI, OpenRouter, Ollama, and Gemini adapters are implemented.`;
     }
 
     const openai = getOpenAI();
