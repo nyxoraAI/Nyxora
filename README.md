@@ -26,36 +26,56 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 ### 📱 Telegram Integration
 *   Take your agent anywhere! Connect Nyxora to a Telegram Bot to execute trades, check prices, and chat on the go.
 
-## Quick Start 🚀
+## Quick Start 🚀 (Global Install)
+
+Nyxora is now available on NPM! You can install it as a global CLI tool on your operating system.
 
 ### 1. Installation
-Clone the repository and install dependencies for both the backend and the dashboard:
-
+Open your terminal (Command Prompt, PowerShell, or Linux Terminal) and run:
 ```bash
-git clone https://github.com/perasyudha/Nyxora.git
-cd Nyxora
-npm install
-cd dashboard && npm install && cd ..
+npm install -g nyxora
 ```
 
-### 2. Configuration
-Copy the `.env.example` file to `.env` and fill in your private keys.
+### 2. Launching Nyxora
+No need to navigate to any specific folder! Just type:
 ```bash
-cp .env.example .env
+nyxora
 ```
-> **⚠️ WARNING**: NEVER commit your `.env` file! It contains your wallet's private key, API keys, and Telegram Bot Token.
+Nyxora will automatically:
+1. Initialize a secure vault in your `~/.nyxora/` directory (where your `.env` and `memory.json` will safely live).
+2. Start the local server.
+3. Open the gorgeous Web Dashboard automatically in your default browser!
 
-### 3. Run the Dashboard & Bot
-Nyxora runs a unified backend API, a Telegram Bot listener, and a Vite React frontend concurrently.
-```bash
-npm run build && npm run dashboard
-```
-This will automatically launch the UI in your default web browser at `http://localhost:5173`.
+### 3. Configuration
+When the dashboard opens, simply enter your **OpenAI/Gemini API Key** and your **Wallet Private Key** in the Settings tab. These are securely saved in your local OS environment (`~/.nyxora/.env`) and never exposed to the internet.
 
-## Architecture 🏗️
-*   **Backend**: Node.js, Express, Viem (Web3), node-telegram-bot-api, OpenAI API (compatible with Gemini & Ollama).
-*   **Frontend**: React, Vite, Tailwind/Vanilla CSS, Web Speech API (TTS/STT).
-*   **Data**: Local `config.yaml` for settings and `memory.json` for persistent agent conversations.
+---
+
+## Local Development (For Contributors) 🏗️
+
+If you want to modify Nyxora's code, build new skills, or contribute:
+
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/perasyudha/Nyxora.git
+   cd Nyxora
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   cd dashboard && npm install && cd ..
+   ```
+3. Run the development build:
+   ```bash
+   npm run build && npm run start
+   ```
+
+*To deploy your own branch to NPM, bump the version and run `npm run deploy`!*
+
+## Architecture
+*   **Backend**: Node.js, Express, Viem (Web3), node-telegram-bot-api, OpenAI API.
+*   **Frontend**: React, Vite, Vanilla CSS, Web Speech API (TTS/STT).
+*   **Data**: Local `~/.nyxora/config.yaml` and `~/.nyxora/memory.json`.
 
 ## License
 MIT License

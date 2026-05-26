@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "",
   "main": "dist/gateway/cli.js",
   "files": [
@@ -19,7 +19,8 @@
     "build": "npm run build --prefix dashboard && tsc",
     "start": "node dist/gateway/cli.js",
     "dashboard": "npm run build && node dist/gateway/cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "npm run build && git add . && git commit -m \"chore: auto-deploy new feature\" && git push && npm publish"
   },
   "keywords": [],
   "author": "",
