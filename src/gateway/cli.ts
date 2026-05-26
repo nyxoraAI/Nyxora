@@ -20,6 +20,7 @@ console.log(`================================`);
 // 2. Setup boilerplate files if in global mode and they don't exist
 if (isGlobalMode) {
   const globalEnvPath = path.join(appDir, '.env');
+  const globalConfigPath = path.join(appDir, 'config.yaml');
   const globalUserMdPath = path.join(appDir, 'user.md');
   const globalIdentityMdPath = path.join(appDir, 'IDENTITY.md');
 
@@ -31,6 +32,16 @@ if (isGlobalMode) {
       console.log(`[Setup] Created default .env at ${globalEnvPath}`);
     } else {
       fs.writeFileSync(globalEnvPath, '# Nyxora Environment Variables\nOPENAI_API_KEY=\nGEMINI_API_KEY=\nTELEGRAM_BOT_TOKEN=\n');
+    }
+  }
+
+  // Copy default config.yaml
+  if (!fs.existsSync(globalConfigPath)) {
+    const exampleConfigPath = path.resolve(__dirname, '../../../config.yaml');
+    if (fs.existsSync(exampleConfigPath)) {
+      fs.copyFileSync(exampleConfigPath, globalConfigPath);
+    } else {
+      fs.writeFileSync(globalConfigPath, 'agent:\n  name: Nyxora-Agent\n  default_chain: base\nllm:\n  provider: openai\n  model: gpt-4o-mini\n  temperature: 0.2\n  api_keys: []\nmemory:\n  type: file\n  path: memory.json\n');
     }
   }
 
