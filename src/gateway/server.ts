@@ -1,0 +1,93 @@
+import express from 'express';
+import cors from 'cors';
+import { processUserInput, logger } from '../agent/reasoning';
+import { loadConfig, saveConfig } from '../config/parser';
+import { Tracker } from './tracker';
+
+// Intercept console.log and console.error
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function (...args) {
+  Tracker.addGatewayLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+  originalLog.apply(console, args);
+};
+
+console.error = function (...args) {
+  Tracker.addGatewayLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '), { level: 'error' });
+  originalError.apply(console, args);
+};
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.get('/api/history', (req, res) => {
+  try {
+    const history = logger.getHistory();
+    // Filter out internal system prompt for the frontend
+    const cleanHistory = history.filter((msg: any) => msg.role !== 'system');
+    res.json(cleanHistory);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/history', (req, res) => {
+  try {
+    logger.clear();
+    Tracker.addEvent('memory.cleared');
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/config', (req, res) => {
+  try {
+    const config = loadConfig();
+    res.json(config);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config', (req, res) => {
+  try {
+    // Save new configuration to file
+    saveConfig(req.body);
+    Tracker.addEvent('config.updated', { provider: req.body.llm?.provider });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/stats', (req, res) => {
+  res.json(Tracker.getStats());
+});
+
+app.get('/api/logs', (req, res) => {
+  res.json(Tracker.getLogs());
+});
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    // Process input (this will automatically add to memory)
+    const response = await processUserInput(message);
+    
+    res.json({ response });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🤖 OpenWeb API Server running on port ${PORT}`);
+});
