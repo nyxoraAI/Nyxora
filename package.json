@@ -1,0 +1,38 @@
+{
+  "name": "openweb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/gateway/cli.js",
+  "bin": {
+    "openweb": "./dist/gateway/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/gateway/cli.js",
+    "dev": "ts-node src/gateway/cli.ts",
+    "dashboard:api": "node dist/gateway/server.js",
+    "dashboard:web": "npm run dev --prefix dashboard -- --open",
+    "dashboard": "concurrently \"npm run dashboard:api\" \"npm run dashboard:web\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "openai": "^6.39.0",
+    "viem": "^2.51.0",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

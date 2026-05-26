@@ -1,0 +1,16 @@
+# OpenWeb Agent Configuration
+
+agent:
+  name: OpenWeb-EVM-Agent
+  default_chain: sepolia
+
+llm:
+  # Supported providers: openai, anthropic, ollama, gemini
+  provider: gemini
+  model: gemini-2.5-flash
+  temperature: 0.2
+
+memory:
+  # Type of memory: file
+  type: file
+  path: ./memory.json

@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+memory.json
+
+# Vite dashboard ignores
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.env
+dashboard/.env.*
+dashboard/.eslintcache
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
