@@ -5,6 +5,9 @@ import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
 import { transferToolDefinition } from '../web3/skills/transfer';
+import { getPriceToolDefinition } from '../web3/skills/getPrice';
+import { swapTokenToolDefinition } from '../web3/skills/swapToken';
+import { startTelegramBot } from './telegram';
 
 // Intercept console.log and console.error
 const originalLog = console.log;
@@ -76,7 +79,9 @@ app.get('/api/logs', (req, res) => {
 app.get('/api/skills', (req, res) => {
   res.json([
     getBalanceToolDefinition,
-    transferToolDefinition
+    transferToolDefinition,
+    getPriceToolDefinition,
+    swapTokenToolDefinition
   ]);
 });
 
@@ -99,4 +104,7 @@ app.post('/api/chat', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🤖 OpenWeb API Server running on port ${PORT}`);
+  
+  // Start the Telegram bot listener
+  startTelegramBot();
 });

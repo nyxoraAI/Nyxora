@@ -24,6 +24,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "node-telegram-bot-api": "^0.67.0",
     "openai": "^6.39.0",
     "viem": "^2.51.0",
     "yaml": "^2.9.0"
@@ -32,6 +33,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
+    "@types/node-telegram-bot-api": "^0.64.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }

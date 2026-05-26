@@ -6,6 +6,8 @@ import Settings from './Settings';
 import Skills from './Skills';
 import BalanceWidget from './BalanceWidget';
 import TransactionWidget from './TransactionWidget';
+import MarketWidget from './MarketWidget';
+import SwapWidget from './SwapWidget';
 import './index.css';
 
 interface Message {
@@ -26,6 +28,9 @@ function App() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const isVoiceModeRef = useRef(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [config, setConfig] = useState<Config | null>(null);
   const [chatWidth, setChatWidth] = useState(70);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,13 +106,45 @@ function App() {
     }
   }, []);
 
-  const toggleVoice = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
+  const startListening = () => {
+    try {
       recognitionRef.current?.start();
       setIsListening(true);
+    } catch (e) {}
+  };
+
+  const speak = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    
+    // Clean markdown before speaking
+    const cleanText = text.replace(/[*#_`]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'id-ID';
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      // Auto-listen if in voice mode
+      if (isVoiceModeRef.current) {
+        startListening();
+      }
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleVoiceMode = () => {
+    const newMode = !isVoiceMode;
+    setIsVoiceMode(newMode);
+    isVoiceModeRef.current = newMode;
+    
+    if (newMode) {
+      startListening();
+    } else {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
     }
   };
 
@@ -160,8 +197,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    // Adding a slight timeout to ensure DOM is fully rendered before scrolling
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, 10);
+  }, [messages, isLoading, currentView]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,12 +214,18 @@ function App() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
 
     try {
-      await fetch('http://localhost:3000/api/chat', {
+      const res = await fetch('http://localhost:3000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),
       });
+      const data = await res.json();
       await fetchHistory();
+
+      // Trigger TTS if in voice mode
+      if (isVoiceModeRef.current && data.response) {
+        speak(data.response);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -196,6 +242,10 @@ function App() {
       activeWidget = <BalanceWidget data={latestToolMessage.content} />;
     } else if (latestToolMessage.name === 'transfer_native') {
       activeWidget = <TransactionWidget data={latestToolMessage.content} />;
+    } else if (latestToolMessage.name === 'get_price') {
+      activeWidget = <MarketWidget data={latestToolMessage.content} />;
+    } else if (latestToolMessage.name === 'swap_token') {
+      activeWidget = <SwapWidget data={latestToolMessage.content} />;
     }
   }
 
@@ -378,9 +428,9 @@ function App() {
               <form className="input-form" onSubmit={handleSubmit}>
                 <button 
                   type="button" 
-                  className={`voice-button ${isListening ? 'listening' : ''}`}
-                  onClick={toggleVoice}
-                  title="Push to Talk"
+                  className={`voice-button ${isListening ? 'listening' : ''} ${isSpeaking ? 'speaking' : ''} ${isVoiceMode && !isListening && !isSpeaking ? 'active-mode' : ''}`}
+                  onClick={toggleVoiceMode}
+                  title={isVoiceMode ? "Disable Voice Mode" : "Enable Hands-Free Voice Mode"}
                 >
                   <Mic size={20} />
                 </button>

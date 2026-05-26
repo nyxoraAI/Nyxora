@@ -6,14 +6,25 @@ With a beautiful, real-time dashboard inspired by modern control centers, OpenWe
 
 ## Features ✨
 
+### 🧠 Core Agent Capabilities
 *   **Multi-LLM Support**: Seamlessly switch between Google Gemini, OpenAI, or local Ollama models dynamically.
+*   **Round-Robin API Rotation**: Add up to 10 API keys via the dashboard. The system will auto-rotate them to prevent rate-limiting and token drain.
+*   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
+*   **Multi-Lingual Auto-Sync**: The agent natively detects your language and replies in the exact same language automatically.
+
+### ⛓️ Web3 DeFi Skills
 *   **Multi-Chain Support**: Operate across Ethereum, Base, BSC, Arbitrum, Optimism, and Sepolia Testnet.
-*   **Autonomous Web3 Skills**: The agent can autonomously decide when to execute blockchain transactions (e.g., checking balances, transferring native tokens) using your securely injected wallet.
-*   **Real-time Dashboard**: 
-    *   **Live Metrics**: Track LLM configuration, active chain, and wallet status.
-    *   **Memory Vault**: Inspect the agent's long-term memory, view hidden tool calls, or wipe the memory clean.
-    *   **Live Logs**: Watch the agent's "thoughts" and system events stream directly into the browser.
-    *   **Dynamic Settings**: Change the active AI provider, model, or chain on the fly—no backend restarts required!
+*   **Native Wallet Operations**: Autonomously check balances and transfer native tokens using securely injected wallets.
+*   **Market Intelligence**: Fetch live crypto prices and 24h market movements via CoinGecko integration.
+*   **DeFi Token Swapping**: The agent can autonomously simulate liquidity routes and execute token swaps with gas fee estimations.
+
+### 💻 The Interface (Live Canvas)
+*   **Premium Glassmorphism UI**: A gorgeous, resizable split-pane interface.
+*   **Pseudo-Generative UI**: Instead of raw text, the agent dynamically renders interactive widgets (`<BalanceWidget>`, `<MarketWidget>`, `<SwapWidget>`) onto the "Live Canvas" when executing Web3 skills.
+*   **JARVIS Voice Mode**: Completely hands-free! Uses browser Native Text-to-Speech (TTS) to read AI responses and Auto-Listen loops to capture your next voice command without clicking.
+
+### 📱 Telegram Integration
+*   Take your agent anywhere! Connect OpenWeb to a Telegram Bot to execute trades, check prices, and chat on the go.
 
 ## Quick Start 🚀
 
@@ -32,18 +43,18 @@ Copy the `.env.example` file to `.env` and fill in your private keys.
 ```bash
 cp .env.example .env
 ```
-> **⚠️ WARNING**: NEVER commit your `.env` file! It contains your wallet's private key and API keys.
+> **⚠️ WARNING**: NEVER commit your `.env` file! It contains your wallet's private key, API keys, and Telegram Bot Token.
 
-### 3. Run the Dashboard
-OpenWeb runs a unified backend API and a Vite React frontend concurrently.
+### 3. Run the Dashboard & Bot
+OpenWeb runs a unified backend API, a Telegram Bot listener, and a Vite React frontend concurrently.
 ```bash
 npm run build && npm run dashboard
 ```
 This will automatically launch the UI in your default web browser at `http://localhost:5173`.
 
 ## Architecture 🏗️
-*   **Backend**: Node.js, Express, Viem (Web3), OpenAI API (compatible with Gemini & Ollama).
-*   **Frontend**: React, Vite, Tailwind/Vanilla CSS (Glassmorphism UI), Lucide React.
+*   **Backend**: Node.js, Express, Viem (Web3), node-telegram-bot-api, OpenAI API (compatible with Gemini & Ollama).
+*   **Frontend**: React, Vite, Tailwind/Vanilla CSS, Web Speech API (TTS/STT).
 *   **Data**: Local `config.yaml` for settings and `memory.json` for persistent agent conversations.
 
 ## License

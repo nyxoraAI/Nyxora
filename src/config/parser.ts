@@ -11,6 +11,7 @@ export interface OpenWebConfig {
     provider: 'openai' | 'anthropic' | 'ollama' | 'gemini';
     model: string;
     temperature: number;
+    api_keys?: string[];
   };
   memory: {
     type: string;
@@ -28,7 +29,7 @@ export function loadConfig(): OpenWebConfig {
     console.error('Failed to load config.yaml. Using default configuration.', error);
     return {
       agent: { name: 'OpenWeb-Default', default_chain: 'base' },
-      llm: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.2 },
+      llm: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.2, api_keys: [] },
       memory: { type: 'file', path: './memory.json' }
     };
   }
