@@ -5,7 +5,8 @@ llm:
   provider: gemini
   model: gemini-2.5-flash
   temperature: 0.2
-  credentials: {}
+  credentials:
+    gemini_key: AIzaSyDBlde1SSp_kbTweW1QXHknwzRTYHp98IQ
 memory:
   type: file
   path: ./memory.json

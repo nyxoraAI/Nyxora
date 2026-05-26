@@ -9,7 +9,7 @@ export interface NyxoraConfig {
     default_chain: string;
   };
   llm: {
-    provider: 'openai' | 'anthropic' | 'ollama' | 'gemini';
+    provider: 'openai' | 'anthropic' | 'ollama' | 'gemini' | 'openrouter';
     model: string;
     temperature: number;
     api_keys?: string[];

@@ -1,3 +1,4 @@
+import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
 import { Compass, Code } from 'lucide-react';
 
@@ -27,7 +28,7 @@ const Skills: React.FC = () => {
   useEffect(() => {
     const fetchSkills = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/skills');
+        const res = await apiFetch('http://localhost:3000/api/skills');
         if (res.ok) setSkills(await res.json());
       } catch (e) {
         console.error(e);

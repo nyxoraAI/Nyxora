@@ -12,6 +12,12 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 *   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
 *   **Multi-Lingual Auto-Sync**: The agent natively detects your language and replies in the exact same language automatically.
 
+### 🛡️ Production-Ready Security (NEW in v1.0.9)
+*   **Encrypted Local Keystore**: No more `.env` leaks. Your Private Key is encrypted using `AES-256-GCM` and locked behind a custom **Master Password**.
+*   **Human-in-the-Loop Sandboxing**: The agent CANNOT execute transactions on its own. All transactions (Transfers & Swaps) are queued in a **Transaction Manager** and require explicit 1-click Approval from you.
+*   **Omnichannel Approvals**: Approve or reject pending transactions directly from the Web Dashboard's UI or via Telegram Inline Keyboard buttons on the go!
+*   **Strict API Auth**: The local Express server is protected via ephemeral Session Tokens (`x-nyxora-token`) and Strict CORS, preventing unauthorized local API requests.
+
 ### ⛓️ Web3 DeFi Skills
 *   **Multi-Chain Support**: Operate across Ethereum, Base, BSC, Arbitrum, Optimism, and Sepolia Testnet.
 *   **Native Wallet Operations**: Autonomously check balances and transfer native tokens using securely injected wallets.
@@ -45,9 +51,9 @@ On first launch, Nyxora will greet you with an **Interactive Setup Wizard**. Thi
 
 Nyxora will automatically:
 1. Initialize a secure vault in your `~/.nyxora/` directory.
-2. Store your Wallet Private Key securely in `~/.nyxora/.env`.
+2. Store your Wallet Private Key securely in an encrypted `~/.nyxora/keystore.json` locked by your Master Password.
 3. Store operational data (API Keys, RPCs) in `~/.nyxora/config.yaml`.
-4. Start the local server and open the Web Dashboard automatically!
+4. Start the local server, generate a secure Session Token, and open the Web Dashboard automatically!
 
 > 💡 **Tip:** You can invoke the setup wizard at any time to update your keys by running `nyxora setup`.
 

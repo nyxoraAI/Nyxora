@@ -1,19 +1,22 @@
 import { parseEther } from 'viem';
 import { getWalletClient, ChainName } from '../config';
+import { txManager } from '../../agent/transactionManager';
 
 export async function transferNative(chainName: ChainName, toAddress: `0x${string}`, amountEth: string): Promise<string> {
+  const tx = txManager.createPendingTransaction('transfer', chainName, { toAddress, amountEth });
+  return `TRANSACTION_PENDING: I have prepared the transfer. Transaction ID: ${tx.id}. Wait for user to approve.`;
+}
+
+export async function executeTransfer(chainName: ChainName, toAddress: `0x${string}`, amountEth: string): Promise<string> {
   try {
     const client = getWalletClient(chainName);
-    
-    // Attempt to send the transaction
     const hash = await client.sendTransaction({
       account: client.account!,
       chain: client.chain,
       to: toAddress,
       value: parseEther(amountEth),
     });
-    
-    return `Successfully transferred ${amountEth} native token on ${chainName}. Transaction hash: ${hash}`;
+    return `Transaction successful. Hash: ${hash}`;
   } catch (error: any) {
     return `Failed to transfer: ${error.message}`;
   }

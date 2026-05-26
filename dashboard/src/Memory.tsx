@@ -1,3 +1,4 @@
+import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
 import { Trash2, Download } from 'lucide-react';
 
@@ -14,7 +15,7 @@ const Memory: React.FC = () => {
 
   const fetchMemory = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/history');
+      const res = await apiFetch('http://localhost:3000/api/history');
       if (res.ok) {
         setHistory(await res.json());
       }
@@ -32,7 +33,7 @@ const Memory: React.FC = () => {
   const handleClear = async () => {
     if (!confirm('Are you sure you want to wipe the agent memory? This cannot be undone.')) return;
     try {
-      await fetch('http://localhost:3000/api/history', { method: 'DELETE' });
+      await apiFetch('http://localhost:3000/api/history', { method: 'DELETE' });
       setHistory([]);
     } catch (e) {
       console.error(e);

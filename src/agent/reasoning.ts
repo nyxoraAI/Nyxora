@@ -1,6 +1,3 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
-
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
@@ -41,19 +38,19 @@ function getOpenAI(): OpenAI {
     }
   }
 
-  // Fallbacks if no valid keys found in config
+  // Fallbacks if no valid keys found in config.llm.api_keys
   if (!apiKey) {
     if (config.llm.provider === 'gemini') {
-      apiKey = process.env.GEMINI_API_KEY || '';
+      apiKey = config.llm.credentials?.gemini_key || '';
     } else if (config.llm.provider === 'openrouter') {
-      apiKey = process.env.OPENROUTER_API_KEY || '';
+      apiKey = config.llm.credentials?.openrouter_key || '';
     } else {
-      apiKey = process.env.OPENAI_API_KEY || '';
+      apiKey = config.llm.credentials?.openai_key || '';
     }
     if (!apiKey) {
-      throw new Error(`No API Key found for ${config.llm.provider} in config or .env`);
+      throw new Error(`No API Key found for ${config.llm.provider} in config.yaml. Please run 'nyxora setup' to configure it.`);
     }
-    console.log(`[LLM] Using default API Key from .env`);
+    console.log(`[LLM] Using default API Key from config.yaml`);
   }
 
   if (config.llm.provider === 'gemini') {

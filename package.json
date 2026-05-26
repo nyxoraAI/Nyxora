@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "",
   "main": "dist/gateway/cli.js",
   "files": [
@@ -30,7 +30,6 @@
     "@clack/prompts": "^1.4.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "node-telegram-bot-api": "^0.67.0",
     "open": "^11.0.0",

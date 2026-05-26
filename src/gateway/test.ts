@@ -1,6 +1,6 @@
 import { processUserInput } from '../agent/reasoning';
-import * as dotenv from 'dotenv';
-dotenv.config();
+import { startTelegramBot } from './telegram';
+import { getPath } from '../config/paths';
 
 async function run() {
   console.log('🤖 Agent Test Started...');

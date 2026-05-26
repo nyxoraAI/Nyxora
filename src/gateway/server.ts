@@ -1,14 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import * as dotenv from 'dotenv';
 import { getPath } from '../config/paths';
-
-dotenv.config({ path: getPath('.env') });
+import { getSessionToken } from '../utils/state';
 
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
+import { txManager } from '../agent/transactionManager';
+import { executeTransfer } from '../web3/skills/transfer';
+import { executeSwap } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
 import { transferToolDefinition } from '../web3/skills/transfer';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
@@ -30,8 +31,17 @@ console.error = function (...args) {
 };
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5173'] }));
 app.use(express.json());
+
+// API Auth Middleware
+app.use('/api', (req, res, next) => {
+  const token = req.headers['x-nyxora-token'];
+  if (token !== getSessionToken()) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing token' });
+  }
+  next();
+});
 
 // Serve static frontend from dashboard/dist
 app.use(express.static(path.join(__dirname, '../../dashboard/dist')));
@@ -92,6 +102,44 @@ app.get('/api/skills', (req, res) => {
     getPriceToolDefinition,
     swapTokenToolDefinition
   ]);
+});
+
+app.get('/api/transactions', (req, res) => {
+  res.json(txManager.getPending());
+});
+
+app.post('/api/transactions/:id/approve', async (req, res) => {
+  const id = req.params.id;
+  const tx = txManager.getTransaction(id);
+  if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
+  
+  try {
+    let result = '';
+    if (tx.type === 'transfer') {
+      result = await executeTransfer(tx.chainName as any, tx.details.toAddress, tx.details.amountEth);
+    } else if (tx.type === 'swap') {
+      result = await executeSwap(tx.chainName, tx.details.fromToken, tx.details.toToken, tx.details.amount);
+    }
+    
+    txManager.updateStatus(id, 'executed', result);
+    // Tell the LLM that the transaction was executed
+    processUserInput(`[SYSTEM]: Transaction ${id} was APPROVED and EXECUTED by the user. Result: ${result}`);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    txManager.updateStatus(id, 'failed', err.message);
+    processUserInput(`[SYSTEM]: Transaction ${id} was APPROVED but FAILED to execute. Error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/transactions/:id/reject', (req, res) => {
+  const id = req.params.id;
+  const tx = txManager.getTransaction(id);
+  if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found' });
+  
+  txManager.updateStatus(id, 'rejected');
+  processUserInput(`[SYSTEM]: Transaction ${id} was REJECTED by the user.`);
+  res.json({ success: true });
 });
 
 app.post('/api/chat', async (req, res) => {

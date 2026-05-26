@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { getAppDir } from '../config/paths';
 import { loadConfig, saveConfig } from '../config/parser';
+import { encryptKey } from '../utils/crypto';
 
 export async function runSetupWizard() {
   console.clear();
@@ -27,7 +28,7 @@ export async function runSetupWizard() {
 `Nyxora adalah Asisten Web3 yang beroperasi dengan akses penuh atas kendali anda.
 
 Tindakan Pencegahan Kritis:
-- Private Key Anda adalah nyawa aset Anda. JANGAN PERNAH menyalin atau membagikan file .env.
+- Private Key Anda adalah nyawa aset Anda. JANGAN PERNAH menyalin atau membagikan file keystore.json.
 - Segala instruksi yang Anda berikan via Telegram atau Dashboard dapat memicu transaksi on-chain.
 - Disarankan menggunakan model AI yang cerdas untuk akurasi maksimal.
 
@@ -131,11 +132,19 @@ Provider: ${config.llm.provider}`;
     if (isCancel(telegramToken)) return process.exit(0);
   }
 
-  // 6. Wallet Private Key (.env)
+  // 6. Wallet Private Key (keystore.json)
   const privateKey = await password({
-    message: 'Masukkan Wallet Private Key (0x...)\n  (Super Rahasia! Akan disimpan eksklusif di .env. Biarkan kosong jika tidak ingin mengubah):',
+    message: 'Masukkan Wallet Private Key (0x...)\n  (Akan dienkripsi AES-256-GCM. Biarkan kosong jika tidak ingin mengubah):',
   });
   if (isCancel(privateKey)) return process.exit(0);
+
+  let masterPassword = '';
+  if (privateKey) {
+    masterPassword = (await password({
+      message: 'Masukkan MASTER PASSWORD untuk mengenkripsi brankas kunci Anda:',
+    })) as string;
+    if (isCancel(masterPassword) || !masterPassword) return process.exit(0);
+  }
 
   // --- SAVING ---
   
@@ -161,22 +170,22 @@ Provider: ${config.llm.provider}`;
 
   saveConfig(config);
 
-  // Update .env exclusively for Private Key
-  if (privateKey) {
-    const envPath = path.join(appDir, '.env');
-    let envContent = '';
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8');
+  // Update keystore.json exclusively for Private Key
+  if (privateKey && masterPassword) {
+    const keystorePath = path.join(appDir, 'keystore.json');
+    try {
+      const encryptedData = encryptKey(privateKey as string, masterPassword);
+      fs.writeFileSync(keystorePath, JSON.stringify(encryptedData, null, 2), 'utf8');
+      
+      // Cleanup old .env if it existed
+      const envPath = path.join(appDir, '.env');
+      if (fs.existsSync(envPath)) {
+        fs.unlinkSync(envPath);
+        console.log(pc.yellow('File .env lama telah dihapus demi keamanan.'));
+      }
+    } catch (error) {
+      console.error('Gagal menyimpan keystore.json:', error);
     }
-    
-    // Replace or append WALLET_PRIVATE_KEY
-    if (envContent.includes('PRIVATE_KEY=')) {
-      envContent = envContent.replace(/PRIVATE_KEY=.*/g, `PRIVATE_KEY="${privateKey}"`);
-    } else {
-      envContent += `\nPRIVATE_KEY="${privateKey}"`;
-    }
-    
-    fs.writeFileSync(envPath, envContent);
   }
 
   outro(pc.green('✨ Setup Berhasil! Semua konfigurasi telah disimpan dengan aman.'));
