@@ -28,7 +28,14 @@ export const swapTokenToolDefinition = {
   },
 };
 
+import { txManager } from '../../agent/transactionManager';
+
 export async function swapToken(chainName: string, fromToken: string, toToken: string, amount: number): Promise<string> {
+  const tx = txManager.createPendingTransaction('swap', chainName, { fromToken, toToken, amount });
+  return `TRANSACTION_PENDING: I have prepared the token swap. Transaction ID: ${tx.id}. Wait for user to approve.`;
+}
+
+export async function executeSwap(chainName: string, fromToken: string, toToken: string, amount: number): Promise<string> {
   try {
     // Generate simulated exchange rate for testnet/demo purposes
     let rate = 1.0;

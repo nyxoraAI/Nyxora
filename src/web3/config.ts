@@ -1,10 +1,8 @@
 import { createPublicClient, createWalletClient, http, PublicClient, WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, base, bsc, arbitrum, optimism, sepolia } from 'viem/chains';
-import * as dotenv from 'dotenv';
 import { loadConfig } from '../config/parser';
-
-dotenv.config();
+import { getPrivateKey } from '../utils/state';
 
 export const supportedChains = {
   ethereum: mainnet,
@@ -35,9 +33,8 @@ export function getWalletClient(chainName: ChainName): WalletClient {
   const chain = supportedChains[chainName];
   if (!chain) throw new Error(`Unsupported chain: ${chainName}`);
 
-  const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
-  if (!privateKey) throw new Error('PRIVATE_KEY is not set in .env');
-
+  const privateKey = getPrivateKey() as `0x${string}`;
+  
   const account = privateKeyToAccount(privateKey);
 
   const config = loadConfig();
@@ -52,7 +49,6 @@ export function getWalletClient(chainName: ChainName): WalletClient {
 }
 
 export function getAddress() {
-  const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
-  if (!privateKey) throw new Error('PRIVATE_KEY is not set in .env');
+  const privateKey = getPrivateKey() as `0x${string}`;
   return privateKeyToAccount(privateKey).address;
 }

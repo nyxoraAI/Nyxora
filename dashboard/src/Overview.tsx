@@ -1,3 +1,4 @@
+import { apiFetch } from './utils/api';
 import React, { useState, useEffect, useRef } from 'react';
 import './overview.css';
 
@@ -38,10 +39,10 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const statsRes = await fetch('http://localhost:3000/api/stats');
+        const statsRes = await apiFetch('http://localhost:3000/api/stats');
         if (statsRes.ok) setStats(await statsRes.json());
 
-        const logsRes = await fetch('http://localhost:3000/api/logs');
+        const logsRes = await apiFetch('http://localhost:3000/api/logs');
         if (logsRes.ok) {
           const logs = await logsRes.json();
           setEvents(logs.events);

@@ -1,9 +1,11 @@
+import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
 import { Send, Bot, Terminal, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Compass, Database, Mic } from 'lucide-react';
 import Overview from './Overview';
 import Memory from './Memory';
 import Settings from './Settings';
 import Skills from './Skills';
+import PendingTransactions from './PendingTransactions';
 import BalanceWidget from './BalanceWidget';
 import TransactionWidget from './TransactionWidget';
 import MarketWidget from './MarketWidget';
@@ -150,7 +152,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/history');
+      const res = await apiFetch('http://localhost:3000/api/history');
       if (res.ok) {
         const data = await res.json();
         setMessages(data);
@@ -165,7 +167,7 @@ function App() {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/config');
+      const res = await apiFetch('http://localhost:3000/api/config');
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
@@ -181,7 +183,7 @@ function App() {
   const updateConfig = async (newConfig: Config) => {
     setConfig(newConfig);
     try {
-      await fetch('http://localhost:3000/api/config', {
+      await apiFetch('http://localhost:3000/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newConfig),
@@ -214,7 +216,7 @@ function App() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
 
     try {
-      const res = await fetch('http://localhost:3000/api/chat', {
+      const res = await apiFetch('http://localhost:3000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),
@@ -510,6 +512,7 @@ function App() {
                 <span style={{ fontSize: '0.8rem' }}>Ask the agent to check your balance or make a transfer.</span>
               </div>
             )}
+            <PendingTransactions />
           </div>
         </div>
         )}

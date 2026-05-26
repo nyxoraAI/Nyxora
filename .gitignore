@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 memory.json
+keystore.json
 
 # Vite dashboard ignores
 dashboard/node_modules/

@@ -1,3 +1,4 @@
+import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 
@@ -64,7 +65,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch('http://localhost:3000/api/config', {
+      const res = await apiFetch('http://localhost:3000/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

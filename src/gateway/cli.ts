@@ -3,11 +3,14 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import * as dotenv from 'dotenv';
 import open from 'open';
 import { getAppDir } from '../config/paths';
 import { startServer } from './server';
 import { runSetupWizard } from './setup';
+import { password, isCancel } from '@clack/prompts';
+import { decryptKey, EncryptedKeystore } from '../utils/crypto';
+import { setPrivateKey, getSessionToken } from '../utils/state';
+import pc from 'picocolors';
 
 async function main() {
   // 1. Determine configuration directory
@@ -68,16 +71,39 @@ console.log(`================================`);
     await runSetupWizard();
   }
 
-  // 3. Load Environment Variables from the determined directory
-  dotenv.config({ path: path.join(appDir, '.env') });
+  // 3. Load Private Key into Memory
+  const keystorePath = path.join(appDir, 'keystore.json');
+  if (fs.existsSync(keystorePath)) {
+    const masterPassword = await password({
+      message: '🔒 Brankas terkunci! Masukkan Master Password untuk mengakses Nyxora:',
+    });
+
+    if (isCancel(masterPassword) || !masterPassword) {
+      console.log(pc.red('Akses ditolak. Keluar dari Nyxora.'));
+      return process.exit(0);
+    }
+
+    try {
+      const keystore: EncryptedKeystore = JSON.parse(fs.readFileSync(keystorePath, 'utf8'));
+      const privateKey = decryptKey(keystore, masterPassword as string);
+      setPrivateKey(privateKey);
+      console.log(pc.green('✅ Kunci Privat berhasil didekripsi ke dalam memori.'));
+    } catch (error) {
+      console.log(pc.red('❌ Master Password salah atau keystore rusak. Keluar dari Nyxora.'));
+      return process.exit(1);
+    }
+  } else {
+    console.log(pc.yellow('⚠️ Keystore tidak ditemukan. Fitur Web3 akan dinonaktifkan kecuali Anda menjalankan `nyxora setup`.'));
+  }
 
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
   startServer();
 
   // 5. Open the Dashboard in the default browser
   const PORT = process.env.PORT || 3000;
+  const token = getSessionToken();
   setTimeout(() => {
-    const url = `http://localhost:${PORT}`;
+    const url = `http://localhost:${PORT}?token=${token}`;
     console.log(`🌐 Opening Dashboard at ${url}`);
     open(url);
   }, 1500);
