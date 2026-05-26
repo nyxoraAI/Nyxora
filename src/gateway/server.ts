@@ -111,8 +111,12 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // Fallback for React Router (Single Page Application)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../../dashboard/dist/index.html'));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../../../dashboard/dist/index.html'));
+  } else {
+    next();
+  }
 });
 
 export function startServer() {
