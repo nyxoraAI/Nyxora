@@ -34,7 +34,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static frontend from dashboard/dist
-app.use(express.static(path.join(__dirname, '../../../dashboard/dist')));
+app.use(express.static(path.join(__dirname, '../../dashboard/dist')));
 
 app.get('/api/history', (req, res) => {
   try {
@@ -113,7 +113,7 @@ app.post('/api/chat', async (req, res) => {
 // Fallback for React Router (Single Page Application)
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../../../dashboard/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../../dashboard/dist/index.html'));
   } else {
     next();
   }
