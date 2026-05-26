@@ -1,8 +1,8 @@
-# OpenWeb Agent 🤖
+# Nyxora Agent 🤖
 
-OpenWeb is a next-generation, autonomous Web3 Agent built on Node.js and React. It operates directly on EVM-compatible blockchains, allowing users to execute on-chain actions simply by chatting with an intelligent LLM. 
+Nyxora is a next-generation, autonomous Web3 Agent built on Node.js and React. It operates directly on EVM-compatible blockchains, allowing users to execute on-chain actions simply by chatting with an intelligent LLM. 
 
-With a beautiful, real-time dashboard inspired by modern control centers, OpenWeb brings an unparalleled user experience to blockchain automation.
+With a beautiful, real-time dashboard inspired by modern control centers, Nyxora brings an unparalleled user experience to blockchain automation.
 
 ## Features ✨
 
@@ -24,7 +24,7 @@ With a beautiful, real-time dashboard inspired by modern control centers, OpenWe
 *   **JARVIS Voice Mode**: Completely hands-free! Uses browser Native Text-to-Speech (TTS) to read AI responses and Auto-Listen loops to capture your next voice command without clicking.
 
 ### 📱 Telegram Integration
-*   Take your agent anywhere! Connect OpenWeb to a Telegram Bot to execute trades, check prices, and chat on the go.
+*   Take your agent anywhere! Connect Nyxora to a Telegram Bot to execute trades, check prices, and chat on the go.
 
 ## Quick Start 🚀
 
@@ -32,8 +32,8 @@ With a beautiful, real-time dashboard inspired by modern control centers, OpenWe
 Clone the repository and install dependencies for both the backend and the dashboard:
 
 ```bash
-git clone https://github.com/perasyudha/OpenWeb.git
-cd OpenWeb
+git clone https://github.com/perasyudha/Nyxora.git
+cd Nyxora
 npm install
 cd dashboard && npm install && cd ..
 ```
@@ -46,7 +46,7 @@ cp .env.example .env
 > **⚠️ WARNING**: NEVER commit your `.env` file! It contains your wallet's private key, API keys, and Telegram Bot Token.
 
 ### 3. Run the Dashboard & Bot
-OpenWeb runs a unified backend API, a Telegram Bot listener, and a Vite React frontend concurrently.
+Nyxora runs a unified backend API, a Telegram Bot listener, and a Vite React frontend concurrently.
 ```bash
 npm run build && npm run dashboard
 ```

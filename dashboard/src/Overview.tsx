@@ -62,7 +62,7 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
   return (
     <div className="overview-container">
       <div className="overview-header">
-        <h1>OpenWeb Status</h1>
+        <h1>Nyxora Status</h1>
         <p>System health, active configuration, and loaded Web3 skills.</p>
       </div>
 

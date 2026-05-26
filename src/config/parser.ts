@@ -1,8 +1,9 @@
 import fs from 'fs';
 import yaml from 'yaml';
 import path from 'path';
+import { getPath } from './paths';
 
-export interface OpenWebConfig {
+export interface NyxoraConfig {
   agent: {
     name: string;
     default_chain: string;
@@ -19,24 +20,24 @@ export interface OpenWebConfig {
   };
 }
 
-export function loadConfig(): OpenWebConfig {
-  const configPath = path.resolve(process.cwd(), 'config.yaml');
+export function loadConfig(): NyxoraConfig {
+  const configPath = getPath('config.yaml');
   try {
     const file = fs.readFileSync(configPath, 'utf8');
     const parsed = yaml.parse(file);
-    return parsed as OpenWebConfig;
+    return parsed as NyxoraConfig;
   } catch (error) {
     console.error('Failed to load config.yaml. Using default configuration.', error);
     return {
-      agent: { name: 'OpenWeb-Default', default_chain: 'base' },
+      agent: { name: 'Nyxora-Default', default_chain: 'base' },
       llm: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.2, api_keys: [] },
       memory: { type: 'file', path: './memory.json' }
     };
   }
 }
 
-export function saveConfig(newConfig: OpenWebConfig): void {
-  const configPath = path.resolve(process.cwd(), 'config.yaml');
+export function saveConfig(newConfig: NyxoraConfig): void {
+  const configPath = getPath('config.yaml');
   try {
     const yamlStr = yaml.stringify(newConfig);
     fs.writeFileSync(configPath, yamlStr, 'utf8');

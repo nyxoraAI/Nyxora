@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Currently, the OpenWeb project is in active development. Only the latest commit on the `main` branch is supported with security updates.
+Currently, the Nyxora project is in active development. Only the latest commit on the `main` branch is supported with security updates.
 
 ## Reporting a Vulnerability
 
@@ -11,7 +11,7 @@ If you discover a security vulnerability within this project, please **do not** 
 Instead, please send an email to the repository owner or reach out privately. We will endeavor to respond and provide a patch as quickly as possible.
 
 ## Best Practices for Users
-When using OpenWeb, you are configuring an autonomous agent that has direct access to your injected Web3 Wallet's private key.
+When using Nyxora, you are configuring an autonomous agent that has direct access to your injected Web3 Wallet's private key.
 
 1. **NEVER commit your `.env` file**. The `.gitignore` in this repository explicitly ignores `.env` files to prevent accidental leakage.
 2. **Use Testnets**: While getting started or testing new skills, ALWAYS use a testnet (e.g., Sepolia) and a wallet containing only testnet funds.

@@ -7,7 +7,7 @@ async function run() {
   console.log('👤 You: Tolong cek saldo native di jaringan ethereum');
   try {
     const response = await processUserInput('Tolong cek saldo native di jaringan ethereum');
-    console.log(`\n🤖 OpenWeb Agent: ${response}\n`);
+    console.log(`\n🤖 Nyxora Agent: ${response}\n`);
   } catch (err: any) {
     console.error(`Error: ${err.message}`);
   }

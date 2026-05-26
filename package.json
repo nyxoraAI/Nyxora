@@ -1,18 +1,15 @@
 {
-  "name": "openweb",
+  "name": "nyxora",
   "version": "1.0.0",
   "description": "",
   "main": "dist/gateway/cli.js",
   "bin": {
-    "openweb": "./dist/gateway/cli.js"
+    "nyxora": "./dist/gateway/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build --prefix dashboard && tsc",
     "start": "node dist/gateway/cli.js",
-    "dev": "ts-node src/gateway/cli.ts",
-    "dashboard:api": "node dist/gateway/server.js",
-    "dashboard:web": "npm run dev --prefix dashboard -- --open",
-    "dashboard": "concurrently \"npm run dashboard:api\" \"npm run dashboard:web\"",
+    "dashboard": "npm run build && node dist/gateway/cli.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -25,6 +22,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "node-telegram-bot-api": "^0.67.0",
+    "open": "^11.0.0",
     "openai": "^6.39.0",
     "viem": "^2.51.0",
     "yaml": "^2.9.0"

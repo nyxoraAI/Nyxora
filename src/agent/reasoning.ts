@@ -11,6 +11,7 @@ import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance'
 import { transferToolDefinition, transferNative } from '../web3/skills/transfer';
 import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
 import { swapTokenToolDefinition, swapToken } from '../web3/skills/swapToken';
+import { getPath } from '../config/paths';
 
 export const logger = new Logger();
 
@@ -76,9 +77,9 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
 
   // Read IDENTITY.md for core AI persona
   try {
-    const identityPath = path.resolve(process.cwd(), 'IDENTITY.md');
-    if (fs.existsSync(identityPath)) {
-      const identityInstructions = fs.readFileSync(identityPath, 'utf8');
+    const identityMdPath = getPath('IDENTITY.md');
+    if (fs.existsSync(identityMdPath)) {
+      const identityInstructions = fs.readFileSync(identityMdPath, 'utf8');
       basePrompt += `\n\n--- CORE IDENTITY & PERSONA ---\n${identityInstructions}`;
     }
   } catch (error) {
@@ -87,7 +88,7 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
 
   // Read user.md for custom instructions
   try {
-    const userMdPath = path.resolve(process.cwd(), 'user.md');
+    const userMdPath = getPath('user.md');
     if (fs.existsSync(userMdPath)) {
       const customInstructions = fs.readFileSync(userMdPath, 'utf8');
       basePrompt += `\n\n--- CUSTOM USER INSTRUCTIONS ---\n${customInstructions}`;

@@ -85,7 +85,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
     <div className="overview-container">
       <div className="overview-header">
         <h1>Configuration</h1>
-        <p>Modify the core behaviors and parameters of the OpenWeb Agent.</p>
+        <p>Modify the core behaviors and parameters of the Nyxora Agent.</p>
       </div>
 
       <div className="panel">
