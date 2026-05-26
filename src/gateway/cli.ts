@@ -31,24 +31,13 @@ console.log(`================================`);
   // 2. Setup boilerplate files if in global mode and they don't exist
   let isFirstBoot = false;
   if (isGlobalMode) {
-  const globalEnvPath = path.join(appDir, '.env');
   const globalConfigPath = path.join(appDir, 'config.yaml');
   const globalUserMdPath = path.join(appDir, 'user.md');
   const globalIdentityMdPath = path.join(appDir, 'IDENTITY.md');
 
-  // Copy .env.example to ~/.nyxora/.env if it doesn't exist
-  if (!fs.existsSync(globalEnvPath)) {
-    isFirstBoot = true;
-    const exampleEnvPath = path.resolve(__dirname, '../../../.env.example');
-    if (fs.existsSync(exampleEnvPath)) {
-      fs.copyFileSync(exampleEnvPath, globalEnvPath);
-    } else {
-      fs.writeFileSync(globalEnvPath, '# Nyxora Environment Variables\nPRIVATE_KEY=\n');
-    }
-  }
-
   // Copy default config.yaml
   if (!fs.existsSync(globalConfigPath)) {
+    isFirstBoot = true;
     const exampleConfigPath = path.resolve(__dirname, '../../../config.yaml');
     if (fs.existsSync(exampleConfigPath)) {
       fs.copyFileSync(exampleConfigPath, globalConfigPath);
