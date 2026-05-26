@@ -1,8 +1,11 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { processUserInput } from '../agent/reasoning';
+import { loadConfig } from '../config/parser';
 
 export function startTelegramBot() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const config = loadConfig();
+  const token = config.integrations?.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN;
+
   
   if (!token) {
     console.log('[Telegram] No TELEGRAM_BOT_TOKEN found in .env. Bot is disabled.');

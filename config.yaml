@@ -5,6 +5,10 @@ llm:
   provider: gemini
   model: gemini-2.5-flash
   temperature: 0.2
+  credentials: {}
 memory:
   type: file
   path: ./memory.json
+integrations:
+  telegram:
+    enabled: false

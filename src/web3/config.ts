@@ -2,6 +2,7 @@ import { createPublicClient, createWalletClient, http, PublicClient, WalletClien
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, base, bsc, arbitrum, optimism, sepolia } from 'viem/chains';
 import * as dotenv from 'dotenv';
+import { loadConfig } from '../config/parser';
 
 dotenv.config();
 
@@ -20,10 +21,13 @@ export function getPublicClient(chainName: ChainName): PublicClient {
   const chain = supportedChains[chainName];
   if (!chain) throw new Error(`Unsupported chain: ${chainName}`);
 
+  const config = loadConfig();
+  const rpcUrl = config.web3?.rpc_urls?.[chainName];
+
   // @ts-ignore
   return createPublicClient({
     chain,
-    transport: http(), // Falls back to public RPC, can be customized with process.env
+    transport: http(rpcUrl),
   });
 }
 
@@ -36,11 +40,14 @@ export function getWalletClient(chainName: ChainName): WalletClient {
 
   const account = privateKeyToAccount(privateKey);
 
+  const config = loadConfig();
+  const rpcUrl = config.web3?.rpc_urls?.[chainName];
+
   // @ts-ignore
   return createWalletClient({
     account,
     chain,
-    transport: http(),
+    transport: http(rpcUrl),
   });
 }
 

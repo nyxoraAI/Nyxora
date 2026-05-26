@@ -131,6 +131,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
             >
               <option value="gemini">Google Gemini</option>
               <option value="openai">OpenAI</option>
+              <option value="openrouter">OpenRouter</option>
               <option value="ollama">Ollama (Local)</option>
             </select>
           </div>
