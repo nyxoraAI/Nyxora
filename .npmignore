@@ -1,0 +1,13 @@
+node_modules/
+src/
+dashboard/node_modules/
+dashboard/src/
+dashboard/public/
+.env
+.env.*
+!.env.example
+memory.json
+*.log
+.git/
+.gitignore
+scratch/
