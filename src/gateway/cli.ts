@@ -47,16 +47,16 @@ console.log(`================================`);
   }
 
   if (!fs.existsSync(globalUserMdPath)) {
-    fs.writeFileSync(globalUserMdPath, 'Tuliskan instruksi kustom, aturan khusus, profil pengguna, atau persona yang Anda inginkan untuk Nyxora AI di file ini.\n');
+    fs.writeFileSync(globalUserMdPath, 'Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n');
   }
 
   if (!fs.existsSync(globalIdentityMdPath)) {
-    fs.writeFileSync(globalIdentityMdPath, 'Kamu adalah Nyxora, asisten Web3 pintar.\n');
+    fs.writeFileSync(globalIdentityMdPath, 'You are a Web3 AI assistant named Nyxora.\n');
   }
 }
 
   if (isFirstBoot) {
-    console.log('[Setup] Instalasi baru terdeteksi. Memulai Setup Wizard...');
+    console.log('[Setup] New installation detected. Starting Setup Wizard...');
     await runSetupWizard();
   }
 
@@ -64,11 +64,11 @@ console.log(`================================`);
   const keystorePath = path.join(appDir, 'keystore.json');
   if (fs.existsSync(keystorePath)) {
     const masterPassword = await password({
-      message: '🔒 Brankas terkunci! Masukkan Master Password untuk mengakses Nyxora:',
+      message: '🔒 Vault locked! Enter Master Password to access Nyxora:',
     });
 
     if (isCancel(masterPassword) || !masterPassword) {
-      console.log(pc.red('Akses ditolak. Keluar dari Nyxora.'));
+      console.log(pc.red('Access denied. Exiting Nyxora.'));
       return process.exit(0);
     }
 
@@ -76,13 +76,13 @@ console.log(`================================`);
       const keystore: EncryptedKeystore = JSON.parse(fs.readFileSync(keystorePath, 'utf8'));
       const privateKey = decryptKey(keystore, masterPassword as string);
       setPrivateKey(privateKey);
-      console.log(pc.green('✅ Kunci Privat berhasil didekripsi ke dalam memori.'));
+      console.log(pc.green('✅ Private Key successfully decrypted into memory.'));
     } catch (error) {
-      console.log(pc.red('❌ Master Password salah atau keystore rusak. Keluar dari Nyxora.'));
+      console.log(pc.red('❌ Invalid Master Password or corrupted keystore. Exiting Nyxora.'));
       return process.exit(1);
     }
   } else {
-    console.log(pc.yellow('⚠️ Keystore tidak ditemukan. Fitur Web3 akan dinonaktifkan kecuali Anda menjalankan `nyxora setup`.'));
+    console.log(pc.yellow('⚠️ Keystore not found. Web3 features will be disabled unless you run `nyxora setup`.'));
   }
 
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)

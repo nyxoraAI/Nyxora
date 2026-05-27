@@ -19,55 +19,55 @@ export async function runSetupWizard() {
   `;
 
   console.log(pc.cyan(logo));
-  intro(pc.inverse(' Pengaturan Nyxora CLI '));
+  intro(pc.inverse(' Nyxora CLI Setup '));
 
   const appDir = getAppDir();
   const config = loadConfig();
 
   const disclaimer = 
-`Nyxora adalah Asisten Web3 yang beroperasi dengan akses penuh atas kendali anda.
+`Nyxora is a Web3 Assistant that operates with full access under your control.
 
-Tindakan Pencegahan Kritis:
-- Private Key Anda adalah nyawa aset Anda. JANGAN PERNAH menyalin atau membagikan file keystore.json.
-- Segala instruksi yang Anda berikan via Telegram atau Dashboard dapat memicu transaksi on-chain.
-- Disarankan menggunakan model AI yang cerdas untuk akurasi maksimal.
+Critical Precautions:
+- Your Private Key is the lifeblood of your assets. NEVER copy or share the keystore.json file.
+- Any instructions you provide via Telegram or Dashboard can trigger on-chain transactions.
+- It is recommended to use a smart AI model for maximum accuracy.
 
-Dengan menggunakan Nyxora, Anda sepenuhnya memegang kendali atas kunci Anda sendiri.`;
+By using Nyxora, you retain full control over your own keys.`;
 
-  note(disclaimer, 'Peringatan Keamanan');
+  note(disclaimer, 'Security Warning');
 
   const understand = await confirm({
-    message: 'Saya mengerti bahwa keamanan Private Key adalah tanggung jawab saya. Lanjutkan?',
+    message: 'I understand that Private Key security is my responsibility. Continue?',
     initialValue: true,
   });
 
   if (isCancel(understand) || !understand) {
-    cancel('Pengaturan dibatalkan.');
+    cancel('Setup cancelled.');
     return process.exit(0);
   }
 
   const existingConfigNote = 
 `Workspace: ${appDir}
-Model Saat Ini: ${config.llm.model}
+Current Model: ${config.llm.model}
 Provider: ${config.llm.provider}`;
 
-  note(existingConfigNote, 'Konfigurasi Terdeteksi');
+  note(existingConfigNote, 'Configuration Detected');
 
   const action = await select({
-    message: 'Apa yang ingin Anda lakukan?',
+    message: 'What would you like to do?',
     options: [
-      { value: 'keep', label: 'Pertahankan nilai saat ini' },
-      { value: 'update', label: 'Tinjau dan perbarui pengaturan' },
+      { value: 'keep', label: 'Keep current values' },
+      { value: 'update', label: 'Review and update settings' },
     ],
   });
 
   if (isCancel(action)) {
-    cancel('Pengaturan dibatalkan.');
+    cancel('Setup cancelled.');
     return process.exit(0);
   }
 
   if (action === 'keep') {
-    outro(pc.green('Selesai! Konfigurasi tidak diubah. Menjalankan Nyxora...'));
+    outro(pc.green('Done! Configuration unchanged. Starting Nyxora...'));
     return;
   }
 
@@ -75,20 +75,20 @@ Provider: ${config.llm.provider}`;
 
   // 1. LLM Provider
   const provider = await select({
-    message: 'Pilih Mesin AI (Provider):',
+    message: 'Select AI Engine (Provider):',
     initialValue: config.llm.provider,
     options: [
-      { value: 'openai', label: 'OpenAI (Rekomendasi)' },
+      { value: 'openai', label: 'OpenAI (Recommended)' },
       { value: 'gemini', label: 'Google Gemini' },
-      { value: 'openrouter', label: 'OpenRouter (Banyak Model)' },
-      { value: 'ollama', label: 'Ollama (Lokal)' },
+      { value: 'openrouter', label: 'OpenRouter (Many Models)' },
+      { value: 'ollama', label: 'Ollama (Local)' },
     ],
   });
   if (isCancel(provider)) return process.exit(0);
 
   // 2. Model Name
   const model = await text({
-    message: 'Masukkan nama model AI (contoh: gpt-4o, gemini-2.5-flash):',
+    message: 'Enter AI model name (e.g. gpt-4o, gemini-2.5-flash):',
     initialValue: config.llm.model,
   });
   if (isCancel(model)) return process.exit(0);
@@ -97,14 +97,14 @@ Provider: ${config.llm.provider}`;
   let apiKey = '';
   if (provider !== 'ollama') {
     apiKey = (await password({
-      message: `Masukkan API Key untuk ${provider} (Biarkan kosong jika sudah ada):`,
+      message: `Enter API Key for ${provider} (Leave empty if already set):`,
     })) as string;
     if (isCancel(apiKey)) return process.exit(0);
   }
 
   // 4. Default Chain
   const defaultChain = await select({
-    message: 'Pilih Jaringan Utama (Default Chain):',
+    message: 'Select Default Chain:',
     initialValue: config.agent.default_chain,
     options: [
       { value: 'sepolia', label: 'Sepolia (Testnet)' },
@@ -119,7 +119,7 @@ Provider: ${config.llm.provider}`;
 
   // 5. Telegram Bot
   const setupTelegram = await confirm({
-    message: 'Apakah Anda ingin memasang Bot Telegram?',
+    message: 'Do you want to setup the Telegram Bot?',
     initialValue: config.integrations?.telegram?.enabled || false,
   });
   if (isCancel(setupTelegram)) return process.exit(0);
@@ -127,21 +127,21 @@ Provider: ${config.llm.provider}`;
   let telegramToken = '';
   if (setupTelegram) {
     telegramToken = (await password({
-      message: 'Masukkan Telegram Bot Token dari @BotFather (Biarkan kosong jika sudah ada):',
+      message: 'Enter Telegram Bot Token from @BotFather (Leave empty if already set):',
     })) as string;
     if (isCancel(telegramToken)) return process.exit(0);
   }
 
   // 6. Wallet Private Key (keystore.json)
   const privateKey = await password({
-    message: 'Masukkan Wallet Private Key (0x...)\n  (Akan dienkripsi AES-256-GCM. Biarkan kosong jika tidak ingin mengubah):',
+    message: 'Enter Wallet Private Key (0x...)\n  (Will be AES-256-GCM encrypted. Leave empty to keep current):',
   });
   if (isCancel(privateKey)) return process.exit(0);
 
   let masterPassword = '';
   if (privateKey) {
     masterPassword = (await password({
-      message: 'Masukkan MASTER PASSWORD untuk mengenkripsi brankas kunci Anda:',
+      message: 'Enter MASTER PASSWORD to encrypt your key vault:',
     })) as string;
     if (isCancel(masterPassword) || !masterPassword) return process.exit(0);
   }
@@ -181,12 +181,12 @@ Provider: ${config.llm.provider}`;
       const envPath = path.join(appDir, '.env');
       if (fs.existsSync(envPath)) {
         fs.unlinkSync(envPath);
-        console.log(pc.yellow('File .env lama telah dihapus demi keamanan.'));
+        console.log(pc.yellow('Legacy .env file has been deleted for security.'));
       }
     } catch (error) {
-      console.error('Gagal menyimpan keystore.json:', error);
+      console.error('Failed to save keystore.json:', error);
     }
   }
 
-  outro(pc.green('✨ Setup Berhasil! Semua konfigurasi telah disimpan dengan aman.'));
+  outro(pc.green('✨ Setup Successful! All configurations have been securely saved.'));
 }
