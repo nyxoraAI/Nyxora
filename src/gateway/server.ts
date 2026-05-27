@@ -123,11 +123,11 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     
     txManager.updateStatus(id, 'executed', result);
     // Tell the LLM that the transaction was executed
-    processUserInput(`[SYSTEM]: Transaction ${id} was APPROVED and EXECUTED by the user. Result: ${result}`);
+    processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Summarize this result in a friendly way: ${result}`, 'system');
     res.json({ success: true, result });
   } catch (err: any) {
     txManager.updateStatus(id, 'failed', err.message);
-    processUserInput(`[SYSTEM]: Transaction ${id} was APPROVED but FAILED to execute. Error: ${err.message}`);
+    processUserInput(`Transaction ${id} was APPROVED but FAILED to execute. Explain this error: ${err.message}`, 'system');
     res.status(500).json({ error: err.message });
   }
 });
@@ -135,10 +135,10 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
 app.post('/api/transactions/:id/reject', (req, res) => {
   const id = req.params.id;
   const tx = txManager.getTransaction(id);
-  if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found' });
+  if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
   
   txManager.updateStatus(id, 'rejected');
-  processUserInput(`[SYSTEM]: Transaction ${id} was REJECTED by the user.`);
+  processUserInput(`Transaction ${id} was REJECTED by the user via Dashboard. Acknowledge this briefly.`, 'system');
   res.json({ success: true });
 });
 
