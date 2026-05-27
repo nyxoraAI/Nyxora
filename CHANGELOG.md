@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.1]
+## [1.4.3]
+
+### Changed
+- Completely rewrote `README.md` (English) to follow the structured, security-first Web3-Ops template. 
+
+## [1.4.2]
 
 ### Changed
 - Updated `README.md` to highlight Web3-Ops capabilities (System Automation, NLP Security Policies, and Dynamic Plugins).
