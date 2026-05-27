@@ -84,18 +84,18 @@ export function startTelegramBot() {
             result = await executeSwap(tx.chainName, tx.details.fromToken, tx.details.toToken, tx.details.amount);
           }
           txManager.updateStatus(txId, 'executed', result);
-          processUserInput(`[SYSTEM]: Transaction ${txId} was APPROVED via Telegram. Result: ${result}`);
-          bot.sendMessage(chatId, `✅ Transaction successful!\n${result}`);
+          const aiSummary = await processUserInput(`Transaction ${txId} was APPROVED via Telegram. Explain this success result to the user naturally: ${result}`, 'system');
+          bot.sendMessage(chatId, `✅ Transaction processed:\n\n${aiSummary}`);
         } catch (err: any) {
           txManager.updateStatus(txId, 'failed', err.message);
-          processUserInput(`[SYSTEM]: Transaction ${txId} FAILED via Telegram. Error: ${err.message}`);
-          bot.sendMessage(chatId, `❌ Transaction failed!\n${err.message}`);
+          const aiSummary = await processUserInput(`Transaction ${txId} FAILED via Telegram. Explain this error to the user naturally: ${err.message}`, 'system');
+          bot.sendMessage(chatId, `❌ Transaction failed!\n\n${aiSummary}`);
         }
       } else if (action === 'reject') {
         txManager.updateStatus(txId, 'rejected');
-        processUserInput(`[SYSTEM]: Transaction ${txId} was REJECTED via Telegram.`);
+        processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system');
         bot.answerCallbackQuery(query.id, { text: 'Transaction cancelled.' });
-        bot.sendMessage(chatId, `❌ Transaction ${txId} has been cancelled.`);
+        bot.sendMessage(chatId, `❌ Transaction cancelled.`);
       }
       
       // Remove inline keyboard

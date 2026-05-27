@@ -104,10 +104,10 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
   return basePrompt;
 }
 
-export async function processUserInput(input: string): Promise<string> {
+export async function processUserInput(input: string, role: 'user' | 'system' = 'user'): Promise<string> {
   const config = loadConfig();
-  // Add user input to memory
-  logger.addEntry({ role: 'user', content: input });
+  // Add input to memory
+  logger.addEntry({ role, content: input });
 
   const history = logger.getHistory();
   
