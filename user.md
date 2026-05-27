@@ -1,10 +1,9 @@
-Tuliskan instruksi kustom, aturan khusus, profil pengguna, atau persona yang Anda inginkan untuk Nyxora AI di file ini.
+Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.
 
-Setiap kali agen membaca pesan Anda, ia akan membaca file ini terlebih dahulu sebagai pedoman utama.
+Every time the agent reads your messages, it will read this file first as its primary guideline.
 
-Contoh:
+Examples:
 
-* "Panggil saya dengan sebutan Yudha"
-* "Gunakan gaya bahasa santai dan gaul"
-* "Fokuskan analisis pada sudut pandang teknikal trading"
-
+* "Call me Yudha"
+* "Use casual and slang language"
+* "Focus analysis from a technical trading perspective"

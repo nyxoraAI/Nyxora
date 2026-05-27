@@ -36,17 +36,17 @@ export function startTelegramBot() {
         
         // Send the AI's response back to Telegram
         
-        // Extract pending TX ID if present
-        const txMatch = response.match(/Transaction ID: ([a-z0-9-]+)/i);
-        if (txMatch) {
-          const txId = txMatch[1];
-          const tx = txManager.getTransaction(txId);
-          if (tx && tx.status === 'pending') {
+        // Check for newly created pending transactions
+        const pendingTxs = txManager.getPending();
+        if (pendingTxs.length > 0) {
+          const latestTx = pendingTxs[pendingTxs.length - 1];
+          // If the transaction was created within the last 2 minutes, show the inline keyboard
+          if (Date.now() - latestTx.createdAt < 120000) {
             bot.sendMessage(chatId, response, {
               reply_markup: {
                 inline_keyboard: [[
-                  { text: '✅ Approve', callback_data: `approve_${txId}` },
-                  { text: '❌ Reject', callback_data: `reject_${txId}` }
+                  { text: '✅ Approve', callback_data: `approve_${latestTx.id}` },
+                  { text: '❌ Reject', callback_data: `reject_${latestTx.id}` }
                 ]]
               }
             });
@@ -57,7 +57,7 @@ export function startTelegramBot() {
         bot.sendMessage(chatId, response);
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
-        bot.sendMessage(chatId, '❌ Maaf, saya mengalami gangguan saat memproses pesan Anda.');
+        bot.sendMessage(chatId, '❌ Sorry, I encountered an error while processing your message.');
       }
     });
 
@@ -69,13 +69,13 @@ export function startTelegramBot() {
       const tx = txManager.getTransaction(txId);
 
       if (!tx || tx.status !== 'pending') {
-        bot.answerCallbackQuery(query.id, { text: 'Transaksi tidak ditemukan atau sudah diproses.', show_alert: true });
+        bot.answerCallbackQuery(query.id, { text: 'Transaction not found or already processed.', show_alert: true });
         return;
       }
 
       if (action === 'approve') {
-        bot.answerCallbackQuery(query.id, { text: 'Memproses transaksi...' });
-        bot.sendMessage(chatId, `⏳ Memproses transaksi ${txId}...`);
+        bot.answerCallbackQuery(query.id, { text: 'Processing transaction...' });
+        bot.sendMessage(chatId, `⏳ Processing transaction ${txId}...`);
         try {
           let result = '';
           if (tx.type === 'transfer') {
@@ -85,17 +85,17 @@ export function startTelegramBot() {
           }
           txManager.updateStatus(txId, 'executed', result);
           processUserInput(`[SYSTEM]: Transaction ${txId} was APPROVED via Telegram. Result: ${result}`);
-          bot.sendMessage(chatId, `✅ Transaksi berhasil!\n${result}`);
+          bot.sendMessage(chatId, `✅ Transaction successful!\n${result}`);
         } catch (err: any) {
           txManager.updateStatus(txId, 'failed', err.message);
           processUserInput(`[SYSTEM]: Transaction ${txId} FAILED via Telegram. Error: ${err.message}`);
-          bot.sendMessage(chatId, `❌ Transaksi gagal!\n${err.message}`);
+          bot.sendMessage(chatId, `❌ Transaction failed!\n${err.message}`);
         }
       } else if (action === 'reject') {
         txManager.updateStatus(txId, 'rejected');
         processUserInput(`[SYSTEM]: Transaction ${txId} was REJECTED via Telegram.`);
-        bot.answerCallbackQuery(query.id, { text: 'Transaksi dibatalkan.' });
-        bot.sendMessage(chatId, `❌ Transaksi ${txId} telah dibatalkan.`);
+        bot.answerCallbackQuery(query.id, { text: 'Transaction cancelled.' });
+        bot.sendMessage(chatId, `❌ Transaction ${txId} has been cancelled.`);
       }
       
       // Remove inline keyboard

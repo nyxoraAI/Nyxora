@@ -4,6 +4,7 @@ import { ShieldAlert, Check, X } from 'lucide-react';
 
 export default function PendingTransactions() {
   const [pending, setPending] = useState<any[]>([]);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -22,11 +23,19 @@ export default function PendingTransactions() {
   }, []);
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    setLoadingId(id);
     try {
-      await apiFetch(`http://localhost:3000/api/transactions/${id}/${action}`, { method: 'POST' });
-      setPending(pending.filter(t => t.id !== id));
-    } catch (e) {
-      alert(`Failed to ${action}`);
+      const res = await apiFetch(`http://localhost:3000/api/transactions/${id}/${action}`, { method: 'POST' });
+      if (res.ok) {
+        setPending(prev => prev.filter(t => t.id !== id));
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error}`);
+      }
+    } catch (e: any) {
+      alert(`Failed to ${action}: ${e.message}`);
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -46,10 +55,16 @@ export default function PendingTransactions() {
             {tx.type === 'transfer' ? `To: ${tx.details.toAddress}\nAmount: ${tx.details.amountEth}` : `Swap: ${tx.details.amount} ${tx.details.fromToken} to ${tx.details.toToken}`}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => handleAction(tx.id, 'approve')} style={{ flex: 1, padding: '10px', background: '#22c55e', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-              <Check size={16} /> Approve
+            <button 
+              onClick={() => handleAction(tx.id, 'approve')} 
+              disabled={loadingId === tx.id}
+              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#15803d' : '#22c55e', color: 'white', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              <Check size={16} /> {loadingId === tx.id ? 'Processing...' : 'Approve'}
             </button>
-            <button onClick={() => handleAction(tx.id, 'reject')} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+            <button 
+              onClick={() => handleAction(tx.id, 'reject')} 
+              disabled={loadingId === tx.id}
+              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#b91c1c' : '#ef4444', color: 'white', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
               <X size={16} /> Reject
             </button>
           </div>
