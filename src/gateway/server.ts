@@ -15,6 +15,7 @@ import { transferToolDefinition } from '../web3/skills/transfer';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
 import { swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { startTelegramBot } from './telegram';
+import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 
 // Intercept console.log and console.error
 const originalLog = console.log;
@@ -122,22 +123,23 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     }
     
     txManager.updateStatus(id, 'executed', result);
-    // Tell the LLM that the transaction was executed
-    const aiSummary = await processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Summarize this result in a friendly way: ${result}`, 'system');
     
-    // Fallback if LLM is rate-limited
-    if (aiSummary.includes('Error connecting to AI Provider')) {
-      logger.addEntry({ role: 'assistant', content: `✅ Transaction successful!\n*(AI is rate-limited, raw data below)*\n${result}` });
-    }
+    // Add programmatic beautiful message directly to chat
+    const prettyMsg = formatTransactionSuccess(tx, result);
+    logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
+    
+    // Background update to LLM
+    processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Result: ${result}`, 'system').catch(() => {});
     
     res.json({ success: true, result });
   } catch (err: any) {
     txManager.updateStatus(id, 'failed', err.message);
-    const aiSummary = await processUserInput(`Transaction ${id} was APPROVED but FAILED to execute. Explain this error: ${err.message}`, 'system');
     
-    if (aiSummary.includes('Error connecting to AI Provider')) {
-      logger.addEntry({ role: 'assistant', content: `❌ Transaction failed!\n${err.message}` });
-    }
+    // Add programmatic beautiful error message directly to chat
+    const prettyError = formatTransactionError(tx, err.message);
+    logger.addEntry({ role: 'assistant', content: prettyError });
+    
+    processUserInput(`Transaction ${id} was APPROVED but FAILED to execute. Error: ${err.message}`, 'system').catch(() => {});
     
     res.status(500).json({ error: err.message });
   }
@@ -149,7 +151,7 @@ app.post('/api/transactions/:id/reject', (req, res) => {
   if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
   
   txManager.updateStatus(id, 'rejected');
-  processUserInput(`Transaction ${id} was REJECTED by the user via Dashboard. Acknowledge this briefly.`, 'system');
+  processUserInput(`Transaction ${id} was REJECTED by the user via Dashboard. Acknowledge this briefly.`, 'system').catch(() => {});
   res.json({ success: true });
 });
 
