@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-export type TransactionType = 'transfer' | 'swap';
+export type TransactionType = 'transfer' | 'swap' | 'bridge' | 'mint' | 'custom';
 
 export interface PendingTransaction {
   id: string;
