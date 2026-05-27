@@ -128,6 +128,9 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     const prettyMsg = formatTransactionSuccess(tx, result);
     logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
     
+    // Add tool message so the UI can render the beautiful JSON widget!
+    logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });
+    
     // Background update to LLM
     processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Result: ${result}`, 'system').catch(() => {});
     
