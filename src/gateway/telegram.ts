@@ -85,11 +85,19 @@ export function startTelegramBot() {
           }
           txManager.updateStatus(txId, 'executed', result);
           const aiSummary = await processUserInput(`Transaction ${txId} was APPROVED via Telegram. Explain this success result to the user naturally: ${result}`, 'system');
-          bot.sendMessage(chatId, `✅ Transaction processed:\n\n${aiSummary}`);
+          if (aiSummary.includes('Error connecting to AI Provider')) {
+            bot.sendMessage(chatId, `✅ Transaction successful!\n*(AI is rate-limited, raw data below)*\n${result}`);
+          } else {
+            bot.sendMessage(chatId, `✅ Transaction processed:\n\n${aiSummary}`);
+          }
         } catch (err: any) {
           txManager.updateStatus(txId, 'failed', err.message);
           const aiSummary = await processUserInput(`Transaction ${txId} FAILED via Telegram. Explain this error to the user naturally: ${err.message}`, 'system');
-          bot.sendMessage(chatId, `❌ Transaction failed!\n\n${aiSummary}`);
+          if (aiSummary.includes('Error connecting to AI Provider')) {
+            bot.sendMessage(chatId, `❌ Transaction failed!\n${err.message}`);
+          } else {
+            bot.sendMessage(chatId, `❌ Transaction failed!\n\n${aiSummary}`);
+          }
         }
       } else if (action === 'reject') {
         txManager.updateStatus(txId, 'rejected');

@@ -123,11 +123,22 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     
     txManager.updateStatus(id, 'executed', result);
     // Tell the LLM that the transaction was executed
-    processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Summarize this result in a friendly way: ${result}`, 'system');
+    const aiSummary = await processUserInput(`Transaction ${id} was APPROVED and EXECUTED by the user via Dashboard. Summarize this result in a friendly way: ${result}`, 'system');
+    
+    // Fallback if LLM is rate-limited
+    if (aiSummary.includes('Error connecting to AI Provider')) {
+      logger.addEntry({ role: 'assistant', content: `✅ Transaction successful!\n*(AI is rate-limited, raw data below)*\n${result}` });
+    }
+    
     res.json({ success: true, result });
   } catch (err: any) {
     txManager.updateStatus(id, 'failed', err.message);
-    processUserInput(`Transaction ${id} was APPROVED but FAILED to execute. Explain this error: ${err.message}`, 'system');
+    const aiSummary = await processUserInput(`Transaction ${id} was APPROVED but FAILED to execute. Explain this error: ${err.message}`, 'system');
+    
+    if (aiSummary.includes('Error connecting to AI Provider')) {
+      logger.addEntry({ role: 'assistant', content: `❌ Transaction failed!\n${err.message}` });
+    }
+    
     res.status(500).json({ error: err.message });
   }
 });
