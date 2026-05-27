@@ -8,6 +8,7 @@ import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
+import { limitOrderManager } from '../agent/limitOrderManager';
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
@@ -194,6 +195,8 @@ app.use((req, res, next) => {
 });
 
 export function startServer() {
+  limitOrderManager.startMonitor();
+
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);

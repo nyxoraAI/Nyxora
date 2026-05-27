@@ -89,7 +89,8 @@ export const TOKEN_MAP: Record<ChainName, Record<string, `0x${string}`>> = {
   sepolia: {
     ETH: "0x0000000000000000000000000000000000000000",
     WETH: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
-    USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" // Circle Faucet Sepolia USDC
+    USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // Circle Faucet Sepolia USDC
+    USDT: "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0"  // Common Sepolia USDT
   }
 };
 

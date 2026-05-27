@@ -29,6 +29,12 @@ export function startTelegramBot() {
 
       if (!text) return;
 
+      if (text === '/clear') {
+        logger.clear();
+        bot.sendMessage(chatId, '✅ Memori AI telah dihapus. Mari kita mulai obrolan baru!');
+        return;
+      }
+
       // Log incoming message
       console.log(`[Telegram] Received from ${msg.from?.first_name}: ${text}`);
 
