@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, Terminal, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Compass, Database, Mic } from 'lucide-react';
+import { Send, Bot, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Compass, Database, Mic } from 'lucide-react';
 import Overview from './Overview';
 import Memory from './Memory';
 import Settings from './Settings';
