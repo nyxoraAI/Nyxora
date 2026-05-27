@@ -4,6 +4,9 @@ import { loadConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
 import { executeTransfer } from '../web3/skills/transfer';
 import { executeSwap } from '../web3/skills/swapToken';
+import { executeBridge } from '../web3/skills/bridgeToken';
+import { executeMintNft } from '../web3/skills/mintNft';
+import { executeCustomTx } from '../web3/skills/customTx';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
 
@@ -81,9 +84,15 @@ export function startTelegramBot() {
         try {
           let result = '';
           if (tx.type === 'transfer') {
-            result = await executeTransfer(tx.chainName as any, tx.details.toAddress, tx.details.amountEth);
+            result = await executeTransfer(tx.chainName as any, tx.details);
           } else if (tx.type === 'swap') {
-            result = await executeSwap(tx.chainName, tx.details.fromToken, tx.details.toToken, tx.details.amount);
+            result = await executeSwap(tx.chainName as any, tx.details);
+          } else if (tx.type === 'bridge') {
+            result = await executeBridge(tx.chainName as any, tx.details);
+          } else if (tx.type === 'mint') {
+            result = await executeMintNft(tx.chainName as any, tx.details);
+          } else if (tx.type === 'custom') {
+            result = await executeCustomTx(tx.chainName as any, tx.details);
           }
           txManager.updateStatus(txId, 'executed', result);
           const prettyMsg = formatTransactionSuccess(tx, result);

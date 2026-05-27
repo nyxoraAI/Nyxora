@@ -8,12 +8,13 @@ import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
-import { executeTransfer } from '../web3/skills/transfer';
-import { executeSwap } from '../web3/skills/swapToken';
+import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
+import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
-import { transferToolDefinition } from '../web3/skills/transfer';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
-import { swapTokenToolDefinition } from '../web3/skills/swapToken';
+import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
+import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
+import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
 import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 
@@ -101,7 +102,10 @@ app.get('/api/skills', (req, res) => {
     getBalanceToolDefinition,
     transferToolDefinition,
     getPriceToolDefinition,
-    swapTokenToolDefinition
+    swapTokenToolDefinition,
+    bridgeTokenToolDefinition,
+    mintNftToolDefinition,
+    customTxToolDefinition
   ]);
 });
 
@@ -117,9 +121,15 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
   try {
     let result = '';
     if (tx.type === 'transfer') {
-      result = await executeTransfer(tx.chainName as any, tx.details.toAddress, tx.details.amountEth);
+      result = await executeTransfer(tx.chainName as any, tx.details);
     } else if (tx.type === 'swap') {
-      result = await executeSwap(tx.chainName, tx.details.fromToken, tx.details.toToken, tx.details.amount);
+      result = await executeSwap(tx.chainName as any, tx.details);
+    } else if (tx.type === 'bridge') {
+      result = await executeBridge(tx.chainName as any, tx.details);
+    } else if (tx.type === 'mint') {
+      result = await executeMintNft(tx.chainName as any, tx.details);
+    } else if (tx.type === 'custom') {
+      result = await executeCustomTx(tx.chainName as any, tx.details);
     }
     
     txManager.updateStatus(id, 'executed', result);

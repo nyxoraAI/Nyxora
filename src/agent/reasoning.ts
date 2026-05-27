@@ -5,9 +5,12 @@ import { loadConfig } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance';
-import { transferToolDefinition, transferNative } from '../web3/skills/transfer';
+import { transferToolDefinition, prepareTransfer } from '../web3/skills/transfer';
 import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
-import { swapTokenToolDefinition, swapToken } from '../web3/skills/swapToken';
+import { swapTokenToolDefinition, prepareSwapToken } from '../web3/skills/swapToken';
+import { bridgeTokenToolDefinition, prepareBridgeToken } from '../web3/skills/bridgeToken';
+import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
+import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
 import { getPath } from '../config/paths';
 
 export const logger = new Logger();
@@ -142,7 +145,15 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       model: config.llm.model,
       temperature: config.llm.temperature,
       messages: messages,
-      tools: [getBalanceToolDefinition as any, transferToolDefinition as any, getPriceToolDefinition as any, swapTokenToolDefinition as any],
+      tools: [
+        getBalanceToolDefinition as any, 
+        transferToolDefinition as any, 
+        getPriceToolDefinition as any, 
+        swapTokenToolDefinition as any,
+        bridgeTokenToolDefinition as any,
+        mintNftToolDefinition as any,
+        customTxToolDefinition as any
+      ],
       tool_choice: "auto",
     });
 
@@ -168,7 +179,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         const toolCall = _toolCall as any;
         if (toolCall.function.name === 'get_balance') {
           const args = JSON.parse(toolCall.function.arguments);
-          const balanceResult = await getBalance(args.chainName, args.address);
+          const balanceResult = await getBalance(args.chainName, args.address, args.token);
           
           logger.addEntry({
             role: 'tool',
@@ -176,9 +187,9 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             name: toolCall.function.name,
             content: balanceResult,
           });
-        } else if (toolCall.function.name === 'transfer_native') {
+        } else if (toolCall.function.name === 'transfer_token' || toolCall.function.name === 'transfer_native') {
           const args = JSON.parse(toolCall.function.arguments);
-          const transferResult = await transferNative(args.chainName, args.toAddress, args.amountEth);
+          const transferResult = await prepareTransfer(args.chainName, args.toAddress, args.amountStr || args.amountEth, args.token);
           
           logger.addEntry({
             role: 'tool',
@@ -198,13 +209,43 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           });
         } else if (toolCall.function.name === 'swap_token') {
           const args = JSON.parse(toolCall.function.arguments);
-          const swapResult = await swapToken(args.chainName, args.fromToken, args.toToken, args.amount);
+          const swapResult = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
           
           logger.addEntry({
             role: 'tool',
             tool_call_id: toolCall.id,
             name: toolCall.function.name,
             content: swapResult,
+          });
+        } else if (toolCall.function.name === 'bridge_token') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const bridgeResult = await prepareBridgeToken(args.fromChainName, args.toChainName, args.fromToken, args.toToken, args.amountStr, args.mode, args.providerName);
+          
+          logger.addEntry({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: bridgeResult,
+          });
+        } else if (toolCall.function.name === 'mint_nft') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const mintResult = await prepareMintNft(args.chainName, args.contractAddress, args.functionSignature, args.argsStr, args.valueEth);
+          
+          logger.addEntry({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: mintResult,
+          });
+        } else if (toolCall.function.name === 'custom_tx') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const customResult = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
+          
+          logger.addEntry({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: customResult,
           });
         }
       }
