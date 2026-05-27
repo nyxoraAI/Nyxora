@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "",
   "main": "dist/gateway/cli.js",
   "files": [

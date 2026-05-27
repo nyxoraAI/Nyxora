@@ -34,26 +34,7 @@ A **secure, non-custodial, AI-native Web3 and System Automation Agent** built wi
 
 This diagram shows how user interactions flow through the Nyxora Agent, from chat input to on-chain or OS execution:
 
-```mermaid
-graph TD
-    A[User Chat / Telegram Bot] -->|Natural Language Command| B(Nyxora LLM Core)
-    B --> C{Determine Required Skill}
-    C -->|Web3 Action| D[Web3 Skill Modules]
-    C -->|System Action| E[OS & Plugin Modules]
-    D --> F{Transaction Type}
-    F -->|Read-only| G[Fetch On-chain Data & Prices]
-    F -->|Write-action| H[Queue in Transaction Manager]
-    H --> I[Require Human-in-the-Loop Approval]
-    I -->|Approved| J[Broadcast to Blockchain]
-    I -->|Rejected| K[Cancel Transaction]
-    E --> L{Security Policy Check}
-    L -->|Violates Policy| M[Ask Explicit Permission]
-    L -->|Safe| N[Execute Shell / File Ops]
-    G --> O[Render Dashboard UI / Chat Response]
-    J --> O
-    K --> O
-    N --> O
-```
+![Architecture Workflow](assets/architecture.svg)
 
 ---
 
