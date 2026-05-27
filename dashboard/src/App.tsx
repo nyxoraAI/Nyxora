@@ -254,6 +254,15 @@ function App() {
       activeWidget = <SwapWidget data={latestToolMessage.content} />;
     }
   }
+  
+  const renderMessageContent = (content: string) => {
+    return content.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
 
   return (
     <>
@@ -427,7 +436,7 @@ function App() {
               if (msg.role === 'assistant' && msg.content) {
                 return (
                   <div key={idx} className="message-wrapper agent">
-                    <div className="message-bubble">{msg.content}</div>
+                    <div className="message-bubble">{renderMessageContent(msg.content)}</div>
                   </div>
                 );
               }
@@ -440,16 +449,6 @@ function App() {
                         Executing: <code>{tool.function.name}</code>
                       </div>
                     ))}
-                  </div>
-                );
-              }
-              if (msg.role === 'tool') {
-                return (
-                  <div key={idx} className="message-wrapper agent">
-                    <div className="tool-call">
-                      <Terminal size={16} color="#a78bfa" />
-                      Result: {msg.content.substring(0, 60)}...
-                    </div>
                   </div>
                 );
               }
