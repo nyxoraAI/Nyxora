@@ -28,6 +28,11 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 *   **DeFi Token Swapping & Bridging**: The agent can autonomously simulate liquidity routes and execute token swaps or cross-chain bridges with gas fee estimations.
 *   **Automated Limit Orders (Take-Profit/Cut-Loss)**: Set rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and automatically executes the swap while you sleep without requiring manual approval!
 
+### ⚙️ Web3-Ops & System Automation (NEW in v1.4.1)
+*   **NLP Security Policy**: Command Nyxora using natural language to set security boundaries (e.g., *"Never touch partition E" or "Do not install global packages"*). Nyxora autonomously enforces these rules and will pause to ask for your explicit permission if an action violates them.
+*   **Full OS Access**: Instruct the agent to read/write local files, run terminal commands, and browse the web natively.
+*   **Plugin Manager**: Dynamically load community-built skills. Simply provide a GitHub Gist URL, and Nyxora will download, install, and hot-load the third-party skill directly into its `external_skills` directory.
+
 ### 💻 The Interface (Live Canvas)
 *   **Premium Glassmorphism UI**: A gorgeous, resizable split-pane interface.
 *   **Pseudo-Generative UI**: Instead of raw text, the agent dynamically renders interactive widgets (`<BalanceWidget>`, `<MarketWidget>`, `<SwapWidget>`) onto the "Live Canvas" when executing Web3 skills.
