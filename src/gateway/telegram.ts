@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { processUserInput } from '../agent/reasoning';
+import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
 import { executeTransfer } from '../web3/skills/transfer';
