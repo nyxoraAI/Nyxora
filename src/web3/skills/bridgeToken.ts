@@ -31,6 +31,9 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
 }
 
 async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string) {
+  const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
+  const baseUrl = isTestnet ? "https://api.testnets.relay.link" : "https://api.relay.link";
+
   const body = {
     user: userAddress,
     originChainId: fromChainId,
@@ -41,7 +44,7 @@ async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: 
     tradeType: "EXACT_INPUT"
   };
 
-  const res = await fetch("https://api.relay.link/quote", {
+  const res = await fetch(`${baseUrl}/quote`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
@@ -89,7 +92,25 @@ export async function prepareBridgeToken(
     let approvalAddress: string | null = null;
     let expectedOutputStr = "";
 
-    const actualProvider = mode === "auto" ? "lifi" : providerName;
+    let actualProvider = mode === "auto" ? "lifi" : providerName;
+    const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
+    
+    // --- SEPOLIA TESTNET MOCK ---
+    if (isTestnet) {
+      const mockGasLimit = "150000";
+      expectedOutputStr = "MOCK_TEST_AMOUNT";
+      
+      const tx = txManager.createPendingTransaction('bridge', fromChainName, { 
+        txRequest: { to: fromTokenAddress, data: "0x", value: amountWei, gasLimit: mockGasLimit }, 
+        needsApprove: false,
+        fromTokenAddress,
+        approvalAddress: null,
+        amountWei
+      });
+
+      return `TRANSACTION_PENDING: Bridge simulated via TESTNET_MOCK. Expected Output on ${toChainName}: ~${expectedOutputStr} ${toToken.toUpperCase()}. Gas est: ${mockGasLimit}. Transaction ID: ${tx.id}. Wait for user to approve.`;
+    }
+    // --- END MOCK ---
 
     if (actualProvider === "lifi") {
       const quote = await getLifiQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, account.address, slippagePercent / 100);

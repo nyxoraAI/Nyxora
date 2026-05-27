@@ -18,11 +18,15 @@ With a beautiful, real-time dashboard inspired by modern control centers, Nyxora
 *   **Omnichannel Approvals**: Approve or reject pending transactions directly from the Web Dashboard's UI or via Telegram Inline Keyboard buttons on the go!
 *   **Strict API Auth**: The local Express server is protected via ephemeral Session Tokens (`x-nyxora-token`) and Strict CORS, preventing unauthorized local API requests.
 
-### ⛓️ Web3 DeFi Skills
+### ⛓️ Web3 DeFi Skills (Pro-Trader AI)
 *   **Multi-Chain Support**: Operate across Ethereum, Base, BSC, Arbitrum, Optimism, and Sepolia Testnet.
+*   **Wallet Generation**: Instruct the AI to generate new EVM wallets on the fly securely (Keys are never saved).
 *   **Native Wallet Operations**: Autonomously check balances and transfer native tokens using securely injected wallets.
-*   **Market Intelligence**: Fetch live crypto prices and 24h market movements via CoinGecko integration.
-*   **DeFi Token Swapping**: The agent can autonomously simulate liquidity routes and execute token swaps with gas fee estimations.
+*   **Advanced Market Intelligence**: Fetch live crypto prices, 24h market movements, FDV, and liquidity via CoinGecko and DexScreener integrations.
+*   **Anti-Rugpull & Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
+*   **PNL & Portfolio Tracking**: The AI scans your wallets and multiplies balances by live DEX prices to give you real-time Net Worth estimations.
+*   **DeFi Token Swapping & Bridging**: The agent can autonomously simulate liquidity routes and execute token swaps or cross-chain bridges with gas fee estimations.
+*   **Automated Limit Orders (Take-Profit/Cut-Loss)**: Set rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and automatically executes the swap while you sleep without requiring manual approval!
 
 ### 💻 The Interface (Live Canvas)
 *   **Premium Glassmorphism UI**: A gorgeous, resizable split-pane interface.
