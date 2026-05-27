@@ -16,6 +16,14 @@ import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/
 import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
+import { updateProfileToolDefinition, updateProfile } from './updateProfile';
+import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
+import { readLocalFileToolDefinition, readLocalFile } from '../system/skills/readFile';
+import { writeLocalFileToolDefinition, writeLocalFile } from '../system/skills/writeFile';
+import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
+import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
+import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
+import { pluginManager } from '../system/pluginManager';
 import { getPath } from '../config/paths';
 
 export const logger = new Logger();
@@ -114,6 +122,17 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
     console.error('Failed to read user.md:', error);
   }
 
+  // Read security_policy.md for NLP security constraints
+  try {
+    const policyPath = getPath('security_policy.md');
+    if (fs.existsSync(policyPath)) {
+      const securityInstructions = fs.readFileSync(policyPath, 'utf8');
+      basePrompt += `\n\n--- SECURITY POLICY (MANDATORY RULES) ---\n${securityInstructions}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.`;
+    }
+  } catch (error) {
+    console.error('Failed to read security_policy.md:', error);
+  }
+
   return basePrompt;
 }
 
@@ -164,7 +183,15 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         checkPortfolioToolDefinition as any,
         createLimitOrderToolDefinition as any,
         listLimitOrdersToolDefinition as any,
-        cancelLimitOrderToolDefinition as any
+        cancelLimitOrderToolDefinition as any,
+        updateProfileToolDefinition as any,
+        updateSecurityPolicyToolDefinition as any,
+        readLocalFileToolDefinition as any,
+        writeLocalFileToolDefinition as any,
+        runTerminalCommandToolDefinition as any,
+        browseWebsiteToolDefinition as any,
+        installExternalSkillToolDefinition as any,
+        ...pluginManager.getToolDefinitions()
       ],
       tool_choice: "auto",
     });
@@ -251,8 +278,43 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             result = limitOrderManager.cancelOrder(args.id);
             break;
           }
-          default:
-            result = `Error: Tool ${toolName} is not implemented.`;
+          case 'update_profile': {
+            result = updateProfile(args.content, args.mode);
+            break;
+          }
+          case 'update_security_policy': {
+            result = updateSecurityPolicy(args.rule, args.action);
+            break;
+          }
+          case 'read_local_file': {
+            result = readLocalFile(args.filePath);
+            break;
+          }
+          case 'write_local_file': {
+            result = writeLocalFile(args.filePath, args.content);
+            break;
+          }
+          case 'run_terminal_command': {
+            result = await runTerminalCommand(args.command);
+            break;
+          }
+          case 'browse_website': {
+            result = await browseWebsite(args.url);
+            break;
+          }
+          case 'install_external_skill': {
+            result = await installExternalSkill(args.url);
+            break;
+          }
+          default: {
+            const externalResult = await pluginManager.executeTool(toolName, args);
+            if (externalResult !== null) {
+              result = externalResult;
+            } else {
+              result = `Error: Tool ${toolName} is not implemented.`;
+            }
+            break;
+          }
         }
 
         logger.addEntry({

@@ -9,6 +9,7 @@ import { loadConfig, saveConfig } from '../config/parser';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
 import { limitOrderManager } from '../agent/limitOrderManager';
+import { pluginManager } from '../system/pluginManager';
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
@@ -195,6 +196,9 @@ app.use((req, res, next) => {
 });
 
 export function startServer() {
+  pluginManager.loadPlugins().then(() => {
+    console.log(`[PluginManager] Finished loading external skills.`);
+  });
   limitOrderManager.startMonitor();
 
   const PORT = process.env.PORT || 3000;
