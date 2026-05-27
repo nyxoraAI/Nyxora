@@ -4,6 +4,8 @@ import { loadConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
 import { executeTransfer } from '../web3/skills/transfer';
 import { executeSwap } from '../web3/skills/swapToken';
+import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
+import pc from 'picocolors';
 
 export function startTelegramBot() {
   const config = loadConfig();
@@ -84,24 +86,22 @@ export function startTelegramBot() {
             result = await executeSwap(tx.chainName, tx.details.fromToken, tx.details.toToken, tx.details.amount);
           }
           txManager.updateStatus(txId, 'executed', result);
-          const aiSummary = await processUserInput(`Transaction ${txId} was APPROVED via Telegram. Explain this success result to the user naturally: ${result}`, 'system');
-          if (aiSummary.includes('Error connecting to AI Provider')) {
-            bot.sendMessage(chatId, `✅ Transaction successful!\n*(AI is rate-limited, raw data below)*\n${result}`);
-          } else {
-            bot.sendMessage(chatId, `✅ Transaction processed:\n\n${aiSummary}`);
-          }
+          const prettyMsg = formatTransactionSuccess(tx, result);
+          bot.sendMessage(chatId, `✅ Transaction processed:\n\n${prettyMsg}`);
+          
+          // Background update to LLM
+          processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system').catch(() => {});
         } catch (err: any) {
           txManager.updateStatus(txId, 'failed', err.message);
-          const aiSummary = await processUserInput(`Transaction ${txId} FAILED via Telegram. Explain this error to the user naturally: ${err.message}`, 'system');
-          if (aiSummary.includes('Error connecting to AI Provider')) {
-            bot.sendMessage(chatId, `❌ Transaction failed!\n${err.message}`);
-          } else {
-            bot.sendMessage(chatId, `❌ Transaction failed!\n\n${aiSummary}`);
-          }
+          const prettyError = formatTransactionError(tx, err.message);
+          bot.sendMessage(chatId, prettyError);
+          
+          // Background update to LLM
+          processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system').catch(() => {});
         }
       } else if (action === 'reject') {
         txManager.updateStatus(txId, 'rejected');
-        processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system');
+        processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system').catch(() => {});
         bot.answerCallbackQuery(query.id, { text: 'Transaction cancelled.' });
         bot.sendMessage(chatId, `❌ Transaction cancelled.`);
       }
