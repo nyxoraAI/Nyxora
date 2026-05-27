@@ -114,13 +114,17 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   // Format messages for OpenAI
   const messages: any[] = [
     { role: 'system', content: getSystemPrompt() },
-    ...history.map(m => {
-      const msg: any = { role: m.role, content: m.content || "" };
-      if (m.name) msg.name = m.name;
-      if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
-      if (m.tool_calls) msg.tool_calls = m.tool_calls;
-      return msg;
-    })
+    ...history
+      .filter(m => !(m.role === 'tool' && !m.tool_call_id))
+      .map(m => {
+        let role = m.role;
+        if (role === 'system') role = 'user';
+        const msg: any = { role, content: m.content || "" };
+        if (m.name) msg.name = m.name;
+        if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+        if (m.tool_calls) msg.tool_calls = m.tool_calls;
+        return msg;
+      })
   ];
 
   try {
@@ -203,13 +207,17 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       // Second call to get the final answer after tool execution
       const secondMessages = [
         { role: 'system', content: getSystemPrompt() },
-        ...logger.getHistory().map(m => {
-          const msg: any = { role: m.role, content: m.content || "" };
-          if (m.name) msg.name = m.name;
-          if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
-          if (m.tool_calls) msg.tool_calls = m.tool_calls;
-          return msg;
-        })
+        ...logger.getHistory()
+          .filter(m => !(m.role === 'tool' && !m.tool_call_id))
+          .map(m => {
+            let role = m.role;
+            if (role === 'system') role = 'user';
+            const msg: any = { role, content: m.content || "" };
+            if (m.name) msg.name = m.name;
+            if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+            if (m.tool_calls) msg.tool_calls = m.tool_calls;
+            return msg;
+          })
       ];
 
       const openai = getOpenAI();
