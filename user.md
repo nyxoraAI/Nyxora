@@ -4,6 +4,6 @@ Every time the agent reads your messages, it will read this file first as its pr
 
 Examples:
 
-* "Call me Yudha"
+* "Call me User"
 * "Use casual and slang language"
 * "Focus analysis from a technical trading perspective"

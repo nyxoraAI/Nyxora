@@ -17,7 +17,22 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (config) setFormData(config);
+    if (config) {
+      setFormData({
+        agent: {
+          name: config.agent?.name || 'Nyxora',
+          default_chain: config.agent?.default_chain || 'base'
+        },
+        llm: {
+          provider: config.llm?.provider || 'openai',
+          model: config.llm?.model || 'gpt-4o-mini',
+          temperature: config.llm?.temperature ?? 0.2,
+          api_keys: Array.isArray(config.llm?.api_keys) 
+            ? config.llm.api_keys 
+            : (config.llm?.api_keys ? [config.llm.api_keys as unknown as string] : [])
+        }
+      });
+    }
   }, [config]);
 
   if (!formData) return <div className="overview-container">Loading settings...</div>;
