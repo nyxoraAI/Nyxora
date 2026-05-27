@@ -6,6 +6,15 @@ interface TransactionWidgetProps {
 }
 
 const TransactionWidget: React.FC<TransactionWidgetProps> = ({ data }) => {
+  if (data.startsWith('TRANSACTION_PENDING')) {
+    return (
+      <div className="widget-card" style={{ background: '#1e293b', border: '1px solid #eab308', padding: '24px', borderRadius: '16px' }}>
+        <h3 className="widget-title" style={{ color: '#eab308', margin: 0, marginBottom: '8px' }}>Action Required</h3>
+        <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: 0 }}>Please review and approve the transfer transaction.</p>
+      </div>
+    );
+  }
+
   // Format example: "Successfully transferred 0.05 on base to 0x123..."
   let amount = '0.00';
   let chain = 'UNKNOWN';

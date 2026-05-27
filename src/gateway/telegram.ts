@@ -89,6 +89,10 @@ export function startTelegramBot() {
           const prettyMsg = formatTransactionSuccess(tx, result);
           bot.sendMessage(chatId, `✅ Transaction processed:\n\n${prettyMsg}`);
           
+          // Sync with dashboard
+          logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
+          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });
+          
           // Background update to LLM
           processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system').catch(() => {});
         } catch (err: any) {

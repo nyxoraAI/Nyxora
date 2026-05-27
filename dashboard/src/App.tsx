@@ -155,13 +155,15 @@ function App() {
       const res = await apiFetch('http://localhost:3000/api/history');
       if (res.ok) {
         const data = await res.json();
-        setMessages(data);
-      } else {
-        setTimeout(fetchHistory, 2000);
+        setMessages(prev => {
+          if (prev.length !== data.length || (prev.length > 0 && data.length > 0 && prev[prev.length - 1].content !== data[data.length - 1].content)) {
+            return data;
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.warn('Backend not ready, retrying history fetch in 2s...');
-      setTimeout(fetchHistory, 2000);
     }
   };
 
@@ -196,6 +198,8 @@ function App() {
   useEffect(() => {
     fetchHistory();
     fetchConfig();
+    const interval = setInterval(fetchHistory, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
