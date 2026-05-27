@@ -27,9 +27,14 @@ function getOpenAI(): OpenAI {
   // Get API key from config (UI) or fallback to .env
   let apiKey = '';
   
-  if (config.llm.api_keys && config.llm.api_keys.length > 0) {
+  let configuredKeys = config.llm.api_keys;
+  if (typeof configuredKeys === 'string') {
+    configuredKeys = [configuredKeys];
+  }
+  
+  if (Array.isArray(configuredKeys) && configuredKeys.length > 0) {
     // Filter out empty keys
-    const keys = config.llm.api_keys.filter(k => k.trim() !== '');
+    const keys = configuredKeys.filter(k => typeof k === 'string' && k.trim() !== '');
     if (keys.length > 0) {
       currentKeyIndex = currentKeyIndex % keys.length;
       apiKey = keys[currentKeyIndex];
