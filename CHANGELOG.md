@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.5]
+
+### Fixed
+- Re-rendered Architecture Workflow diagram as a solid-background PNG to fix dark mode visibility issues.
+- Added `assets` directory to the NPM package `files` list so the diagram is included in published packages.
+- Added `repository` field in `package.json` for proper GitHub link resolution on NPMJS.
+- Updated `README.md` to use the absolute raw GitHub image URL for universal rendering compatibility.
+
 ## [1.4.4]
 
 ### Fixed

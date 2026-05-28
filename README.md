@@ -34,7 +34,7 @@ A **secure, non-custodial, AI-native Web3 and System Automation Agent** built wi
 
 This diagram shows how user interactions flow through the Nyxora Agent, from chat input to on-chain or OS execution:
 
-![Architecture Workflow](assets/architecture.svg)
+![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.png)
 
 ---
 

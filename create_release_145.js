@@ -7,7 +7,7 @@ async function createRelease() {
     return;
   }
 
-  const body = `## [1.4.4]\n\n### Fixed\n- Fixed Architecture Workflow diagram rendering issue on NPM by replacing the \`mermaid\` code block with a static SVG image.`;
+  const body = `## [1.4.5]\n\n### Fixed\n- Re-rendered Architecture Workflow diagram as a solid-background PNG to fix dark mode visibility issues.\n- Added \`assets\` directory to the NPM package \`files\` list so the diagram is included in published packages.\n- Added \`repository\` field in \`package.json\` for proper GitHub link resolution on NPMJS.\n- Updated \`README.md\` to use the absolute raw GitHub image URL for universal rendering compatibility.`;
 
   try {
     const res = await fetch('https://api.github.com/repos/perasyudha/Nyxora/releases', {
@@ -19,8 +19,8 @@ async function createRelease() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        tag_name: 'v1.4.4',
-        name: 'v1.4.4',
+        tag_name: 'v1.4.5',
+        name: 'v1.4.5',
         body: body,
         draft: false,
         prerelease: false
@@ -28,7 +28,7 @@ async function createRelease() {
     });
 
     if (res.ok) {
-      console.log("GitHub Release v1.4.4 successfully created!");
+      console.log("GitHub Release v1.4.5 successfully created!");
     } else {
       const errorText = await res.text();
       console.error("Failed to create GitHub Release:", res.status, errorText);
