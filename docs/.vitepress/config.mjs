@@ -12,19 +12,30 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: 'Getting Started',
+        text: 'Introduction',
         items: [
-          { text: 'Introduction', link: '/guide/introduction' },
-          { text: 'Installation', link: '/guide/installation' },
-          { text: 'Creating Plugins', link: '/guide/custom_skills' }
+          { text: '👋 Overview', link: '/' },
+          { text: '🚀 Getting Started', link: '/guide/introduction' },
+          { text: '🌐 Nyxora Ecosystem', link: '/guide/ecosystem' }
         ]
       },
       {
-        text: 'Security',
+        text: 'Core Capabilities',
         items: [
-          { text: 'Wallet Import Guide', link: '/security/wallet_import' },
-          { text: 'Master Password Vault', link: '/security/vault' },
-          { text: 'Plugin Sandbox VM', link: '/security/sandbox' }
+          { text: '🧠 Native Skills', link: '/skills/native' },
+          { text: '🔗 External Plugins', link: '/guide/custom_skills' },
+          { text: '🪙 Chain Specifics', link: '/skills/chains' },
+          { text: '🗂️ NLP Security Policy', link: '/skills/nlp' }
+        ]
+      },
+      {
+        text: 'Operations & Security',
+        items: [
+          { text: '🛡️ Wallet Import Guide', link: '/security/wallet_import' },
+          { text: '🔑 Master Password Vault', link: '/security/vault' },
+          { text: '📦 Plugin Sandbox VM', link: '/security/sandbox' },
+          { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
+          { text: '🛟 Troubleshooting', link: '/security/troubleshooting' }
         ]
       }
     ],
