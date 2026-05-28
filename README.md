@@ -2,9 +2,9 @@
 **Secure AI execution framework for Web3 agents.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Security: Security-First](https://img.shields.io/badge/Security-Security--First-blue.svg)](#)
-[![Execution: Human-in-the-Loop](https://img.shields.io/badge/Execution-Human--in--the--Loop-orange.svg)](#)
-[![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#)
+[![Security: Security-First](https://img.shields.io/badge/Security-Security--First-blue.svg)](#️-security-threat-model--permission-boundary)
+[![Execution: Human-in-the-Loop](https://img.shields.io/badge/Execution-Human--in--the--Loop-orange.svg)](#📐-architecture-workflow)
+[![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-security-threat-model--permission-boundary)
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with Node.js and React. Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. It operates under a strict **Human-in-the-Loop** execution model for financial transactions.
 
@@ -73,7 +73,7 @@ npm run build && npm run start
 
 For complete technical deep-dives, please visit our official VitePress Documentation Site!
 
-> **🔗 [Read the Full Nyxora Documentation Here](#)**
+> **🔗 [Read the Full Nyxora Documentation Here](https://perasyudha.github.io/Nyxora/)**
 
 *(Includes guides on Secure Wallet Imports, API Key Rotations, Troubleshooting, and Custom Skill Development).*
 
