@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Nyxora",
   description: "Secure AI execution framework for Web3 agents",
+  base: '/Nyxora/',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
