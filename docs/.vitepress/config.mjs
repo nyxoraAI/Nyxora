@@ -7,7 +7,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/installation' }
+      { text: 'Guide', link: '/guide/introduction' }
     ],
 
     sidebar: [
@@ -23,7 +23,8 @@ export default defineConfig({
         text: 'Security',
         items: [
           { text: 'Wallet Import Guide', link: '/security/wallet_import' },
-          { text: 'Master Password Vault', link: '/security/vault' }
+          { text: 'Master Password Vault', link: '/security/vault' },
+          { text: 'Plugin Sandbox VM', link: '/security/sandbox' }
         ]
       }
     ],
