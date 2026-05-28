@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import vm from 'vm';
 
 // Define how an external skill should look like
 export interface ExternalSkill {
@@ -23,21 +24,48 @@ export class PluginManager {
     for (const file of files) {
       if (file.endsWith('.js') || file.endsWith('.ts')) {
         try {
-          // Dynamic import requires relative path from this file or absolute path
-          // For TS compiled to JS, absolute path is safer
           const absolutePath = path.resolve(pluginsDir, file);
+          const code = fs.readFileSync(absolutePath, 'utf8');
           
-          // Note: In development with ts-node, requiring .ts works. 
-          // In production, we need compiled .js files.
-          const module = require(absolutePath);
+          // Construct a restricted require function for the sandbox
+          const restrictedRequire = (moduleName: string) => {
+            const blockedModules = ['fs', 'child_process', 'os', 'net', 'tls', 'cluster', 'worker_threads'];
+            if (blockedModules.includes(moduleName)) {
+              throw new Error(`Sandboxing error: Access to the '${moduleName}' module is blocked for security reasons.`);
+            }
+            // Allow fetch and other safe modules by delegating to actual require
+            return require(moduleName);
+          };
+
+          // Create the sandbox environment
+          const sandbox = {
+            require: restrictedRequire,
+            console: console,
+            module: { exports: {} as any },
+            exports: {},
+            process: { env: {} }, // Hide actual environment variables
+            Buffer: Buffer,
+            setTimeout: setTimeout,
+            clearTimeout: clearTimeout,
+            setInterval: setInterval,
+            clearInterval: clearInterval,
+          };
+
+          const context = vm.createContext(sandbox);
+          const script = new vm.Script(code, { filename: file });
           
-          if (module.toolDefinition && module.execute) {
-            const toolName = module.toolDefinition.function.name;
-            this.skills.set(toolName, module as ExternalSkill);
-            console.log(`[PluginManager] Loaded external skill: ${toolName}`);
+          // Execute the plugin code inside the VM
+          script.runInContext(context);
+          
+          const moduleExports = sandbox.module.exports;
+
+          if (moduleExports.toolDefinition && moduleExports.execute) {
+            const toolName = moduleExports.toolDefinition.function.name;
+            this.skills.set(toolName, moduleExports as ExternalSkill);
+            console.log(`[PluginManager] Loaded sandboxed external skill: ${toolName}`);
           }
-        } catch (error) {
-          console.error(`[PluginManager] Failed to load plugin ${file}:`, error);
+        } catch (error: any) {
+          console.error(`[PluginManager] Failed to load sandboxed plugin ${file}:`, error.message);
         }
       }
     }

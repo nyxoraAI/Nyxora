@@ -15,7 +15,8 @@ export default defineConfig({
         text: 'Getting Started',
         items: [
           { text: 'Introduction', link: '/guide/introduction' },
-          { text: 'Installation', link: '/guide/installation' }
+          { text: 'Installation', link: '/guide/installation' },
+          { text: 'Creating Plugins', link: '/guide/custom_skills' }
         ]
       },
       {
