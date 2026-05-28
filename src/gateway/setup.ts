@@ -5,6 +5,7 @@ import path from 'path';
 import { getAppDir } from '../config/paths';
 import { loadConfig, saveConfig } from '../config/parser';
 import { encryptKey } from '../utils/crypto';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 
 export async function runSetupWizard() {
   console.clear();
@@ -87,11 +88,50 @@ Provider: ${config.llm.provider}`;
   if (isCancel(provider)) return process.exit(0);
 
   // 2. Model Name
-  const model = await text({
-    message: 'Enter AI model name (e.g. gpt-4o, gemini-2.5-flash):',
-    initialValue: config.llm.model,
-  });
+  let modelOptions: { value: string, label: string }[] = [];
+  if (provider === 'gemini') {
+    modelOptions = [
+      { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash (Fast & Cheap)' },
+      { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro (Advanced Reasoning)' },
+      { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro' },
+    ];
+  } else if (provider === 'openai') {
+    modelOptions = [
+      { value: 'gpt-4o', label: 'gpt-4o (Powerful)' },
+      { value: 'gpt-4o-mini', label: 'gpt-4o-mini (Fast)' },
+      { value: 'o1-preview', label: 'o1-preview (Reasoning)' },
+      { value: 'o1-mini', label: 'o1-mini' },
+    ];
+  } else if (provider === 'openrouter') {
+    modelOptions = [
+      { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
+      { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
+      { value: 'liquid/lfm-40b', label: 'Liquid LFM 40B' },
+      { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5' },
+    ];
+  } else {
+    modelOptions = [
+      { value: 'llama3', label: 'Llama 3 (8B)' },
+      { value: 'qwen2', label: 'Qwen 2' },
+      { value: 'phi3', label: 'Phi-3' },
+    ];
+  }
+  
+  modelOptions.push({ value: 'custom', label: 'Type manually (Custom Model)' });
+
+  let model = (await select({
+    message: 'Select AI Model:',
+    options: modelOptions,
+  })) as string;
   if (isCancel(model)) return process.exit(0);
+  
+  if (model === 'custom') {
+    model = (await text({
+      message: 'Enter custom model name (e.g., deepseek-coder, llama-3-8b-instruct):',
+      initialValue: config.llm.model,
+    })) as string;
+    if (isCancel(model)) return process.exit(0);
+  }
 
   // 3. API Key for LLM (Saved to config.yaml)
   let apiKey = '';
@@ -132,18 +172,43 @@ Provider: ${config.llm.provider}`;
     if (isCancel(telegramToken)) return process.exit(0);
   }
 
-  // 6. Wallet Private Key (keystore.json)
-  const privateKey = await password({
-    message: 'Enter Wallet Private Key (0x...)\n  (Will be AES-256-GCM encrypted. Leave empty to keep current):',
+  // 6. Wallet Setup
+  const walletSetupType = await select({
+    message: 'Web3 Wallet Setup:',
+    options: [
+      { value: 'skip', label: 'Skip for now (No Web3 execution)' },
+      { value: 'generate', label: 'Auto-Generate New Wallet (Recommended for testing)' },
+      { value: 'manual', label: 'Input Manual Private Key' },
+    ],
   });
-  if (isCancel(privateKey)) return process.exit(0);
+  if (isCancel(walletSetupType)) return process.exit(0);
+
+  let privateKey = '';
+  if (walletSetupType === 'manual') {
+    privateKey = (await password({
+      message: 'Enter Wallet Private Key (0x...)\n  (Will be AES-256-GCM encrypted. See documentation for import guides):',
+    })) as string;
+    if (isCancel(privateKey)) return process.exit(0);
+  } else if (walletSetupType === 'generate') {
+    privateKey = generatePrivateKey();
+    const account = privateKeyToAccount(privateKey as any);
+    note(`New Wallet Generated!\nAddress: ${account.address}\n\nIMPORTANT: Backup this address. The Private Key is securely injected into your local vault.`, 'Wallet Created');
+  }
 
   let masterPassword = '';
   if (privateKey) {
     masterPassword = (await password({
-      message: 'Enter MASTER PASSWORD to encrypt your key vault:',
+      message: 'Enter a strong MASTER PASSWORD to encrypt your key vault:',
     })) as string;
     if (isCancel(masterPassword) || !masterPassword) return process.exit(0);
+
+    const masterPasswordConfirm = (await password({
+      message: 'Confirm MASTER PASSWORD:',
+    })) as string;
+    if (isCancel(masterPasswordConfirm) || masterPassword !== masterPasswordConfirm) {
+      console.log(pc.red('❌ Passwords do not match. Setup cancelled.'));
+      return process.exit(1);
+    }
   }
 
   // --- SAVING ---

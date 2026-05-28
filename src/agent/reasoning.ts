@@ -25,6 +25,7 @@ import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/bro
 import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
 import { pluginManager } from '../system/pluginManager';
 import { getPath } from '../config/paths';
+import pc from 'picocolors';
 
 export const logger = new Logger();
 
@@ -91,6 +92,48 @@ function getOpenAI(): OpenAI {
   }
 }
 
+async function executeWithRetry(
+  requestBuilder: (client: OpenAI) => Promise<any>,
+  maxRetries = 3
+): Promise<any> {
+  let retries = 0;
+  
+  while (retries <= maxRetries) {
+    try {
+      const client = getOpenAI();
+      return await requestBuilder(client);
+    } catch (error: any) {
+      const status = error?.status || error?.response?.status;
+      
+      // 401 Unauthorized or 400 Bad Request - don't retry, it's fatal
+      if (status === 401 || status === 400) {
+        console.error(`[LLM] Fatal Error ${status}: ${error.message}. Aborting.`);
+        throw error;
+      }
+      
+      // 429 Rate Limit - rotate provider/key immediately and retry
+      if (status === 429) {
+        console.warn(`[LLM] Rate Limit (429) hit. Rotating key...`);
+        // getOpenAI() automatically rotates to next key if available
+        retries++;
+        if (retries > maxRetries) throw error;
+        continue; // Try next key immediately
+      }
+      
+      // 500, 502, 503, Timeout, Network error - Exponential Backoff
+      retries++;
+      if (retries > maxRetries) {
+        console.error(`[LLM] Max retries reached.`);
+        throw error;
+      }
+      
+      const delayMs = Math.pow(2, retries) * 1000; // 2s, 4s, 8s
+      console.warn(`[LLM] API Error (${status || error.message}). Retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 function getSystemPrompt() {
   const config = loadConfig();
   let basePrompt = `You are an autonomous Web3 agent operating on EVM chains.
@@ -136,7 +179,7 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
   return basePrompt;
 }
 
-export async function processUserInput(input: string, role: 'user' | 'system' = 'user'): Promise<string> {
+export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void): Promise<string> {
   const config = loadConfig();
   // Add input to memory
   logger.addEntry({ role, content: input });
@@ -164,36 +207,37 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       return `Provider ${config.llm.provider} is configured, but currently only OpenAI, OpenRouter, Ollama, and Gemini adapters are implemented.`;
     }
 
-    const openai = getOpenAI();
-    const response = await openai.chat.completions.create({
-      model: config.llm.model,
-      temperature: config.llm.temperature,
-      messages: messages,
-      tools: [
-        getBalanceToolDefinition as any, 
-        transferToolDefinition as any, 
-        getPriceToolDefinition as any, 
-        swapTokenToolDefinition as any,
-        bridgeTokenToolDefinition as any,
-        mintNftToolDefinition as any,
-        customTxToolDefinition as any,
-        createWalletToolDefinition as any,
-        checkSecurityToolDefinition as any,
-        marketAnalysisToolDefinition as any,
-        checkPortfolioToolDefinition as any,
-        createLimitOrderToolDefinition as any,
-        listLimitOrdersToolDefinition as any,
-        cancelLimitOrderToolDefinition as any,
-        updateProfileToolDefinition as any,
-        updateSecurityPolicyToolDefinition as any,
-        readLocalFileToolDefinition as any,
-        writeLocalFileToolDefinition as any,
-        runTerminalCommandToolDefinition as any,
-        browseWebsiteToolDefinition as any,
-        installExternalSkillToolDefinition as any,
-        ...pluginManager.getToolDefinitions()
-      ],
-      tool_choice: "auto",
+    const response = await executeWithRetry(async (client) => {
+      return await client.chat.completions.create({
+        model: config.llm.model,
+        temperature: config.llm.temperature,
+        messages: messages,
+        tools: [
+          getBalanceToolDefinition as any, 
+          transferToolDefinition as any, 
+          getPriceToolDefinition as any, 
+          swapTokenToolDefinition as any,
+          bridgeTokenToolDefinition as any,
+          mintNftToolDefinition as any,
+          customTxToolDefinition as any,
+          createWalletToolDefinition as any,
+          checkSecurityToolDefinition as any,
+          marketAnalysisToolDefinition as any,
+          checkPortfolioToolDefinition as any,
+          createLimitOrderToolDefinition as any,
+          listLimitOrdersToolDefinition as any,
+          cancelLimitOrderToolDefinition as any,
+          updateProfileToolDefinition as any,
+          updateSecurityPolicyToolDefinition as any,
+          readLocalFileToolDefinition as any,
+          writeLocalFileToolDefinition as any,
+          runTerminalCommandToolDefinition as any,
+          browseWebsiteToolDefinition as any,
+          installExternalSkillToolDefinition as any,
+          ...pluginManager.getToolDefinitions()
+        ],
+        tool_choice: "auto",
+      });
     });
 
     const responseMessage = response.choices[0].message;
@@ -220,101 +264,145 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         const args = JSON.parse(toolCall.function.arguments);
         const toolName = toolCall.function.name;
 
-        switch (toolName) {
-          case 'get_balance': {
-            result = await getBalance(args.chainName, args.address, args.token);
-            break;
-          }
-          case 'transfer_token':
-          case 'transfer_native': {
-            result = await prepareTransfer(args.chainName, args.toAddress, args.amountStr || args.amountEth, args.token);
-            break;
-          }
-          case 'get_price': {
-            result = await getPrice(args.coinId);
-            break;
-          }
-          case 'swap_token': {
-            result = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
-            break;
-          }
-          case 'bridge_token': {
-            result = await prepareBridgeToken(args.fromChainName, args.toChainName, args.fromToken, args.toToken, args.amountStr, args.mode, args.providerName);
-            break;
-          }
-          case 'mint_nft': {
-            result = await prepareMintNft(args.chainName, args.contractAddress, args.functionSignature, args.argsStr, args.valueEth);
-            break;
-          }
-          case 'custom_tx': {
-            result = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
-            break;
-          }
-          case 'create_wallet': {
-            result = await createWallet();
-            break;
-          }
-          case 'check_token_security': {
-            result = await checkTokenSecurity(args.chainName, args.contractAddress);
-            break;
-          }
-          case 'analyze_market': {
-            result = await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
-            break;
-          }
-          case 'check_portfolio': {
-            result = await checkPortfolio(args.chainName, args.address);
-            break;
-          }
-          case 'create_limit_order': {
-            result = limitOrderManager.createOrder(args.chainName, args.fromToken, args.toToken, args.amountStr, args.targetPriceUsd, args.condition);
-            break;
-          }
-          case 'list_limit_orders': {
-            result = limitOrderManager.listOrders();
-            break;
-          }
-          case 'cancel_limit_order': {
-            result = limitOrderManager.cancelOrder(args.id);
-            break;
-          }
-          case 'update_profile': {
-            result = updateProfile(args.content, args.mode);
-            break;
-          }
-          case 'update_security_policy': {
-            result = updateSecurityPolicy(args.rule, args.action);
-            break;
-          }
-          case 'read_local_file': {
-            result = readLocalFile(args.filePath);
-            break;
-          }
-          case 'write_local_file': {
-            result = writeLocalFile(args.filePath, args.content);
-            break;
-          }
-          case 'run_terminal_command': {
-            result = await runTerminalCommand(args.command);
-            break;
-          }
-          case 'browse_website': {
-            result = await browseWebsite(args.url);
-            break;
-          }
-          case 'install_external_skill': {
-            result = await installExternalSkill(args.url);
-            break;
-          }
-          default: {
-            const externalResult = await pluginManager.executeTool(toolName, args);
-            if (externalResult !== null) {
-              result = externalResult;
-            } else {
-              result = `Error: Tool ${toolName} is not implemented.`;
+        console.log(pc.yellow(`[⚡ Eksekusi Tool] AI memanggil ${toolName}...`));
+        if (onProgress) onProgress(`_⚡ Menjalankan alat: ${toolName}..._`);
+
+        try {
+          switch (toolName) {
+            case 'get_balance': {
+              result = await getBalance(args.chainName, args.address, args.token);
+              break;
             }
-            break;
+            case 'transfer_token':
+            case 'transfer_native': {
+              if (config.permissions?.web3?.allow_transfer === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Web3 transfers are disabled. Update config.yaml to allow.`;
+                break;
+              }
+              result = await prepareTransfer(args.chainName, args.toAddress, args.amountStr || args.amountEth, args.token);
+              break;
+            }
+            case 'get_price': {
+              result = await getPrice(args.coinId);
+              break;
+            }
+            case 'swap_token': {
+              if (config.permissions?.web3?.allow_swap === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Web3 swaps are disabled. Update config.yaml to allow.`;
+                break;
+              }
+              // Note: max_usd_per_tx validation would ideally be calculated here before prepareSwapToken
+              result = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
+              break;
+            }
+            case 'bridge_token': {
+              if (config.permissions?.web3?.allow_transfer === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Web3 bridging (transfer) is disabled. Update config.yaml to allow.`;
+                break;
+              }
+              result = await prepareBridgeToken(args.fromChainName, args.toChainName, args.fromToken, args.toToken, args.amountStr, args.mode, args.providerName);
+              break;
+            }
+            case 'mint_nft': {
+              result = await prepareMintNft(args.chainName, args.contractAddress, args.functionSignature, args.argsStr, args.valueEth);
+              break;
+            }
+            case 'custom_tx': {
+              if (config.permissions?.web3?.allow_transfer === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Custom transactions are blocked because transfers are disabled.`;
+                break;
+              }
+              result = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
+              break;
+            }
+            case 'create_wallet': {
+              result = await createWallet();
+              break;
+            }
+            case 'check_token_security': {
+              result = await checkTokenSecurity(args.chainName, args.contractAddress);
+              break;
+            }
+            case 'analyze_market': {
+              result = await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
+              break;
+            }
+            case 'check_portfolio': {
+              result = await checkPortfolio(args.chainName, args.address);
+              break;
+            }
+            case 'create_limit_order': {
+              if (config.permissions?.web3?.allow_swap === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Limit orders require swap permissions. Update config.yaml to allow.`;
+                break;
+              }
+              result = limitOrderManager.createOrder(args.chainName, args.fromToken, args.toToken, args.amountStr, args.targetPriceUsd, args.condition);
+              break;
+            }
+            case 'list_limit_orders': {
+              result = limitOrderManager.listOrders();
+              break;
+            }
+            case 'cancel_limit_order': {
+              result = limitOrderManager.cancelOrder(args.id);
+              break;
+            }
+            case 'update_profile': {
+              result = updateProfile(args.content, args.mode);
+              break;
+            }
+            case 'update_security_policy': {
+              result = updateSecurityPolicy(args.rule, args.action);
+              break;
+            }
+            case 'read_local_file': {
+              result = readLocalFile(args.filePath);
+              break;
+            }
+            case 'write_local_file': {
+              if (config.permissions?.system?.allow_file_write === false) {
+                result = `[Security Blocked] Runtime Permission Denied: File writing is disabled. Update config.yaml to allow.`;
+                break;
+              }
+              result = writeLocalFile(args.filePath, args.content);
+              break;
+            }
+            case 'run_terminal_command': {
+              if (config.permissions?.system?.allow_shell_execution === false) {
+                result = `[Security Blocked] Runtime Permission Denied: Shell execution is disabled. Update config.yaml to allow.`;
+                break;
+              }
+              result = await runTerminalCommand(args.command);
+              break;
+            }
+            case 'browse_website': {
+              result = await browseWebsite(args.url);
+              break;
+            }
+            case 'install_external_skill': {
+              result = await installExternalSkill(args.url);
+              break;
+            }
+            default: {
+              const externalResult = await pluginManager.executeTool(toolName, args);
+              if (externalResult !== null) {
+                result = externalResult;
+              } else {
+                result = `Error: Tool ${toolName} is not implemented.`;
+              }
+              break;
+            }
           }
+
+          if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {
+            console.log(pc.red(`[❌ Gagal] Tool ${toolName} mengembalikan error atau diblokir.`));
+          } else {
+            console.log(pc.green(`[✅ Sukses] Tool ${toolName} berhasil dieksekusi.`));
+          }
+
+        } catch (toolError: any) {
+          result = `Error executing ${toolName}: ${toolError.message}`;
+          console.log(pc.red(`[❌ Error Crash] Eksekusi ${toolName} gagal total: ${toolError.message}`));
         }
 
         logger.addEntry({
@@ -341,10 +429,11 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           })
       ];
 
-      const openai = getOpenAI();
-      const secondResponse = await openai.chat.completions.create({
-        model: config.llm.model,
-        messages: secondMessages,
+      const secondResponse = await executeWithRetry(async (client) => {
+        return await client.chat.completions.create({
+          model: config.llm.model,
+          messages: secondMessages,
+        });
       });
 
       if (secondResponse.usage?.total_tokens) {
