@@ -32,6 +32,17 @@ export interface NyxoraConfig {
       bot_token?: string;
     };
   };
+  permissions?: {
+    web3?: {
+      allow_transfer?: boolean;
+      allow_swap?: boolean;
+      max_usd_per_tx?: number;
+    };
+    system?: {
+      allow_shell_execution?: boolean;
+      allow_file_write?: boolean;
+    };
+  };
 }
 
 export function loadConfig(): NyxoraConfig {
@@ -55,6 +66,10 @@ export function loadConfig(): NyxoraConfig {
       web3: { rpc_urls: {} },
       integrations: {
         telegram: { enabled: false }
+      },
+      permissions: {
+        web3: { allow_transfer: false, allow_swap: true, max_usd_per_tx: 50 },
+        system: { allow_shell_execution: false, allow_file_write: false }
       }
     };
   }

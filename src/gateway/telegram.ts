@@ -42,8 +42,25 @@ export function startTelegramBot() {
       bot.sendChatAction(chatId, 'typing');
 
       try {
+        let progressMsgId: number | null = null;
+        const onProgress = async (progressText: string) => {
+          try {
+            if (!progressMsgId) {
+              const sent = await bot.sendMessage(chatId, progressText, { parse_mode: 'Markdown' });
+              progressMsgId = sent.message_id;
+            } else {
+              await bot.editMessageText(progressText, { chat_id: chatId, message_id: progressMsgId, parse_mode: 'Markdown' });
+            }
+          } catch (e) {}
+        };
+
         // Feed the message to the AI agent
-        const response = await processUserInput(text);
+        const response = await processUserInput(text, 'user', onProgress);
+        
+        if (progressMsgId) {
+          // Clean up the progress message
+          bot.deleteMessage(chatId, progressMsgId).catch(() => {});
+        }
         
         // Send the AI's response back to Telegram
         

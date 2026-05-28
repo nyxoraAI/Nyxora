@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "",
   "main": "dist/gateway/cli.js",
   "files": [
@@ -32,6 +32,7 @@
   "type": "commonjs",
   "dependencies": {
     "@clack/prompts": "^1.4.0",
+    "better-sqlite3": "^12.10.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -43,11 +44,14 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/node-telegram-bot-api": "^0.64.14",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.35"
   }
 }
