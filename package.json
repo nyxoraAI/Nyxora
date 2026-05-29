@@ -1,57 +1,28 @@
 {
   "name": "nyxora",
-  "version": "1.5.1",
-  "description": "",
-  "main": "dist/gateway/cli.js",
-  "files": [
-    "dist",
-    "dashboard/dist",
-    "assets",
-    "user.md",
-    "IDENTITY.md",
-    "SECURITY.md",
-    "README.md"
+  "version": "1.5.2",
+  "workspaces": [
+    "packages/*"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/perasyudha/Nyxora.git"
-  },
-  "bin": {
-    "nyxora": "./dist/gateway/cli.js"
-  },
   "scripts": {
-    "build": "npm run build --prefix dashboard && tsc",
-    "start": "node dist/gateway/cli.js",
-    "dashboard": "npm run build && node dist/gateway/cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "npm run build && git add . && git commit -m \"chore: auto-deploy new feature\" && git push && git push --tags && npm publish"
+    "start": "ts-node -T launcher.ts",
+    "build": "npm run build --workspaces",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@clack/prompts": "^1.4.0",
-    "better-sqlite3": "^12.10.0",
     "concurrently": "^9.2.1",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "node-telegram-bot-api": "^0.67.0",
-    "open": "^11.0.0",
-    "openai": "^6.39.0",
+    "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.2",
     "picocolors": "^1.1.1",
-    "viem": "^2.51.0",
-    "yaml": "^2.9.0"
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^25.9.1",
-    "@types/node-telegram-bot-api": "^0.64.14",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3",
-    "vitepress": "^1.6.4",
-    "vue": "^3.5.35"
+    "vitepress": "^1.6.4"
+  },
+  "bin": {
+    "nyxora": "./bin/nyxora.js"
   }
 }

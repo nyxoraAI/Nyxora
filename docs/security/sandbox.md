@@ -1,43 +1,54 @@
-# Plugin Sandbox VM
+# Policy Engine & Plugin Sandbox (v1.5.2)
 
-Security is the absolute backbone of the Nyxora ecosystem. Because Nyxora supports loading community-built *External Skills* (Third-Party Plugins), protecting your system against **Supply Chain Attacks** is our highest priority.
+Security is the absolute backbone of the Nyxora ecosystem. Because Nyxora supports autonomous Web3 execution and community-built *External Skills* (Third-Party Plugins), protecting your system against **Prompt Injections** and **Supply Chain Attacks** is our highest priority.
 
-To address this, Nyxora utilizes a strict **Node.js Virtual Machine (VM) Sandboxing** architecture.
+In v1.5.2, we introduced the **Policy Engine**, a robust gatekeeper that enforces immutable security rules outside of the LLM's reach.
 
 ---
 
-## 🔒 Isolation Architecture (The Sandbox)
+## 🛡️ The Policy Enforcement Layer
+
+The Policy Engine sits between the Core LLM Runtime and the Signer Vault. It acts as an absolute firewall. 
+Even if the LLM is somehow convinced via Prompt Injection to send all your funds to an attacker, the transaction will be intercepted by the Policy Engine.
+
+```mermaid
+flowchart TD
+    Req([Agent Request\nJSON Tool Call]) --> PE{Policy Engine\nEnforce Limits}
+    
+    PE -->|If Allowed| Sign[Execute Transaction]
+    PE -->|If Exceeds Limits| Proposal[Create Proposal]
+    
+    Proposal --> Auth[Approval Service\nHuman-Only Auth]
+    Auth -->|Cryptographic Hash| Sign
+```
+
+### Propose vs. Commit Separation
+To prevent AI manipulation, Nyxora separates authorization powers:
+1. **`propose_policy_change()` (AI-Only):** The LLM can only *draft* proposals for policy changes or high-value transactions.
+2. **`commit_policy_change()` (Human-Only Auth):** Only a human can commit the change, authenticated by a strict backend **Challenge Nonce** (`sha256(policy_diff + timestamp + user_id)`). The AI cannot unilaterally approve its own proposals.
+
+---
+
+## 🔒 Isolation Architecture (Plugin Sandboxing)
 
 Whenever you download and install a third-party *Skill* into the `src/external_skills/` directory, that code is **NEVER** executed directly at the system level.
 
 Instead, Nyxora creates an airtight *isolation chamber* (Sandbox) within memory using the native Node.js `vm` module. Third-party code is forced to live and execute exclusively within this chamber.
 
 ### 🚫 Strict Blacklisting
-
-Inside the Sandbox, the native `require` function has been stripped down and replaced with a highly restrictive custom version. If a plugin attempts to call system modules that could compromise your computer, the system will reject it outright.
-
-Permanently **blocked modules** include:
-- `fs` (File System): Plugins cannot read, edit, or delete any files on your hard drive.
-- `child_process`: Plugins cannot open a terminal or execute silent background commands (e.g., `rm -rf` or disk formatting).
-- `os`, `net`, `tls`, `cluster`, `worker_threads`: Blocked to prevent low-level network exploitation.
-
-If a plugin attempts to inject code like `require('fs')`, the VM Sandbox will instantly **Crash** (terminate and throw an error) before the malicious payload can execute.
+Inside the Sandbox, the native `require` function has been stripped down. Permanently **blocked modules** include:
+- `fs` (File System): Plugins cannot read or delete your keystore.
+- `child_process`: Plugins cannot open a terminal or execute silent background commands (e.g., `rm -rf`).
+- `os`, `net`, `tls`, `cluster`: Blocked to prevent low-level network exploitation.
 
 ### ✅ Permitted Modules
-
-To ensure plugin developers still have room for creativity, we whitelist several guaranteed-safe modules:
+We whitelist guaranteed-safe modules:
 - `crypto`: For encryption computations.
 - `math` and native `String` manipulation utilities.
-- `node-fetch` / `axios`: Plugins are **permitted** to make external API calls (for example: fetching live prices from Binance or weather data from OpenWeather). They can pull data from the internet, but they still **cannot** save files to your computer.
-
----
+- `node-fetch` / `axios`: Plugins are **permitted** to make external API calls (e.g., fetching live token prices), but they cannot save data locally.
 
 ## 🛡️ Dual-Layer Security Harmony
 
-What happens if a legitimate third-party Plugin *actually needs* to save its output to a text file?
-
-Nyxora solves this using a **Dual-Layer Security Harmony** approach. The plugin itself will never have the ability to save the file. All it can do is process the data and hand the raw text back to the Nyxora AI.
-
-The Nyxora AI then takes over, running the data through our rigorous **NLP Security Policy** evaluation (where the AI assesses whether the action is malicious). If it passes, the Nyxora AI will internally invoke its official *Native Skill* (`writeFile`) to save the document safely.
+If a third-party Plugin needs to save its output, the plugin must hand the raw data back to the Nyxora AI. The Nyxora AI then evaluates the action against the **Policy Engine**. If it passes, the Core Runtime will securely execute the action on behalf of the plugin. 
 
 With this design, external functions can infinitely expand Nyxora's capabilities without ever touching a single OS-level permission on your machine!

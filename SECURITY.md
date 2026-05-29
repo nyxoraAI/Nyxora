@@ -1,22 +1,65 @@
-# Security Policy
+# Nyxora Security Architecture & Threat Model
 
-## Supported Versions
+Nyxora (v1.5.2) employs an institutional-grade, **Cryptographically Bound Human-in-the-Loop** security model to protect user assets and private keys against compromised LLMs, supply chain attacks, and prompt injections.
 
-Currently, the Nyxora project is in active development. Only the latest commit on the `main` branch is supported with security updates.
+---
 
-## Reporting a Vulnerability
+## 1. Zero-Knowledge LLM Architecture
 
-If you discover a security vulnerability within this project, please **do not** open a public issue. We take security very seriously.
+The core philosophy of Nyxora is **Zero-Knowledge to the LLM**. 
 
-Instead, please send an email to the repository owner or reach out privately. We will endeavor to respond and provide a patch as quickly as possible.
+Large Language Models (LLMs) are incredibly powerful reasoning engines, but they are inherently vulnerable to Prompt Injection and hallucinations. Therefore, the LLM must *never* have unilateral access to private keys or the ability to bypass security guardrails.
 
-## Best Practices for Users
-When using Nyxora, you are configuring an autonomous agent that has direct access to your injected Web3 Wallet's private key.
+To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communication)** architecture:
+1. **Core Runtime (Port 3000):** Executes the LLM logic, handles the UI dashboard, and processes chat inputs.
+2. **Policy Engine (Port 3001):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`).
+3. **Signer Vault (Unix Socket):** A completely isolated Node.js process that holds the decrypted private keys in memory. It listens exclusively on `/tmp/nyxora-signer.sock`.
 
-1. **Protect Your Keystore**: Your private key is encrypted and stored in `~/.nyxora/keystore.json`. While it is encrypted using `AES-256-GCM`, you must still treat it and your **Master Password** as highly sensitive. NEVER share your `keystore.json` or your Master Password with anyone.
-2. **Human-in-the-Loop Verification**: For standard actions, the agent is restricted from making unilateral transactions. Always review the exact details of the transaction when prompted to "Approve" or "Reject" on the Web Dashboard or Telegram Inline Keyboard before confirming.
-3. **Limit Order Automation Risk**: If you use the AI to create a **Limit Order** (Take-profit or Cut-loss), the system WILL execute the transaction automatically in the background when the price condition is met. This intentionally bypasses the Human-in-the-Loop verification for speed. Use this feature with caution.
-4. **Wallet Generation**: When you ask the AI to create a new wallet, it generates the Private Key and Seed Phrase locally and displays it once. It does NOT save it anywhere. You are responsible for immediately backing up this information.
-5. **Use Testnets**: While getting started or testing new skills, ALWAYS use a testnet (e.g., Sepolia) and a wallet containing only testnet funds.
-6. **Do Not Share Your `memory.json`**: The agent's memory may contain sensitive conversational data, generated seed phrases, or addresses you've interacted with. Be cautious before sharing the `memory.json` export.
-7. **API Keys**: Treat your OpenAI, Gemini, and other LLM provider API keys as highly confidential. Rotate them immediately if you suspect a compromise.
+### The Security Flow
+When the LLM decides to swap tokens:
+1. LLM generates a JSON tool call (`executeSwap`).
+2. Core Runtime forwards this payload to the **Policy Engine**.
+3. The Policy Engine evaluates the payload against immutable limits.
+4. If it exceeds limits, a proposal is created and sent to the Human Operator for approval.
+5. If approved, the Policy Engine forwards the signed JWT instruction to the **Signer Vault**.
+6. The Signer Vault signs the transaction locally via `viem` and broadcasts it to the RPC.
+
+---
+
+## 2. Advanced Cryptographic Security (v1.6.0 Roadmap / v1.5.2 Blueprint)
+
+To prevent advanced Man-in-the-Middle (MITM) attacks and UI compromises, Nyxora is adopting the following cryptographic standards:
+
+### Immutable Policy Store & HMAC Verification
+The `policy.yaml` file defines your risk tolerance (e.g., daily spend limits). In Nyxora, this is not a regular editable state file.
+*   **Immutable Loading:** The Policy Engine verifies the integrity of `policy.yaml` via checksums or HMAC / public-key signatures upon boot.
+*   **No Runtime Write-Access:** The LLM Agent process does not have write access to the policy directory.
+
+### Propose vs. Commit Separation
+We enforce a strict separation of duties to prevent prompt injection manipulation:
+*   `propose_policy_change()`: The AI is restricted to drafting proposals. It cannot alter live security settings.
+*   `commit_policy_change()`: Only a Human Operator, authenticated via a backend Challenge Nonce, can commit the proposal to the Policy Engine.
+
+### Cryptographically Bound Approvals
+When the UI asks you to approve a transaction or a policy change, you are not simply clicking "OK". 
+The backend requires a cryptographic hash:
+```javascript
+approval_hash = sha256(policy_diff + timestamp + user_id)
+```
+This ensures that what the human saw on the UI matches exactly what is being executed, preventing the LLM from secretly modifying the payload in transit.
+
+### Anti-Replay Challenge Nonce
+Every approval UI prompt utilizes a **Single-Use Challenge Nonce** with a strict expiry time. This mitigates *XSS Token Leaks* and *Replay Attacks*, ensuring that an old approval token cannot be stolen and reused for a malicious transaction later.
+
+---
+
+## 3. Plugin Sandboxing
+
+Community plugins and custom skills are executed inside a sandboxed environment.
+*   **Restricted FS Access:** Plugins cannot arbitrarily read your `~/.nyxora` keystore directory.
+*   **Restricted Shell Exec:** Arbitrary shell commands are disabled for third-party skills to prevent malicious `curl | bash` supply chain payloads.
+
+## 4. Reporting Vulnerabilities
+
+If you discover a vulnerability in the Nyxora architecture, please DO NOT open a public issue.
+Instead, email the core maintainer directly at **security@nyxora.ai**.

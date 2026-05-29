@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "Nyxora"
-  text: "Secure execution<br>framework for<br>AI-powered<br>onchain agents."
-  tagline: "Nyxora enables AI agents to safely interact with wallets, blockchain protocols, and Web3 tools through a modular execution runtime."
+  text: "Production-Grade<br>Secure Execution<br>for Web3 Agents."
+  tagline: "Nyxora enables AI agents to safely interact with wallets through a strict 3-Tier IPC Architecture and Cryptographically Bound Human-in-the-Loop approvals (v1.5.2)."
   image:
     src: /favicon.svg # Dummy to trigger image slot
     alt: Nyxora Execution
@@ -17,14 +17,14 @@ hero:
       link: /guide/custom_skills
 
 features:
-  - title: Execution Sandbox
-    details: Restrict autonomous actions with configurable safety policies and permission boundaries.
-  - title: Local Key Isolation
-    details: Your private keys never leave your machine. AES-256-GCM encrypted local vault.
+  - title: 3-Tier IPC Architecture
+    details: Complete process isolation between Core LLM (port 3000), Policy Engine (port 3001), and Signer Vault (Unix Socket).
+  - title: Cryptographic Approvals
+    details: UI approvals are strictly bound by sha256 hashes and backend challenge nonces.
   - title: Multi-LLM Support
     details: Easily switch between Gemini, OpenAI, OpenRouter, and Ollama.
-  - title: Human-in-the-Loop
-    details: All write actions require explicit operator confirmation before broadcast.
+  - title: Immutable Policy Guardrails
+    details: All write actions and policy changes are verified by checksums and require explicit operator confirmation.
 ---
 
 <style>
