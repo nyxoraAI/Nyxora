@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Code } from 'lucide-react';
+import { Compass } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -67,27 +67,7 @@ const Skills: React.FC = () => {
               </p>
             </div>
 
-            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '6px', padding: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#9ca3af', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-                <Code size={12} />
-                <span>Parameters Schema</span>
-              </div>
-              <pre style={{ 
-                margin: 0, 
-                fontFamily: 'Consolas, Monaco, monospace', 
-                fontSize: '0.75rem', 
-                color: '#a3a3a3',
-                overflowX: 'auto',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {JSON.stringify(skill.function.parameters.properties, null, 2)}
-              </pre>
-              {skill.function.parameters.required && skill.function.parameters.required.length > 0 && (
-                <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#ef4444' }}>
-                  <strong>Required:</strong> {skill.function.parameters.required.join(', ')}
-                </div>
-              )}
-            </div>
+
           </div>
         ))}
       </div>
