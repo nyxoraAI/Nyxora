@@ -16,6 +16,11 @@ import { getBalanceToolDefinition } from '../web3/skills/getBalance';
 import { checkAddressToolDefinition } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition } from '../web3/skills/getMyAddress';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
+import { checkSecurityToolDefinition } from '../web3/skills/checkSecurity';
+import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
+import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
+import { createWalletToolDefinition } from '../web3/skills/createWallet';
+import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition } from '../agent/limitOrderManager';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
 import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
@@ -111,7 +116,14 @@ app.get('/api/skills', (req, res) => {
     mintNftToolDefinition,
     customTxToolDefinition,
     checkAddressToolDefinition,
-    getMyAddressToolDefinition
+    getMyAddressToolDefinition,
+    checkSecurityToolDefinition,
+    checkPortfolioToolDefinition,
+    marketAnalysisToolDefinition,
+    createWalletToolDefinition,
+    createLimitOrderToolDefinition,
+    listLimitOrdersToolDefinition,
+    cancelLimitOrderToolDefinition
   ]);
 });
 
