@@ -15,6 +15,8 @@ import { createWalletToolDefinition, createWallet } from '../web3/skills/createW
 import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/checkSecurity';
 import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
+import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
+import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
@@ -224,6 +226,8 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           checkSecurityToolDefinition as any,
           marketAnalysisToolDefinition as any,
           checkPortfolioToolDefinition as any,
+          checkAddressToolDefinition as any,
+          getMyAddressToolDefinition as any,
           createLimitOrderToolDefinition as any,
           listLimitOrdersToolDefinition as any,
           cancelLimitOrderToolDefinition as any,
@@ -329,6 +333,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'check_portfolio': {
               result = await checkPortfolio(args.chainName, args.address);
+              break;
+            }
+            case 'check_address': {
+              result = await checkAddress(args.chainName, args.address);
+              break;
+            }
+            case 'get_my_address': {
+              result = await getMyAddress();
               break;
             }
             case 'create_limit_order': {
