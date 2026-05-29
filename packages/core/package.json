@@ -1,7 +1,7 @@
 {
   "name": "@nyxora/core",
   "version": "1.5.2",
-  "private": false,
+  "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
     "@clack/prompts": "^1.4.0",

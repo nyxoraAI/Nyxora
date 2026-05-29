@@ -1,7 +1,7 @@
 {
   "name": "@nyxora/policy",
   "version": "1.5.2",
-  "private": false,
+  "private": true,
   "main": "src/server.ts",
   "dependencies": {
     "express": "^5.2.1",
