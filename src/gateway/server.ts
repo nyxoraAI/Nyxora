@@ -13,6 +13,8 @@ import { pluginManager } from '../system/pluginManager';
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
+import { checkAddressToolDefinition } from '../web3/skills/checkAddress';
+import { getMyAddressToolDefinition } from '../web3/skills/getMyAddress';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
@@ -107,7 +109,9 @@ app.get('/api/skills', (req, res) => {
     swapTokenToolDefinition,
     bridgeTokenToolDefinition,
     mintNftToolDefinition,
-    customTxToolDefinition
+    customTxToolDefinition,
+    checkAddressToolDefinition,
+    getMyAddressToolDefinition
   ]);
 });
 
