@@ -1,0 +1,11 @@
+{
+  "name": "@nyxora/signer",
+  "version": "1.5.2",
+  "private": true,
+  "main": "src/server.ts",
+  "dependencies": {
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "viem": "^2.51.0"
+  }
+}

@@ -1,0 +1,4 @@
+# Nyxora Policy Rules
+max_usd_per_tx: 50
+whitelist_only: false
+require_approval: true

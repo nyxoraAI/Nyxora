@@ -3,11 +3,16 @@
     "target": "ES2022",
     "module": "CommonJS",
     "esModuleInterop": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "rootDir": "./src",
-    "outDir": "./dist"
+    "rootDir": "."
   },
-  "include": ["src/**/*"]
+  "include": [
+    "launcher.ts",
+    "packages/core/src/**/*",
+    "packages/policy/src/**/*",
+    "packages/signer/src/**/*"
+  ],
+  "exclude": ["node_modules", "packages/dashboard"]
 }

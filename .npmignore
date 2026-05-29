@@ -11,3 +11,12 @@ memory.json
 .git/
 .gitignore
 scratch/
+
+# Nyxora CLI Specifics
+.github/
+docs/
+config.yaml
+packages/policy/policy.yaml
+keystore.json
+memory.db
+*.bak

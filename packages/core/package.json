@@ -1,0 +1,18 @@
+{
+  "name": "@nyxora/core",
+  "version": "1.5.2",
+  "private": true,
+  "main": "src/gateway/server.ts",
+  "dependencies": {
+    "@clack/prompts": "^1.4.0",
+    "better-sqlite3": "^12.10.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.5.0",
+    "node-telegram-bot-api": "^0.67.0",
+    "open": "^11.0.0",
+    "openai": "^6.39.0",
+    "yaml": "^2.9.0"
+  }
+}
