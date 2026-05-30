@@ -63,8 +63,7 @@ With the new v1.5.4 Monorepo architecture, launching Nyxora is completely automa
 git clone https://github.com/perasyudha/Nyxora.git
 cd Nyxora
 npm install
-npx ts-node -T pacnpx ts-node -T packages/core/src/gateway/cli.ts setup
-kages/core/src/gateway/cli.ts setup
+npx ts-node -T packages/core/src/gateway/cli.ts setup
 
 
 # Build all monorepo packages (Core, Policy, Signer, Dashboard)
