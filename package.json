@@ -1,12 +1,13 @@
 {
   "name": "nyxora",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "start": "ts-node -T launcher.ts",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=dashboard",
+    "setup": "ts-node -T packages/core/src/gateway/cli.ts setup",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
