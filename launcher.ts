@@ -40,12 +40,16 @@ if (fs.existsSync(socketPath)) {
   fs.unlinkSync(socketPath);
 }
 
-const signer = spawnService('Signer', 'npx', ['ts-node', '-T', 'packages/signer/src/server.ts'], env);
+const signerPath = path.join(__dirname, 'packages/signer/src/server.ts');
+const signer = spawnService('Signer', 'npx', ['ts-node', '-T', signerPath], env);
 
 setTimeout(() => {
-  const policy = spawnService('Policy', 'npx', ['ts-node', '-T', 'packages/policy/src/server.ts'], env);
+  const policyPath = path.join(__dirname, 'packages/policy/src/server.ts');
+  const policy = spawnService('Policy', 'npx', ['ts-node', '-T', policyPath], env);
   
   setTimeout(() => {
-    const core = spawnService('Core', 'npx', ['ts-node', '-T', 'packages/core/src/gateway/cli.ts'], env, true);
+    const corePath = path.join(__dirname, 'packages/core/src/gateway/cli.ts');
+    const args = process.argv.slice(2);
+    const core = spawnService('Core', 'npx', ['ts-node', '-T', corePath, ...args], env, true);
   }, 1000);
 }, 1000);
