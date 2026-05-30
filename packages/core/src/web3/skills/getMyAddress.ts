@@ -2,7 +2,7 @@ import { getAddress } from '../config';
 
 export async function getMyAddress(): Promise<string> {
   try {
-    const address = getAddress();
+    const address = await getAddress();
     if (!address) {
       return "Error: Could not retrieve public address from the keystore.";
     }
