@@ -12,20 +12,32 @@ Large Language Models (LLMs) are incredibly powerful reasoning engines, but they
 
 To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communication)** architecture:
 
-![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
-
 1. **Core Runtime (Port 3000):** Executes the LLM logic, handles the UI dashboard, and processes chat inputs.
 2. **Policy Engine (Port 3001):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`).
 3. **Signer Vault (Unix Socket):** A completely isolated Node.js process that holds the decrypted private keys in memory. It listens exclusively on `/tmp/nyxora-signer.sock`.
 
 ### The Security Flow
-When the LLM decides to swap tokens:
-1. LLM generates a JSON tool call (`executeSwap`).
-2. Core Runtime forwards this payload to the **Policy Engine**.
-3. The Policy Engine evaluates the payload against immutable limits.
-4. If it exceeds limits, a proposal is created and sent to the Human Operator for approval.
-5. If approved, the Policy Engine forwards the signed JWT instruction to the **Signer Vault**.
-6. The Signer Vault signs the transaction locally via `viem` and broadcasts it to the RPC.
+When the LLM processes a transaction instruction (e.g., swapping tokens), the lifecycle is as follows:
+
+```text
+[1] User (Dashboard/Telegram) ──> Sends prompt "Please swap ETH to USDC"
+                                      │
+[2] Core Runtime (LLM)        <── Understands context & generates JSON Tool Call
+                                      │
+[3] Policy Engine             <── Receives payload, evaluates rules & limits
+                                      │
+[4] User (Dashboard/Telegram) <── (If Auth required) Requests Approval (Challenge Nonce)
+                                      │
+[5] Signer Vault              <── Receives certified instruction from Policy
+                                      │
+[6] Blockchain RPC            <── Signer Vault signs & broadcasts to RPC
+                                      │
+[7] User (Dashboard/Telegram) <── Success status returned to chat interface
+```
+
+The diagram above illustrates the lifecycle of a transaction initiated from the user interface. Due to Nyxora's layered architecture, the LLM in the Core Runtime acts solely as a planner generating transaction data structures. The actual cryptographic execution and signing are strictly locked and fully controlled by the Policy Engine and Signer Vault after you provide authorization.
+
+> **Performance Note:** Although the multi-layered security flow above appears complex and lengthy, the entire internal verification, IPC communication, and cryptographic signing process is highly optimized and takes only a few **milliseconds (ms)** to complete.
 
 ---
 
@@ -65,4 +77,4 @@ Community plugins and custom skills are executed inside a sandboxed environment.
 ## 4. Reporting Vulnerabilities
 
 If you discover a vulnerability in the Nyxora architecture, please DO NOT open a public issue.
-Instead, email the core maintainer directly at **security@nyxora.ai**.
+Instead, email the core maintainer directly at **ainyxor@gmail.com**.
