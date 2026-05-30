@@ -1,6 +1,6 @@
-# Signer Vault & Master Password (v1.5.2)
+# Signer Vault & Master Password
 
-As an autonomous framework capable of executing on-chain asset transfers, **Nyxora** places Private Key protection as its highest absolute priority. In v1.5.2, we introduced a completely **Isolated Signer Vault**, ensuring that even if the core LLM runtime is compromised via zero-day vulnerabilities, your private keys remain untouchable.
+As an autonomous framework capable of executing on-chain asset transfers, **Nyxora** places Private Key protection as its highest absolute priority. We introduced a completely **Isolated Signer Vault**, ensuring that even if the core LLM runtime is compromised via zero-day vulnerabilities, your private keys remain untouchable.
 
 ---
 
@@ -8,12 +8,7 @@ As an autonomous framework capable of executing on-chain asset transfers, **Nyxo
 
 Nyxora completely isolates the transaction signing process from the LLM execution process.
 
-```mermaid
-flowchart LR
-    LLM[Core Runtime\nPort: 3000] -->|Propose Tx| Policy[Policy Engine\nPort: 3001]
-    Policy -->|IPC (Challenge Nonce)| Socket((Unix Socket\n/tmp/nyxora-signer.sock))
-    Socket --> Vault[Signer Vault\nPrivate Keys in RAM]
-```
+![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
 
 - **Core Runtime (LLM):** Has zero access to memory or disk locations containing private keys.
 - **Policy Engine:** Acts as the middleman firewall.

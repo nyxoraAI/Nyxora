@@ -1,13 +1,13 @@
 # Nyxora Agent 🤖
 **Production-Grade Secure AI Execution Framework for Web3 Agents.**
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](https://github.com/perasyudha/Nyxora)
+[![Version](https://img.shields.io/badge/version-1.6.1-blue.svg)](https://github.com/perasyudha/Nyxora)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Production-Grade](https://img.shields.io/badge/Security-Production--Grade-blue.svg)](#️-advanced-security-threat-model)
 [![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg)](#️-advanced-security-threat-model)
 [![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-advanced-security-threat-model)
 
-Nyxora (v1.6.0) is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. 
+Nyxora (v1.6.1) is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. 
 
 It operates under an institutional-grade **Cryptographically Bound Human-in-the-Loop** execution model, ensuring that Remote AIs (LLMs) never have unilateral access to your funds.
 
@@ -15,7 +15,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 
 ## 🔥 Key Features
 
-### Advanced Security Architecture (v1.6.0)
+### Advanced Security Architecture (v1.6.1)
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **Cryptographically Bound Approval**: Policy changes and transactions requested by the AI are drafted as hashes (`sha256`). Approval via the UI requires a challenge nonce, preventing Man-in-the-Middle (MITM) attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
@@ -56,8 +56,22 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 
 ## 🚀 Quick Start & Installation
 
-### Local Development & Execution
-With the new v1.6.0 Monorepo architecture, launching Nyxora is completely automated via the internal `launcher.ts` orchestrator.
+### Global Installation via NPM (Recommended)
+The easiest and fastest way to use Nyxora is to install it globally via NPM. This ensures you get the latest version and can run Nyxora from anywhere on your machine.
+
+```bash
+# 1. Install Nyxora globally
+npm install -g nyxora@latest
+
+# 2. Run the Interactive Setup Wizard (API Keys, Wallet, Model Selection)
+nyxora setup
+
+# 3. Start the Nyxora Orchestrator and Dashboard
+nyxora
+```
+
+### Local Development (From Source)
+If you wish to modify the code or run from source, you can use the Monorepo architecture.
 
 ```bash
 git clone https://github.com/perasyudha/Nyxora.git
@@ -65,8 +79,6 @@ cd Nyxora
 
 # 1. Install Dependencies
 npm install
-npx ts-node -T packages/core/src/gateway/cli.ts setup
-
 
 # 2. Build the Dashboard UI
 npm run build
