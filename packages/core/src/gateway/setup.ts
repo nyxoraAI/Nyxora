@@ -211,7 +211,7 @@ Provider: ${config.llm.provider}`;
   } else if (walletSetupType === 'generate') {
     privateKey = generatePrivateKey();
     const account = privateKeyToAccount(privateKey as any);
-    note(`New Wallet Generated!\nAddress: ${account.address}\n\nIMPORTANT: Backup this address. The Private Key is securely injected into your local vault.`, 'Wallet Created');
+    note(`New Wallet Generated!\n\nAddress: ${account.address}\nPrivate Key: ${privateKey}\n\nIMPORTANT: Backup this Private Key NOW! It is securely injected into your local vault, but you will need it to import your wallet elsewhere.`, 'Wallet Created');
   }
 
   let masterPassword = '';
