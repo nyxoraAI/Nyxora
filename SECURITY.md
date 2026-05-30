@@ -1,6 +1,6 @@
 # Nyxora Security Architecture & Threat Model
 
-Nyxora (v1.5.2) employs an institutional-grade, **Cryptographically Bound Human-in-the-Loop** security model to protect user assets and private keys against compromised LLMs, supply chain attacks, and prompt injections.
+Nyxora employs an institutional-grade, **Cryptographically Bound Human-in-the-Loop** security model to protect user assets and private keys against compromised LLMs, supply chain attacks, and prompt injections.
 
 ---
 
@@ -11,6 +11,9 @@ The core philosophy of Nyxora is **Zero-Knowledge to the LLM**.
 Large Language Models (LLMs) are incredibly powerful reasoning engines, but they are inherently vulnerable to Prompt Injection and hallucinations. Therefore, the LLM must *never* have unilateral access to private keys or the ability to bypass security guardrails.
 
 To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communication)** architecture:
+
+![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
+
 1. **Core Runtime (Port 3000):** Executes the LLM logic, handles the UI dashboard, and processes chat inputs.
 2. **Policy Engine (Port 3001):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`).
 3. **Signer Vault (Unix Socket):** A completely isolated Node.js process that holds the decrypted private keys in memory. It listens exclusively on `/tmp/nyxora-signer.sock`.
@@ -26,7 +29,7 @@ When the LLM decides to swap tokens:
 
 ---
 
-## 2. Advanced Cryptographic Security (v1.6.0 Roadmap / v1.5.2 Blueprint)
+## 2. Advanced Cryptographic Security
 
 To prevent advanced Man-in-the-Middle (MITM) attacks and UI compromises, Nyxora is adopting the following cryptographic standards:
 

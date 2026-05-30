@@ -1,8 +1,8 @@
-# Policy Engine & Plugin Sandbox (v1.5.2)
+# Policy Engine & Plugin Sandbox
 
 Security is the absolute backbone of the Nyxora ecosystem. Because Nyxora supports autonomous Web3 execution and community-built *External Skills* (Third-Party Plugins), protecting your system against **Prompt Injections** and **Supply Chain Attacks** is our highest priority.
 
-In v1.5.2, we introduced the **Policy Engine**, a robust gatekeeper that enforces immutable security rules outside of the LLM's reach.
+We introduced the **Policy Engine**, a robust gatekeeper that enforces immutable security rules outside of the LLM's reach.
 
 ---
 
