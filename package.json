@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "workspaces": [
     "packages/*"
   ],
@@ -11,12 +11,24 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@clack/prompts": "^1.4.0",
+    "better-sqlite3": "^12.10.0",
     "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "node-telegram-bot-api": "^0.67.0",
+    "open": "^11.0.0",
+    "openai": "^6.39.0",
     "picocolors": "^1.1.1",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "viem": "^2.51.0",
+    "yaml": "^2.9.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",
