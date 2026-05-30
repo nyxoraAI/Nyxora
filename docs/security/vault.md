@@ -8,7 +8,25 @@ As an autonomous framework capable of executing on-chain asset transfers, **Nyxo
 
 Nyxora completely isolates the transaction signing process from the LLM execution process.
 
-![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
+```text
+[1] User (Dashboard/Telegram) ──> Sends prompt "Please swap ETH to USDC"
+                                      │
+[2] Core Runtime (LLM)        <── Understands context & generates JSON Tool Call
+                                      │
+[3] Policy Engine             <── Receives payload, evaluates rules & limits
+                                      │
+[4] User (Dashboard/Telegram) <── (If Auth required) Requests Approval (Challenge Nonce)
+                                      │
+[5] Signer Vault              <── Receives certified instruction from Policy
+                                      │
+[6] Blockchain RPC            <── Signer Vault signs & broadcasts to RPC
+                                      │
+[7] User (Dashboard/Telegram) <── Success status returned to chat interface
+```
+
+The diagram above illustrates the lifecycle of a transaction initiated from the user interface. Due to Nyxora's layered architecture, the LLM in the Core Runtime acts solely as a planner generating transaction data structures. The actual cryptographic execution and signing are strictly locked and fully controlled by the Policy Engine and Signer Vault after you provide authorization.
+
+> **Performance Note:** Although the multi-layered security flow above appears complex and lengthy, the entire internal verification, IPC communication, and cryptographic signing process is highly optimized and takes only a few **milliseconds (ms)** to complete.
 
 - **Core Runtime (LLM):** Has zero access to memory or disk locations containing private keys.
 - **Policy Engine:** Acts as the middleman firewall.
