@@ -10,7 +10,7 @@
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. 
 
-**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://perasyudha.github.io/Nyxora/guide/mcp-integration)
+**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://nyxoraAI.github.io/Nyxora/guide/mcp-integration)
 
 It operates under an institutional-grade **Cryptographically Bound Human-in-the-Loop** execution model, ensuring that Remote AIs (LLMs) never have unilateral access to your funds.
 
@@ -56,7 +56,7 @@ The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, sho
 
 ## 🛡️ Advanced Security & Threat Model
 
-To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security Blueprint](https://perasyudha.github.io/Nyxora/).
+To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security Blueprint](https://nyxoraAI.github.io/Nyxora/).
 
 ---
 
@@ -110,7 +110,7 @@ npm run dashboard
 
 For complete technical deep-dives into our Cryptographic Architecture, please visit our official VitePress Documentation Site!
 
-> **🔗 [Read the Full Nyxora Documentation Here](https://perasyudha.github.io/Nyxora/)**
+> **🔗 [Read the Full Nyxora Documentation Here](https://nyxoraAI.github.io/Nyxora/)**
 
 *(Includes guides on Secure Wallet Imports, Architecture Blueprints, Troubleshooting, and Custom Skill Development).*
 
