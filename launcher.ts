@@ -9,6 +9,12 @@ import path from 'path';
 const INTERNAL_AUTH_TOKEN = crypto.randomBytes(64).toString('hex');
 console.log(`[Launcher] Generated Internal Auth Token: ${INTERNAL_AUTH_TOKEN.substring(0, 8)}...`);
 
+const nyxoraDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora');
+if (!fs.existsSync(nyxoraDir)) fs.mkdirSync(nyxoraDir, { recursive: true, mode: 0o700 });
+const tokenPath = path.join(nyxoraDir, 'runtime.token');
+fs.writeFileSync(tokenPath, INTERNAL_AUTH_TOKEN, { mode: 0o600 });
+console.log(`[Launcher] Secured runtime token at ${tokenPath} (0600)`);
+
 const env = {
   ...process.env,
   INTERNAL_AUTH_TOKEN,
