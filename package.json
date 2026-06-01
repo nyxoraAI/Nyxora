@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "bin": {
-    "nyxora": "./bin/nyxora.mjs"
+    "nyxora": "bin/nyxora.mjs"
   },
   "scripts": {
     "start": "node ./bin/nyxora.mjs start",
