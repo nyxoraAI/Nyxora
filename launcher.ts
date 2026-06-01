@@ -1,3 +1,6 @@
+import { initSafeLogger } from './packages/core/src/utils/safeLogger';
+initSafeLogger();
+
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';

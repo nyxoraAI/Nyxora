@@ -1,3 +1,6 @@
+import { initSafeLogger } from '../../core/src/utils/safeLogger';
+initSafeLogger();
+
 import express from 'express';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -43,6 +46,18 @@ async function loadPrivateKey() {
   // Fallback to vault.key
   const vaultPath = path.join(os.homedir(), '.nyxora', 'vault.key');
   if (fs.existsSync(vaultPath)) {
+    const stats = fs.statSync(vaultPath);
+    const mode = stats.mode & 0o777;
+    if (os.platform() !== 'win32' && mode !== 0o600) {
+      console.error(`\n======================================================`);
+      console.error(`FATAL: Insecure permissions detected on vault.key`);
+      console.error(`File permissions must be strictly 0600 (-rw-------)`);
+      console.error(`Current permissions: 0${mode.toString(8)}`);
+      console.error(`Refusing to start. Please run: chmod 600 ${vaultPath}`);
+      console.error(`======================================================\n`);
+      process.exit(1);
+    }
+
     const content = fs.readFileSync(vaultPath, 'utf8');
     const match = content.match(/PRIVATE_KEY=(.+)/);
     if (match && match[1]) {

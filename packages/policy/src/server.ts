@@ -1,3 +1,6 @@
+import { initSafeLogger } from '../../core/src/utils/safeLogger';
+initSafeLogger();
+
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { initSafeLogger } from '../utils/safeLogger';
+initSafeLogger();
+
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
