@@ -17,8 +17,47 @@ if (!JWT_SECRET) {
 const app = express();
 app.use(express.json());
 
+import keytar from 'keytar';
+import path from 'path';
+import os from 'os';
+
 let vaultPrivateKey: `0x${string}` | null = null;
 let vaultAddress: string | null = null;
+
+// Auto-unlock from OS Keyring or fallback .env
+async function loadPrivateKey() {
+  try {
+    const pk = await keytar.getPassword('nyxora', 'wallet');
+    if (pk) {
+      vaultPrivateKey = pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
+      const account = privateKeyToAccount(vaultPrivateKey);
+      vaultAddress = account.address;
+      console.log(`✅ [Signer] Vault unlocked securely from OS Keyring. Agent Address: ${vaultAddress}`);
+      return;
+    }
+  } catch (e) {
+    console.warn(`⚠️ [Signer] OS Keyring failed (module mismatch or headless). Using fallback.`);
+  }
+
+  // Fallback to vault.key
+  const vaultPath = path.join(os.homedir(), '.nyxora', 'vault.key');
+  if (fs.existsSync(vaultPath)) {
+    const content = fs.readFileSync(vaultPath, 'utf8');
+    const match = content.match(/PRIVATE_KEY=(.+)/);
+    if (match && match[1]) {
+      const pk = match[1].trim();
+      vaultPrivateKey = pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
+      const account = privateKeyToAccount(vaultPrivateKey);
+      vaultAddress = account.address;
+      console.log(`✅ [Signer] Vault unlocked from vault.key fallback. Agent Address: ${vaultAddress}`);
+    }
+  } else {
+    console.log(`❌ [Signer] No Private Key found in OS Keyring or vault.key. Web3 features will fail.`);
+  }
+}
+
+// Load it immediately
+loadPrivateKey();
 
 // Nonce Management
 const nonceLocks: Record<number, Promise<void>> = {};
@@ -39,19 +78,6 @@ app.use((req, res, next) => {
     next();
   } catch (e) {
     res.status(403).json({ error: 'Invalid internal token' });
-  }
-});
-
-app.post('/unlock', (req, res) => {
-  const { keystore, password } = req.body;
-  try {
-    const pk = decryptKey(keystore, password);
-    vaultPrivateKey = pk.startsWith('0x') ? pk as `0x${string}` : `0x${pk}` as `0x${string}`;
-    const account = privateKeyToAccount(vaultPrivateKey);
-    vaultAddress = account.address;
-    res.json({ success: true, address: vaultAddress });
-  } catch (err: any) {
-    res.status(401).json({ error: 'Invalid password or keystore' });
   }
 });
 

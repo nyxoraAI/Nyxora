@@ -24,12 +24,13 @@ export interface NyxoraConfig {
     path: string;
   };
   web3?: {
-    rpc_urls?: Record<string, string>;
+    rpc_urls?: Record<string, string | string[]>;
   };
   integrations?: {
     telegram?: {
       enabled: boolean;
       bot_token?: string;
+      authorized_chat_id?: number;
     };
   };
   permissions?: {

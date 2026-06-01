@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import http from 'http';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { getPath } from '../config/paths';
 import { getSessionToken } from '../utils/state';
 
@@ -31,17 +32,21 @@ import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx
 import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 
+import util from 'util';
+
 // Intercept console.log and console.error
 const originalLog = console.log;
 const originalError = console.error;
 
+const safeFormat = (a: any) => typeof a === 'object' ? util.inspect(a, { depth: 2 }) : String(a);
+
 console.log = function (...args) {
-  Tracker.addGatewayLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+  Tracker.addGatewayLog(args.map(safeFormat).join(' '));
   originalLog.apply(console, args);
 };
 
 console.error = function (...args) {
-  Tracker.addGatewayLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '), { level: 'error' });
+  Tracker.addGatewayLog(args.map(safeFormat).join(' '), { level: 'error' });
   originalError.apply(console, args);
 };
 
@@ -52,7 +57,7 @@ app.use(express.json());
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 10000, // Increased from 100 to 10000 to prevent breaking dashboard polling (which polls every 2s)
   message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 app.use('/api/', apiLimiter);
@@ -61,7 +66,7 @@ app.use('/api/', apiLimiter);
 app.use('/api', (req, res, next) => {
   const token = req.headers['x-nyxora-token'];
   if (token !== getSessionToken()) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid or missing token' });
+    return res.status(401).json({ error: `Unauthorized: Invalid or missing token. Expected: ${getSessionToken()}, Received: ${token}` });
   }
   next();
 });
@@ -76,7 +81,8 @@ app.get('/', (req, res) => {
 
 app.get('/api/history', (req, res) => {
   try {
-    const history = logger.getHistory();
+    const sessionId = req.query.session_id as string | undefined;
+    const history = logger.getHistory(sessionId);
     // Filter out internal system prompt for the frontend
     const cleanHistory = history.filter((msg: any) => msg.role !== 'system');
     res.json(cleanHistory);
@@ -87,8 +93,48 @@ app.get('/api/history', (req, res) => {
 
 app.delete('/api/history', (req, res) => {
   try {
-    logger.clear();
+    const sessionId = req.query.session_id as string | undefined;
+    logger.clear(sessionId);
     Tracker.addEvent('memory.cleared');
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/sessions', (req, res) => {
+  try {
+    res.json(logger.getSessions());
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/sessions', (req, res) => {
+  try {
+    const { title } = req.body;
+    const id = logger.createSession(title || 'New Chat');
+    res.json({ id });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/sessions/:id', (req, res) => {
+  try {
+    logger.deleteSession(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/sessions/:id', (req, res) => {
+  try {
+    const { title } = req.body;
+    if (title) {
+      logger.renameSession(req.params.id, title);
+    }
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -155,6 +201,10 @@ app.post('/api/transactions/:id/approve', (req, res) => {
 
   const jwtToken = jwt.sign({ service: 'core' }, token, { expiresIn: '1m' });
 
+  // Generate Challenge Nonce
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const approvalHash = crypto.createHash('sha256').update(id + nonce + token).digest('hex');
+
   const options = {
     hostname: '127.0.0.1',
     port: 3001,
@@ -166,6 +216,9 @@ app.post('/api/transactions/:id/approve', (req, res) => {
     }
   };
 
+  const requestPayload = JSON.stringify({ nonce, approvalHash });
+  options.headers['Content-Length'] = Buffer.byteLength(requestPayload);
+
   const proxyReq = http.request(options, (proxyRes) => {
     res.status(proxyRes.statusCode || 200);
     proxyRes.pipe(res);
@@ -175,6 +228,7 @@ app.post('/api/transactions/:id/approve', (req, res) => {
     res.status(500).json({ error: 'Policy Engine unreachable: ' + e.message });
   });
 
+  proxyReq.write(requestPayload);
   proxyReq.end();
 });
 
@@ -188,15 +242,42 @@ app.post('/api/transactions/:id/reject', (req, res) => {
   res.json({ success: true });
 });
 
+let cachedTrending: string[] | null = null;
+let lastTrendingFetch = 0;
+
+app.get('/api/trending', async (req, res) => {
+  const now = Date.now();
+  if (cachedTrending && now - lastTrendingFetch < 5 * 60 * 1000) {
+    return res.json(cachedTrending);
+  }
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
+    if (response.ok) {
+      const data = await response.json();
+      const top5 = data.coins.slice(0, 5).map((c: any) => '$' + c.item.symbol.toUpperCase());
+      cachedTrending = top5;
+      lastTrendingFetch = now;
+      res.json(top5);
+    } else {
+      // Fallback if coingecko rate limits
+      if (cachedTrending) return res.json(cachedTrending);
+      res.status(response.status).json({ error: 'Failed to fetch trending' });
+    }
+  } catch (err: any) {
+    if (cachedTrending) return res.json(cachedTrending);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, session_id } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
     
     // Process input (this will automatically add to memory)
-    const response = await processUserInput(message);
+    const response = await processUserInput(message, 'user', undefined, session_id);
     
     res.json({ response });
   } catch (error: any) {

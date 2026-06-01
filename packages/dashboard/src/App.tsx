@@ -1,8 +1,7 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Compass, Database, Mic } from 'lucide-react';
+import { Send, Bot, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Zap, Database, Mic, Copy, Check, Plus, Trash2, Search, Edit2 } from 'lucide-react';
 import Overview from './Overview';
-import Memory from './Memory';
 import Settings from './Settings';
 import Skills from './Skills';
 import PendingTransactions from './PendingTransactions';
@@ -25,8 +24,13 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'memory' | 'settings' | 'skills'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'settings' | 'skills'>('chat');
+  const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatSessions, setChatSessions] = useState<any[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editSessionTitle, setEditSessionTitle] = useState<string>('');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -35,52 +39,14 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [config, setConfig] = useState<Config | null>(null);
   const [chatWidth, setChatWidth] = useState(70);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  const workspaceRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current || !workspaceRef.current) return;
-      const rect = workspaceRef.current.getBoundingClientRect();
-      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
-      if (newWidth > 20 && newWidth < 80) {
-        setChatWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      isDragging.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    // Attach them to document only when dragging is active
-    // We will attach them in handleMouseDown
-  }, []);
-
-  const handleMouseDown = () => {
-    isDragging.current = true;
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current || !workspaceRef.current) return;
-      const rect = workspaceRef.current.getBoundingClientRect();
-      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
-      if (newWidth > 25 && newWidth < 75) {
-        setChatWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      isDragging.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+    // Scroll to bottom on new message
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   useEffect(() => {
     // Initialize Speech Recognition
@@ -151,20 +117,84 @@ function App() {
   };
 
   const fetchHistory = async () => {
+    if (!activeSessionId) {
+      setMessages([]);
+      return;
+    }
     try {
-      const res = await apiFetch('http://localhost:3000/api/history');
+      const url = `http://localhost:3000/api/history?session_id=${activeSessionId}`;
+      const res = await apiFetch(url);
       if (res.ok) {
         const data = await res.json();
-        setMessages(prev => {
-          if (prev.length !== data.length || (prev.length > 0 && data.length > 0 && prev[prev.length - 1].content !== data[data.length - 1].content)) {
-            return data;
-          }
-          return prev;
-        });
+        setMessages(data);
       }
     } catch (err) {
       console.warn('Backend not ready, retrying history fetch in 2s...');
     }
+  };
+
+  const fetchSessions = async () => {
+    try {
+      const res = await apiFetch('http://localhost:3000/api/sessions');
+      if (res.ok) {
+        const data = await res.json();
+        setChatSessions(data);
+        // On first load, if no active session, auto-select the most recent one
+        if (data.length > 0 && !activeSessionId) {
+          setActiveSessionId(data[0].id);
+        }
+      }
+    } catch (err) {}
+  };
+
+  const fetchTrendingTokens = async () => {
+    try {
+      const res = await apiFetch('http://localhost:3000/api/trending');
+      if (res.ok) {
+        setTrendingTokens(await res.json());
+      }
+    } catch (err) {}
+  };
+
+  const createNewSession = async () => {
+    try {
+      const res = await apiFetch('http://localhost:3000/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Chat' })
+      });
+      if (res.ok) {
+        const { id } = await res.json();
+        setActiveSessionId(id);
+        setMessages([]);
+        await fetchSessions();
+        setCurrentView('chat');
+      }
+    } catch (err) {}
+  };
+
+  const renameSession = async (id: string, newTitle: string) => {
+    try {
+      await apiFetch(`http://localhost:3000/api/sessions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+      setEditingSessionId(null);
+      await fetchSessions();
+    } catch (err) {}
+  };
+
+  const deleteSession = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await apiFetch(`http://localhost:3000/api/sessions/${id}`, { method: 'DELETE' });
+      if (activeSessionId === id) {
+        setActiveSessionId(null);
+        setMessages([]);
+      }
+      await fetchSessions();
+    } catch (err) {}
   };
 
   const fetchConfig = async () => {
@@ -198,9 +228,15 @@ function App() {
   useEffect(() => {
     fetchHistory();
     fetchConfig();
-    const interval = setInterval(fetchHistory, 2000);
+    fetchSessions();
+    fetchTrendingTokens();
+    const interval = setInterval(() => {
+      fetchHistory();
+      fetchSessions();
+      fetchTrendingTokens();
+    }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSessionId]);
 
   useEffect(() => {
     // Adding a slight timeout to ensure DOM is fully rendered before scrolling
@@ -217,16 +253,44 @@ function App() {
     setInput('');
     setIsLoading(true);
 
+    let currentSessionId = activeSessionId;
+
+    // Auto-create session if null
+    if (!currentSessionId) {
+      try {
+        const title = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
+        const res = await apiFetch('http://localhost:3000/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title })
+        });
+        if (res.ok) {
+          const { id } = await res.json();
+          currentSessionId = id;
+          setActiveSessionId(id);
+          await fetchSessions();
+        }
+      } catch (err) {
+        console.error("Failed to auto-create session", err);
+      }
+    }
+
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
 
     try {
       const res = await apiFetch('http://localhost:3000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
+        body: JSON.stringify({ message: userMsg, session_id: currentSessionId }),
       });
       const data = await res.json();
       await fetchHistory();
+
+      // Auto-rename on first prompt
+      if (messages.length === 0 && currentSessionId) {
+        const autoTitle = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
+        renameSession(currentSessionId, autoTitle);
+      }
 
       // Trigger TTS if in voice mode
       if (isVoiceModeRef.current && data.response) {
@@ -269,7 +333,7 @@ function App() {
       <aside className="sidebar">
         <div className="agent-identity-card">
           <div className="agent-avatar">
-            <Bot size={28} color="#3b82f6" />
+            <Bot size={28} color="#88c0d0" />
           </div>
           <div className="agent-info">
             <div className="agent-name">Nyxora AI</div>
@@ -280,46 +344,62 @@ function App() {
         </div>
 
         <div className="sidebar-scroll-area">
-          <div className="sidebar-section">WORKSPACE</div>
-          <nav className="sidebar-nav">
+          <nav className="sidebar-nav" style={{ paddingTop: '16px' }}>
             <div 
-              className={`nav-item ${currentView === 'chat' ? 'active' : ''}`}
-              onClick={() => setCurrentView('chat')}
+              className="nav-item"
+              onClick={createNewSession}
             >
-              <MessageSquare size={18} className="nav-icon" /> Chat
+              <Plus size={15} className="nav-icon" /> New Chat
             </div>
             <div 
               className={`nav-item ${currentView === 'overview' ? 'active' : ''}`}
               onClick={() => setCurrentView('overview')}
             >
-              <LayoutDashboard size={18} className="nav-icon" /> Overview
+              <LayoutDashboard size={15} className="nav-icon" /> Overview
             </div>
-          </nav>
-
-          <div className="sidebar-section">KNOWLEDGE</div>
-          <nav className="sidebar-nav">
             <div 
               className={`nav-item ${currentView === 'skills' ? 'active' : ''}`}
               onClick={() => setCurrentView('skills')}
             >
-              <Compass size={18} className="nav-icon" /> Web3 Skills
+              <Zap size={15} className="nav-icon" /> Web3 Skills
             </div>
-            <div 
-              className={`nav-item ${currentView === 'memory' ? 'active' : ''}`}
-              onClick={() => setCurrentView('memory')}
-            >
-              <Database size={18} className="nav-icon" /> Memory
-            </div>
-          </nav>
-
-          <div className="sidebar-section">SYSTEM</div>
-          <nav className="sidebar-nav">
             <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
             >
-              <SettingsIcon size={18} className="nav-icon" /> Settings
+              <SettingsIcon size={15} className="nav-icon" /> Settings
             </div>
+          </nav>
+          
+          <div className="sidebar-section">
+            <span>Recent</span>
+          </div>
+          <nav className="sidebar-nav sessions-list">
+            {chatSessions.map((session) => (
+              <div 
+                key={session.id}
+                className={`nav-item session-item ${activeSessionId === session.id && currentView === 'chat' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveSessionId(session.id);
+                  setCurrentView('chat');
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                  <MessageSquare size={14} className="nav-icon" />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>
+                    {session.title}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
+                    <Edit2 size={12} />
+                  </button>
+                  <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
       </aside>
@@ -350,64 +430,6 @@ function App() {
                   <option value="bsc">BNB Smart Chain</option>
                   <option value="arbitrum">Arbitrum</option>
                 </select>
-
-                <select 
-                  className="config-dropdown" 
-                  value={config.llm.provider}
-                  onChange={(e) => updateConfig({ ...config, llm: { ...config.llm, provider: e.target.value }})}
-                >
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="ollama">Local Ollama</option>
-                </select>
-
-                <input 
-                  type="text"
-                  list="model-suggestions"
-                  className="config-dropdown" 
-                  value={config.llm.model}
-                  onChange={(e) => updateConfig({ ...config, llm: { ...config.llm, model: e.target.value }})}
-                  placeholder="Enter model name..."
-                  style={{ width: '200px' }}
-                />
-                <datalist id="model-suggestions">
-                  {config.llm.provider === 'gemini' && (
-                    <>
-                      <option value="gemini-2.5-flash" />
-                      <option value="gemini-2.5-pro" />
-                      <option value="gemini-1.5-flash" />
-                      <option value="gemini-1.5-pro" />
-                    </>
-                  )}
-                  {config.llm.provider === 'openai' && (
-                    <>
-                      <option value="gpt-4o" />
-                      <option value="gpt-4o-mini" />
-                      <option value="gpt-4-turbo" />
-                      <option value="o1-mini" />
-                    </>
-                  )}
-                  {config.llm.provider === 'openrouter' && (
-                    <>
-                      <option value="anthropic/claude-3.5-sonnet" />
-                      <option value="anthropic/claude-3-opus" />
-                      <option value="meta-llama/llama-3.1-70b-instruct" />
-                      <option value="google/gemini-1.5-pro" />
-                      <option value="x-ai/grok-2" />
-                      <option value="mistralai/mixtral-8x7b-instruct" />
-                      <option value="deepseek/deepseek-coder" />
-                    </>
-                  )}
-                  {config.llm.provider === 'ollama' && (
-                    <>
-                      <option value="llama3" />
-                      <option value="llama3.1" />
-                      <option value="mistral" />
-                      <option value="qwen2" />
-                    </>
-                  )}
-                </datalist>
               </>
             )}
           </div>
@@ -417,19 +439,26 @@ function App() {
           <Overview config={config} />
         ) : currentView === 'skills' ? (
           <Skills />
-        ) : currentView === 'memory' ? (
-          <Memory />
         ) : currentView === 'settings' ? (
           <Settings config={config} onConfigChange={setConfig} />
         ) : (
-          <div className="workspace-container" ref={workspaceRef}>
-            <div className="chat-wrapper" style={{ width: `${chatWidth}%` }}>
+          <div className="workspace-container">
+            <div className="chat-wrapper" style={{ width: '100%', margin: '0 auto', maxWidth: '1000px' }}>
               <div className="chat-container">
               {messages.map((msg, idx) => {
+              const handleCopy = () => {
+                navigator.clipboard.writeText(msg.content);
+                setCopiedIndex(idx);
+                setTimeout(() => setCopiedIndex(null), 2000);
+              };
+
               if (msg.role === 'user') {
                 return (
                   <div key={idx} className="message-wrapper user">
                     <div className="message-bubble">{msg.content}</div>
+                    <button className="copy-btn" onClick={handleCopy} title="Copy message">
+                      {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
+                    </button>
                   </div>
                 );
               }
@@ -437,6 +466,9 @@ function App() {
                 return (
                   <div key={idx} className="message-wrapper agent">
                     <div className="message-bubble">{renderMessageContent(msg.content)}</div>
+                    <button className="copy-btn" onClick={handleCopy} title="Copy message">
+                      {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
+                    </button>
                   </div>
                 );
               }
@@ -487,39 +519,64 @@ function App() {
                   <Send size={20} />
                 </button>
               </form>
+              <div className="trending-tokens">
+                <span>Trending Tokens:</span>
+                {trendingTokens.map((token, idx) => (
+                  <span 
+                    key={idx} 
+                    className="token-tag" 
+                    onClick={() => setInput(`Tolong berikan analisis pasar terbaru untuk ${token}`)}
+                    title={`Click to analyze ${token}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {token}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-          
-          <div className="resizer" onMouseDown={handleMouseDown} />
-
-          <div className="canvas-panel">
-            <div className="canvas-header">
-              <div className="canvas-title">
-                <Compass size={16} />
-                LIVE CANVAS
-              </div>
-              <div style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', background: '#4ade80', borderRadius: '50%', display: 'inline-block' }}></span>
-                A2UI CONNECTED
-              </div>
-            </div>
-
-            {activeWidget ? (
-              <div style={{ marginTop: '24px' }}>
-                {activeWidget}
-              </div>
-            ) : (
-              <div className="canvas-empty">
-                <LayoutDashboard size={48} color="rgba(255,255,255,0.1)" />
-                <p>Awaiting agent interaction...</p>
-                <span style={{ fontSize: '0.8rem' }}>Ask the agent to check your balance or make a transfer.</span>
-              </div>
-            )}
-            <PendingTransactions />
           </div>
         </div>
         )}
       </main>
+
+      {editingSessionId && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1e1e24', borderRadius: '16px', padding: '24px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', color: '#e2e8f0', fontWeight: 500 }}>Rename this chat</h3>
+            <input 
+              type="text" 
+              value={editSessionTitle}
+              onChange={(e) => setEditSessionTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') renameSession(editingSessionId, editSessionTitle);
+                if (e.key === 'Escape') setEditingSessionId(null);
+              }}
+              autoFocus
+              style={{ width: '100%', background: 'transparent', color: '#fff', border: '1px solid #3f4451', borderRadius: '8px', padding: '14px 16px', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
+              onFocus={(e) => e.target.style.borderColor = '#88c0d0'}
+              onBlur={(e) => e.target.style.borderColor = '#3f4451'}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
+              <button 
+                onClick={() => setEditingSessionId(null)}
+                style={{ background: 'transparent', border: 'none', color: '#a0aec0', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 500, fontSize: '0.9rem' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => renameSession(editingSessionId, editSessionTitle)}
+                style={{ background: '#88c0d0', border: 'none', color: '#13131a', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 600, fontSize: '0.9rem' }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

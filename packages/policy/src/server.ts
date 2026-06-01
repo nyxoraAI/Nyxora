@@ -5,6 +5,7 @@ import yaml from 'yaml';
 import http from 'http';
 import { z } from 'zod';
 import path from 'path';
+import crypto from 'crypto';
 
 const PORT = 3001;
 const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
@@ -77,33 +78,6 @@ app.get('/address', (req, res) => {
   signerReq.end();
 });
 
-// Proxy POST /unlock to Signer
-app.post('/unlock', (req, res) => {
-  const { keystore, password } = req.body;
-  const requestPayload = JSON.stringify({ keystore, password });
-  
-  const options = {
-    socketPath: SIGNER_SOCKET,
-    path: '/unlock',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
-      'Content-Length': Buffer.byteLength(requestPayload)
-    }
-  };
-
-  const signerReq = http.request(options, (signerRes) => {
-    let data = '';
-    signerRes.on('data', chunk => data += chunk);
-    signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
-  });
-
-  signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to unlock vault: ' + e.message }));
-  signerReq.write(requestPayload);
-  signerReq.end();
-});
-
 app.post('/request-tx', (req, res) => {
   try {
     const payload = TxRequestSchema.parse(req.body);
@@ -111,6 +85,17 @@ app.post('/request-tx', (req, res) => {
     
     // Auto-approve bypass for internal trusted features like CL/TP
     if (payload.autoApprove) {
+        const providedSig = req.body.internalSignature;
+        if (!providedSig) return res.status(403).json({ error: 'Missing internal signature for autoApprove' });
+        
+        // Ensure amountWei exists
+        const amountWei = payload.details?.amountWei || '';
+        const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(payload.chainName + amountWei).digest('hex');
+        
+        if (providedSig !== expectedSig) {
+            return res.status(403).json({ error: 'Invalid internal signature for autoApprove' });
+        }
+
         const requestPayload = JSON.stringify({ txPayload: payload });
         const options = {
             socketPath: SIGNER_SOCKET,
@@ -153,11 +138,19 @@ app.get('/pending-tx', (req, res) => {
 
 app.post('/approve-tx/:id', (req, res) => {
   const txId = req.params.id;
+  const { nonce, approvalHash } = req.body;
   const tx = pendingTransactions[txId];
   
   if (!tx) return res.status(404).json({ error: 'Transaction not found' });
   if (tx.status !== 'pending') return res.status(400).json({ error: 'Transaction not pending' });
-  
+  if (!nonce || !approvalHash) return res.status(400).json({ error: 'Missing cryptographic approval parameters' });
+
+  // Cryptographically Bound Approval verification
+  const expectedHash = crypto.createHash('sha256').update(txId + nonce + JWT_SECRET).digest('hex');
+  if (approvalHash !== expectedHash) {
+      return res.status(403).json({ error: 'Invalid Challenge Nonce Hash. Cryptographic approval failed.' });
+  }
+
   const requestPayload = JSON.stringify({
     txPayload: tx
   });

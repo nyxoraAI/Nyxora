@@ -9,7 +9,8 @@ console.log(`[Launcher] Generated Internal Auth Token: ${INTERNAL_AUTH_TOKEN.sub
 const env = {
   ...process.env,
   INTERNAL_AUTH_TOKEN,
-  SIGNER_SOCKET_PATH: '/tmp/nyxora-signer.sock'
+  SIGNER_SOCKET_PATH: '/tmp/nyxora-signer.sock',
+  TS_NODE_CACHE: 'false'
 };
 
 const spawnService = (name: string, command: string, args: string[], env: any, inheritStdio: boolean = false) => {
@@ -40,16 +41,42 @@ if (fs.existsSync(socketPath)) {
   fs.unlinkSync(socketPath);
 }
 
+const children: ReturnType<typeof spawn>[] = [];
+
 const signerPath = path.join(__dirname, 'packages/signer/src/server.ts');
 const signer = spawnService('Signer', 'npx', ['ts-node', '-T', signerPath], env);
+children.push(signer);
 
 setTimeout(() => {
   const policyPath = path.join(__dirname, 'packages/policy/src/server.ts');
   const policy = spawnService('Policy', 'npx', ['ts-node', '-T', policyPath], env);
+  children.push(policy);
   
   setTimeout(() => {
     const corePath = path.join(__dirname, 'packages/core/src/gateway/cli.ts');
     const args = process.argv.slice(2);
     const core = spawnService('Core', 'npx', ['ts-node', '-T', corePath, ...args], env, true);
+    children.push(core);
   }, 1000);
 }, 1000);
+
+// Ensure all child processes are killed when launcher exits
+const cleanup = () => {
+  console.log('\n[Launcher] Shutting down all services...');
+  children.forEach(child => {
+    if (!child.killed && child.pid) {
+      try {
+        process.kill(child.pid, 'SIGKILL');
+      } catch (e) {}
+    }
+  });
+  // Kill any stray ts-node processes left behind by npx
+  try {
+    require('child_process').execSync('pkill -f ts-node');
+  } catch (e) {}
+  process.exit(0);
+};
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('exit', cleanup);

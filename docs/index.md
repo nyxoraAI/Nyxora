@@ -21,6 +21,10 @@ features:
     details: Complete process isolation between Core LLM (port 3000), Policy Engine (port 3001), and Signer Vault (Unix Socket).
   - title: Cryptographic Approvals
     details: UI approvals are strictly bound by sha256 hashes and backend challenge nonces.
+  - title: Zero-Click Multi-Session
+    details: Instantly create and manage isolated chat sessions with smart auto-naming and seamless UI syncing.
+  - title: Cross-Chain Hybrid Market Scanner
+    details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
   - title: Multi-LLM Support
     details: Easily switch between Gemini, OpenAI, OpenRouter, and Ollama.
   - title: Immutable Policy Guardrails
@@ -86,8 +90,12 @@ features:
       <p>Trust but verify. All destructive or financially sensitive transactions are paused and wait for your explicit cryptographic signature before broadcasting.</p>
     </div>
     <div class="why-card">
-      <h3>⚡ Multi-Provider Orchestration</h3>
-      <p>Don't be locked into a single AI provider. Nyxora's reasoning engine seamlessly routes between OpenAI, Gemini, and local LLMs like Ollama.</p>
+      <h3>⚡ Premium Utility UI</h3>
+      <p>A sleek, readable dashboard built for professional Web3 execution. Manage multiple ChatGPT-style isolated chat sessions effortlessly.</p>
+    </div>
+    <div class="why-card">
+      <h3>🌐 Cross-Chain Intelligence</h3>
+      <p>Don't be locked into a single network. Nyxora's hybrid market engine automatically queries CoinGecko and DexScreener to find tokens on any blockchain.</p>
     </div>
   </div>
 </div>

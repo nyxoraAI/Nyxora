@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import { loadConfig } from '../config/parser';
 import { getPath } from '../config/paths';
@@ -10,6 +11,13 @@ export interface MemoryEntry {
   name?: string;
   tool_call_id?: string;
   tool_calls?: any[];
+  session_id?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  timestamp: string;
 }
 
 export class Logger {
@@ -35,8 +43,17 @@ export class Logger {
 
   private initDb() {
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
         name TEXT,
@@ -45,6 +62,13 @@ export class Logger {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Ensure session_id exists for older DBs
+    try {
+      this.db.prepare('ALTER TABLE messages ADD COLUMN session_id TEXT').run();
+    } catch (e) {
+      // Column probably already exists
+    }
 
     // Migration logic from old memory.json to SQLite
     const config = loadConfig() || {};
@@ -86,8 +110,34 @@ export class Logger {
     }
   }
 
-  public getHistory(): MemoryEntry[] {
-    const rows = this.db.prepare('SELECT role, content, name, tool_call_id, tool_calls FROM messages ORDER BY id ASC').all();
+  public getSessions(): ChatSession[] {
+    const rows = this.db.prepare('SELECT id, title, timestamp FROM sessions ORDER BY timestamp DESC').all();
+    return rows as ChatSession[];
+  }
+
+  public createSession(title: string): string {
+    const id = crypto.randomUUID();
+    this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(id, title);
+    return id;
+  }
+
+  public deleteSession(sessionId: string) {
+    this.db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
+    this.db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+  }
+
+  public renameSession(sessionId: string, newTitle: string) {
+    this.db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(newTitle, sessionId);
+  }
+
+  public getHistory(sessionId?: string): MemoryEntry[] {
+    let rows;
+    if (sessionId) {
+      rows = this.db.prepare('SELECT role, content, name, tool_call_id, tool_calls, session_id FROM messages WHERE session_id = ? ORDER BY id ASC').all(sessionId);
+    } else {
+      rows = this.db.prepare('SELECT role, content, name, tool_call_id, tool_calls, session_id FROM messages WHERE session_id IS NULL ORDER BY id ASC').all();
+    }
+    
     return rows.map((row: any) => {
       const entry: MemoryEntry = {
         role: row.role,
@@ -96,17 +146,19 @@ export class Logger {
       if (row.name) entry.name = row.name;
       if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
+      if (row.session_id) entry.session_id = row.session_id;
       return entry;
     });
   }
 
-  public addEntry(entry: MemoryEntry) {
+  public addEntry(entry: MemoryEntry, sessionId?: string) {
     const insert = this.db.prepare(`
-      INSERT INTO messages (role, content, name, tool_call_id, tool_calls)
-      VALUES (@role, @content, @name, @tool_call_id, @tool_calls)
+      INSERT INTO messages (session_id, role, content, name, tool_call_id, tool_calls)
+      VALUES (@session_id, @role, @content, @name, @tool_call_id, @tool_calls)
     `);
     
     insert.run({
+      session_id: sessionId || null,
       role: entry.role,
       content: entry.content || '',
       name: entry.name || null,
@@ -115,7 +167,11 @@ export class Logger {
     });
   }
 
-  public clear() {
-    this.db.prepare('DELETE FROM messages').run();
+  public clear(sessionId?: string) {
+    if (sessionId) {
+      this.db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
+    } else {
+      this.db.prepare('DELETE FROM messages WHERE session_id IS NULL').run();
+    }
   }
 }

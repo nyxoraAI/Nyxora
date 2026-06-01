@@ -3,44 +3,70 @@ import { resolveToken } from '../utils/tokens';
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
-    let tokenAddress = tokenAddressOrSymbol;
+    const cleanSymbol = tokenAddressOrSymbol.replace('$', '').toLowerCase();
+    
+    // 1. Primary Engine: CoinGecko Global
     try {
-      tokenAddress = resolveToken(tokenAddressOrSymbol, chainName);
-      if (tokenAddress === "0x0000000000000000000000000000000000000000") {
-        // For native token, we should pass WETH / wrapped version to Dexscreener usually, 
-        // because native token itself doesn't have a pair on most DEXes directly.
-        tokenAddress = resolveToken("W" + tokenAddressOrSymbol, chainName); // e.g. WETH, WBNB
+      const cgSearchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${cleanSymbol}`);
+      if (cgSearchRes.ok) {
+        const searchData = await cgSearchRes.json();
+        const foundCoin = searchData.coins?.find((c: any) => c.symbol.toLowerCase() === cleanSymbol || c.id === cleanSymbol);
+        
+        if (foundCoin) {
+          const cgCoinRes = await fetch(`https://api.coingecko.com/api/v3/coins/${foundCoin.id}`);
+          if (cgCoinRes.ok) {
+            const coinData = await cgCoinRes.json();
+            let report = `📈 **Market Analysis for ${coinData.name} (${coinData.symbol.toUpperCase()})** [Global via CoinGecko]\n\n`;
+            report += `**Price:** $${coinData.market_data?.current_price?.usd || 0}\n`;
+            report += `**Market Cap:** $${Number(coinData.market_data?.market_cap?.usd || 0).toLocaleString()}\n`;
+            report += `**24h Volume:** $${Number(coinData.market_data?.total_volume?.usd || 0).toLocaleString()}\n\n`;
+            report += `**Price Change:**\n`;
+            report += `- 1h:  ${coinData.market_data?.price_change_percentage_1h_in_currency?.usd?.toFixed(2) || 0}% \n`;
+            report += `- 24h: ${coinData.market_data?.price_change_percentage_24h?.toFixed(2) || 0}% \n`;
+            report += `- 7d:  ${coinData.market_data?.price_change_percentage_7d?.toFixed(2) || 0}% \n\n`;
+            report += `**Rank:** #${coinData.market_cap_rank || 'N/A'}\n`;
+            return report;
+          }
+        }
       }
     } catch (e) {
-      // If it fails to resolve, assume it's already an address or let DexScreener handle it (though DexScreener needs exact address)
+      console.warn("CoinGecko analysis failed, falling back to DexScreener...", e);
     }
 
-    const url = `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`;
-    const res = await fetch(url);
+    // 2. Fallback Engine: DexScreener Cross-Chain Search
+    let query = tokenAddressOrSymbol;
+    try {
+      const resolved = resolveToken(tokenAddressOrSymbol, chainName);
+      if (resolved !== "0x0000000000000000000000000000000000000000") {
+        query = resolved; // Use exact address if resolved locally
+      }
+    } catch (e) {}
+
+    const dexSearchUrl = `https://api.dexscreener.com/latest/dex/search?q=${query}`;
+    const res = await fetch(dexSearchUrl);
     if (!res.ok) {
       throw new Error(`DexScreener API Error: ${res.statusText}`);
     }
 
     const data = await res.json();
     if (!data.pairs || data.pairs.length === 0) {
-      return `No market data found for token ${tokenAddressOrSymbol} on DexScreener.`;
+      return `No market data found for '${tokenAddressOrSymbol}' on CoinGecko or DexScreener across any chain.`;
     }
 
-    // Filter pairs by chain if possible, Dexscreener chain IDs are strings like 'ethereum', 'bsc', 'base', 'arbitrum', 'optimism'
     let pair = data.pairs.find((p: any) => p.chainId === chainName);
     if (!pair) {
-      pair = data.pairs[0]; // Fallback to the most liquid pair anywhere
+      pair = data.pairs[0]; 
     }
 
-    let report = `📈 **Market Analysis for ${pair.baseToken.name} (${pair.baseToken.symbol})** on ${pair.chainId.toUpperCase()}\n\n`;
+    let report = `📈 **Market Analysis for ${pair.baseToken.name} (${pair.baseToken.symbol})** on ${pair.chainId.toUpperCase()} [Cross-Chain Fallback: DexScreener]\n\n`;
     report += `**Price:** $${pair.priceUsd}\n`;
     report += `**Liquidity (USD):** $${Number(pair.liquidity?.usd || 0).toLocaleString()}\n`;
     report += `**FDV:** $${Number(pair.fdv || 0).toLocaleString()}\n`;
     report += `**24h Volume:** $${Number(pair.volume?.h24 || 0).toLocaleString()}\n\n`;
     report += `**Price Change:**\n`;
-    report += `- 5m:  ${pair.priceChange?.m5}% \n`;
-    report += `- 1h:  ${pair.priceChange?.h1}% \n`;
-    report += `- 24h: ${pair.priceChange?.h24}% \n\n`;
+    report += `- 5m:  ${pair.priceChange?.m5 || 0}% \n`;
+    report += `- 1h:  ${pair.priceChange?.h1 || 0}% \n`;
+    report += `- 24h: ${pair.priceChange?.h24 || 0}% \n\n`;
     report += `**DEX:** ${pair.dexId} (${pair.url})\n`;
 
     return report;
@@ -53,7 +79,7 @@ export const marketAnalysisToolDefinition = {
   type: "function",
   function: {
     name: "analyze_market",
-    description: "Fetches live market data (Price, Liquidity, Volume, FDV, Price Change) for a token using DexScreener.",
+    description: "Fetches live market data (Price, Liquidity, Volume, FDV, Price Change) globally across all chains using CoinGecko and DexScreener.",
     parameters: {
       type: "object",
       properties: {
