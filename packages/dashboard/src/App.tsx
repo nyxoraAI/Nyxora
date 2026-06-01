@@ -8,6 +8,7 @@ import PendingTransactions from './PendingTransactions';
 import BalanceWidget from './BalanceWidget';
 import TransactionWidget from './TransactionWidget';
 import MarketWidget from './MarketWidget';
+import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
 import './index.css';
 
@@ -333,7 +334,7 @@ function App() {
       <aside className="sidebar">
         <div className="agent-identity-card">
           <div className="agent-avatar">
-            <Bot size={28} color="#88c0d0" />
+            <NyxoraLogo size={48} />
           </div>
           <div className="agent-info">
             <div className="agent-name">Nyxora AI</div>
