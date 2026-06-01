@@ -16,6 +16,7 @@ export default defineConfig({
         items: [
           { text: '👋 Overview', link: '/' },
           { text: '🚀 Getting Started', link: '/guide/introduction' },
+          { text: '💻 Installation Guide', link: '/guide/installation' },
           { text: '🌐 Nyxora Ecosystem', link: '/guide/ecosystem' }
         ]
       },
