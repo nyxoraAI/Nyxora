@@ -8,7 +8,7 @@ Instead, Nyxora operates a completely **Isolated Signer Vault** that securely de
 
 ## 1. Native OS Keyring Delegation
 
-Unlike traditional bots that force you to paste your key in a `.env` file or use a weak custom password, Nyxora securely injects your wallet directly into the native credential manager of your Operating System via the `keytar` native C++ bindings:
+Unlike traditional bots that force you to paste your key in a `.env` file or use a weak custom password, Nyxora securely injects your wallet directly into the native credential manager of your Operating System via the `@napi-rs/keyring` (Rust N-API) native bindings:
 
 *   **Linux:** Integrates seamlessly with `Secret Service API / GNOME Keyring` via `libsecret`.
 *   **macOS:** Utilizes the native `Keychain Access`.
@@ -20,7 +20,7 @@ When the background daemon boots via `nyxora start`, the Signer Vault process re
 
 ## 2. Secure Fallback Mechanism (Headless Servers)
 
-In headless server environments (e.g., VPS, Docker) where a GUI Keyring (like GNOME) is unavailable, the `keytar` native bindings may fail to load. 
+In headless server environments (e.g., VPS, Docker) where a GUI Keyring (like GNOME) is unavailable, the native keyring bindings may fail to load. 
 
 Nyxora anticipates this and gracefully falls back to a strict file-based vault:
 *   The fallback file is saved to `~/.nyxora/vault.key` or read via `.env`.
