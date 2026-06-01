@@ -1,6 +1,6 @@
 {
   "name": "@nyxora/core",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
