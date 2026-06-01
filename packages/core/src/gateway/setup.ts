@@ -284,8 +284,9 @@ Provider: ${config.llm.provider}`;
   // Save Private Key to OS Keyring or fallback to .env
   if (privateKey) {
     try {
-      const keytar = require('keytar');
-      await keytar.setPassword('nyxora', 'wallet', privateKey as string);
+      const { Entry } = require('@napi-rs/keyring');
+      const entry = new Entry('nyxora', 'wallet');
+      await entry.setPassword(privateKey as string);
       console.log(pc.green('Private key saved securely to OS Keyring.'));
     } catch (error) {
       console.warn(pc.yellow('Failed to save to OS Keyring (Module mismatch or headless server). Falling back to local vault.key'));
