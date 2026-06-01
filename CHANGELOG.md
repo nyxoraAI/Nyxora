@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3]
+
+### Added
+- Implemented **Zero-Click Multi-Session** for instantaneous chat creation and switching.
+- Introduced **Smart Auto-Naming** for automatic contextual session titles.
+
+### Changed
+- **Redesigned Sidebar Architecture**: enhanced utility-centric design, significantly reducing gaps for a compact, elegant look.
+- Integrated **OS-Native Keyring**, replacing legacy AES-256-GCM and Master Password mechanics.
+- Updated and cleaned up legacy cryptography references in VitePress guides and README.
+
+### Fixed
+- Resolved deeply-nested monorepo CI/CD deployment failures by isolating `package-lock.json` and mitigating peer-dependency conflicts.
+
 ## [1.4.5]
 
 ### Fixed
