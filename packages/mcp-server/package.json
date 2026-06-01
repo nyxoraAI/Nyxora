@@ -1,5 +1,5 @@
 {
-  "name": "@perasyudha/mcp-server",
+  "name": "@nyxora-agent/mcp-server",
   "version": "1.6.5",
   "description": "Nyxora MCP Server for external AI clients",
   "main": "dist/server.js",
