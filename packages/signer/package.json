@@ -1,5 +1,5 @@
 {
-  "name": "@nyxora-web3-agent/signer",
+  "name": "@perasyudha/signer",
   "version": "1.6.5",
   "private": true,
   "main": "src/server.ts",
