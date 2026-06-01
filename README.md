@@ -1,7 +1,7 @@
 # Nyxora Agent 🤖
 **Production-Grade Secure AI Execution Framework for Web3 Agents.**
 
-[![Version](https://img.shields.io/badge/version-1.6.5-blue.svg)](https://github.com/perasyudha/Nyxora)
+[![Version](https://img.shields.io/badge/version-1.6.5-blue.svg)](https://github.com/nyxoraAI/Nyxora)
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Production-Grade](https://img.shields.io/badge/Security-Production--Grade-blue.svg)](#️-advanced-security-threat-model)
@@ -84,7 +84,7 @@ nyxora dashboard
 If you wish to modify the code or run from source, you can use the Monorepo architecture.
 
 ```bash
-git clone https://github.com/perasyudha/Nyxora.git
+git clone https://github.com/nyxoraAI/Nyxora.git
 cd Nyxora
 
 # 1. Install Dependencies
