@@ -1,14 +1,14 @@
 # Nyxora Agent 🤖
 **Production-Grade Secure AI Execution Framework for Web3 Agents.**
 
-[![Version](https://img.shields.io/badge/version-1.6.5-blue.svg)](https://github.com/nyxoraAI/Nyxora)
+
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Production-Grade](https://img.shields.io/badge/Security-Production--Grade-blue.svg)](#️-advanced-security-threat-model)
 [![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg)](#️-advanced-security-threat-model)
 [![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-advanced-security-threat-model)
 
-Nyxora (v1.6.5) is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. 
+Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Glassmorphism UI dashboard and strict client-side key isolation. 
 
 **Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://perasyudha.github.io/Nyxora/guide/mcp-integration)
 
