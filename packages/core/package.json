@@ -1,5 +1,5 @@
 {
-  "name": "@nyxora/core",
+  "name": "@nyxora-web3-agent/core",
   "version": "1.6.5",
   "private": true,
   "main": "src/gateway/server.ts",
