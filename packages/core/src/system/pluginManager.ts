@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import vm from 'vm';
+import ivm from 'isolated-vm';
 
 // Define how an external skill should look like
 export interface ExternalSkill {
@@ -26,44 +26,58 @@ export class PluginManager {
         try {
           const absolutePath = path.resolve(pluginsDir, file);
           const code = fs.readFileSync(absolutePath, 'utf8');
-          
-          // Construct a restricted require function for the sandbox
-          const restrictedRequire = (moduleName: string) => {
-            const blockedModules = ['fs', 'child_process', 'os', 'net', 'tls', 'cluster', 'worker_threads'];
-            if (blockedModules.includes(moduleName)) {
-              throw new Error(`Sandboxing error: Access to the '${moduleName}' module is blocked for security reasons.`);
-            }
-            // Allow fetch and other safe modules by delegating to actual require
-            return require(moduleName);
-          };
 
-          // Create the sandbox environment
-          const sandbox = {
-            require: restrictedRequire,
-            console: console,
-            module: { exports: {} as any },
-            exports: {},
-            process: { env: {} }, // Hide actual environment variables
-            Buffer: Buffer,
-            setTimeout: setTimeout,
-            clearTimeout: clearTimeout,
-            setInterval: setInterval,
-            clearInterval: clearInterval,
-          };
-
-          const context = vm.createContext(sandbox);
-          const script = new vm.Script(code, { filename: file });
+          const isolate = new ivm.Isolate({ memoryLimit: 128 });
+          const context = isolate.createContextSync();
+          const jail = context.global;
+          jail.setSync('global', jail.derefInto());
           
-          // Execute the plugin code inside the VM
-          script.runInContext(context);
+          // Inject a safe fetch
+          const safeFetch = new ivm.Reference(async (url: string, options: any) => {
+             if (url.includes('127.0.0.1') || url.includes('localhost') || url.includes('::1')) {
+                 throw new Error("SSRF Protection: Access to localhost is blocked.");
+             }
+             const res = await fetch(url, options);
+             const text = await res.text();
+             return text; // Only return text to avoid passing complex Response objects
+          });
+          jail.setSync('fetchText', safeFetch);
           
-          const moduleExports = sandbox.module.exports;
+          // Inject console
+          const logCallback = new ivm.Reference((...args: any[]) => console.log('[Plugin]', ...args));
+          jail.setSync('log', logCallback);
 
-          if (moduleExports.toolDefinition && moduleExports.execute) {
-            const toolName = moduleExports.toolDefinition.function.name;
-            this.skills.set(toolName, moduleExports as ExternalSkill);
-            console.log(`[PluginManager] Loaded sandboxed external skill: ${toolName}`);
+          const scriptCode = `
+             const console = { log: (...args) => log(...args) };
+             const fetch = async (url, options) => {
+                const text = await fetchText.apply(undefined, [url, options], { arguments: { copy: true }, result: { promise: true } });
+                return { text: async () => text, json: async () => JSON.parse(text) };
+             };
+             const module = { exports: {} };
+             const exports = module.exports;
+             ${code}
+             module.exports;
+          `;
+
+          const script = isolate.compileScriptSync(scriptCode, { filename: file });
+          const moduleExportsRef = script.runSync(context);
+
+          const toolDefinition = moduleExportsRef.getSync('toolDefinition');
+          const executeRef = moduleExportsRef.getSync('execute');
+
+          if (toolDefinition && executeRef && typeof executeRef === 'object') {
+             const toolName = toolDefinition.function.name;
+             
+             const safeExecute = async (args: any) => {
+                const result = await executeRef.apply(undefined, [args], { arguments: { copy: true }, result: { promise: true, copy: true } });
+                return result;
+             };
+
+             this.skills.set(toolName, { toolDefinition, execute: safeExecute });
+             console.log(`[PluginManager] Loaded sandboxed external skill: ${toolName}`);
           }
+          
+          moduleExportsRef.release();
         } catch (error: any) {
           console.error(`[PluginManager] Failed to load sandboxed plugin ${file}:`, error.message);
         }

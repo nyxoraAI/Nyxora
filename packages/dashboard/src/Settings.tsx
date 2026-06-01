@@ -5,6 +5,7 @@ import { Save } from 'lucide-react';
 interface Config {
   agent: { name: string; default_chain: string };
   llm: { provider: string; model: string; temperature: number; api_keys?: string[] };
+  web3?: { rpc_urls?: Record<string, string | string[]> };
 }
 
 interface SettingsProps {
@@ -30,6 +31,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           api_keys: Array.isArray(config.llm?.api_keys) 
             ? config.llm.api_keys 
             : (config.llm?.api_keys ? [config.llm.api_keys as unknown as string] : [])
+        },
+        web3: {
+          rpc_urls: config.web3?.rpc_urls || {}
         }
       });
     }
@@ -45,6 +49,30 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
         [section]: {
           ...prev[section],
           [field]: field === 'temperature' ? Number(value) : value
+        }
+      };
+    });
+  };
+
+  const handleWeb3Change = (chainName: string, value: string) => {
+    setFormData(prev => {
+      if (!prev) return prev;
+      const urls = value.split(',').map(s => s.trim()).filter(s => s);
+      const newRpcUrls = { ...(prev.web3?.rpc_urls || {}) };
+      
+      if (urls.length === 0) {
+        delete newRpcUrls[chainName];
+      } else if (urls.length === 1) {
+        newRpcUrls[chainName] = urls[0];
+      } else {
+        newRpcUrls[chainName] = urls;
+      }
+      
+      return {
+        ...prev,
+        web3: {
+          ...prev.web3,
+          rpc_urls: newRpcUrls
         }
       };
     });
@@ -214,6 +242,33 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
               + Add API Key
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3>Web3 & RPC Settings</h3>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>
+            Override the default public RPCs with your own Premium endpoints (Alchemy/Infura). 
+            Separate multiple URLs with a comma for Fallback High-Availability.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'sepolia'].map(chain => {
+            const rpcVal = formData.web3?.rpc_urls?.[chain];
+            const displayVal = Array.isArray(rpcVal) ? rpcVal.join(', ') : (rpcVal || '');
+            return (
+              <div key={chain} className="form-group">
+                <label style={{ textTransform: 'capitalize' }}>{chain} RPC</label>
+                <input 
+                  type="text" 
+                  placeholder="https://..." 
+                  value={displayVal}
+                  onChange={(e) => handleWeb3Change(chain, e.target.value)}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

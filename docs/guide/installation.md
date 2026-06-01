@@ -53,9 +53,9 @@ The most crucial part. You have three options:
 2. **Manual Input:** Input your own existing Private Key (See [Wallet Import Guide](../security/wallet_import.md)).
 3. **Skip:** Skip this stage if you don't need to execute crypto transactions right now.
 
-### Stage E: Master Password
-To protect the Private Key you just generated or inputted, you are required to create a **Master Password**.
-This password is the key used by the AES-256-GCM algorithm to encrypt your vault. **Do not forget this password!**
+### Stage E: Keyring Integration
+To protect the Private Key you just generated or inputted, Nyxora will securely integrate with your Operating System's native Keyring (macOS Keychain, Windows Credential Vault, or Linux Secret Service).
+No manual Master Passwords are required!
 
 ---
 
@@ -68,7 +68,7 @@ nyxora
 ```
 
 This command will automatically:
-1. Prompt you for your Master Password to decrypt your keys.
+1. Automatically decrypt your keys using your OS Keyring.
 2. Boot up the local backend server.
 3. Automatically open the **Visual Web Dashboard** in your browser.
 

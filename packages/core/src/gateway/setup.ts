@@ -1,4 +1,4 @@
-import { intro, outro, confirm, select, text, isCancel, cancel, note, password } from '@clack/prompts';
+import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner } from '@clack/prompts';
 import pc from 'picocolors';
 import fs from 'fs';
 import path from 'path';
@@ -184,11 +184,48 @@ Provider: ${config.llm.provider}`;
   if (isCancel(setupTelegram)) return process.exit(0);
 
   let telegramToken = '';
+  let authorizedChatId = config.integrations?.telegram?.authorized_chat_id;
   if (setupTelegram) {
     telegramToken = (await password({
       message: 'Enter Telegram Bot Token from @BotFather (Leave empty if already set):',
     })) as string;
     if (isCancel(telegramToken)) return process.exit(0);
+
+    if (telegramToken && !authorizedChatId) {
+      const s = spinner();
+      const pin = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      note(pc.cyan(`1. Open Telegram and search for your Bot.\n2. Send this exact message to your bot:\n\n   /auth ${pin}\n\nWaiting for your message...`), 'Telegram Pairing Required');
+      s.start(`Waiting for /auth ${pin} on Telegram...`);
+
+      try {
+        const { Telegraf } = require('telegraf');
+        const bot = new Telegraf(telegramToken);
+        let paired = false;
+
+        bot.command('auth', (ctx: any) => {
+          const text = ctx.message.text.split(' ');
+          if (text[1] === pin) {
+            authorizedChatId = ctx.chat.id;
+            paired = true;
+            ctx.reply('✅ Bot successfully paired with Nyxora!');
+            bot.stop();
+          } else {
+            ctx.reply('❌ Invalid PIN.');
+          }
+        });
+
+        bot.launch();
+
+        // Wait until paired
+        while (!paired) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        s.stop(`Bot successfully paired with Chat ID: ${authorizedChatId}`);
+      } catch (err: any) {
+        s.stop(`Failed to start bot listener: ${err.message}. You can pair it later.`);
+      }
+    }
   }
 
   // 6. Wallet Setup
@@ -214,21 +251,7 @@ Provider: ${config.llm.provider}`;
     note(`New Wallet Generated!\n\nAddress: ${account.address}\nPrivate Key: ${privateKey}\n\nIMPORTANT: Backup this Private Key NOW! It is securely injected into your local vault, but you will need it to import your wallet elsewhere.`, 'Wallet Created');
   }
 
-  let masterPassword = '';
-  if (privateKey) {
-    masterPassword = (await password({
-      message: 'Enter a strong MASTER PASSWORD to encrypt your key vault:',
-    })) as string;
-    if (isCancel(masterPassword) || !masterPassword) return process.exit(0);
 
-    const masterPasswordConfirm = (await password({
-      message: 'Confirm MASTER PASSWORD:',
-    })) as string;
-    if (isCancel(masterPasswordConfirm) || masterPassword !== masterPasswordConfirm) {
-      console.log(pc.red('❌ Passwords do not match. Setup cancelled.'));
-      return process.exit(1);
-    }
-  }
 
   // --- SAVING ---
   
@@ -251,24 +274,24 @@ Provider: ${config.llm.provider}`;
   if (setupTelegram && telegramToken) {
     config.integrations.telegram.bot_token = telegramToken as string;
   }
+  
+  if (authorizedChatId) {
+    config.integrations.telegram.authorized_chat_id = authorizedChatId;
+  }
 
   saveConfig(config);
 
-  // Update keystore.json exclusively for Private Key
-  if (privateKey && masterPassword) {
-    const keystorePath = path.join(appDir, 'keystore.json');
+  // Save Private Key to OS Keyring or fallback to .env
+  if (privateKey) {
     try {
-      const encryptedData = encryptKey(privateKey as string, masterPassword);
-      fs.writeFileSync(keystorePath, JSON.stringify(encryptedData, null, 2), 'utf8');
-      
-      // Cleanup old .env if it existed
-      const envPath = path.join(appDir, '.env');
-      if (fs.existsSync(envPath)) {
-        fs.unlinkSync(envPath);
-        console.log(pc.yellow('Legacy .env file has been deleted for security.'));
-      }
+      const keytar = require('keytar');
+      await keytar.setPassword('nyxora', 'wallet', privateKey as string);
+      console.log(pc.green('Private key saved securely to OS Keyring.'));
     } catch (error) {
-      console.error('Failed to save keystore.json:', error);
+      console.warn(pc.yellow('Failed to save to OS Keyring (Module mismatch or headless server). Falling back to local vault.key'));
+      const vaultPath = path.join(appDir, 'vault.key');
+      fs.writeFileSync(vaultPath, `PRIVATE_KEY=${privateKey}\n`, { mode: 0o600 });
+      console.log(pc.green('Private key saved to ~/.nyxora/vault.key with 0600 permissions.'));
     }
   }
 

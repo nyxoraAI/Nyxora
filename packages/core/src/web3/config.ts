@@ -1,4 +1,4 @@
-import { createPublicClient, http, PublicClient } from 'viem';
+import { createPublicClient, http, fallback, PublicClient, Transport } from 'viem';
 import { mainnet, base, bsc, arbitrum, optimism, sepolia } from 'viem/chains';
 import { loadConfig } from '../config/parser';
 
@@ -18,12 +18,27 @@ export function getPublicClient(chainName: ChainName): PublicClient {
   if (!chain) throw new Error(`Unsupported chain: ${chainName}`);
 
   const config = loadConfig();
-  const rpcUrl = config.web3?.rpc_urls?.[chainName];
+  const customRpcRaw = config.web3?.rpc_urls?.[chainName];
+  
+  const transports: Transport[] = [];
+  
+  if (customRpcRaw) {
+    if (Array.isArray(customRpcRaw)) {
+      customRpcRaw.forEach(url => {
+        if (url.trim()) transports.push(http(url.trim()));
+      });
+    } else if (typeof customRpcRaw === 'string' && customRpcRaw.trim()) {
+      transports.push(http(customRpcRaw.trim()));
+    }
+  }
+  
+  // Always append the default public RPC as the last resort
+  transports.push(http());
 
   // @ts-ignore
   return createPublicClient({
     chain,
-    transport: http(rpcUrl),
+    transport: fallback(transports, { rank: false }),
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@nyxora/core",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -8,11 +8,12 @@
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "helmet": "^8.0.0",
     "express-rate-limit": "^7.5.0",
-    "node-telegram-bot-api": "^0.67.0",
+    "helmet": "^8.0.0",
+    "isolated-vm": "^6.1.2",
     "open": "^11.0.0",
     "openai": "^6.39.0",
+    "telegraf": "^4.16.3",
     "yaml": "^2.9.0"
   }
 }

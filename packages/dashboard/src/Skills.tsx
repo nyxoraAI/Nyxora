@@ -21,6 +21,13 @@ interface SkillDefinition {
   };
 }
 
+const formatSkillName = (name: string) => {
+  return name
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const Skills: React.FC = () => {
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +62,7 @@ const Skills: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Compass size={18} color="#3b82f6" />
                 <h3 style={{ margin: 0, fontFamily: 'monospace', fontSize: '1.1rem', color: '#60a5fa' }}>
-                  {skill.function.name}
+                  {formatSkillName(skill.function.name)}
                 </h3>
               </div>
               <span className="badge" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80' }}>Active</span>
