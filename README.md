@@ -112,4 +112,12 @@ For complete technical deep-dives into our Cryptographic Architecture, please vi
 *(Includes guides on Secure Wallet Imports, Architecture Blueprints, Troubleshooting, and Custom Skill Development).*
 
 ---
+
+**❤️ Support the Project**
+
+Building and maintaining a highly secure, zero-trust architecture takes significant time and resources. If you love what we are building, you can help us keep Nyxora open, secure, and constantly evolving by sending a coffee our way:
+- **EVM:** `0x18a30d5db50d287dba669c5672cd71246cc4c4c6`
+- **Solana:** `A6tSZZ5wJnTZewx6L5ZHa2Bgv7D2jWyFqwr1bM2AV777`
+
+---
 **License:** MIT License
