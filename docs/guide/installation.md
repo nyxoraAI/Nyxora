@@ -30,7 +30,7 @@ If you want to run Nyxora locally from the source code, modify its behaviors, or
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/perasyudha/Nyxora.git
+git clone https://github.com/nyxoraAI/Nyxora.git
 cd Nyxora
 ```
 
