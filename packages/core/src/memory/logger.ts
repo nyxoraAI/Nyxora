@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { loadConfig } from '../config/parser';
 import { getPath } from '../config/paths';
 
@@ -21,7 +21,7 @@ export interface ChatSession {
 }
 
 export class Logger {
-  private db: Database.Database;
+  private db: DatabaseSync;
 
   constructor() {
     const config = loadConfig() || {};
@@ -37,7 +37,7 @@ export class Logger {
         fs.mkdirSync(dir, { recursive: true });
     }
 
-    this.db = new Database(fullPath);
+    this.db = new DatabaseSync(fullPath);
     this.initDb();
   }
 
@@ -86,17 +86,24 @@ export class Logger {
             VALUES (@role, @content, @name, @tool_call_id, @tool_calls)
           `);
           
-          const insertMany = this.db.transaction((entries: any[]) => {
-            for (const entry of entries) {
-              insert.run({
-                role: entry.role,
-                content: entry.content || '',
-                name: entry.name || null,
-                tool_call_id: entry.tool_call_id || null,
-                tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null
-              });
+          const insertMany = (entries: any[]) => {
+            this.db.exec('BEGIN TRANSACTION');
+            try {
+              for (const entry of entries) {
+                insert.run({
+                  role: entry.role,
+                  content: entry.content || '',
+                  name: entry.name || null,
+                  tool_call_id: entry.tool_call_id || null,
+                  tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null
+                });
+              }
+              this.db.exec('COMMIT');
+            } catch (e) {
+              this.db.exec('ROLLBACK');
+              throw e;
             }
-          });
+          };
           
           insertMany(oldMemory);
           console.log('[Nyxora Memory] Successfully migrated memory.json to SQLite database (Atomic Storage).');
@@ -112,7 +119,7 @@ export class Logger {
 
   public getSessions(): ChatSession[] {
     const rows = this.db.prepare('SELECT id, title, timestamp FROM sessions ORDER BY timestamp DESC').all();
-    return rows as ChatSession[];
+    return rows as unknown as ChatSession[];
   }
 
   public createSession(title: string): string {
