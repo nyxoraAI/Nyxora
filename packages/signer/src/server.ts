@@ -17,7 +17,7 @@ if (!JWT_SECRET) {
 const app = express();
 app.use(express.json());
 
-import keytar from 'keytar';
+import { Entry } from '@napi-rs/keyring';
 import path from 'path';
 import os from 'os';
 
@@ -27,7 +27,8 @@ let vaultAddress: string | null = null;
 // Auto-unlock from OS Keyring or fallback .env
 async function loadPrivateKey() {
   try {
-    const pk = await keytar.getPassword('nyxora', 'wallet');
+    const entry = new Entry('nyxora', 'wallet');
+    const pk = await entry.getPassword();
     if (pk) {
       vaultPrivateKey = pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
       const account = privateKeyToAccount(vaultPrivateKey);
