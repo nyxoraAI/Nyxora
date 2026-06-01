@@ -20,7 +20,45 @@ The easiest way to use Nyxora is by installing it globally on your machine. Open
 npm install -g nyxora
 ```
 
-*If you are a developer looking to contribute to the source code, please `git clone` the Nyxora GitHub repository instead.*
+*If you are a developer looking to contribute to the source code, please see the Developer Installation section below.*
+
+---
+
+## 💻 Step 1.5: Developer Installation (From Source)
+
+If you want to run Nyxora locally from the source code, modify its behaviors, or contribute to the repository, follow these steps instead of the global installation.
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/perasyudha/Nyxora.git
+cd Nyxora
+```
+
+### 2. Install Dependencies
+Nyxora uses NPM Workspaces to manage its Monorepo architecture. Run `npm install` from the root directory to install dependencies for all workspaces at once:
+```bash
+npm install
+```
+
+### 3. Build the Dashboard
+The React Dashboard needs to be built before you can start the backend daemon.
+```bash
+npm run build
+```
+
+### 4. Run the Agent Locally
+After building, you can start the interactive setup wizard directly from the source code:
+```bash
+npm run setup
+```
+To launch the daemon locally:
+```bash
+npm run start
+```
+To open the React dashboard locally:
+```bash
+npm run dashboard
+```
 
 ---
 
