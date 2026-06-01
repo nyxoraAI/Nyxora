@@ -181,12 +181,12 @@ If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`
   return basePrompt;
 }
 
-export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void): Promise<string> {
+export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string): Promise<string> {
   const config = loadConfig();
   // Add input to memory
-  logger.addEntry({ role, content: input });
+  logger.addEntry({ role, content: input }, sessionId);
 
-  const history = logger.getHistory();
+  const history = logger.getHistory(sessionId);
   
   // Format messages for OpenAI
   const messages: any[] = [
@@ -258,7 +258,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       role: 'assistant',
       content: responseMessage.content || "",
       tool_calls: responseMessage.tool_calls,
-    });
+    }, sessionId);
 
     // Check if the model wants to call a tool
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
@@ -422,13 +422,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           tool_call_id: toolCall.id,
           name: toolName,
           content: result,
-        });
+        }, sessionId);
       }
 
       // Second call to get the final answer after tool execution
       const secondMessages = [
         { role: 'system', content: getSystemPrompt() },
-        ...logger.getHistory()
+        ...logger.getHistory(sessionId)
           .filter(m => !(m.role === 'tool' && !m.tool_call_id))
           .map(m => {
             let role = m.role;
@@ -454,13 +454,15 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       Tracker.addEvent('llm.final_response', { provider: config.llm.provider });
 
       const finalContent = secondResponse.choices[0].message.content || "";
-      logger.addEntry({ role: 'assistant', content: finalContent });
+      logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
       return finalContent;
     }
 
     return responseMessage.content || "No response generated.";
   } catch (error: any) {
     console.error("LLM Error:", error);
-    return `Error connecting to AI Provider: ${error.message}`;
+    const errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';
+    logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
+    return errorMsg;
   }
 }

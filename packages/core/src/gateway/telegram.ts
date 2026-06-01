@@ -1,6 +1,6 @@
-import TelegramBot from 'node-telegram-bot-api';
+import { Telegraf, Markup } from 'telegraf';
 import { processUserInput, logger } from '../agent/reasoning';
-import { loadConfig } from '../config/parser';
+import { loadConfig, saveConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
 import { executeTransfer } from '../web3/skills/transfer';
 import { executeSwap } from '../web3/skills/swapToken';
@@ -14,143 +14,201 @@ export function startTelegramBot() {
   const config = loadConfig();
   const token = config.integrations?.telegram?.bot_token;
 
-  
   if (!token) {
     console.log('[Telegram] No TELEGRAM_BOT_TOKEN found in config.yaml. Bot is disabled.');
     return;
   }
 
   try {
-    const bot = new TelegramBot(token, { polling: true });
+    const bot = new Telegraf(token);
+    
+    // Pairing state variables
+    const isPaired = !!config.integrations?.telegram?.authorized_chat_id;
+    let generatedPin = '';
+    let pinExpiry = 0;
 
-    bot.on('message', async (msg) => {
-      const chatId = msg.chat.id;
-      const text = msg.text;
+    if (!isPaired) {
+      generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
+      pinExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes TTL
+      
+      console.log(pc.yellow('\n==================================================='));
+      console.log(pc.yellow('🔐 OTORISASI BOT TELEGRAM DIBUTUHKAN'));
+      console.log(pc.yellow('==================================================='));
+      console.log('Bot Telegram Anda saat ini terkunci demi keamanan.');
+      console.log('Buka Telegram Anda, dan kirimkan perintah berikut ke bot Anda:\n');
+      console.log(pc.cyan(`  /auth ${generatedPin}\n`));
+      console.log(pc.gray('(Kode OTP ini akan kedaluwarsa dalam 5 menit)\n'));
+      console.log('⏳ Menunggu pesan masuk...');
+    }
 
-      if (!text) return;
-
-      if (text === '/clear') {
-        logger.clear();
-        bot.sendMessage(chatId, '✅ Memori AI telah dihapus. Mari kita mulai obrolan baru!');
-        return;
+    // Security Middleware (OTP & Authorization)
+    bot.use(async (ctx, next) => {
+      const currentConfig = loadConfig();
+      const authId = currentConfig.integrations?.telegram?.authorized_chat_id;
+      
+      if (authId) {
+        // Paired mode: Reject unauthorized users silently
+        if (ctx.chat?.id !== authId) {
+          return;
+        }
+        return next();
       }
 
-      // Log incoming message
-      console.log(`[Telegram] Received from ${msg.from?.first_name}: ${text}`);
+      // Pairing mode: Listen for /auth command
+      if (ctx.message && 'text' in ctx.message) {
+        const text = ctx.message.text || '';
+        if (text.startsWith('/auth ')) {
+          const pin = text.split(' ')[1];
+          if (Date.now() > pinExpiry) {
+            await ctx.reply('❌ The pairing PIN has expired. Please restart the CLI to generate a new one.');
+            return;
+          }
+          if (pin === generatedPin) {
+            // Success
+            if (!currentConfig.integrations) currentConfig.integrations = {};
+            if (!currentConfig.integrations.telegram) currentConfig.integrations.telegram = { enabled: true, bot_token: token };
+            
+            currentConfig.integrations.telegram.authorized_chat_id = ctx.chat?.id;
+            saveConfig(currentConfig);
+            
+            await ctx.reply('✅ Otorisasi Berhasil! Agen Nyxora kini hanya akan mematuhi perintah Anda. Koneksi diamankan.');
+            console.log(pc.green(`\n[Telegram] Successfully paired with Chat ID: ${ctx.chat?.id}`));
+            return; // Done parsing auth, ignore this specific message for further logic
+          } else {
+            await ctx.reply('❌ PIN salah.');
+            return;
+          }
+        }
+      }
+      
+      // If not paired and not an auth command, silently drop
+      return;
+    });
 
-      // Send typing action to Telegram
-      bot.sendChatAction(chatId, 'typing');
+    bot.command('clear', async (ctx) => {
+      logger.clear();
+      await ctx.reply('✅ Memori AI telah dihapus. Mari kita mulai obrolan baru!');
+    });
+
+    bot.on('text', async (ctx) => {
+      const text = ctx.message.text;
+      if (text.startsWith('/')) return; // Ignore other commands
+
+      console.log(`[Telegram] Received from ${ctx.from?.first_name || 'User'}: ${text}`);
+      
+      // Send typing action
+      await ctx.sendChatAction('typing');
 
       try {
         let progressMsgId: number | null = null;
         const onProgress = async (progressText: string) => {
           try {
             if (!progressMsgId) {
-              const sent = await bot.sendMessage(chatId, progressText, { parse_mode: 'Markdown' });
+              const sent = await ctx.reply(progressText, { parse_mode: 'Markdown' });
               progressMsgId = sent.message_id;
             } else {
-              await bot.editMessageText(progressText, { chat_id: chatId, message_id: progressMsgId, parse_mode: 'Markdown' });
+              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, progressText, { parse_mode: 'Markdown' });
             }
           } catch (e) {}
         };
 
-        // Feed the message to the AI agent
         const response = await processUserInput(text, 'user', onProgress);
-        
+
         if (progressMsgId) {
-          // Clean up the progress message
-          bot.deleteMessage(chatId, progressMsgId).catch(() => {});
+          await ctx.telegram.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
-        
-        // Send the AI's response back to Telegram
-        
-        // Check for newly created pending transactions
+
         const pendingTxs = txManager.getPending();
         if (pendingTxs.length > 0) {
           const latestTx = pendingTxs[pendingTxs.length - 1];
-          // If the transaction was created within the last 2 minutes, show the inline keyboard
           if (Date.now() - latestTx.createdAt < 120000) {
-            bot.sendMessage(chatId, response, {
-              reply_markup: {
-                inline_keyboard: [[
-                  { text: '✅ Approve', callback_data: `approve_${latestTx.id}` },
-                  { text: '❌ Reject', callback_data: `reject_${latestTx.id}` }
-                ]]
-              }
-            });
+            await ctx.reply(response, Markup.inlineKeyboard([
+              [
+                Markup.button.callback('✅ Approve', `approve_${latestTx.id}`),
+                Markup.button.callback('❌ Reject', `reject_${latestTx.id}`)
+              ]
+            ]));
             return;
           }
         }
-        
-        bot.sendMessage(chatId, response);
+
+        await ctx.reply(response);
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
-        bot.sendMessage(chatId, '❌ Sorry, I encountered an error while processing your message.');
+        await ctx.reply('❌ Sorry, I encountered an error while processing your message.');
       }
     });
 
-    bot.on('callback_query', async (query) => {
-      const chatId = query.message?.chat.id;
-      if (!chatId || !query.data) return;
-
-      const [action, txId] = query.data.split('_');
+    // Handle callbacks
+    bot.action(/^approve_(.+)$/, async (ctx) => {
+      const txId = ctx.match[1];
       const tx = txManager.getTransaction(txId);
 
       if (!tx || tx.status !== 'pending') {
-        bot.answerCallbackQuery(query.id, { text: 'Transaction not found or already processed.', show_alert: true });
+        await ctx.answerCbQuery('Transaction not found or already processed.', { show_alert: true });
         return;
       }
 
-      if (action === 'approve') {
-        bot.answerCallbackQuery(query.id, { text: 'Processing transaction...' });
-        bot.sendMessage(chatId, `⏳ Processing transaction ${txId}...`);
-        try {
-          let result = '';
-          if (tx.type === 'transfer') {
-            result = await executeTransfer(tx.chainName as any, tx.details);
-          } else if (tx.type === 'swap') {
-            result = await executeSwap(tx.chainName as any, tx.details);
-          } else if (tx.type === 'bridge') {
-            result = await executeBridge(tx.chainName as any, tx.details);
-          } else if (tx.type === 'mint') {
-            result = await executeMintNft(tx.chainName as any, tx.details);
-          } else if (tx.type === 'custom') {
-            result = await executeCustomTx(tx.chainName as any, tx.details);
-          }
-          txManager.updateStatus(txId, 'executed', result);
-          const prettyMsg = formatTransactionSuccess(tx, result);
-          bot.sendMessage(chatId, `✅ Transaction processed:\n\n${prettyMsg}`);
-          
-          // Sync with dashboard
-          logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
-          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });
-          
-          // Background update to LLM
-          processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system').catch(() => {});
-        } catch (err: any) {
-          txManager.updateStatus(txId, 'failed', err.message);
-          const prettyError = formatTransactionError(tx, err.message);
-          bot.sendMessage(chatId, prettyError);
-          
-          // Background update to LLM
-          processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system').catch(() => {});
-        }
-      } else if (action === 'reject') {
-        txManager.updateStatus(txId, 'rejected');
-        processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system').catch(() => {});
-        bot.answerCallbackQuery(query.id, { text: 'Transaction cancelled.' });
-        bot.sendMessage(chatId, `❌ Transaction cancelled.`);
-      }
+      await ctx.answerCbQuery('Processing transaction...');
+      await ctx.reply(`⏳ Processing transaction ${txId}...`);
       
-      // Remove inline keyboard
-      bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message?.message_id });
+      // Remove inline keyboard immediately
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+
+      try {
+        let result = '';
+        if (tx.type === 'transfer') {
+          result = await executeTransfer(tx.chainName as any, tx.details);
+        } else if (tx.type === 'swap') {
+          result = await executeSwap(tx.chainName as any, tx.details);
+        } else if (tx.type === 'bridge') {
+          result = await executeBridge(tx.chainName as any, tx.details);
+        } else if (tx.type === 'mint') {
+          result = await executeMintNft(tx.chainName as any, tx.details);
+        } else if (tx.type === 'custom') {
+          result = await executeCustomTx(tx.chainName as any, tx.details);
+        }
+        
+        txManager.updateStatus(txId, 'executed', result);
+        const prettyMsg = formatTransactionSuccess(tx, result);
+        await ctx.reply(`✅ Transaction processed:\n\n${prettyMsg}`);
+        
+        logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
+        logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });
+        
+        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system').catch(() => {});
+      } catch (err: any) {
+        txManager.updateStatus(txId, 'failed', err.message);
+        const prettyError = formatTransactionError(tx, err.message);
+        await ctx.reply(prettyError);
+        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system').catch(() => {});
+      }
     });
 
-    bot.on('polling_error', (error) => {
-      console.error('[Telegram] Polling error:', error);
+    bot.action(/^reject_(.+)$/, async (ctx) => {
+      const txId = ctx.match[1];
+      txManager.updateStatus(txId, 'rejected');
+      processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system').catch(() => {});
+      
+      await ctx.answerCbQuery('Transaction cancelled.');
+      await ctx.reply(`❌ Transaction cancelled.`);
+      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     });
 
-    console.log('🤖 Telegram Bot is running and listening for messages...');
+    bot.catch((err) => {
+      console.error('[Telegram] Telegraf error:', err);
+    });
+
+    bot.launch();
+    
+    if (isPaired) {
+      console.log('🤖 Telegram Bot is running and securely listening for your messages...');
+    }
+    
+    // Enable graceful stop
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
   } catch (error) {
     console.error('[Telegram] Failed to initialize bot:', error);
   }

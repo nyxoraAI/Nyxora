@@ -1,0 +1,236 @@
+#!/usr/bin/env node
+
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.join(__dirname, '..');
+
+const appDir = path.join(os.homedir(), '.nyxora');
+const pidFile = path.join(appDir, 'daemon.pid');
+const logFile = path.join(appDir, 'gateway.log');
+const tokenFile = path.join(appDir, 'auth.token');
+
+if (!fs.existsSync(appDir)) {
+  fs.mkdirSync(appDir, { recursive: true });
+}
+
+const command = process.argv[2];
+
+function isDaemonRunning(pidStr) {
+  if (!pidStr) return false;
+  try {
+    process.kill(parseInt(pidStr, 10), 0);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function getDaemonPid() {
+  if (fs.existsSync(pidFile)) {
+    const pidStr = fs.readFileSync(pidFile, 'utf8').trim();
+    if (isDaemonRunning(pidStr)) {
+      return parseInt(pidStr, 10);
+    } else {
+      fs.unlinkSync(pidFile);
+    }
+  }
+  return null;
+}
+
+async function start() {
+  const pid = await getDaemonPid();
+  if (pid) {
+    console.log(`Nyxora is already running (PID: ${pid}). Use 'nyxora restart' to restart.`);
+    return;
+  }
+
+  console.log('Starting Nyxora daemon...');
+  
+  const out = fs.openSync(logFile, 'a');
+  const err = fs.openSync(logFile, 'a');
+  
+  // Clean up any stale sockets first
+  const socketPath = '/tmp/nyxora-signer.sock';
+  if (fs.existsSync(socketPath)) {
+    try {
+        fs.unlinkSync(socketPath);
+    } catch(e) {}
+  }
+
+  const child = spawn('npx', ['ts-node', '-T', 'launcher.ts'], {
+    cwd: projectRoot,
+    detached: true,
+    stdio: ['ignore', out, err],
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+
+  child.unref();
+
+  if (child.pid) {
+    fs.writeFileSync(pidFile, child.pid.toString());
+    console.log(`Nyxora daemon started (PID: ${child.pid}).`);
+    console.log(`Logs are available at: ${logFile}`);
+  }
+}
+
+async function stop() {
+  const pid = await getDaemonPid();
+  if (pid) {
+    console.log(`Stopping Nyxora daemon (PID: ${pid})...`);
+    try {
+      process.kill(-pid, 'SIGTERM');
+      console.log('Nyxora stopped gracefully.');
+    } catch (e) {
+      console.error('Failed to kill process:', e.message);
+    }
+    try {
+      fs.unlinkSync(pidFile);
+    } catch(e) {}
+  } else {
+    console.log('Nyxora is not running.');
+  }
+}
+
+async function restart() {
+  await stop();
+  setTimeout(start, 1000);
+}
+
+async function dashboard() {
+  const pid = await getDaemonPid();
+  if (!pid) {
+    console.log("Nyxora is not running. Start it first with 'nyxora start'.");
+    return;
+  }
+
+  if (fs.existsSync(tokenFile)) {
+    const token = fs.readFileSync(tokenFile, 'utf8').trim();
+    const url = `http://localhost:3000?token=${token}`;
+    console.log(`Opening Dashboard at ${url}`);
+    try {
+        const { default: open } = await import('open');
+        await open(url);
+    } catch(e) {
+        console.error("Failed to open browser. Please manually open:", url);
+    }
+  } else {
+    console.log("Dashboard token not found. The daemon might still be starting.");
+  }
+}
+
+async function cleanLogs() {
+  if (fs.existsSync(logFile)) {
+    fs.writeFileSync(logFile, '');
+    console.log('Logs have been cleared.');
+  } else {
+    console.log('No logs found to clear.');
+  }
+}
+
+async function autostart(action) {
+  const isLinux = process.platform === 'linux';
+  const isMac = process.platform === 'darwin';
+  const isWin = process.platform === 'win32';
+  
+  if (isLinux) {
+    const autostartDir = path.join(os.homedir(), '.config', 'autostart');
+    const desktopFile = path.join(autostartDir, 'nyxora.desktop');
+    
+    if (action === 'enable') {
+      if (!fs.existsSync(autostartDir)) fs.mkdirSync(autostartDir, { recursive: true });
+      const binPath = path.resolve(projectRoot, 'bin', 'nyxora.mjs');
+      const desktopContent = `[Desktop Entry]
+Type=Application
+Exec=node ${binPath} start
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Nyxora Daemon
+Comment=Start Nyxora in the background
+`;
+      fs.writeFileSync(desktopFile, desktopContent);
+      console.log('Autostart enabled for Linux (XDG Autostart).');
+    } else if (action === 'disable') {
+      if (fs.existsSync(desktopFile)) fs.unlinkSync(desktopFile);
+      console.log('Autostart disabled.');
+    } else {
+      console.log("Usage: nyxora autostart [enable|disable]");
+    }
+  } else if (isMac) {
+    const plistDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+    const plistFile = path.join(plistDir, 'com.nyxora.gateway.plist');
+    if (action === 'enable') {
+      if (!fs.existsSync(plistDir)) fs.mkdirSync(plistDir, { recursive: true });
+      const binPath = path.resolve(projectRoot, 'bin', 'nyxora.mjs');
+      const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nyxora.gateway</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${process.execPath}</string>
+        <string>${binPath}</string>
+        <string>start</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>`;
+      fs.writeFileSync(plistFile, plistContent);
+      console.log('Autostart enabled for macOS (LaunchAgent).');
+    } else if (action === 'disable') {
+      if (fs.existsSync(plistFile)) fs.unlinkSync(plistFile);
+      console.log('Autostart disabled.');
+    }
+  } else if (isWin) {
+    console.log("For Windows, please use Task Scheduler or add a shortcut to the Startup folder.");
+  } else {
+    console.log("Unsupported OS for autostart script.");
+  }
+}
+
+async function setup() {
+  console.log("Running Nyxora Setup Wizard...");
+  const child = spawn('npx', ['ts-node', '-T', 'packages/core/src/gateway/setup-cli.ts'], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
+async function main() {
+  switch (command) {
+    case 'setup': await setup(); break;
+    case 'start': await start(); break;
+    case 'stop': await stop(); break;
+    case 'restart': await restart(); break;
+    case 'dashboard': await dashboard(); break;
+    case 'clean-logs': await cleanLogs(); break;
+    case 'autostart': await autostart(process.argv[3]); break;
+    default:
+      console.log(`
+Nyxora CLI Manager
+Usage: nyxora <command>
+
+Commands:
+  start          Start the Nyxora background daemon
+  stop           Stop the running daemon
+  restart        Restart the daemon
+  dashboard      Open the dashboard in your browser
+  clean-logs     Clear the daemon logs
+  autostart      Enable/disable autostart on boot (usage: nyxora autostart enable)
+`);
+  }
+}
+
+main().catch(console.error);

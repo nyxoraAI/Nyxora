@@ -17,4 +17,4 @@ Never share your Private Key with anyone. Anyone with your Private Key has full 
 7. Prefix it with `0x` if it doesn't already have one (e.g., `0xabc123...`).
 8. Paste it into the Nyxora CLI when prompted!
 
-Nyxora will immediately encrypt it using AES-256-GCM and lock it behind your Master Password.
+Nyxora will immediately secure it using your Operating System's native Keyring, eliminating the need for manual Master Passwords.

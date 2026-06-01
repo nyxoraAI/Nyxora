@@ -19,21 +19,7 @@ To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communicatio
 ### The Security Flow
 When the LLM processes a transaction instruction (e.g., swapping tokens), the lifecycle is as follows:
 
-```text
-[1] User (Dashboard/Telegram) ──> Sends prompt "Please swap ETH to USDC"
-                                      │
-[2] Core Runtime (LLM)        <── Understands context & generates JSON Tool Call
-                                      │
-[3] Policy Engine             <── Receives payload, evaluates rules & limits
-                                      │
-[4] User (Dashboard/Telegram) <── (If Auth required) Requests Approval (Challenge Nonce)
-                                      │
-[5] Signer Vault              <── Receives certified instruction from Policy
-                                      │
-[6] Blockchain RPC            <── Signer Vault signs & broadcasts to RPC
-                                      │
-[7] User (Dashboard/Telegram) <── Success status returned to chat interface
-```
+![Nyxora Security Flow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/security-flow.png)
 
 The diagram above illustrates the lifecycle of a transaction initiated from the user interface. Due to Nyxora's layered architecture, the LLM in the Core Runtime acts solely as a planner generating transaction data structures. The actual cryptographic execution and signing are strictly locked and fully controlled by the Policy Engine and Signer Vault after you provide authorization.
 
@@ -41,7 +27,22 @@ The diagram above illustrates the lifecycle of a transaction initiated from the 
 
 ---
 
-## 2. Advanced Cryptographic Security
+## 2. OS-Native Keyring Integration
+
+Nyxora completely eliminates the need for manual "Master Passwords" or custom AES-GCM keystore files by delegating Private Key encryption directly to your Operating System's trusted Keyring.
+
+*   **Linux:** Integrates seamlessly with `Secret Service API / GNOME Keyring` via `libsecret`.
+*   **macOS:** Utilizes the native `Keychain Access`.
+*   **Windows:** Uses `Windows Credential Manager`.
+
+When the background daemon boots via `nyxora start`, the Signer Vault process reads the Private Key directly from the OS Keyring without requiring human intervention. This ensures the daemon can safely persist across reboots while maintaining institutional-grade encryption at rest.
+
+### Secure Fallback Storage
+In headless server environments (e.g., VPS, Docker) where a GUI Keyring is unavailable, Nyxora gracefully falls back to a strictly permissioned `.env` / `vault.key` file mechanism. This file is programmatically enforced with `chmod 0600` permissions (Read/Write for owner only), preventing access by other system users.
+
+---
+
+## 3. Advanced Cryptographic Security
 
 To prevent advanced Man-in-the-Middle (MITM) attacks and UI compromises, Nyxora is adopting the following cryptographic standards:
 
@@ -68,13 +69,16 @@ Every approval UI prompt utilizes a **Single-Use Challenge Nonce** with a strict
 
 ---
 
-## 3. Plugin Sandboxing
+## 4. Plugin Sandboxing (Node.js VM Isolation)
 
-Community plugins and custom skills are executed inside a sandboxed environment.
-*   **Restricted FS Access:** Plugins cannot arbitrarily read your `~/.nyxora` keystore directory.
-*   **Restricted Shell Exec:** Arbitrary shell commands are disabled for third-party skills to prevent malicious `curl | bash` supply chain payloads.
+Community plugins and custom skills are NEVER executed directly at the OS level. Instead, Nyxora creates an airtight **Virtual Machine (VM) Sandbox** in memory. 
 
-## 4. Reporting Vulnerabilities
+To prevent Supply Chain Attacks, the sandbox **permanently blacklists** critical native modules:
+*   `fs` (File System): Plugins cannot read or steal local keystore files.
+*   `child_process`: Plugins cannot spawn silent background terminals or malicious `curl | bash` supply chain payloads.
+*   `os`, `net`, `cluster`: Blocked to prevent network-level exploitation.
+
+## 5. Reporting Vulnerabilities
 
 If you discover a vulnerability in the Nyxora architecture, please DO NOT open a public issue.
 Instead, email the core maintainer directly at **ainyxor@gmail.com**.

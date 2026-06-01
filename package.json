@@ -1,13 +1,20 @@
 {
   "name": "nyxora",
-  "version": "1.6.2",
+  "version": "1.6.3",
+  "license": "MIT",
   "workspaces": [
     "packages/*"
   ],
+  "bin": {
+    "nyxora": "./bin/nyxora.mjs"
+  },
   "scripts": {
-    "start": "ts-node -T launcher.ts",
+    "start": "node ./bin/nyxora.mjs start",
+    "stop": "node ./bin/nyxora.mjs stop",
+    "restart": "node ./bin/nyxora.mjs restart",
+    "dashboard": "node ./bin/nyxora.mjs dashboard",
+    "setup": "node ./bin/nyxora.mjs setup",
     "build": "npm run build --workspace=dashboard",
-    "setup": "ts-node -T packages/core/src/gateway/cli.ts setup",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -20,7 +27,7 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "node-telegram-bot-api": "^0.67.0",
+    "keytar": "^7.9.0",
     "open": "^11.0.0",
     "openai": "^6.39.0",
     "picocolors": "^1.1.1",
@@ -34,8 +41,5 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^25.9.1",
     "vitepress": "^1.6.4"
-  },
-  "bin": {
-    "nyxora": "./bin/nyxora.js"
   }
 }

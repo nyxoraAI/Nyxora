@@ -1,48 +1,42 @@
-# Signer Vault & Master Password
+# OS-Native Keyring Vault
 
-As an autonomous framework capable of executing on-chain asset transfers, **Nyxora** places Private Key protection as its highest absolute priority. We introduced a completely **Isolated Signer Vault**, ensuring that even if the core LLM runtime is compromised via zero-day vulnerabilities, your private keys remain untouchable.
+As an autonomous framework capable of executing on-chain asset transfers, **Nyxora** places Private Key protection as its highest absolute priority. In our latest architecture, we have completely eliminated the insecure, manual "Master Password" flow.
+
+Instead, Nyxora operates a completely **Isolated Signer Vault** that securely delegates cryptography to your Operating System's native keyring.
 
 ---
 
-## 1. The Isolated Vault Architecture
+## 1. Native OS Keyring Delegation
+
+Unlike traditional bots that force you to paste your key in a `.env` file or use a weak custom password, Nyxora securely injects your wallet directly into the native credential manager of your Operating System via the `keytar` native C++ bindings:
+
+*   **Linux:** Integrates seamlessly with `Secret Service API / GNOME Keyring` via `libsecret`.
+*   **macOS:** Utilizes the native `Keychain Access`.
+*   **Windows:** Uses `Windows Credential Manager`.
+
+When you run `nyxora setup`, your Private Key is swallowed by the OS and never exposed to the disk in plaintext. 
+
+When the background daemon boots via `nyxora start`, the Signer Vault process requests the key directly from the OS Keyring programmatically. This ensures the daemon can safely run 24/7 in the background across reboots while maintaining institutional-grade encryption at rest without human intervention.
+
+## 2. Secure Fallback Mechanism (Headless Servers)
+
+In headless server environments (e.g., VPS, Docker) where a GUI Keyring (like GNOME) is unavailable, the `keytar` native bindings may fail to load. 
+
+Nyxora anticipates this and gracefully falls back to a strict file-based vault:
+*   The fallback file is saved to `~/.nyxora/vault.key` or read via `.env`.
+*   **Mandatory Permissions:** Nyxora programmatically enforces `chmod 0600` permissions (Read/Write for owner only). If the permissions are looser, the daemon will refuse to boot, preventing access by other malicious users on the same shared system.
+
+## 3. The Isolated Vault Architecture
 
 Nyxora completely isolates the transaction signing process from the LLM execution process.
+*   **Core Runtime (LLM):** Has zero access to memory or disk locations containing private keys.
+*   **Policy Engine:** Acts as the middleman firewall. It receives unsigned transaction drafts from the Core.
+*   **Signer Vault (Unix Socket):** A completely isolated Node.js process that listens exclusively on a local Unix Socket (`/tmp/nyxora-signer.sock`). 
 
-```text
-[1] User (Dashboard/Telegram) ──> Sends prompt "Please swap ETH to USDC"
-                                      │
-[2] Core Runtime (LLM)        <── Understands context & generates JSON Tool Call
-                                      │
-[3] Policy Engine             <── Receives payload, evaluates rules & limits
-                                      │
-[4] User (Dashboard/Telegram) <── (If Auth required) Requests Approval (Challenge Nonce)
-                                      │
-[5] Signer Vault              <── Receives certified instruction from Policy
-                                      │
-[6] Blockchain RPC            <── Signer Vault signs & broadcasts to RPC
-                                      │
-[7] User (Dashboard/Telegram) <── Success status returned to chat interface
-```
+The raw Private Key only resides in active volatile memory (RAM) within the isolated Signer process. The LLM can never access this memory space.
 
-The diagram above illustrates the lifecycle of a transaction initiated from the user interface. Due to Nyxora's layered architecture, the LLM in the Core Runtime acts solely as a planner generating transaction data structures. The actual cryptographic execution and signing are strictly locked and fully controlled by the Policy Engine and Signer Vault after you provide authorization.
+## 4. Cryptographically Bound Execution
 
-> **Performance Note:** Although the multi-layered security flow above appears complex and lengthy, the entire internal verification, IPC communication, and cryptographic signing process is highly optimized and takes only a few **milliseconds (ms)** to complete.
+When the UI asks you to approve a transaction, the transmission is not a simple plaintext POST request. 
 
-- **Core Runtime (LLM):** Has zero access to memory or disk locations containing private keys.
-- **Policy Engine:** Acts as the middleman firewall.
-- **Signer Vault (Unix Socket):** A completely isolated Node.js process that listens exclusively on a local Unix Socket (`/tmp/nyxora-signer.sock`). It holds the decrypted private keys in memory.
-
-## 2. AES-256-GCM & In-Memory Volatility
-Unlike traditional bots that force you to paste your key in a `.env` file, Nyxora encrypts your wallet using **AES-256-GCM** (military-grade encryption standard) derived from your **Master Password**.
-
-The encrypted payload resides at `~/.nyxora/keystore.json`.
-
-::: tip VOLATILE MEMORY (RAM-Only)
-Every time you restart Nyxora, you will be prompted for your Master Password via the CLI or Dashboard UI. 
-Your Master Password is sent via the secure IPC Unix Socket to the Signer Vault to unlock the `keystore.json`. The raw Private Key only resides in active volatile memory (RAM) within the isolated Signer process. As soon as the terminal is closed, the Unix Socket is destroyed and the key is instantly wiped from RAM.
-:::
-
-## 3. Challenge Nonce Authentication
-When you unlock the vault via the Dashboard UI, the transmission of your Master Password is not a simple plaintext POST request. 
-
-The backend generates a **Single-Use Challenge Nonce** with a strict expiry time. Your Dashboard UI must cryptographically bind this nonce to the unlocking request, ensuring that malware extensions or XSS attacks cannot replay an old session token to silently unlock your vault later.
+The backend generates a **Single-Use Challenge Nonce** with a strict expiry time. Your Dashboard UI must cryptographically bind this nonce to the transaction hash, ensuring that malware extensions or XSS attacks cannot replay an old session token or alter the payload in transit.
