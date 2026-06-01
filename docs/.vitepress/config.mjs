@@ -23,7 +23,8 @@ export default defineConfig({
       {
         text: 'Developer & Architecture',
         items: [
-          { text: '🏗️ Technical Architecture', link: '/guide/architecture' }
+          { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
+          { text: '🛣️ Nyxora v2 Roadmap', link: '/guide/roadmap' }
         ]
       },
       {
