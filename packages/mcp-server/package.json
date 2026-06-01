@@ -1,5 +1,5 @@
 {
-  "name": "@nyxora/mcp-server",
+  "name": "@nyxora-web3-agent/mcp-server",
   "version": "1.6.5",
   "description": "Nyxora MCP Server for external AI clients",
   "main": "dist/server.js",

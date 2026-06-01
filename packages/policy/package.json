@@ -1,5 +1,5 @@
 {
-  "name": "@nyxora/policy",
+  "name": "@nyxora-web3-agent/policy",
   "version": "1.6.5",
   "private": true,
   "main": "src/server.ts",
