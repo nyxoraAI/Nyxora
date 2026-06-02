@@ -31,7 +31,8 @@ Everything is strictly governed by an **NLP Security Policy**—security rules w
 Nyxora goes beyond simple token transfers. It is equipped with pro-trader tools:
 - **Anti-Rugpull Scanner:** Before you buy a token, Nyxora uses the GoPlus Labs API to audit the smart contract, detecting honeypots, hidden taxes, or malicious proxy upgrades.
 - **Automated Limit Orders:** You can say *"Sell my PEPE if the price drops below $0.001"*. Nyxora runs a background cron monitor and executes the swap while you sleep.
-- **PNL & Portfolio Tracking:** Tracks all your wallet asset values using real-time Decentralized Exchange (DEX) prices.
+- **"Lean Degen" Auto-Whitelist:** Automatically intercepts Contract Addresses (CAs) when you check balances or execute swaps, permanently saving them to a personal tracking list.
+- **Dynamic Portfolio Engine:** Merges standard tokens, custom CAs, and daily CoinGecko trending tokens into a hyper-fast, spam-free Multicall scan for instant Net Worth estimations.
 
 ### 5. Plugin Sandboxing Architecture
 We are developing a robust **Plugin Sandboxing** architecture to ensure that if third-party developers create custom skills or extensions for Nyxora, they are not granted unrestricted System Access (File System/Shell), thereby preventing Supply Chain Attacks.
