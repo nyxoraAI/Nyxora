@@ -166,12 +166,12 @@ Provider: ${config.llm.provider}`;
     message: 'Select Default Chain:',
     initialValue: config.agent.default_chain,
     options: [
-      { value: 'sepolia', label: 'Sepolia (Testnet)' },
-      { value: 'base', label: 'Base' },
-      { value: 'bsc', label: 'BSC' },
       { value: 'ethereum', label: 'Ethereum Mainnet' },
-      { value: 'arbitrum', label: 'Arbitrum' },
+      { value: 'bsc', label: 'BSC' },
+      { value: 'base', label: 'Base' },
       { value: 'optimism', label: 'Optimism' },
+      { value: 'arbitrum', label: 'Arbitrum' },
+      { value: 'sepolia', label: 'Sepolia (Testnet)' },
     ],
   });
   if (isCancel(defaultChain)) return process.exit(0);

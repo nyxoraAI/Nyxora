@@ -9,7 +9,7 @@ export default function PendingTransactions() {
   useEffect(() => {
     const fetchPending = async () => {
       try {
-        const res = await apiFetch('http://localhost:3000/api/transactions');
+        const res = await apiFetch('/api/transactions');
         if (res.ok) {
           setPending(await res.json());
         }
@@ -25,7 +25,7 @@ export default function PendingTransactions() {
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setLoadingId(id);
     try {
-      const res = await apiFetch(`http://localhost:3000/api/transactions/${id}/${action}`, { method: 'POST' });
+      const res = await apiFetch(`/api/transactions/${id}/${action}`, { method: 'POST' });
       if (res.ok) {
         setPending(prev => prev.filter(t => t.id !== id));
       } else {

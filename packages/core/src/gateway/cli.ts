@@ -64,8 +64,13 @@ console.log(`================================`);
 
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
   startServer();
-  getSessionToken(); // Initialize token file
+  const token = getSessionToken(); // Initialize token file
   console.log(`🌐 Nyxora API Server running on port ${process.env.PORT || 3000}`);
+  
+  setTimeout(() => {
+    console.log(pc.cyan(`\n✨ Dashboard URL: http://localhost:3000/?token=${token}`));
+    console.log(pc.gray(`   (Developers: Vite hot-reload available at http://localhost:5173/?token=${token})\n`));
+  }, 1500);
 }
 
 main().catch(console.error);

@@ -32,13 +32,40 @@ export function getPublicClient(chainName: ChainName): PublicClient {
     }
   }
   
-  // Always append the default public RPC as the last resort
-  transports.push(http());
+  // Fallback public RPCs (Top tier from Chainlist.org prioritized)
+  if (!customRpcRaw) {
+    if (chainName === 'ethereum') {
+      transports.push(http('https://ethereum-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://eth.llamarpc.com', { timeout: 5000 }));
+      transports.push(http('https://rpc.ankr.com/eth', { timeout: 5000 }));
+    } else if (chainName === 'bsc') {
+      transports.push(http('https://bsc-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://bsc-dataseed.binance.org', { timeout: 5000 }));
+    } else if (chainName === 'base') {
+      transports.push(http('https://base-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://mainnet.base.org', { timeout: 5000 }));
+    } else if (chainName === 'arbitrum') {
+      transports.push(http('https://arbitrum-one-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://arb1.arbitrum.io/rpc', { timeout: 5000 }));
+    } else if (chainName === 'optimism') {
+      transports.push(http('https://optimism-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://mainnet.optimism.io', { timeout: 5000 }));
+    } else if (chainName === 'sepolia') {
+      transports.push(http('https://ethereum-sepolia-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://rpc.sepolia.org', { timeout: 5000 }));
+    }
+  }
+
+  // Always append the default public RPC (like cloudflare) as the last resort
+  transports.push(http(undefined, { timeout: 5000 }));
 
   // @ts-ignore
   return createPublicClient({
     chain,
     transport: fallback(transports, { rank: false }),
+    batch: {
+      multicall: true
+    }
   });
 }
 

@@ -26,11 +26,28 @@ import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
 import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
 import { createWalletToolDefinition } from '../web3/skills/createWallet';
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition } from '../agent/limitOrderManager';
+import { isSkillActive, toggleSkill } from '../utils/skillManager';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
 import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
+
+// System Skills
+import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
+import { runTerminalCommandToolDefinition } from '../system/skills/executeShell';
+import { installExternalSkillToolDefinition } from '../system/skills/installSkill';
+import { readLocalFileToolDefinition } from '../system/skills/readFile';
+import { updateSecurityPolicyToolDefinition } from '../system/skills/updateSecurityPolicy';
+import { writeLocalFileToolDefinition } from '../system/skills/writeFile';
+import { analyzeDocumentToolDefinition } from '../system/skills/analyzeDocument';
+import { searchWebToolDefinition } from '../system/skills/searchWeb';
+import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition } from '../system/skills/googleWorkspace';
+
 import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
+import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated } from './googleAuthModule';
+
+// Initialize Google Auth
+initGoogleAuth();
 
 import util from 'util';
 
@@ -52,7 +69,16 @@ console.error = function (...args) {
 
 const app = express();
 app.use(helmet());
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5173'] }));
+app.use(cors({ 
+  origin: function (origin, callback) {
+    if (!origin || /^(http:\/\/(localhost|127\.0\.0\.1):\d+)$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-nyxora-token']
+}));
 app.use(express.json());
 
 const apiLimiter = rateLimit({
@@ -64,9 +90,15 @@ app.use('/api/', apiLimiter);
 
 // API Auth Middleware
 app.use('/api', (req, res, next) => {
+  // Bypass auth for Google OAuth callback and URLs since they are handled externally or by the browser
+  if (req.path.startsWith('/auth/google')) {
+    return next();
+  }
+
   const token = req.headers['x-nyxora-token'];
   if (token !== getSessionToken()) {
-    return res.status(401).json({ error: `Unauthorized: Invalid or missing token. Expected: ${getSessionToken()}, Received: ${token}` });
+    console.error(`[Auth] Rejected ${req.method} ${req.originalUrl} - Expected: ${getSessionToken().substring(0,8)}... Received: ${token ? token.toString().substring(0,8) + '...' : 'undefined'}`);
+    return res.status(401).json({ error: `Unauthorized: Invalid or missing token.` });
   }
   next();
 });
@@ -170,7 +202,7 @@ app.get('/api/logs', (req, res) => {
 });
 
 app.get('/api/skills', (req, res) => {
-  res.json([
+  const allSkills = [
     getBalanceToolDefinition,
     transferToolDefinition,
     getPriceToolDefinition,
@@ -187,7 +219,79 @@ app.get('/api/skills', (req, res) => {
     createLimitOrderToolDefinition,
     listLimitOrdersToolDefinition,
     cancelLimitOrderToolDefinition
-  ]);
+  ];
+  
+  const skillsWithStatus = allSkills.map(skill => ({
+    ...skill,
+    isActive: isSkillActive(skill.function.name)
+  }));
+  
+  res.json(skillsWithStatus);
+});
+
+app.get('/api/skills/system', (req, res) => {
+  const systemSkills = [
+    runTerminalCommandToolDefinition,
+    readLocalFileToolDefinition,
+    writeLocalFileToolDefinition,
+    browseWebsiteToolDefinition,
+    updateSecurityPolicyToolDefinition,
+    installExternalSkillToolDefinition,
+    analyzeDocumentToolDefinition,
+    searchWebToolDefinition,
+    readGmailInboxToolDefinition,
+    listCalendarEventsToolDefinition,
+    appendRowToSheetsToolDefinition,
+    readGoogleDocsToolDefinition,
+    readGoogleFormResponsesToolDefinition
+  ];
+  
+  const skillsWithStatus = systemSkills.map(skill => ({
+    ...skill,
+    isActive: isSkillActive(skill.function.name)
+  }));
+  
+  res.json(skillsWithStatus);
+});
+
+app.post('/api/skills/toggle', (req, res) => {
+  const { skillName, active } = req.body;
+  if (!skillName || typeof active !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+  toggleSkill(skillName, active);
+  res.json({ success: true, skillName, active });
+});
+
+// Google Workspace Auth Routes
+app.get('/api/auth/google/url', (req, res) => {
+  const url = getAuthUrl();
+  if (!url) return res.status(500).json({ error: 'Google Auth not configured' });
+  res.json({ url });
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const code = req.query.code as string;
+  if (!code) return res.status(400).send('No code provided');
+  
+  const success = await processCallback(code);
+  if (success) {
+    res.send(`
+      <html><body>
+      <h2>Authentication Successful!</h2>
+      <p>You can close this window and return to the dashboard.</p>
+      <script>
+        setTimeout(() => window.close(), 2000);
+      </script>
+      </body></html>
+    `);
+  } else {
+    res.status(500).send('Authentication failed');
+  }
+});
+
+app.get('/api/auth/google/status', async (req, res) => {
+  res.json({ connected: await isAuthenticated() });
 });
 
 app.get('/api/transactions', (req, res) => {
@@ -300,8 +404,8 @@ export function startServer() {
   });
   limitOrderManager.startMonitor();
 
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  const PORT = Number(process.env.PORT || 3000);
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
     
     // Start the Telegram bot listener

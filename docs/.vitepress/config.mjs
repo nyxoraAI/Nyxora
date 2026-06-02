@@ -31,7 +31,8 @@ export default defineConfig({
       {
         text: 'Core Capabilities',
         items: [
-          { text: '🧠 Native Skills', link: '/skills/native' },
+          { text: '🧠 Native Web3 Skills', link: '/skills/native' },
+          { text: '💻 Google Workspace MVP', link: '/skills/google-workspace' },
           { text: '🔗 External Plugins', link: '/guide/custom_skills' },
           { text: '🪙 Chain Specifics', link: '/skills/chains' },
           { text: '🔌 Custom RPC Configuration', link: '/skills/rpc' },

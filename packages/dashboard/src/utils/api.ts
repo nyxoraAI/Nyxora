@@ -10,6 +10,8 @@ if (tokenFromUrl) {
 
 export const getToken = () => localStorage.getItem('nyxora_token') || '';
 
+export const API_BASE_URL = import.meta.env.PROD ? '' : 'http://127.0.0.1:3000';
+
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const token = getToken();
   const headers = new Headers(init?.headers);
@@ -17,7 +19,12 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     headers.set('x-nyxora-token', token);
   }
   
-  return fetch(input, {
+  // If input is a relative path (starts with /), prepend API_BASE_URL
+  const url = typeof input === 'string' && input.startsWith('/') 
+    ? `${API_BASE_URL}${input}` 
+    : input;
+    
+  return fetch(url, {
     ...init,
     headers,
   });
