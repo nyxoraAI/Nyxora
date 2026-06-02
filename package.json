@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -9,6 +9,7 @@
     "nyxora": "bin/nyxora.mjs"
   },
   "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npx ts-node -T launcher.ts\" \"npm run dev --workspace=dashboard\"",
     "start": "node ./bin/nyxora.mjs start",
     "stop": "node ./bin/nyxora.mjs stop",
     "restart": "node ./bin/nyxora.mjs restart",

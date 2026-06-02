@@ -19,3 +19,16 @@ packages/policy/policy.yaml
 keystore.json
 memory.db
 *.bak
+
+# Workspace Secrets
+credentials.json
+google-tokens.json
+google-credentials.json
+auth.token
+runtime.token
+daemon.pid
+user.md
+IDENTITY.md
+security_policy.md
+.npmrc
+*.tgz

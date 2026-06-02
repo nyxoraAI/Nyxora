@@ -1,9 +1,11 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, Activity, MessageSquare, LayoutDashboard, Settings as SettingsIcon, Zap, Database, Mic, Copy, Check, Plus, Trash2, Search, Edit2 } from 'lucide-react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
 import Skills from './Skills';
+import OsSkills from './OsSkills';
+import { NetworkSelector } from './NetworkSelector';
 import PendingTransactions from './PendingTransactions';
 import BalanceWidget from './BalanceWidget';
 import TransactionWidget from './TransactionWidget';
@@ -25,7 +27,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'settings' | 'skills'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'settings' | 'skills' | 'osskills'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -123,7 +125,7 @@ function App() {
       return;
     }
     try {
-      const url = `http://localhost:3000/api/history?session_id=${activeSessionId}`;
+      const url = `/api/history?session_id=${activeSessionId}`;
       const res = await apiFetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -136,7 +138,7 @@ function App() {
 
   const fetchSessions = async () => {
     try {
-      const res = await apiFetch('http://localhost:3000/api/sessions');
+      const res = await apiFetch(`/api/sessions`);
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data);
@@ -150,7 +152,7 @@ function App() {
 
   const fetchTrendingTokens = async () => {
     try {
-      const res = await apiFetch('http://localhost:3000/api/trending');
+      const res = await apiFetch(`/api/trending`);
       if (res.ok) {
         setTrendingTokens(await res.json());
       }
@@ -159,7 +161,7 @@ function App() {
 
   const createNewSession = async () => {
     try {
-      const res = await apiFetch('http://localhost:3000/api/sessions', {
+      const res = await apiFetch(`/api/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: 'New Chat' })
@@ -176,7 +178,7 @@ function App() {
 
   const renameSession = async (id: string, newTitle: string) => {
     try {
-      await apiFetch(`http://localhost:3000/api/sessions/${id}`, {
+      await apiFetch(`/api/sessions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTitle })
@@ -189,7 +191,7 @@ function App() {
   const deleteSession = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await apiFetch(`http://localhost:3000/api/sessions/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/sessions/${id}`, { method: 'DELETE' });
       if (activeSessionId === id) {
         setActiveSessionId(null);
         setMessages([]);
@@ -200,7 +202,7 @@ function App() {
 
   const fetchConfig = async () => {
     try {
-      const res = await apiFetch('http://localhost:3000/api/config');
+      const res = await apiFetch(`/api/config`);
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
@@ -216,7 +218,7 @@ function App() {
   const updateConfig = async (newConfig: Config) => {
     setConfig(newConfig);
     try {
-      await apiFetch('http://localhost:3000/api/config', {
+      await apiFetch(`/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newConfig),
@@ -260,7 +262,7 @@ function App() {
     if (!currentSessionId) {
       try {
         const title = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
-        const res = await apiFetch('http://localhost:3000/api/sessions', {
+        const res = await apiFetch(`/api/sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title })
@@ -279,7 +281,7 @@ function App() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
 
     try {
-      const res = await apiFetch('http://localhost:3000/api/chat', {
+      const res = await apiFetch(`/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg, session_id: currentSessionId }),
@@ -365,6 +367,12 @@ function App() {
               <Zap size={15} className="nav-icon" /> Web3 Skills
             </div>
             <div 
+              className={`nav-item ${currentView === 'osskills' ? 'active' : ''}`}
+              onClick={() => setCurrentView('osskills')}
+            >
+              <Terminal size={15} className="nav-icon" /> OS Skills
+            </div>
+            <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
             >
@@ -420,17 +428,10 @@ function App() {
               </span>
             ) : (
               <>
-                <select 
-                  className="config-dropdown" 
-                  value={config.agent.default_chain}
-                  onChange={(e) => updateConfig({ ...config, agent: { ...config.agent, default_chain: e.target.value }})}
-                >
-                  <option value="sepolia">Sepolia (Testnet)</option>
-                  <option value="base">Base</option>
-                  <option value="ethereum">Ethereum</option>
-                  <option value="bsc">BNB Smart Chain</option>
-                  <option value="arbitrum">Arbitrum</option>
-                </select>
+                <NetworkSelector 
+                  value={config.agent.default_chain} 
+                  onChange={(chain) => updateConfig({ ...config, agent: { ...config.agent, default_chain: chain }})} 
+                />
               </>
             )}
           </div>
@@ -440,6 +441,8 @@ function App() {
           <Overview config={config} />
         ) : currentView === 'skills' ? (
           <Skills />
+        ) : currentView === 'osskills' ? (
+          <OsSkills />
         ) : currentView === 'settings' ? (
           <Settings config={config} onConfigChange={setConfig} />
         ) : (

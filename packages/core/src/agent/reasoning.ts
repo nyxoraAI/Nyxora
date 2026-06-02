@@ -9,6 +9,7 @@ import { transferToolDefinition, prepareTransfer } from '../web3/skills/transfer
 import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
 import { swapTokenToolDefinition, prepareSwapToken } from '../web3/skills/swapToken';
 import { bridgeTokenToolDefinition, prepareBridgeToken } from '../web3/skills/bridgeToken';
+import { isSkillActive } from '../utils/skillManager';
 import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
 import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
 import { createWalletToolDefinition, createWallet } from '../web3/skills/createWallet';
@@ -25,6 +26,18 @@ import { writeLocalFileToolDefinition, writeLocalFile } from '../system/skills/w
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
 import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
 import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
+import { 
+  readGmailInbox, 
+  listCalendarEvents, 
+  appendRowToSheets, 
+  readGoogleDocs, 
+  readGoogleFormResponses,
+  readGmailInboxToolDefinition,
+  listCalendarEventsToolDefinition,
+  appendRowToSheetsToolDefinition,
+  readGoogleDocsToolDefinition,
+  readGoogleFormResponsesToolDefinition
+} from '../system/skills/googleWorkspace';
 import { pluginManager } from '../system/pluginManager';
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
@@ -141,9 +154,9 @@ function getSystemPrompt() {
   let basePrompt = `You are an autonomous Web3 agent operating on EVM chains.
 You are equipped with a native wallet. 
 CRITICAL RULE: You must always reply in the exact same language that the user uses to talk to you. If the user speaks Indonesian, reply in Indonesian. If they speak English, reply in English.
-CRITICAL RULE: If the user asks to check "my balance", "saldo saya", or anything about their own wallet, DO NOT ask them for an address. You must immediately call the get_balance tool and LEAVE THE ADDRESS PARAMETER EMPTY. The system will automatically use the injected private key wallet.
-Always use the tools to interact with the blockchain.
-If the user doesn't specify a chain, default to: ${config.agent.default_chain}.`;
+CRITICAL RULE: When the user asks to check "my balance", "saldo saya", or anything about their own wallet generally, ALWAYS use the check_portfolio tool to show all assets on the chain that have a USD value greater than 0. LEAVE THE ADDRESS PARAMETER EMPTY. Do NOT use get_balance unless the user explicitly asks for the balance of ONE specific token (e.g., "what is my ETH balance?").
+CRITICAL RULE: If the user doesn't specify a chain, default to: ${config.agent.default_chain}. If the user mentions a specific chain (e.g., "on BNB", "di Base"), you MUST override the default and execute the tool on that specific chain.
+CRITICAL RULE: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.`;
 
   // Read IDENTITY.md for core AI persona
   try {
@@ -238,8 +251,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           runTerminalCommandToolDefinition as any,
           browseWebsiteToolDefinition as any,
           installExternalSkillToolDefinition as any,
+          readGmailInboxToolDefinition as any,
+          listCalendarEventsToolDefinition as any,
+          appendRowToSheetsToolDefinition as any,
+          readGoogleDocsToolDefinition as any,
+          readGoogleFormResponsesToolDefinition as any,
           ...pluginManager.getToolDefinitions()
-        ],
+        ].filter(t => isSkillActive(t.function.name)),
         tool_choice: "auto",
       });
     });
@@ -395,6 +413,26 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               result = await installExternalSkill(args.url);
               break;
             }
+            case 'read_gmail_inbox': {
+              result = await readGmailInbox(args.maxResults);
+              break;
+            }
+            case 'list_calendar_events': {
+              result = await listCalendarEvents(args.maxResults);
+              break;
+            }
+            case 'append_row_to_sheets': {
+              result = await appendRowToSheets(args.spreadsheetId, args.range, args.values);
+              break;
+            }
+            case 'read_google_docs': {
+              result = await readGoogleDocs(args.documentId);
+              break;
+            }
+            case 'read_google_form_responses': {
+              result = await readGoogleFormResponses(args.formId);
+              break;
+            }
             default: {
               const externalResult = await pluginManager.executeTool(toolName, args);
               if (externalResult !== null) {
@@ -423,6 +461,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           name: toolName,
           content: result,
         }, sessionId);
+
+        // V2 Optimization: Zero-LLM Fast Return for data-heavy tools
+        // If the tool already returns perfectly formatted markdown, skip the second LLM call to save 5-10s latency and tokens!
+        if (toolName === 'check_portfolio' || toolName === 'check_address') {
+          logger.addEntry({ role: 'assistant', content: result }, sessionId);
+          return result;
+        }
       }
 
       // Second call to get the final answer after tool execution

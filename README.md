@@ -1,5 +1,5 @@
 # Nyxora Agent 🤖
-**Production-Grade Secure AI Execution Framework for Web3 Agents.**
+**Dual-Engine AI Agent: Bridging On-Chain Execution with Off-Chain Automation.**
 
 
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
@@ -24,12 +24,17 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
 *   **Plugin Sandbox VM**: Execute community-built external skills securely inside an airtight Node.js `vm` chamber with zero access to your file system or terminal processes.
 
-### Core Operations & Web3 Execution
-*   **System Automation & Full OS Access**: Instruct the agent to read/write local files, run terminal commands, and browse the web natively.
+### 🌐 Web3 Skills (On-Chain)
 *   **Anti-Rugpull & Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
-*   **Automated Limit Orders**: Set natural language rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and executes the swap while you sleep (Auto-Approve Bypass configured safely).
+*   **Automated Take Profit (TP) & Cut Loss (CL)**: The trader's holy grail. Set natural language rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and executes the swap while you sleep.
 *   **Cross-Chain Hybrid Market Scanner**: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, BSC, and more.
-*   **PNL & Portfolio Tracking**: The AI scans your wallets and multiplies balances by live DEX prices to give you real-time Net Worth estimations.
+*   **"Lean Degen" Auto-Whitelist**: Automatically intercepts Contract Addresses (CAs) whenever you check balances or swap tokens, saving them to your localized `user_whitelist.json` for future tracking.
+*   **Dynamic Portfolio Engine**: Merges standard tokens, your custom Degen CAs, and CoinGecko's daily trending list into a single hyper-fast Multicall scan to deliver a clean, spam-free PnL portfolio report in under 1 second.
+
+### 💻 OS & Web2 Skills (Off-Chain)
+*   **Google Workspace Automation 🚀**: Transform Nyxora into your ultimate personal assistant. The agent can read your latest Gmail inbox, check your Google Calendar, extract text from Google Docs, and even append expense/trading logs directly to your Google Sheets.
+*   **System Automation & Full OS Access**: Instruct the agent to read/write local files, run terminal commands, and browse the web natively.
+*   **Unstoppable Synergy**: Combine both engines with a single prompt. Example: *"Read the latest presale token email from my Gmail, automatically set a Take Profit limit order on Uniswap, and log the execution result to my Google Sheets."*
 
 ### AI & UI Customization
 *   **Zero-Click Multi-Session**: Instantly create isolated chat sessions with smart auto-naming triggered by your first prompt, exactly like ChatGPT.
@@ -48,7 +53,7 @@ The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, sho
 *Nyxora separates its duties into 3 independent layers for absolute security:*
 1. **🧠 Core (The AI Brain)**: The intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
 2. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
-3. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys are securely locked natively in your OS Keyring (GNOME Keyring / macOS Keychain / Windows Credential Manager). It only signs transactions after they pass all rigorous security checks.
+3. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring (GNOME Keyring / macOS Keychain / Windows Credential Manager). It only signs transactions after they pass all rigorous security checks.
 
 *(Note: Despite the multi-layered security process appearing lengthy, the internal system validation and cryptographic signing occurs in **milliseconds**, ensuring zero latency bottlenecks).*
 
@@ -96,13 +101,11 @@ npm run build
 # 3. Interactive Setup Wizard (API Keys, Wallet, Telegram)
 npm run setup
 
-# 4. Start the Nyxora background daemon
-npm start
-
-# 5. Open the Web Dashboard
-npm run dashboard
+# 4. Start the Development Server (Single-Command Boot)
+# This will start the backend vault/services and the frontend Dashboard simultaneously
+npm run dev
 ```
-> **⚠️ IMPORTANT:** Whenever you re-run `npm run setup` or manually edit the config files, you **must restart the daemon** by running `npm run restart` for the changes to take effect.
+> **⚠️ IMPORTANT:** Whenever you re-run `npm run setup` or manually edit the config files, you **must restart the dev server** for the changes to take effect.
 
 ---
 

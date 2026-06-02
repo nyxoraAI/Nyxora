@@ -2,6 +2,7 @@ import { parseUnits, formatUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
+import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 import crypto from 'crypto';
 
 const CHAIN_IDS: Record<ChainName, number> = {
@@ -74,6 +75,14 @@ export async function prepareSwapToken(
     const fromTokenAddress = resolveToken(fromToken, chainName);
     const toTokenAddress = resolveToken(toToken, chainName);
     const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000";
+
+    // Auto-save to Degen Whitelist
+    if (fromTokenAddress !== "0x0000000000000000000000000000000000000000") {
+      saveTokenToWhitelist(userAddress, chainName, fromTokenAddress);
+    }
+    if (toTokenAddress !== "0x0000000000000000000000000000000000000000") {
+      saveTokenToWhitelist(userAddress, chainName, toTokenAddress);
+    }
 
     // Get decimals
     let decimals = 18;

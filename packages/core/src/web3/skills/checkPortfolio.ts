@@ -2,6 +2,9 @@ import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName } from '../config';
 import { TOKEN_MAP, ERC20_ABI } from '../utils/tokens';
 
+const portfolioCache: Record<string, { data: string, timestamp: number }> = {};
+const CACHE_TTL = 5000; // 5 seconds TTL
+
 export async function checkPortfolio(chainName: ChainName, address?: `0x${string}`): Promise<string> {
   try {
     const client = getPublicClient(chainName);
@@ -16,6 +19,12 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       throw new Error('Address is required but could not be resolved from private key.');
     }
 
+    const cacheKey = `${chainName}:${targetAddress.toLowerCase()}`;
+    const now = Date.now();
+    if (portfolioCache[cacheKey] && now - portfolioCache[cacheKey].timestamp < CACHE_TTL) {
+      return portfolioCache[cacheKey].data + `\n\n*(Cached from ${(now - portfolioCache[cacheKey].timestamp) / 1000}s ago)*`;
+    }
+
     const tokensToScan: Array<{ symbol: string, address: `0x${string}`, isNative: boolean }> = [
       { symbol: 'Native', address: '0x0000000000000000000000000000000000000000', isNative: true }
     ];
@@ -26,6 +35,25 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
         if (addr !== "0x0000000000000000000000000000000000000000") {
           tokensToScan.push({ symbol: sym, address: addr as `0x${string}`, isNative: false });
         }
+      }
+    }
+
+    // Merge User-Defined Whitelist
+    const { getUserTokens } = await import('../../utils/userWhitelistManager');
+    const userCustomTokens = getUserTokens(targetAddress, chainName);
+    
+    for (const tokenAddr of userCustomTokens) {
+      if (!tokensToScan.find(t => t.address.toLowerCase() === tokenAddr.toLowerCase())) {
+        tokensToScan.push({ symbol: 'Token', address: tokenAddr as `0x${string}`, isNative: false });
+      }
+    }
+
+    // Merge Dynamic Trending Whitelist (CoinGecko lists)
+    const { getDynamicTokensForChain } = await import('../../utils/dynamicTokenUpdater');
+    const dynamicTokens = await getDynamicTokensForChain(chainName);
+    for (const dToken of dynamicTokens) {
+      if (!tokensToScan.find(t => t.address.toLowerCase() === dToken.address.toLowerCase())) {
+        tokensToScan.push({ symbol: dToken.symbol, address: dToken.address as `0x${string}`, isNative: false });
       }
     }
 
@@ -63,7 +91,20 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       return { ...t, balanceNum };
     });
 
-    const balances = await Promise.all(balancePromises);
+    const timeoutPromise = new Promise<any[]>((_, reject) => 
+      setTimeout(() => reject(new Error('RPC request timed out')), 3000)
+    );
+
+    let balances: any[];
+    try {
+      balances = await Promise.race([
+        Promise.all(balancePromises),
+        timeoutPromise
+      ]);
+    } catch (e: any) {
+      return `⚠️ **${chainName.toUpperCase()} Network is experiencing high latency.**\nThe public RPC failed to respond within 3 seconds. Please try again later.`;
+    }
+
     const nonZeroBalances = balances.filter(b => b.balanceNum > 0);
 
     if (nonZeroBalances.length === 0) {
@@ -96,10 +137,18 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       const usdValue = b.balanceNum * price;
       totalUsdValue += usdValue;
 
-      report += `- **${b.symbol}**: ${b.balanceNum.toFixed(4)} (~$${usdValue.toFixed(2)})\n`;
+      const formattedUsd = usdValue > 0 && usdValue < 0.01 ? usdValue.toFixed(4) : usdValue.toFixed(2);
+      
+      const pnlIndicator = usdValue > 0 ? '🟢' : '⚪';
+      report += `${pnlIndicator} **$${b.symbol}** | ${b.balanceNum.toFixed(4)} ${b.symbol} ($${formattedUsd})\n`;
+      report += `📈 **PnL:** +0.00% ($0.00) _(Simulation)_\n`;
+      report += `🤖 *Analysis:* Asset tracking active. Awaiting historical entry price data.\n\n`;
     }
 
     report += `\n💰 **Estimated Net Worth: $${totalUsdValue.toFixed(2)}**`;
+    
+    portfolioCache[cacheKey] = { data: report, timestamp: Date.now() };
+    
     return report;
   } catch (error: any) {
     return `Failed to check portfolio: ${error.message}`;

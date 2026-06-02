@@ -1,6 +1,6 @@
 {
   "name": "nyxora-mcp-server",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "Nyxora MCP Server for external AI clients",
   "main": "dist/server.js",
   "scripts": {

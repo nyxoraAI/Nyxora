@@ -1,6 +1,7 @@
 import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName } from '../config';
 import { ERC20_ABI, resolveToken } from '../utils/tokens';
+import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 
 export async function getBalance(chainName: ChainName, address?: `0x${string}`, token?: string): Promise<string> {
   try {
@@ -23,6 +24,9 @@ export async function getBalance(chainName: ChainName, address?: `0x${string}`, 
         const balanceEth = formatEther(balanceWei);
         return `${balanceEth} on ${chainName}`;
       } else {
+        // Intercept and save custom ERC20 token to user's whitelist
+        saveTokenToWhitelist(targetAddress, chainName, tokenAddress);
+
         const [balanceWei, decimals, symbol] = await Promise.all([
           // @ts-ignore
           client.readContract({

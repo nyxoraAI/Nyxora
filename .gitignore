@@ -20,3 +20,12 @@ docs/.vitepress/cache/
 .DS_Store
 Thumbs.db
 *.log
+
+# Google Workspace Secrets
+credentials.json
+google-tokens.json
+google-credentials.json
+
+# NPM Secrets
+.npmrc
+*.tgz

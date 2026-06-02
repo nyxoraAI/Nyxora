@@ -39,10 +39,10 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const statsRes = await apiFetch('http://localhost:3000/api/stats');
+        const statsRes = await apiFetch('/api/stats');
         if (statsRes.ok) setStats(await statsRes.json());
 
-        const logsRes = await apiFetch('http://localhost:3000/api/logs');
+        const logsRes = await apiFetch('/api/logs');
         if (logsRes.ok) {
           const logs = await logsRes.json();
           setEvents(logs.events);
@@ -76,7 +76,7 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         <div className="form-row">
           <div className="form-group flex-1">
             <label>API Endpoint</label>
-            <input type="text" value="http://localhost:3000/api/chat" readOnly />
+            <input type="text" value="/api/chat" readOnly />
           </div>
           <div className="form-group flex-1">
             <label>Agent Name</label>

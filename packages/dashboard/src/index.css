@@ -246,26 +246,83 @@ body {
   gap: 12px;
 }
 
-.config-dropdown {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
+.custom-network-selector {
+  position: relative;
+}
+
+.network-selector-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #88c0d0;
+  border: none;
+  color: #000000;
+  font-weight: 600;
   font-size: 0.85rem;
-  outline: none;
+  border-radius: 9999px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 120px;
+  outline: none;
+  font-family: inherit;
 }
 
-.config-dropdown:hover {
-  border-color: var(--accent);
+.network-selector-pill:hover {
+  opacity: 0.9;
+  box-shadow: 0 0 10px rgba(136, 192, 208, 0.4);
 }
 
-.config-dropdown:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.network-selector-pill:focus-visible {
+  box-shadow: 0 0 0 2px rgba(136, 192, 208, 0.5);
+}
+
+.network-icon {
+  flex-shrink: 0;
+}
+
+.network-chevron {
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.network-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 6px;
+  list-style: none;
+  margin: 0;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.network-dropdown-item {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  transition: background 0.1s;
+}
+
+.network-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.network-dropdown-item.active {
+  background: rgba(136, 192, 208, 0.1);
+  color: #88c0d0;
+  font-weight: 600;
 }
 
 /* SPLIT SCREEN WORKSPACE */
@@ -612,4 +669,139 @@ body {
 .token-tag:hover {
   transform: translateY(-2px);
   filter: brightness(1.2);
+}
+
+/* Nord Theme Forms */
+.nord-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #81a1c1;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+
+.nord-pill-input {
+  width: 100%;
+  background-color: rgba(46, 52, 64, 0.7);
+  border: 1px solid rgba(216, 222, 233, 0.1);
+  color: #88c0d0;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.nord-pill-input:focus {
+  border-color: #88c0d0;
+  box-shadow: 0 0 10px rgba(136, 192, 208, 0.2);
+}
+
+.nord-pill-input::placeholder {
+  color: #4c566a;
+}
+
+.nord-input {
+  width: 100%;
+  background-color: #2e3440;
+  border: 1px solid #434c5e;
+  color: #eceff4;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.nord-input:focus {
+  border-color: #88c0d0;
+  box-shadow: 0 0 0 2px rgba(136, 192, 208, 0.2);
+}
+
+.nord-input::placeholder {
+  color: #4c566a;
+}
+
+/* Custom Range Slider */
+.nord-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #4c566a;
+  border-radius: 3px;
+  outline: none;
+  margin-top: 10px;
+}
+
+.nord-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #eceff4;
+  cursor: pointer;
+  border: 2px solid #88c0d0;
+  transition: all 0.2s ease;
+}
+
+.nord-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: #fff;
+}
+
+.nord-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #eceff4;
+  cursor: pointer;
+  border: 2px solid #88c0d0;
+  transition: all 0.2s ease;
+}
+
+/* Flat Matte Button */
+.nord-btn-primary {
+  background-color: #81a1c1;
+  color: #2e3440;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nord-btn-primary:hover {
+  background-color: #88c0d0;
+}
+
+.nord-btn-primary:disabled {
+  background-color: #4c566a;
+  color: #8fbcbb;
+  cursor: not-allowed;
+}
+
+.nord-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(216, 222, 233, 0.05);
+  padding-bottom: 12px;
+}
+
+.nord-panel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #eceff4;
+  font-weight: 600;
 }
