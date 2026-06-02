@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "1.6.8",
+  "version": "1.6.9",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -9,6 +9,7 @@
     "nyxora": "bin/nyxora.mjs"
   },
   "scripts": {
+    "postinstall": "npm run build --workspace=dashboard || echo '⚠️ Build failed – dashboard UI may be missing'",
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npx ts-node -T launcher.ts\" \"npm run dev --workspace=dashboard\"",
     "start": "node ./bin/nyxora.mjs start",
     "stop": "node ./bin/nyxora.mjs stop",
