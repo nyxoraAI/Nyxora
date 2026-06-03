@@ -21,10 +21,12 @@ import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAd
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
+import { analyzeDocumentToolDefinition, analyzeDocument } from '../system/skills/analyzeDocument';
 import { readLocalFileToolDefinition, readLocalFile } from '../system/skills/readFile';
 import { writeLocalFileToolDefinition, writeLocalFile } from '../system/skills/writeFile';
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
 import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
+import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
 import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
 import { 
   readGmailInbox, 
@@ -151,12 +153,20 @@ async function executeWithRetry(
 
 function getSystemPrompt() {
   const config = loadConfig();
+  const currentDateTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
   let basePrompt = `You are an autonomous Web3 agent operating on EVM chains.
-You are equipped with a native wallet. 
-CRITICAL RULE: You must always reply in the exact same language that the user uses to talk to you. If the user speaks Indonesian, reply in Indonesian. If they speak English, reply in English.
-CRITICAL RULE: When the user asks to check "my balance", "saldo saya", or anything about their own wallet generally, ALWAYS use the check_portfolio tool to show all assets on the chain that have a USD value greater than 0. LEAVE THE ADDRESS PARAMETER EMPTY. Do NOT use get_balance unless the user explicitly asks for the balance of ONE specific token (e.g., "what is my ETH balance?").
-CRITICAL RULE: If the user doesn't specify a chain, default to: ${config.agent.default_chain}. If the user mentions a specific chain (e.g., "on BNB", "di Base"), you MUST override the default and execute the tool on that specific chain.
-CRITICAL RULE: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.`;
+You are equipped with a native wallet.
+The current real-world date and time is: ${currentDateTime}. Use this for any time-related questions.
+
+CRITICAL RULE 1: ADVANCED NLP & PERSONA. You must act as a highly intelligent, adaptive, and intuitive assistant (similar to ChatGPT or Gemini). You must seamlessly understand the user's language structure, including slang, shorthand, informal context, and mixed languages. However, you must maintain a professional and highly accurate Web3 operational standard.
+CRITICAL RULE 2: LANGUAGE MATCHING. You must always reply in the exact same language that the user uses to talk to you. If the user speaks Indonesian, reply in Indonesian. If they speak English, reply in English.
+CRITICAL RULE 3: FORMATTING & CONCISENESS. 
+  - Your responses MUST be concise and to the point. Do not add unnecessary fluff or overly long explanations unless explicitly asked.
+  - When displaying numbers or monetary values, separate thousands with commas (e.g., $1,000,000) for readability.
+  - When displaying a list of assets, tokens, portfolio, or transaction history, YOU MUST USE MARKDOWN TABLES. Do not use bullet points for financial data.
+CRITICAL RULE 4: When the user asks to check "my balance", "saldo saya", or anything about their own wallet generally, ALWAYS use the check_portfolio tool to show all assets on the chain that have a USD value greater than 0. LEAVE THE ADDRESS PARAMETER EMPTY. Do NOT use get_balance unless the user explicitly asks for the balance of ONE specific token.
+CRITICAL RULE 5: If the user doesn't specify a chain, default to: ${config.agent.default_chain}. If the user mentions a specific chain (e.g., "on BNB", "di Base"), you MUST override the default and execute the tool on that specific chain.
+CRITICAL RULE 6: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.`;
 
   // Read IDENTITY.md for core AI persona
   try {
@@ -246,10 +256,12 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           cancelLimitOrderToolDefinition as any,
           updateProfileToolDefinition as any,
           updateSecurityPolicyToolDefinition as any,
+          analyzeDocumentToolDefinition as any,
           readLocalFileToolDefinition as any,
           writeLocalFileToolDefinition as any,
           runTerminalCommandToolDefinition as any,
           browseWebsiteToolDefinition as any,
+          searchWebToolDefinition as any,
           installExternalSkillToolDefinition as any,
           readGmailInboxToolDefinition as any,
           listCalendarEventsToolDefinition as any,
@@ -382,7 +394,11 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'update_security_policy': {
-              result = updateSecurityPolicy(args.rule, args.action);
+              result = await updateSecurityPolicy(args.policy, args.action || 'add');
+              break;
+            }
+            case 'analyze_document': {
+              result = await analyzeDocument(args.filePath);
               break;
             }
             case 'read_local_file': {
@@ -407,6 +423,10 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'browse_website': {
               result = await browseWebsite(args.url);
+              break;
+            }
+            case 'search_web': {
+              result = await searchWeb(args.query);
               break;
             }
             case 'install_external_skill': {

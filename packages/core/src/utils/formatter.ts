@@ -1,6 +1,6 @@
 import { PendingTransaction } from '../agent/transactionManager';
 
-export function formatTransactionSuccess(tx: PendingTransaction, rawResult: string): string {
+export function formatTransactionSuccess(tx: PendingTransaction, rawResult: string, isIndonesian: boolean = false): string {
   let txHash = 'N/A';
   
   try {
@@ -15,13 +15,20 @@ export function formatTransactionSuccess(tx: PendingTransaction, rawResult: stri
 
   const chainFormatted = tx.chainName.charAt(0).toUpperCase() + tx.chainName.slice(1);
 
+  let actionText = '';
   if (tx.type === 'swap') {
-    return `Alright, I have completed the swap from ${tx.details.amount} ${tx.details.fromToken.toUpperCase()} to ${tx.details.toToken.toUpperCase()}.\n\nChain: ${chainFormatted}\nTx Hash:\n${txHash}`;
+    actionText = isIndonesian ? `Swap ${tx.details.amount} ${tx.details.fromToken.toUpperCase()} ke ${tx.details.toToken.toUpperCase()}` : `Swapped ${tx.details.amount} ${tx.details.fromToken.toUpperCase()} to ${tx.details.toToken.toUpperCase()}`;
   } else if (tx.type === 'transfer') {
-    return `Alright, I have completed the transfer of ${tx.details.amountEth} tokens to ${tx.details.toAddress}.\n\nChain: ${chainFormatted}\nTx Hash:\n${txHash}`;
+    actionText = isIndonesian ? `Transfer ${tx.details.amountEth} token ke <code>${tx.details.toAddress}</code>` : `Transferred ${tx.details.amountEth} tokens to <code>${tx.details.toAddress}</code>`;
+  } else {
+    actionText = isIndonesian ? 'Aksi Berhasil' : 'Action Successful';
   }
-  
-  return `Transaction successful!\n\nChain: ${chainFormatted}\nTx Hash:\n${txHash}`;
+
+  if (isIndonesian) {
+    return `**Nama Chain:** ${chainFormatted}\n**Status:** Sukses (${actionText})\n**Tx Hash:** <code>${txHash}</code>`;
+  } else {
+    return `**Chain Name:** ${chainFormatted}\n**Status:** Success (${actionText})\n**Tx Hash:** <code>${txHash}</code>`;
+  }
 }
 
 export function formatTransactionError(tx: PendingTransaction, errorMsg: string): string {

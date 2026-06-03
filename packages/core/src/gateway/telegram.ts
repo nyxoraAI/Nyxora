@@ -10,6 +10,31 @@ import { executeCustomTx } from '../web3/skills/customTx';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
 
+export function formatToTelegramHTML(text: string): string {
+  if (!text) return "";
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+    
+  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+  // Match italic * avoiding bullet points at the start of a line
+  html = html.replace(/(?<!^|\n)\*(?!\s)(.*?)(?<!\s)\*/g, '<i>$1</i>');
+  html = html.replace(/_(.*?)_/g, '<i>$1</i>');
+  
+  // Convert code blocks and inline code
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Transform Markdown Tables to <pre> monospaced blocks so they don't break on mobile
+  const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
+  html = html.replace(tableRegex, (match) => {
+     return `<pre>${match.trim()}</pre>\n`;
+  });
+
+  return html;
+}
+
 export function startTelegramBot() {
   const config = loadConfig();
   const token = config.integrations?.telegram?.bot_token;
@@ -104,10 +129,10 @@ export function startTelegramBot() {
         const onProgress = async (progressText: string) => {
           try {
             if (!progressMsgId) {
-              const sent = await ctx.reply(progressText, { parse_mode: 'Markdown' });
+              const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
               progressMsgId = sent.message_id;
             } else {
-              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, progressText, { parse_mode: 'Markdown' });
+              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
             }
           } catch (e) {}
         };
@@ -122,17 +147,20 @@ export function startTelegramBot() {
         if (pendingTxs.length > 0) {
           const latestTx = pendingTxs[pendingTxs.length - 1];
           if (Date.now() - latestTx.createdAt < 120000) {
-            await ctx.reply(response, Markup.inlineKeyboard([
-              [
-                Markup.button.callback('✅ Approve', `approve_${latestTx.id}`),
-                Markup.button.callback('❌ Reject', `reject_${latestTx.id}`)
-              ]
-            ]));
+            await ctx.reply(formatToTelegramHTML(response), {
+              parse_mode: 'HTML',
+              ...Markup.inlineKeyboard([
+                [
+                  Markup.button.callback('✅ Approve', `approve_${latestTx.id}`),
+                  Markup.button.callback('❌ Reject', `reject_${latestTx.id}`)
+                ]
+              ])
+            });
             return;
           }
         }
 
-        await ctx.reply(response);
+        await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
         await ctx.reply('❌ Sorry, I encountered an error while processing your message.');
@@ -170,8 +198,19 @@ export function startTelegramBot() {
         }
         
         txManager.updateStatus(txId, 'executed', result);
-        const prettyMsg = formatTransactionSuccess(tx, result);
-        await ctx.reply(`✅ Transaction processed:\n\n${prettyMsg}`);
+        
+        // Pass session history to formatTransactionSuccess to detect language
+        const sessionId = ctx.chat?.id.toString() || 'default';
+        const history = logger.getHistory(sessionId);
+        let isIndonesian = false;
+        if (history.length > 0) {
+           const lastMsg = history[history.length - 1].content.toLowerCase();
+           const idWords = ['saya', 'kamu', 'aku', 'apa', 'bagaimana', 'kenapa', 'bisa', 'tolong', 'ke', 'di', 'dari', 'yang', 'ini', 'itu', 'buat', 'cek', 'saldo'];
+           if (idWords.some(w => lastMsg.includes(w))) isIndonesian = true;
+        }
+
+        const prettyMsg = formatTransactionSuccess(tx, result, isIndonesian);
+        await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed:**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
         
         logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
         logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });

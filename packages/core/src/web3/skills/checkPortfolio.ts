@@ -60,50 +60,66 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     let report = `📊 **Portfolio for ${targetAddress} on ${chainName.toUpperCase()}**\n\n`;
     let totalUsdValue = 0;
 
-    // We will do Promise.all for balances
-    const balancePromises = tokensToScan.map(async (t) => {
+    // We will do True On-Chain Multicall with Chunking (max 30 tokens / 60 calls per batch)
+    const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11';
+    const MULTICALL3_ABI = [{
+      inputs: [{ name: 'addr', type: 'address' }],
+      name: 'getEthBalance',
+      outputs: [{ name: 'balance', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    }] as const;
+
+    const contracts: any[] = [];
+    for (const t of tokensToScan) {
+      if (t.isNative) {
+        contracts.push({ address: MULTICALL3_ADDRESS, abi: MULTICALL3_ABI, functionName: 'getEthBalance', args: [targetAddress as `0x${string}`] });
+      } else {
+        contracts.push({ address: t.address, abi: ERC20_ABI, functionName: 'balanceOf', args: [targetAddress as `0x${string}`] });
+        contracts.push({ address: t.address, abi: ERC20_ABI, functionName: 'decimals' });
+      }
+    }
+
+    const CHUNK_SIZE = 60; // 30 tokens (2 calls per token)
+    const multicallResults: any[] = [];
+    
+    try {
+      // Create a timeout promise for 5 seconds (more tolerant for large portfolios)
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('RPC request timed out')), 5000)
+      );
+
+      const executionPromise = (async () => {
+        for (let i = 0; i < contracts.length; i += CHUNK_SIZE) {
+          const chunk = contracts.slice(i, i + CHUNK_SIZE);
+          const res = await client.multicall({ contracts: chunk, allowFailure: true } as any);
+          multicallResults.push(...res);
+        }
+      })();
+
+      await Promise.race([executionPromise, timeoutPromise]);
+    } catch (e: any) {
+      return `⚠️ **${chainName.toUpperCase()} Network is experiencing high latency.**\nThe public RPC failed to respond. Please try again later.`;
+    }
+
+    // Map results back to tokens
+    let resultIndex = 0;
+    const balances = tokensToScan.map((t) => {
       let balanceNum = 0;
       if (t.isNative) {
-        const bal = await client.getBalance({ address: targetAddress as `0x${string}` });
-        balanceNum = parseFloat(formatEther(bal));
+        const balResult = multicallResults[resultIndex++];
+        if (balResult?.status === 'success' && balResult.result) {
+          balanceNum = parseFloat(formatEther(balResult.result as bigint));
+        }
       } else {
-        try {
-          const [balanceWei, decimals] = await Promise.all([
-            // @ts-ignore
-            client.readContract({
-              address: t.address,
-              abi: ERC20_ABI,
-              functionName: 'balanceOf',
-              args: [targetAddress as `0x${string}`],
-            }) as Promise<bigint>,
-            // @ts-ignore
-            client.readContract({
-              address: t.address,
-              abi: ERC20_ABI,
-              functionName: 'decimals',
-            }) as Promise<number>
-          ]);
-          balanceNum = parseFloat(formatUnits(balanceWei, decimals));
-        } catch (e) {
-          balanceNum = 0;
+        const balResult = multicallResults[resultIndex++];
+        const decResult = multicallResults[resultIndex++];
+        if (balResult?.status === 'success' && balResult.result !== undefined && decResult?.status === 'success' && decResult.result !== undefined) {
+          balanceNum = parseFloat(formatUnits(balResult.result as bigint, Number(decResult.result)));
         }
       }
       return { ...t, balanceNum };
     });
-
-    const timeoutPromise = new Promise<any[]>((_, reject) => 
-      setTimeout(() => reject(new Error('RPC request timed out')), 3000)
-    );
-
-    let balances: any[];
-    try {
-      balances = await Promise.race([
-        Promise.all(balancePromises),
-        timeoutPromise
-      ]);
-    } catch (e: any) {
-      return `⚠️ **${chainName.toUpperCase()} Network is experiencing high latency.**\nThe public RPC failed to respond within 3 seconds. Please try again later.`;
-    }
 
     const nonZeroBalances = balances.filter(b => b.balanceNum > 0);
 
