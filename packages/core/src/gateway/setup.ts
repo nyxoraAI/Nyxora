@@ -3,7 +3,7 @@ import pc from 'picocolors';
 import fs from 'fs';
 import path from 'path';
 import { getAppDir } from '../config/paths';
-import { loadConfig, saveConfig } from '../config/parser';
+import { loadConfig, saveConfig, saveApiKeys } from '../config/parser';
 import crypto from 'crypto';
 
 function encryptKey(privateKey: string, password: string) {
@@ -161,6 +161,25 @@ Provider: ${config.llm.provider}`;
     if (isCancel(apiKey)) return process.exit(0);
   }
 
+  // 3.5. Smart Web Search Setup
+  const searchProvider = await select({
+    message: 'Enable Smart Web Search for Nyxora AI?',
+    options: [
+      { value: 'skip', label: 'Skip (Use basic decentralized mesh)' },
+      { value: 'tavily', label: 'Tavily Search (Built for AI - 1000 free/mo)' },
+      { value: 'brave', label: 'Brave Search (Privacy focused - 2000 free/mo)' },
+    ],
+  });
+  if (isCancel(searchProvider)) return process.exit(0);
+
+  let searchApiKey = '';
+  if (searchProvider !== 'skip') {
+    searchApiKey = (await password({
+      message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : 'search.brave.com'}):`,
+    })) as string;
+    if (isCancel(searchApiKey)) return process.exit(0);
+  }
+
   // 4. Default Chain
   const defaultChain = await select({
     message: 'Select Default Chain:',
@@ -169,8 +188,9 @@ Provider: ${config.llm.provider}`;
       { value: 'ethereum', label: 'Ethereum Mainnet' },
       { value: 'bsc', label: 'BSC' },
       { value: 'base', label: 'Base' },
-      { value: 'optimism', label: 'Optimism' },
-      { value: 'arbitrum', label: 'Arbitrum' },
+      { value: 'arbitrum', label: 'Arbitrum One' },
+      { value: 'optimism', label: 'OP Mainnet' },
+      { value: 'polygon', label: 'Polygon (Matic)' },
       { value: 'sepolia', label: 'Sepolia (Testnet)' },
     ],
   });
@@ -233,8 +253,8 @@ Provider: ${config.llm.provider}`;
     message: 'Web3 Wallet Setup:',
     options: [
       { value: 'skip', label: 'Skip for now (No Web3 execution)' },
-      { value: 'generate', label: 'Auto-Generate New Wallet (Recommended for testing)' },
-      { value: 'manual', label: 'Input Manual Private Key' },
+      { value: 'generate', label: 'Auto-Generate New Wallet' },
+      { value: 'manual', label: 'Manual Input (Existing Private Key)' },
     ],
   });
   if (isCancel(walletSetupType)) return process.exit(0);
@@ -260,11 +280,26 @@ Provider: ${config.llm.provider}`;
   config.llm.model = model as string;
   config.agent.default_chain = defaultChain as string;
   
-  if (!config.llm.credentials) config.llm.credentials = {};
+  const newApiKeys: Record<string, string> = {};
   if (apiKey) {
-    if (provider === 'openai') config.llm.credentials.openai_key = apiKey;
-    if (provider === 'gemini') config.llm.credentials.gemini_key = apiKey;
-    if (provider === 'openrouter') config.llm.credentials.openrouter_key = apiKey;
+    if (provider === 'openai') newApiKeys.openai_key = apiKey;
+    if (provider === 'gemini') newApiKeys.gemini_key = apiKey;
+    if (provider === 'openrouter') newApiKeys.openrouter_key = apiKey;
+  }
+
+  if (!config.web_search) config.web_search = { provider: 'mesh', enabled: true };
+  if (searchProvider !== 'skip') {
+    config.web_search.provider = searchProvider as any;
+    if (searchApiKey) {
+      if (searchProvider === 'tavily') newApiKeys.tavily_key = searchApiKey;
+      if (searchProvider === 'brave') newApiKeys.brave_key = searchApiKey;
+    }
+  } else {
+    config.web_search.provider = 'mesh';
+  }
+
+  if (Object.keys(newApiKeys).length > 0) {
+    await saveApiKeys(newApiKeys);
   }
 
   if (!config.integrations) config.integrations = {};

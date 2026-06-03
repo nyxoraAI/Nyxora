@@ -1,5 +1,5 @@
 import { isAddress } from 'viem';
-import { getPublicClient, ChainName } from '../config';
+import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 
 export async function checkAddress(chainName: ChainName, address: string): Promise<string> {
   try {
@@ -40,7 +40,7 @@ export const checkAddressToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The name of the blockchain to check the address on."
         },
         address: {

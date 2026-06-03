@@ -32,6 +32,7 @@ export default defineConfig({
         text: 'Core Capabilities',
         items: [
           { text: '🧠 Native Web3 Skills', link: '/skills/native' },
+          { text: '🔍 Web Search & Deep Research', link: '/skills/web-search' },
           { text: '💻 Google Workspace MVP', link: '/skills/google-workspace' },
           { text: '🔗 External Plugins', link: '/guide/custom_skills' },
           { text: '🪙 Chain Specifics', link: '/skills/chains' },

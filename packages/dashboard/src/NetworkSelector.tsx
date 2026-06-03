@@ -5,8 +5,9 @@ const NETWORKS = [
   { id: 'ethereum', label: 'Ethereum' },
   { id: 'bsc', label: 'BNB Smart Chain' },
   { id: 'base', label: 'Base' },
-  { id: 'optimism', label: 'Optimism' },
-  { id: 'arbitrum', label: 'Arbitrum' },
+  { id: 'arbitrum', label: 'Arbitrum One' },
+  { id: 'optimism', label: 'OP Mainnet' },
+  { id: 'polygon', label: 'Polygon (Matic)' },
   { id: 'sepolia', label: 'Sepolia (Testnet)' }
 ];
 

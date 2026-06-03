@@ -124,10 +124,10 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           </div>
           <div className="log-content">
             {events.map((log, i) => (
-              <div key={i} className="log-row">
-                <span className="log-time">{log.timestamp}</span>
-                <span className="log-msg">
-                  {log.event} <span className="log-meta">{JSON.stringify(log.meta)}</span>
+              <div key={i} className="log-row" style={{ fontFamily: 'monospace' }}>
+                <span className="log-time" style={{ color: '#88C0D0' }}>[{log.timestamp}]</span>
+                <span className="log-msg" style={{ color: '#D8DEE9', marginLeft: '8px' }}>
+                  {log.event} {log.meta && Object.keys(log.meta).length > 0 ? <span className="log-meta" style={{ color: '#81A1C1' }}>{JSON.stringify(log.meta)}</span> : null}
                 </span>
               </div>
             ))}
@@ -139,13 +139,17 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
             <span>Gateway Logs <span className="badge">{gatewayLogs.length}</span></span>
           </div>
           <div className="log-content">
-            {gatewayLogs.map((log, i) => (
-              <div key={i} className="log-row gateway-row">
-                <span className="log-json">
-                  {`{"timestamp":"${log.timestamp}","message":${JSON.stringify(log.message)}${log.meta ? `,"meta":${JSON.stringify(log.meta)}` : ''}}`}
-                </span>
-              </div>
-            ))}
+            {gatewayLogs.map((log, i) => {
+              const cleanMessage = log.message.replace(/\x1b\[[0-9;]*m/g, '');
+              return (
+                <div key={i} className="log-row gateway-row" style={{ fontFamily: 'monospace' }}>
+                  <span className="log-time" style={{ color: '#88C0D0' }}>[{log.timestamp}]</span>
+                  <span className="log-msg" style={{ color: '#D8DEE9', marginLeft: '8px' }}>
+                    {cleanMessage} {log.meta ? JSON.stringify(log.meta) : ''}
+                  </span>
+                </div>
+              );
+            })}
             <div ref={gatewayLogsEndRef} />
           </div>
         </div>

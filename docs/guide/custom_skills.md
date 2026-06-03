@@ -15,17 +15,24 @@ You **CANNOT** use modules such as `fs`, `child_process`, `os`, `net`, `tls`, `c
 If your code attempts to `require('fs')`, the plugin will be instantly choked by the system and rejected immediately (Crash).
 :::
 
-::: tip PERMITTED MODULES
-You are fully permitted to perform mathematical computations, text processing (Regex), `crypto`, and utilize external networking libraries such as `node-fetch` or `axios` to fetch data from public APIs.
+::: tip PERMITTED MODULES (The Pure V8 Environment)
+**You CANNOT use `require()` or `import`.**
+The sandbox is a pure V8 Isolate, meaning it has zero access to Node.js modules. You cannot use external NPM packages like `axios`, `node-fetch`, or native Node modules like `crypto`. 
+
+**How to make Network Requests:**
+Instead of `axios`, the Nyxora Engine has securely injected a global `fetch()` function into your sandbox. You must use this native `fetch` API. This custom fetch is equipped with SSRF protection, meaning any attempt to call `localhost` or `127.0.0.1` will be blocked.
 :::
 
 ---
 
 ## 2. Basic Structure of a Skill
 
-Every *Skill* file (ending in `.js` or `.ts`) placed inside the `src/external_skills/` directory must export two primary elements:
-1. `toolDefinition`: A JSON structure (OpenAI schema format) that tells the Nyxora AI what this *Skill* does and what parameters it requires.
-2. `execute`: An asynchronous function that will be called by the AI, passing the requested arguments (`args`).
+Although Nyxora itself is written natively in TypeScript (TS), **External Skills MUST be written in pure JavaScript (JS).** 
+Why? Because the V8 Sandbox Engine (`isolated-vm`) compiles the code directly at runtime. It does not have a built-in TypeScript transpiler. If you write TypeScript annotations (like `let data: string`), the sandbox will instantly crash with a Syntax Error.
+
+Every Skill file must export two things:
+1. `toolDefinition`: A JSON Schema describing your tool for the AI LLM.
+2. `execute`: An asynchronous function containing your logic.
 
 ---
 
@@ -34,8 +41,7 @@ Every *Skill* file (ending in `.js` or `.ts`) placed inside the `src/external_sk
 Let's create a plugin named `getPrice.js` whose job is to fetch prices from a public API. Notice how secure this code is.
 
 ```javascript
-// You can require modules that are permitted by the Sandbox
-const fetch = require('node-fetch');
+// Do NOT use require(). The fetch function is already injected globally by the Sandbox.
 
 module.exports = {
   // 1. Tell Nyxora AI what this tool does
@@ -81,11 +87,21 @@ module.exports = {
 
 ---
 
-## 4. How to Install & Test Your Skill
+## 4. How to Install External Skills
 
-1. Save the code above into a file named `src/external_skills/get_external_price.js`.
-2. When Nyxora boots up (via `npm run start`), the `PluginManager` will automatically detect the file.
-3. The code will be read and injected into the **VM Context**. If no malicious code (like `require('fs')`) is found, the plugin will be loaded.
+There are two primary ways to install an external skill into Nyxora:
+
+### Method A: Automated Installation (AI Prompt)
+Because Nyxora has a Native OS-Level Skill called `installSkill`, you can simply command the AI to install plugins for you.
+1. Send a message to your agent: *"Nyxora, please install the weather-plugin skill."*
+2. The AI will evaluate this request against the NLP Security Policy.
+3. If approved, the AI will autonomously download the plugin, save it to the `src/external_skills/` directory, and the PluginManager will hot-reload it into the VM Sandbox.
+
+### Method B: Manual Installation (Developer Mode)
+If you are developing your own skill (like the Price Checker above):
+1. Save your JavaScript code into a file named `src/external_skills/get_external_price.js`.
+2. When Nyxora boots up (via `npm run dev` or `start`), the `PluginManager` will automatically detect the file.
+3. The code will be read and injected into the **VM Context**. If no syntax errors or forbidden requires are found, the plugin will be loaded.
 4. On Telegram or your Terminal, you can simply ask Nyxora: *"What is the current price of SOL?"*
 5. Nyxora will safely utilize your custom plugin!
 

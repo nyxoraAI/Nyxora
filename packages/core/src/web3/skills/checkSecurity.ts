@@ -1,4 +1,4 @@
-import { ChainName } from '../config';
+import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 
 const CHAIN_IDS: Record<ChainName, number> = {
   ethereum: 1,
@@ -7,6 +7,7 @@ const CHAIN_IDS: Record<ChainName, number> = {
   arbitrum: 42161,
   optimism: 10,
   sepolia: 11155111,
+  polygon: 137,
 };
 
 export async function checkTokenSecurity(chainName: ChainName, contractAddress: string): Promise<string> {
@@ -57,7 +58,7 @@ export const checkSecurityToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The blockchain network",
         },
         contractAddress: {

@@ -1,5 +1,5 @@
 import { formatEther, formatUnits } from 'viem';
-import { getPublicClient, ChainName } from '../config';
+import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { ERC20_ABI, resolveToken } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 
@@ -72,8 +72,8 @@ export const getBalanceToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
-          description: "The name of the blockchain to check."
+          enum: SUPPORTED_CHAIN_NAMES,
+          description: "The blockchain network"
         },
         address: {
           type: "string",
