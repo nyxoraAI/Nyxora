@@ -13,6 +13,7 @@ import { runSetupWizard } from './setup';
 import { password, isCancel } from '@clack/prompts';
 import { getSessionToken } from '../utils/state';
 import pc from 'picocolors';
+import { saveApiKeys } from '../config/parser';
 
 async function main() {
   // 1. Determine configuration directory
@@ -27,6 +28,33 @@ console.log(`================================`);
   // Check for explicit wizard command
   if (process.argv.includes('setup') || process.argv.includes('--wizard')) {
     await runSetupWizard();
+    process.exit(0);
+  }
+
+  // Check for set-key shortcut
+  if (process.argv.includes('set-key')) {
+    const setKeyIndex = process.argv.indexOf('set-key');
+    const provider = process.argv[setKeyIndex + 1];
+    const key = process.argv[setKeyIndex + 2];
+    
+    if (!provider || !key) {
+      console.error(pc.red('Usage: nyxora set-key <provider> <api_key>'));
+      console.error(pc.gray('Example: nyxora set-key tavily tvly-xxx'));
+      process.exit(1);
+    }
+    
+    const keyMap: Record<string, string> = {
+      'openai': 'openai_key',
+      'gemini': 'gemini_key',
+      'openrouter': 'openrouter_key',
+      'tavily': 'tavily_key',
+      'brave': 'brave_key'
+    };
+    
+    const mappedKey = keyMap[provider.toLowerCase()] || `${provider.toLowerCase()}_key`;
+    
+    await saveApiKeys({ [mappedKey]: key });
+    console.log(pc.green(`✅ API Key for ${provider} saved securely to vault.`));
     process.exit(0);
   }
 
@@ -65,8 +93,6 @@ console.log(`================================`);
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
   startServer();
   const token = getSessionToken(); // Initialize token file
-  console.log(`🌐 Nyxora API Server running on port ${process.env.PORT || 3000}`);
-  
   setTimeout(() => {
     console.log(pc.cyan(`\n✨ Dashboard URL: http://localhost:3000/?token=${token}`));
     console.log(pc.gray(`   (Developers: Vite hot-reload available at http://localhost:5173/?token=${token})\n`));

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config/parser';
 import { getPath } from '../config/paths';
-import { ChainName } from '../web3/config';
+import { ChainName, SUPPORTED_CHAIN_NAMES } from '../web3/config';
 import { resolveToken } from '../web3/utils/tokens';
 import { prepareSwapToken, executeSwap } from '../web3/skills/swapToken';
 import { txManager } from './transactionManager';
@@ -158,7 +158,7 @@ export const createLimitOrderToolDefinition = {
     parameters: {
       type: "object",
       properties: {
-        chainName: { type: "string", enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"] },
+        chainName: { type: "string", enum: SUPPORTED_CHAIN_NAMES },
         fromToken: { type: "string", description: "Token to sell" },
         toToken: { type: "string", description: "Token to buy" },
         amountStr: { type: "string", description: "Amount to sell" },

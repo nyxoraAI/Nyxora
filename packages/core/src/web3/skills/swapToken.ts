@@ -1,17 +1,18 @@
 import { parseUnits, formatUnits } from 'viem';
-import { getPublicClient, getAddress, ChainName } from '../config';
+import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 import crypto from 'crypto';
 
-const CHAIN_IDS: Record<ChainName, number> = {
+const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
   base: 8453,
   bsc: 56,
   arbitrum: 42161,
   optimism: 10,
   sepolia: 11155111,
+  polygon: 137,
 };
 
 async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number) {
@@ -231,7 +232,7 @@ export const swapTokenToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The blockchain network",
         },
         fromToken: {

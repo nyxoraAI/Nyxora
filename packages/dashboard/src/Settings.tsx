@@ -159,8 +159,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
                 { id: 'ethereum', label: 'Ethereum Mainnet', icon: <Globe size={14} /> },
                 { id: 'bsc', label: 'BNB Chain', icon: <Globe size={14} /> },
                 { id: 'base', label: 'Base', icon: <Globe size={14} /> },
-                { id: 'optimism', label: 'Optimism', icon: <Globe size={14} /> },
-                { id: 'arbitrum', label: 'Arbitrum', icon: <Globe size={14} /> },
+                { id: 'arbitrum', label: 'Arbitrum One', icon: <Globe size={14} /> },
+                { id: 'optimism', label: 'OP Mainnet', icon: <Globe size={14} /> },
+                { id: 'polygon', label: 'Polygon (Matic)', icon: <Globe size={14} /> },
                 { id: 'sepolia', label: 'Sepolia Testnet', icon: <Globe size={14} /> }
               ]}
             />
@@ -298,7 +299,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           Separate multiple URLs with a comma for Fallback High-Availability.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'sepolia'].map(chain => {
+          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia'].map(chain => {
             const rpcVal = formData.web3?.rpc_urls?.[chain];
             const displayVal = Array.isArray(rpcVal) ? rpcVal.join(', ') : (rpcVal || '');
             return (

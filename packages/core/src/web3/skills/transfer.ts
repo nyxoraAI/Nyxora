@@ -1,5 +1,5 @@
 import { parseEther, parseUnits } from 'viem';
-import { getPublicClient, getAddress, ChainName } from '../config';
+import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
 
@@ -120,7 +120,7 @@ export const transferToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The name of the blockchain to execute the transfer on."
         },
         toAddress: {

@@ -70,6 +70,14 @@ Once installed, there is no need to manually create `.env` files! Simply run the
 nyxora setup
 ```
 
+**Fast API Key Injection (CLI Shortcut):**
+If you already ran the setup and just want to quickly add or update an API key without going through the wizard, you can use the `set-key` command:
+```bash
+nyxora set-key <provider> <your_api_key>
+# Example: nyxora set-key openai sk-proj-...
+# Example: nyxora set-key tavily tvly-...
+```
+
 This command-line wizard will guide you through five simple stages:
 
 ### Stage A: LLM Provider Selection
@@ -87,7 +95,7 @@ Select your default blockchain network (e.g., **Base**, **Ethereum**, or **Sepol
 
 ### Stage D: Web3 Wallet Setup
 The most crucial part. You have three options:
-1. **Auto-Generate (Recommended for Testing):** The system will instantly generate a fresh Ethereum address for you on-screen and securely save its Private Key into the vault.
+1. **Auto-Generate:** The system will instantly generate a fresh Ethereum address for you on-screen and securely save its Private Key into the vault.
 2. **Manual Input:** Input your own existing Private Key (See [Wallet Import Guide](../security/wallet_import.md)).
 3. **Skip:** Skip this stage if you don't need to execute crypto transactions right now.
 

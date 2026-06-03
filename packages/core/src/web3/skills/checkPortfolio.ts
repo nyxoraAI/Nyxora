@@ -1,5 +1,5 @@
 import { formatEther, formatUnits } from 'viem';
-import { getPublicClient, ChainName } from '../config';
+import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { TOKEN_MAP, ERC20_ABI } from '../utils/tokens';
 
 const portfolioCache: Record<string, { data: string, timestamp: number }> = {};
@@ -181,7 +181,7 @@ export const checkPortfolioToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The blockchain network",
         },
         address: {

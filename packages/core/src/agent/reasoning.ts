@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
-import { loadConfig } from '../config/parser';
+import { loadConfig, loadApiKeys } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance';
@@ -48,8 +48,9 @@ export const logger = new Logger();
 
 let currentKeyIndex = 0;
 
-function getOpenAI(): OpenAI {
+async function getOpenAI(): Promise<OpenAI> {
   const config = loadConfig();
+  const vaultKeys = await loadApiKeys();
   
   if (config.llm.provider === 'ollama') {
     return new OpenAI({
@@ -80,16 +81,16 @@ function getOpenAI(): OpenAI {
   // Fallbacks if no valid keys found in config.llm.api_keys
   if (!apiKey) {
     if (config.llm.provider === 'gemini') {
-      apiKey = config.llm.credentials?.gemini_key || '';
+      apiKey = vaultKeys.gemini_key || config.credentials?.gemini_key || '';
     } else if (config.llm.provider === 'openrouter') {
-      apiKey = config.llm.credentials?.openrouter_key || '';
+      apiKey = vaultKeys.openrouter_key || config.credentials?.openrouter_key || '';
     } else {
-      apiKey = config.llm.credentials?.openai_key || '';
+      apiKey = vaultKeys.openai_key || config.credentials?.openai_key || '';
     }
     if (!apiKey) {
-      throw new Error(`No API Key found for ${config.llm.provider} in config.yaml. Please run 'nyxora setup' to configure it.`);
+      throw new Error(`No API Key found for ${config.llm.provider}. Please run 'nyxora setup' to configure it.`);
     }
-    console.log(`[LLM] Using default API Key from config.yaml`);
+    console.log(`[LLM] Using API Key from secure vault`);
   }
 
   if (config.llm.provider === 'gemini') {
@@ -117,7 +118,7 @@ async function executeWithRetry(
   
   while (retries <= maxRetries) {
     try {
-      const client = getOpenAI();
+      const client = await getOpenAI();
       return await requestBuilder(client);
     } catch (error: any) {
       const status = error?.status || error?.response?.status;
@@ -166,7 +167,8 @@ CRITICAL RULE 3: FORMATTING & CONCISENESS.
   - When displaying a list of assets, tokens, portfolio, or transaction history, YOU MUST USE MARKDOWN TABLES. Do not use bullet points for financial data.
 CRITICAL RULE 4: When the user asks to check "my balance", "saldo saya", or anything about their own wallet generally, ALWAYS use the check_portfolio tool to show all assets on the chain that have a USD value greater than 0. LEAVE THE ADDRESS PARAMETER EMPTY. Do NOT use get_balance unless the user explicitly asks for the balance of ONE specific token.
 CRITICAL RULE 5: If the user doesn't specify a chain, default to: ${config.agent.default_chain}. If the user mentions a specific chain (e.g., "on BNB", "di Base"), you MUST override the default and execute the tool on that specific chain.
-CRITICAL RULE 6: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.`;
+CRITICAL RULE 6: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.
+CRITICAL RULE 7: TOOL PRIORITIZATION. When the user asks about crypto prices, market analysis, token security, or blockchain data, YOU MUST prioritize using the dedicated Web3 skills (e.g., get_price, analyze_market, check_security) FIRST. Only if those tools fail or cannot provide the requested information, you may fallback to using search_web.`;
 
   // Read IDENTITY.md for core AI persona
   try {
@@ -426,7 +428,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'search_web': {
-              result = await searchWeb(args.query);
+              result = await searchWeb(args.query, args.depth);
               break;
             }
             case 'install_external_skill': {

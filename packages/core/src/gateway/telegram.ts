@@ -238,7 +238,9 @@ export function startTelegramBot() {
       console.error('[Telegram] Telegraf error:', err);
     });
 
-    bot.launch();
+    bot.launch().catch(err => {
+      console.error('[Telegram] Connection failed (likely blocked by ISP or timeout):', err.message);
+    });
     
     if (isPaired) {
       console.log('🤖 Telegram Bot is running and securely listening for your messages...');

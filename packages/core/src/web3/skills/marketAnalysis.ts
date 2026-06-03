@@ -1,4 +1,4 @@
-import { ChainName } from '../config';
+import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { resolveToken } from '../utils/tokens';
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
@@ -85,7 +85,7 @@ export const marketAnalysisToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The blockchain network",
         },
         tokenAddressOrSymbol: {

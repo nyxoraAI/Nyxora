@@ -27,6 +27,9 @@ To set up your security rules, simply edit the `security_policy.md` file in your
     > *"Do not allow the installation of new global NPM packages."*
     > *"Reject any request that asks you to export or reveal the private key."*
 
+*   **Tool Prioritization (Rule 7):**
+    > *"When the user asks about crypto prices, market analysis, token security, or blockchain data, YOU MUST prioritize using the dedicated Web3 skills (e.g., get_price, analyze_market) FIRST before falling back to generic web search."*
+
 ## The Power of Semantic Evaluation
 
 Unlike traditional Regex or exact-match firewalls, the NLP Security Policy relies on **Semantic Evaluation**. 
