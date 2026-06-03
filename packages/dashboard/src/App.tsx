@@ -46,10 +46,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  useEffect(() => {
-    // Scroll to bottom on new message
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+
 
   useEffect(() => {
     // Initialize Speech Recognition
@@ -244,9 +241,9 @@ function App() {
   useEffect(() => {
     // Adding a slight timeout to ensure DOM is fully rendered before scrolling
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 10);
-  }, [messages, isLoading, currentView]);
+  }, [messages.length, isLoading, currentView]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

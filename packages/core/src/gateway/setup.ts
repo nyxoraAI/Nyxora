@@ -242,7 +242,7 @@ Provider: ${config.llm.provider}`;
   let privateKey = '';
   if (walletSetupType === 'manual') {
     privateKey = (await password({
-      message: 'Enter Wallet Private Key (0x...)\n  (Will be AES-256-GCM encrypted. See documentation for import guides):',
+      message: 'Enter Wallet Private Key (0x...)\n  (Will be securely locked in your OS Native Keyring Vault):',
     })) as string;
     if (isCancel(privateKey)) return process.exit(0);
   } else if (walletSetupType === 'generate') {
