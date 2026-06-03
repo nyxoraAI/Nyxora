@@ -29,6 +29,35 @@ The Signer Vault is an ultra-secure, isolated process that holds your Private Ke
 
 ---
 
+## Transaction Lifecycle (End-to-End)
+
+The overarching flow is: **User/Core ➔ Policy Engine (Rules & Approval) ➔ Signer Vault (Key Access & Signing) ➔ Blockchain Network.**
+
+### 1. Transaction Request
+Transactions are initially submitted to the Policy Engine via the `/request-tx` endpoint. The payload contains the transaction type (transfer, swap, bridge), target chain, and execution details (destination address, amount).
+
+### 2. Policy Evaluation
+When the Policy Engine receives a request, it routes it through one of two paths:
+- **Auto-Approve Bypass:** If the transaction is flagged for `autoApprove` (for safe internal operations) and carries a valid HMAC signature matching the `INTERNAL_AUTH_TOKEN`, it bypasses manual approval and flows directly to the Signer Vault.
+- **Manual Approval Path:** Otherwise, the system validates the payload against immutable rules in `policy.yaml` (e.g., maximum USD spend limit). If the transaction passes, it enters the `pendingTransactions` queue and awaits cryptographically verified user approval.
+
+### 3. Cryptographic Approval
+Pending transactions are approved via the `/approve-tx/:id` endpoint:
+- The system demands cryptographic proof consisting of a `nonce` and an `approvalHash`.
+- The Policy Engine executes a "Cryptographically Bound Approval" check, matching the provided hash against a strict combination of `txId + nonce + JWT_SECRET`.
+- Upon successful verification, the transaction state upgrades to `approved` and is routed to the Signer Vault.
+
+### 4. Execution and Signing (Signer Vault)
+The Policy Engine communicates with the Signer Vault over a highly secure local Unix Socket (`/tmp/nyxora-signer.sock`), authorized by a short-lived (1-minute) JWT. Inside the Vault:
+- **Private Key Access:** The private key is securely retrieved, prioritizing the OS Native Keyring (via Rust bindings), or falling back to a strictly permissioned local file (`vault.key` chmod 0600).
+- **Nonce Management (Mutex Locks):** A robust lock and caching mechanism ensures that concurrent transaction bursts never result in on-chain nonce collisions.
+- **Web3 Broadcasting:** Using the `viem` library, the transaction is constructed, signed with the isolated Private Key, and safely broadcasted (`sendTransaction`) to the target blockchain's RPC.
+
+### 5. Response and Finality
+Once broadcasted, the Signer Vault returns the Transaction Hash (TxHash) back down the pipeline to the Policy Engine, which ultimately delivers the success response to the User Interface.
+
+---
+
 ## Background Daemon Lifecycle
 
 Nyxora runs as a true "Local-First" background service, similar to a database daemon or a web server.

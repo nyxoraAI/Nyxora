@@ -42,3 +42,19 @@ Instead of relying on statically coded skills, Nyxora will dynamically connect t
 
 **Why it matters:**
 This integration unlocks a borderless ecosystem of tools. Nyxora will instantly absorb thousands of external capabilities—such as Postgres MCP, Google Drive MCP, or Brave Search MCP—granting our AI agents universal knowledge and utility without requiring a single line of internal code updates.
+
+---
+
+## 4. Multi-VM Architecture (Solana Integration)
+
+Nyxora's current architecture is robustly designed around the Ethereum Virtual Machine (EVM) ecosystem, heavily relying on `viem` and `secp256k1` cryptography. As the market evolves, supporting high-throughput non-EVM chains like Solana (SVM) becomes imperative.
+
+**The Evolution:**
+Nyxora v2 will introduce a **Multi-VM (Virtual Machine) Architecture**, requiring several core rewrites:
+1. **Dual-Vault System:** The Keyring Vault will be expanded to securely handle both EVM private keys (Hex) and Solana keypairs (Ed25519/Base58), allowing the agent to seamlessly switch identities.
+2. **Provider Abstraction:** We will abstract the Web3 client layer. Instead of direct `viem` calls, an internal router will inject either `viem` (for EVM) or `@solana/web3.js` (for SVM) at runtime.
+3. **Parallel Skill Execution:** DEX routing and Portfolio Tracking will be dual-pathed. For Solana, the agent will natively integrate **Jupiter Aggregator** instead of Uniswap/Li.Fi, and parse SPL Token accounts instead of ERC-20 balances.
+4. **Agent Context Routing:** The NLP Policy Engine and AI Prompt will be trained to autonomously route execution logic based on context (e.g., automatically engaging the SVM engine when the user mentions "$SOL" or "$BONK").
+
+**Why it matters:**
+This transforms Nyxora from an "Ethereum Bot" into an **Agnostic Web3 Agent**. By successfully bridging the architectural gap between EVM and SVM, the AI will possess total sovereignty over the two most liquid decentralized ecosystems in the world.

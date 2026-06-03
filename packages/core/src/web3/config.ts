@@ -1,5 +1,5 @@
 import { createPublicClient, http, fallback, PublicClient, Transport } from 'viem';
-import { mainnet, base, bsc, arbitrum, optimism, sepolia } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon } from 'viem/chains';
 import { loadConfig } from '../config/parser';
 
 export const supportedChains = {
@@ -9,8 +9,10 @@ export const supportedChains = {
   arbitrum: arbitrum,
   optimism: optimism,
   sepolia: sepolia,
+  polygon: polygon,
 };
 
+export const SUPPORTED_CHAIN_NAMES = Object.keys(supportedChains);
 export type ChainName = keyof typeof supportedChains;
 
 export function getPublicClient(chainName: ChainName): PublicClient {
@@ -53,6 +55,10 @@ export function getPublicClient(chainName: ChainName): PublicClient {
     } else if (chainName === 'sepolia') {
       transports.push(http('https://ethereum-sepolia-rpc.publicnode.com', { timeout: 5000 }));
       transports.push(http('https://rpc.sepolia.org', { timeout: 5000 }));
+    } else if (chainName === 'polygon') {
+      transports.push(http('https://polygon-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://polygon.llamarpc.com', { timeout: 5000 }));
+      transports.push(http('https://polygon-rpc.com', { timeout: 5000 }));
     }
   }
 

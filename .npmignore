@@ -1,7 +1,7 @@
 node_modules/
-dashboard/node_modules/
-dashboard/src/
-dashboard/public/
+packages/dashboard/node_modules/
+packages/dashboard/src/
+packages/dashboard/public/
 .env
 .env.*
 !.env.example

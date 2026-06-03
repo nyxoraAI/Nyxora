@@ -1,5 +1,5 @@
 import { parseEther } from 'viem';
-import { getPublicClient, getAddress, ChainName } from '../config';
+import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 
 export async function prepareCustomTx(
@@ -91,7 +91,7 @@ export const customTxToolDefinition = {
       properties: {
         chainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The blockchain network",
         },
         toAddress: {

@@ -217,6 +217,14 @@ async function main() {
     case 'dashboard': await dashboard(); break;
     case 'clean-logs': await cleanLogs(); break;
     case 'autostart': await autostart(process.argv[3]); break;
+    case '-v':
+    case '--v':
+    case '--version':
+    case 'version':
+      const pkgPath = path.join(projectRoot, 'package.json');
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      console.log(`Nyxora v${pkg.version}`);
+      break;
     default:
       console.log(`
 Nyxora CLI Manager

@@ -1,5 +1,5 @@
 import { parseUnits, formatUnits } from 'viem';
-import { getPublicClient, getAddress, ChainName } from '../config';
+import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
 
@@ -10,6 +10,7 @@ const CHAIN_IDS: Record<ChainName, number> = {
   arbitrum: 42161,
   optimism: 10,
   sepolia: 11155111,
+  polygon: 137,
 };
 
 async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number) {
@@ -210,12 +211,12 @@ export const bridgeTokenToolDefinition = {
       properties: {
         fromChainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The source blockchain network",
         },
         toChainName: {
           type: "string",
-          enum: ["ethereum", "base", "bsc", "arbitrum", "optimism", "sepolia"],
+          enum: SUPPORTED_CHAIN_NAMES,
           description: "The destination blockchain network",
         },
         fromToken: {
