@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-signer",
-  "version": "1.6.7",
+  "version": "1.7.0",
   "private": true,
   "main": "src/server.ts",
   "dependencies": {

@@ -33,3 +33,10 @@ IDENTITY.md
 security_policy.md
 .npmrc
 *.tgz
+
+# Build Caches & Test Files
+*.tsbuildinfo
+*.d.ts.map
+test-*.ts
+packages/core/src/utils/safeLogger.js
+launcher.js
