@@ -2,6 +2,7 @@ import { parseUnits, formatUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
+import { loadConfig } from '../../config/parser';
 
 const CHAIN_IDS: Record<ChainName, number> = {
   ethereum: 1,
@@ -11,6 +12,7 @@ const CHAIN_IDS: Record<ChainName, number> = {
   optimism: 10,
   sepolia: 11155111,
   polygon: 137,
+  base_sepolia: 84532,
 };
 
 async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number) {
@@ -31,7 +33,7 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
   return await res.json();
 }
 
-async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string) {
+async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippagePercent: number) {
   const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
   const baseUrl = isTestnet ? "https://api.testnets.relay.link" : "https://api.relay.link";
 
@@ -42,7 +44,8 @@ async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: 
     originCurrency: fromToken,
     destinationCurrency: toToken,
     amount: amountWei,
-    tradeType: "EXACT_INPUT"
+    tradeType: "EXACT_INPUT",
+    slippageTolerance: (slippagePercent / 100).toString()
   };
 
   const res = await fetch(`${baseUrl}/quote`, {
@@ -65,7 +68,7 @@ export async function prepareBridgeToken(
   amountStr: string,
   mode: "auto" | "manual" = "auto",
   providerName: "lifi" | "relay" = "lifi",
-  slippagePercent: number = 0.5
+  slippagePercent?: number
 ): Promise<string> {
   try {
     const publicClient = getPublicClient(fromChainName);
@@ -94,35 +97,28 @@ export async function prepareBridgeToken(
     let approvalAddress: string | null = null;
     let expectedOutputStr = "";
 
-    let actualProvider = mode === "auto" ? "lifi" : providerName;
-    const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
-    
-    // --- SEPOLIA TESTNET MOCK ---
-    if (isTestnet) {
-      const mockGasLimit = "150000";
-      expectedOutputStr = "MOCK_TEST_AMOUNT";
-      
-      const tx = txManager.createPendingTransaction('bridge', fromChainName, { 
-        txRequest: { to: fromTokenAddress, data: "0x", value: amountWei, gasLimit: mockGasLimit }, 
-        needsApprove: false,
-        fromTokenAddress,
-        approvalAddress: null,
-        amountWei
-      });
-
-      return `TRANSACTION_PENDING: Bridge simulated via TESTNET_MOCK. Expected Output on ${toChainName}: ~${expectedOutputStr} ${toToken.toUpperCase()}. Gas est: ${mockGasLimit}. Transaction ID: ${tx.id}. Wait for user to approve.`;
+    let actualSlippage = slippagePercent;
+    if (actualSlippage === undefined || actualSlippage === null) {
+      try {
+        const config = loadConfig();
+        actualSlippage = (config.agent as any).default_slippage || 0.5;
+      } catch (e) {
+        actualSlippage = 0.5;
+      }
     }
-    // --- END MOCK ---
+
+    let actualProvider = mode === "auto" ? "lifi" : providerName;
+    
 
     if (actualProvider === "lifi") {
-      const quote = await getLifiQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, slippagePercent / 100);
+      const quote = await getLifiQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage / 100);
       txRequest = quote.transactionRequest;
       approvalAddress = quote.estimate.approvalAddress;
       
       const toDecimals = quote.action.toToken.decimals;
       expectedOutputStr = formatUnits(BigInt(quote.estimate.toAmount), toDecimals);
     } else if (actualProvider === "relay") {
-      const relayQuote = await getRelayQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress);
+      const relayQuote = await getRelayQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage);
       if (!relayQuote.steps || relayQuote.steps.length === 0) throw new Error("No route found by Relay.");
       
       const txStep = relayQuote.steps.find((s: any) => s.id === "execute");
@@ -170,7 +166,7 @@ export async function executeBridge(chainName: ChainName, params: any, autoAppro
     const { txRequest, needsApprove, fromTokenAddress, approvalAddress, amountWei } = params;
     const token = process.env.INTERNAL_AUTH_TOKEN;
 
-    const payload = {
+    const payload: any = {
       type: 'bridge',
       chainName,
       autoApprove,
@@ -179,13 +175,19 @@ export async function executeBridge(chainName: ChainName, params: any, autoAppro
       }
     };
 
+    if (autoApprove && token) {
+      const crypto = require('crypto');
+      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + amountWei).digest('hex');
+    }
+
     const res = await fetch('http://127.0.0.1:3001/request-tx', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
     });
 
     const data = await res.json();
@@ -195,6 +197,9 @@ export async function executeBridge(chainName: ChainName, params: any, autoAppro
       return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
     }
 
+    if (data.signedHash) {
+      return `Bridge successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
+    }
     return `Bridge executed. Result: ${JSON.stringify(data)}`;
   } catch (error: any) {
     return `Failed to execute bridge: ${error.message}`;
@@ -240,6 +245,10 @@ export const bridgeTokenToolDefinition = {
           type: "string",
           enum: ["lifi", "relay"],
           description: "Used if mode is manual."
+        },
+        slippagePercent: {
+          type: "number",
+          description: "Optional slippage tolerance percentage (e.g. 0.5, 5, 10). If not specified, defaults to the globally configured slippage."
         }
       },
       required: ["fromChainName", "toChainName", "fromToken", "toToken", "amountStr"],

@@ -307,6 +307,7 @@ app.get('/api/transactions', (req, res) => {
 app.post('/api/transactions/:id/approve', async (req, res) => {
   try {
     const id = req.params.id;
+    const { sessionId } = req.body || {};
     const tx = txManager.getTransaction(id);
     if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
 
@@ -334,7 +335,7 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
       txManager.updateStatus(id, 'failed', errorMsg);
       logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Failed: ${errorMsg}` });
       
-      logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Gagal**\n\n${errorMsg}` });
+      logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Gagal**\n\n${errorMsg}` }, sessionId);
       
       return res.json({ success: true, result: errorMsg });
     }
@@ -342,7 +343,7 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     txManager.updateStatus(id, 'executed', result);
     logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Success: ${result}` });
     
-    logger.addEntry({ role: 'assistant', content: `✅ **Transaksi Berhasil Dieksekusi**\n\n${result}` });
+    logger.addEntry({ role: 'assistant', content: `✅ **Transaksi Berhasil Dieksekusi**\n\n${result}` }, sessionId);
     
     res.json({ success: true, result });
   } catch (err: any) {
@@ -354,13 +355,14 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
 app.post('/api/transactions/:id/reject', async (req, res) => {
   try {
     const id = req.params.id;
+    const { sessionId } = req.body || {};
     const tx = txManager.getTransaction(id);
     if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
 
     txManager.updateStatus(id, 'rejected');
     logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: 'User rejected the transaction.' });
     
-    logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Dibatalkan**\n\nAnda telah membatalkan transaksi ini.` });
+    logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Dibatalkan**\n\nAnda telah membatalkan transaksi ini.` }, sessionId);
 
     res.json({ success: true });
   } catch (err: any) {

@@ -57,7 +57,7 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 
 ### 🔄 Asset Transfers, Swaps & Automated Trading
 *   **Token Transfers:** The AI can autonomously construct and broadcast transactions to send tokens to a specified address or ENS domain (e.g., `vitalik.eth`).
-*   **DEX Swaps (Basic):** The core engine can interface with primary decentralized exchanges (like Uniswap routers) to swap tokens if liquidity exists.
+*   **DEX Swaps & Anti-MEV Slippage:** The core engine interfaces with primary decentralized exchanges and aggregators (like Li.Fi and Relay) to swap tokens cross-chain. It enforces a strict **0.5% default slippage** to protect against MEV attacks. You can safely override this limit dynamically via NLP chat commands for specific high-volatility pairs (e.g., *"Swap with 10% slippage"*).
 *   **Take Profit & Cut Loss (Limit Orders):** Nyxora features a built-in `LimitOrderManager`. You can instruct the AI to execute trades automatically based on price conditions. For example: *"Buy 1 ETH if the price drops below $2500"* (Cut Loss / Buy Limit) or *"Sell 50% of my PEPE if it goes up 2x"* (Take Profit). The agent monitors prices continuously in the background.
 *   **Gas Estimation:** The AI natively calculates required Gas Fees (Gwei) before broadcasting to ensure transactions do not fail out of gas.
 

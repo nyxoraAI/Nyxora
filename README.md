@@ -27,6 +27,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 
 ### 🌐 Web3 Skills (On-Chain)
 *   **Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
+*   **Anti-MEV Slippage Protection**: Hardened routing engine with dynamic Slippage Tolerance (default 0.5%) for Relay and Li.Fi. You can manually adjust slippage via the UI or dynamically override it using natural language (e.g., "Swap 1 ETH to PEPE with 10% slippage").
 *   **Automated Take Profit (TP) & Cut Loss (CL)**: The trader's holy grail. Set natural language rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and executes the swap while you sleep.
 *   **Cross-Chain Hybrid Market Scanner**: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, BSC, and more.
 *   **"Lean Degen" Auto-Whitelist**: Automatically intercepts Contract Addresses (CAs) whenever you check balances or swap tokens, saving them to your localized `user_whitelist.json` for future tracking.
@@ -42,6 +43,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 *   **Dynamic Trending Tokens**: Live top 5 crypto assets feed directly injected into the dashboard, completely clickable for instant AI market analysis.
 *   **Premium Utility-Centric UI**: A sleek, dark-themed dashboard built for high readability and professional Web3 execution, featuring Pseudo-Generative UI widgets (`<BalanceWidget>`, `<MarketWidget>`, `<SwapWidget>`).
 *   **Massive 2026 Model Roster**: Out-of-the-box support for cutting-edge models via Google Gemini, OpenAI, Groq, Mistral, xAI, DeepSeek, OpenRouter, and local Ollama, equipped with a searchable CLI prompt to instantly find your favorite model.
+*   **Strict NLP Exactness (Rule 8)**: The AI is rigorously instructed never to hallucinate or guess missing transaction parameters (like destination chains or swap amounts). It halts and requests human clarification, guaranteeing 100% precision.
 *   **Context Overrides Defaults (NLP Intelligence)**: The Dashboard configuration (default chain & router) acts only as a safety net. If you issue an explicit command via Telegram (e.g., *"Swap 10 USDC to USDT on Arbitrum using Li.Fi"*), the NLP engine dynamically bypasses the default settings and executes exactly what you asked for, ensuring maximum flexibility.
 *   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
 

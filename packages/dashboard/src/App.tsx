@@ -468,21 +468,19 @@ function App() {
                   </div>
                 );
               }
-              if (msg.role === 'assistant' && msg.content) {
+              if (msg.role === 'assistant' && (msg.content || msg.tool_calls)) {
                 return (
                   <div key={idx} className="message-wrapper agent">
-                    <div className="message-bubble">{renderMessageContent(msg.content)}</div>
-                    <button className="copy-btn" onClick={handleCopy} title="Copy message">
-                      {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
-                    </button>
-                  </div>
-                );
-              }
-              if (msg.role === 'assistant' && msg.tool_calls) {
-                return (
-                  <div key={idx} className="message-wrapper agent">
-                    {msg.tool_calls.map((tool: any, tIdx: number) => (
-                      <div key={tIdx} className="tool-call">
+                    {msg.content && (
+                      <>
+                        <div className="message-bubble">{renderMessageContent(msg.content)}</div>
+                        <button className="copy-btn" onClick={handleCopy} title="Copy message">
+                          {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
+                        </button>
+                      </>
+                    )}
+                    {msg.tool_calls && msg.tool_calls.map((tool: any, tIdx: number) => (
+                      <div key={`t-${tIdx}`} className="tool-call">
                         <Activity size={16} color="#22c55e" />
                         Executing: <code>{tool.function.name}</code>
                       </div>
@@ -548,7 +546,7 @@ function App() {
           </div>
         </div>
         )}
-        <PendingTransactions />
+        <PendingTransactions sessionId={activeSessionId} />
       </main>
 
       {editingSessionId && (

@@ -78,15 +78,21 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
   try {
     const { toAddress, amountStr, tokenAddress, isNative, decimals } = params;
     const token = process.env.INTERNAL_AUTH_TOKEN;
+    const amountWei = isNative ? parseEther(amountStr).toString() : parseUnits(amountStr, decimals).toString();
 
-    const payload = {
+    const payload: any = {
       type: 'transfer',
       chainName,
       autoApprove,
       details: {
-        toAddress, amountStr, tokenAddress, isNative, decimals
+        toAddress, amountWei, tokenAddress
       }
     };
+
+    if (autoApprove && token) {
+      const crypto = require('crypto');
+      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + amountWei).digest('hex');
+    }
 
     const res = await fetch('http://127.0.0.1:3001/request-tx', {
       method: 'POST',
@@ -94,7 +100,8 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
     });
 
     const data = await res.json();
@@ -104,6 +111,9 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
       return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
     }
 
+    if (data.signedHash) {
+      return `Transfer successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
+    }
     return `Transaction executed. Result: ${JSON.stringify(data)}`;
   } catch (error: any) {
     return `Failed to execute transfer: ${error.message}`;
