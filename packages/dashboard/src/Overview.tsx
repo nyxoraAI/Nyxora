@@ -140,7 +140,8 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           </div>
           <div className="log-content">
             {gatewayLogs.map((log, i) => {
-              const cleanMessage = log.message.replace(/\x1b\[[0-9;]*m/g, '');
+              let cleanMessage = log.message.replace(/\x1b\[[0-9;]*m/g, '');
+              cleanMessage = cleanMessage.replace(/token=[a-fA-F0-9]+/g, 'token=••••••••[REDACTED]••••••••');
               return (
                 <div key={i} className="log-row gateway-row" style={{ fontFamily: 'monospace' }}>
                   <span className="log-time" style={{ color: '#88C0D0' }}>[{log.timestamp}]</span>
