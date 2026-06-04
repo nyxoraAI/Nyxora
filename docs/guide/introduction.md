@@ -13,10 +13,15 @@ Nyxora ensures that your Private Key is never transmitted to external AI models 
 
 ### 2. Multi-LLM Support & API Rotation
 Nyxora is an agnostic framework. You can seamlessly switch between models from various providers:
-- **Google Gemini** (`gemini-2.5-flash`, `gemini-1.5-pro`)
-- **OpenAI** (`gpt-4o`, `o1-preview`)
-- **OpenRouter** (Access to open-source models like Llama 3 and Claude)
+- **Google Gemini** (`gemini-3.1-pro`, `gemini-2.5-flash`)
+- **OpenAI** (`gpt-5.5`, `o3-mini`)
+- **Groq** (Ultra-fast LPU inference for Llama 3)
+- **Mistral AI** (`mistral-large-latest`)
+- **xAI** (`grok-3`)
+- **DeepSeek** (`deepseek-reasoner`)
+- **OpenRouter** (Access to thousands of open-source models)
 - **Ollama** (Run AI entirely offline on your local machine)
+- **Custom Model** (Manually define any custom model endpoint)
 
 *The system also features **Round-Robin API Rotation**, automatically rotating up to 10 different API keys to prevent rate limits and token drain.*
 

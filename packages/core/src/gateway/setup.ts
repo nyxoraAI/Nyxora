@@ -1,4 +1,5 @@
 import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner } from '@clack/prompts';
+import search from '@inquirer/search';
 import pc from 'picocolors';
 import fs from 'fs';
 import path from 'path';
@@ -102,47 +103,98 @@ Provider: ${config.llm.provider}`;
       { value: 'gemini', label: 'Google Gemini' },
       { value: 'openrouter', label: 'OpenRouter (Many Models)' },
       { value: 'ollama', label: 'Ollama (Local)' },
+      { value: 'groq', label: 'Groq (Ultra-fast)' },
+      { value: 'mistral', label: 'Mistral AI' },
+      { value: 'xai', label: 'xAI (Grok)' },
+      { value: 'deepseek', label: 'DeepSeek' },
     ],
   });
   if (isCancel(provider)) return process.exit(0);
 
   // 2. Model Name
-  let modelOptions: { value: string, label: string }[] = [];
+  let modelOptions: { value: string, name: string }[] = [];
   if (provider === 'gemini') {
     modelOptions = [
-      { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash (Fast & Cheap)' },
-      { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro (Advanced Reasoning)' },
-      { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro' },
+      { value: 'gemini-3.1-pro', name: 'gemini-3.1-pro' },
+      { value: 'gemini-3.1-flash-lite', name: 'gemini-3.1-flash-lite' },
+      { value: 'gemini-2.5-flash', name: 'gemini-2.5-flash' },
+      { value: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
+      { value: 'gemini-1.5-pro', name: 'gemini-1.5-pro' },
+      { value: 'gemini-1.5-flash', name: 'gemini-1.5-flash' },
     ];
   } else if (provider === 'openai') {
     modelOptions = [
-      { value: 'gpt-4o', label: 'gpt-4o (Powerful)' },
-      { value: 'gpt-4o-mini', label: 'gpt-4o-mini (Fast)' },
-      { value: 'o1-preview', label: 'o1-preview (Reasoning)' },
-      { value: 'o1-mini', label: 'o1-mini' },
+      { value: 'gpt-5.5-pro', name: 'gpt-5.5-pro' },
+      { value: 'gpt-5.5', name: 'gpt-5.5' },
+      { value: 'gpt-5.4-mini', name: 'gpt-5.4-mini' },
+      { value: 'gpt-5.4-nano', name: 'gpt-5.4-nano' },
+      { value: 'gpt-4o', name: 'gpt-4o' },
+      { value: 'o3-mini', name: 'o3-mini' },
     ];
   } else if (provider === 'openrouter') {
     modelOptions = [
-      { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
-      { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
-      { value: 'liquid/lfm-40b', label: 'Liquid LFM 40B' },
-      { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5' },
+      { value: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+      { value: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' },
+      { value: 'google/gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
+      { value: 'openai/gpt-5.5', name: 'GPT-5.5' },
+      { value: 'x-ai/grok-2', name: 'Grok 2' },
+      { value: 'mistralai/mistral-large', name: 'Mistral Large' },
+    ];
+  } else if (provider === 'groq') {
+    modelOptions = [
+      { value: 'llama-3.3-70b-versatile', name: 'llama-3.3-70b-versatile' },
+      { value: 'llama-3.1-8b-instant', name: 'llama-3.1-8b-instant' },
+      { value: 'mixtral-8x7b-32768', name: 'mixtral-8x7b-32768' },
+    ];
+  } else if (provider === 'mistral') {
+    modelOptions = [
+      { value: 'mistral-large-latest', name: 'mistral-large-latest' },
+      { value: 'mistral-small-latest', name: 'mistral-small-latest' },
+      { value: 'open-mistral-nemo', name: 'open-mistral-nemo' },
+    ];
+  } else if (provider === 'xai') {
+    modelOptions = [
+      { value: 'grok-4.3', name: 'grok-4.3' },
+      { value: 'grok-2-latest', name: 'grok-2-latest' },
+      { value: 'grok-beta', name: 'grok-beta' },
+    ];
+  } else if (provider === 'deepseek') {
+    modelOptions = [
+      { value: 'deepseek-chat', name: 'deepseek-chat (V3)' },
+      { value: 'deepseek-reasoner', name: 'deepseek-reasoner (R1)' },
     ];
   } else {
     modelOptions = [
-      { value: 'llama3', label: 'Llama 3 (8B)' },
-      { value: 'qwen2', label: 'Qwen 2' },
-      { value: 'phi3', label: 'Phi-3' },
+      { value: 'llama3.2', name: 'llama3.2' },
+      { value: 'llama3.1', name: 'llama3.1' },
+      { value: 'qwen2.5', name: 'qwen2.5' },
+      { value: 'phi4', name: 'phi4' },
+      { value: 'mistral', name: 'mistral' },
     ];
   }
   
-  modelOptions.push({ value: 'custom', label: 'Type manually (Custom Model)' });
+  modelOptions.push({ value: 'custom', name: '[Tulis Manual / Custom Model]' });
 
-  let model = (await select({
-    message: 'Select AI Model:',
-    options: modelOptions,
-  })) as string;
-  if (isCancel(model)) return process.exit(0);
+  let model = '';
+  try {
+    model = await search({
+      message: 'Select AI Model (Type to search):',
+      source: async (input: string | undefined) => {
+        if (!input) {
+          return modelOptions;
+        }
+        return modelOptions.filter((opt) => 
+          opt.name.toLowerCase().includes(input.toLowerCase()) || 
+          opt.value.toLowerCase().includes(input.toLowerCase())
+        );
+      }
+    });
+  } catch (err: any) {
+    if (err.name === 'ExitPromptError') {
+      return process.exit(0);
+    }
+    throw err;
+  }
   
   if (model === 'custom') {
     model = (await text({
@@ -282,9 +334,7 @@ Provider: ${config.llm.provider}`;
   
   const newApiKeys: Record<string, string> = {};
   if (apiKey) {
-    if (provider === 'openai') newApiKeys.openai_key = apiKey;
-    if (provider === 'gemini') newApiKeys.gemini_key = apiKey;
-    if (provider === 'openrouter') newApiKeys.openrouter_key = apiKey;
+    newApiKeys[`${provider}_key`] = apiKey;
   }
 
   if (!config.web_search) config.web_search = { provider: 'mesh', enabled: true };

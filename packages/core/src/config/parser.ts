@@ -44,7 +44,7 @@ export interface NyxoraConfig {
     default_router?: string;
   };
   llm: {
-    provider: 'openai' | 'anthropic' | 'ollama' | 'gemini' | 'openrouter';
+    provider: string;
     model: string;
     temperature: number;
     api_keys?: string[];
