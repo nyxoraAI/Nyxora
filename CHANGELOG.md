@@ -2,8 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [26.6.5] - 2026-06-04 (Hotfix Patch)
+### Fixed
+- **NPM Monorepo Resolution:** Synced `@inquirer/search` and `duck-duck-scrape` to root `package.json` to prevent `MODULE_NOT_FOUND` and `ERR_CONNECTION_REFUSED` on global installations.
 
 ## [26.6.4] - 2026-06-04
 
