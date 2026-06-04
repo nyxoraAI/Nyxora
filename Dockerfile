@@ -4,8 +4,6 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 # Set Production Environment
-ENV NODE_ENV=production
-
 # Install native dependencies required for isolated-vm, keyring, etc.
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -30,6 +28,9 @@ COPY . .
 
 # Build the dashboard (frontend)
 RUN npm run build --workspace=dashboard
+
+# Set Production Environment now that build is done
+ENV NODE_ENV=production
 
 # Expose the ports used by Core/Dashboard and Policy Engine
 EXPOSE 3000
