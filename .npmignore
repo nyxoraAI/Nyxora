@@ -18,7 +18,7 @@ docs/
 config.yaml
 packages/policy/policy.yaml
 keystore.json
-memory.db
+memory.db*
 *.bak
 
 # Workspace Secrets

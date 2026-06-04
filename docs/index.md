@@ -26,7 +26,7 @@ features:
   - title: Cross-Chain Hybrid Market Scanner
     details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
   - title: Multi-LLM Support
-    details: Easily switch between Gemini, OpenAI, OpenRouter, and Ollama.
+    details: Easily switch between Gemini, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
   - title: Immutable Policy Guardrails
     details: All write actions and policy changes are verified by checksums and require explicit operator confirmation.
 ---

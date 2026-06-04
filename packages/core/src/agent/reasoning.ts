@@ -48,66 +48,58 @@ export const logger = new Logger();
 
 let currentKeyIndex = 0;
 
+const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
+  ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
+  gemini: { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', requiresApiKey: true },
+  openrouter: { baseURL: 'https://openrouter.ai/api/v1', requiresApiKey: true },
+  groq: { baseURL: 'https://api.groq.com/openai/v1', requiresApiKey: true },
+  mistral: { baseURL: 'https://api.mistral.ai/v1', requiresApiKey: true },
+  xai: { baseURL: 'https://api.x.ai/v1', requiresApiKey: true },
+  deepseek: { baseURL: 'https://api.deepseek.com', requiresApiKey: true },
+  openai: { requiresApiKey: true }
+};
+
 async function getOpenAI(): Promise<OpenAI> {
   const config = loadConfig();
   const vaultKeys = await loadApiKeys();
-  
-  if (config.llm.provider === 'ollama') {
-    return new OpenAI({
-      baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1',
-      apiKey: 'ollama', // API key is not required for local Ollama
-    });
-  }
+  const providerName = config.llm.provider || 'openai';
+  const providerConf = PROVIDER_CONFIGS[providerName] || PROVIDER_CONFIGS['openai'];
 
-  // Get API key from config (UI) or fallback to .env
-  let apiKey = '';
-  
-  let configuredKeys = config.llm.api_keys;
-  if (typeof configuredKeys === 'string') {
-    configuredKeys = [configuredKeys];
-  }
-  
-  if (Array.isArray(configuredKeys) && configuredKeys.length > 0) {
-    // Filter out empty keys
-    const keys = configuredKeys.filter(k => typeof k === 'string' && k.trim() !== '');
-    if (keys.length > 0) {
-      currentKeyIndex = currentKeyIndex % keys.length;
-      apiKey = keys[currentKeyIndex];
-      console.log(`[LLM] Using rotated API Key (${currentKeyIndex + 1}/${keys.length}): ${apiKey.substring(0, 4)}...`);
-      currentKeyIndex++; // Increment for next request
+  let apiKey = 'local';
+  if (providerConf.requiresApiKey) {
+    apiKey = '';
+    let configuredKeys = config.llm.api_keys;
+    if (typeof configuredKeys === 'string') {
+      configuredKeys = [configuredKeys];
     }
-  }
+    
+    if (Array.isArray(configuredKeys) && configuredKeys.length > 0) {
+      const keys = configuredKeys.filter(k => typeof k === 'string' && k.trim() !== '');
+      if (keys.length > 0) {
+        currentKeyIndex = currentKeyIndex % keys.length;
+        apiKey = keys[currentKeyIndex];
+        console.log(`[LLM] Using rotated API Key (${currentKeyIndex + 1}/${keys.length}): ${apiKey.substring(0, 4)}...`);
+        currentKeyIndex++;
+      }
+    }
 
-  // Fallbacks if no valid keys found in config.llm.api_keys
-  if (!apiKey) {
-    if (config.llm.provider === 'gemini') {
-      apiKey = vaultKeys.gemini_key || config.credentials?.gemini_key || '';
-    } else if (config.llm.provider === 'openrouter') {
-      apiKey = vaultKeys.openrouter_key || config.credentials?.openrouter_key || '';
-    } else {
-      apiKey = vaultKeys.openai_key || config.credentials?.openai_key || '';
-    }
     if (!apiKey) {
-      throw new Error(`No API Key found for ${config.llm.provider}. Please run 'nyxora setup' to configure it.`);
+      const fallbackKeyName = `${providerName}_key`;
+      apiKey = vaultKeys[fallbackKeyName] || config.credentials?.[fallbackKeyName] || '';
+      
+      if (!apiKey) {
+        throw new Error(`No API Key found for ${providerName}. Please run 'nyxora setup' to configure it.`);
+      }
+      console.log(`[LLM] Using API Key from secure vault`);
     }
-    console.log(`[LLM] Using API Key from secure vault`);
   }
 
-  if (config.llm.provider === 'gemini') {
-    return new OpenAI({
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-      apiKey: apiKey,
-    });
-  } else if (config.llm.provider === 'openrouter') {
-    return new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: apiKey,
-    });
-  } else {
-    return new OpenAI({
-      apiKey: apiKey,
-    });
-  }
+  return new OpenAI({
+    baseURL: providerConf.baseURL,
+    apiKey: apiKey,
+    timeout: 120 * 1000,
+    maxRetries: 0
+  });
 }
 
 async function executeWithRetry(
@@ -234,45 +226,33 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       return `Provider ${config.llm.provider} is configured, but currently only OpenAI, OpenRouter, Ollama, and Gemini adapters are implemented.`;
     }
 
+    // --- v1.7.4 Semantic Keyword Router ---
+    const lowerInput = input.toLowerCase();
+    const hasWeb3Keyword = /swap|transfer|price|token|crypto|bridge|wallet|balance|portfolio|buy|sell|send|receive|address|market|limit|mint|nft/i.test(lowerInput);
+    const hasGoogleKeyword = /email|gmail|calendar|sheet|doc|form|event/i.test(lowerInput);
+
+    const WEB3_TOOLS = [getBalanceToolDefinition, transferToolDefinition, getPriceToolDefinition, swapTokenToolDefinition, bridgeTokenToolDefinition, mintNftToolDefinition, customTxToolDefinition, createWalletToolDefinition, checkSecurityToolDefinition, marketAnalysisToolDefinition, checkPortfolioToolDefinition, checkAddressToolDefinition, getMyAddressToolDefinition, createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition];
+    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition];
+    const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
+
+    let activeTools: any[] = [];
+    if (hasGoogleKeyword && !hasWeb3Keyword) {
+      activeTools = [...GOOGLE_TOOLS, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
+    } else if (hasWeb3Keyword && !hasGoogleKeyword) {
+      activeTools = [...WEB3_TOOLS, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
+    } else {
+      activeTools = [...WEB3_TOOLS, ...SYSTEM_TOOLS, ...GOOGLE_TOOLS, ...pluginManager.getToolDefinitions()];
+    }
+    activeTools = activeTools.filter(t => isSkillActive(t.function.name));
+    // ----------------------------------------
+
     const response = await executeWithRetry(async (client) => {
       return await client.chat.completions.create({
-        model: config.llm.model,
-        temperature: config.llm.temperature,
-        messages: messages,
-        tools: [
-          getBalanceToolDefinition as any, 
-          transferToolDefinition as any, 
-          getPriceToolDefinition as any, 
-          swapTokenToolDefinition as any,
-          bridgeTokenToolDefinition as any,
-          mintNftToolDefinition as any,
-          customTxToolDefinition as any,
-          createWalletToolDefinition as any,
-          checkSecurityToolDefinition as any,
-          marketAnalysisToolDefinition as any,
-          checkPortfolioToolDefinition as any,
-          checkAddressToolDefinition as any,
-          getMyAddressToolDefinition as any,
-          createLimitOrderToolDefinition as any,
-          listLimitOrdersToolDefinition as any,
-          cancelLimitOrderToolDefinition as any,
-          updateProfileToolDefinition as any,
-          updateSecurityPolicyToolDefinition as any,
-          analyzeDocumentToolDefinition as any,
-          readLocalFileToolDefinition as any,
-          writeLocalFileToolDefinition as any,
-          runTerminalCommandToolDefinition as any,
-          browseWebsiteToolDefinition as any,
-          searchWebToolDefinition as any,
-          installExternalSkillToolDefinition as any,
-          readGmailInboxToolDefinition as any,
-          listCalendarEventsToolDefinition as any,
-          appendRowToSheetsToolDefinition as any,
-          readGoogleDocsToolDefinition as any,
-          readGoogleFormResponsesToolDefinition as any,
-          ...pluginManager.getToolDefinitions()
-        ].filter(t => isSkillActive(t.function.name)),
-        tool_choice: "auto",
+          model: config.llm.model,
+          temperature: config.llm.temperature,
+          messages: messages,
+          tools: activeTools,
+          tool_choice: "auto",
       });
     });
 
@@ -484,9 +464,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           content: result,
         }, sessionId);
 
-        // V2 Optimization: Zero-LLM Fast Return for data-heavy tools
+        // V2 Optimization (Expanded in v1.7.4): Zero-LLM Fast Return for data-heavy and read-only tools
         // If the tool already returns perfectly formatted markdown, skip the second LLM call to save 5-10s latency and tokens!
-        if (toolName === 'check_portfolio' || toolName === 'check_address') {
+        const fastReturnTools = [
+          'check_portfolio', 'check_address', 'get_price', 'get_my_address',
+          'analyze_market', 'check_token_security', 'search_web', 'read_gmail_inbox', 'list_calendar_events'
+        ];
+        if (fastReturnTools.includes(toolName)) {
           logger.addEntry({ role: 'assistant', content: result }, sessionId);
           return result;
         }

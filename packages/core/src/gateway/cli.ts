@@ -31,6 +31,20 @@ console.log(`================================`);
     process.exit(0);
   }
 
+  // Check for memory clear command
+  if (process.argv.includes('clear')) {
+    if (process.argv.includes('--force') || process.argv.includes('-y')) {
+      const { Logger } = require('../memory/logger');
+      const logger = new Logger();
+      logger.clear();
+      console.log(pc.green('✅ Memory cleared successfully.'));
+      process.exit(0);
+    } else {
+      console.log(pc.yellow('⚠️ Warning: This will wipe all AI memory. Run "nyxora clear --force" to confirm.'));
+      process.exit(1);
+    }
+  }
+
   // Check for set-key shortcut
   if (process.argv.includes('set-key')) {
     const setKeyIndex = process.argv.indexOf('set-key');

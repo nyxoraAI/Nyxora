@@ -1,10 +1,11 @@
 {
   "name": "nyxora-agent-core",
-  "version": "1.7.3",
+  "version": "26.6.4",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
     "@clack/prompts": "^1.4.0",
+    "@inquirer/search": "^4.2.1",
     "cors": "^2.8.6",
     "duck-duck-scrape": "^2.2.7",
     "express": "^5.2.1",

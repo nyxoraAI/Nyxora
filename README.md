@@ -23,6 +23,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 *   **Cryptographically Bound Approval**: Policy changes and transactions requested by the AI are drafted as hashes (`sha256`). Approval via the UI requires a challenge nonce, preventing Man-in-the-Middle (MITM) attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
 *   **Plugin Sandbox VM**: Execute community-built external skills securely inside an airtight Node.js `vm` chamber with zero access to your file system or terminal processes.
+*   **Enterprise-Grade Stability**: Runs on a WAL-enabled SQLite backend with resilient anti-zombie connection timeouts to ensure maximum concurrency without database locks.
 
 ### 🌐 Web3 Skills (On-Chain)
 *   **Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
@@ -40,6 +41,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 *   **Zero-Click Multi-Session**: Instantly create isolated chat sessions with smart auto-naming triggered by your first prompt, exactly like ChatGPT.
 *   **Dynamic Trending Tokens**: Live top 5 crypto assets feed directly injected into the dashboard, completely clickable for instant AI market analysis.
 *   **Premium Utility-Centric UI**: A sleek, dark-themed dashboard built for high readability and professional Web3 execution, featuring Pseudo-Generative UI widgets (`<BalanceWidget>`, `<MarketWidget>`, `<SwapWidget>`).
+*   **Massive 2026 Model Roster**: Out-of-the-box support for cutting-edge models via Google Gemini, OpenAI, Groq, Mistral, xAI, DeepSeek, OpenRouter, and local Ollama, equipped with a searchable CLI prompt to instantly find your favorite model.
 *   **Context Overrides Defaults (NLP Intelligence)**: The Dashboard configuration (default chain & router) acts only as a safety net. If you issue an explicit command via Telegram (e.g., *"Swap 10 USDC to USDT on Arbitrum using Li.Fi"*), the NLP engine dynamically bypasses the default settings and executes exactly what you asked for, ensuring maximum flexibility.
 *   **Deep Personalization**: Feed the agent custom rules via `user.md` and define its core persona via `IDENTITY.md`.
 
@@ -83,6 +85,9 @@ nyxora start
 
 # 4. Open the Web Dashboard
 nyxora dashboard
+
+# Utility: Atomically clear the AI's short-term and long-term memory
+nyxora clear --force
 ```
 > **⚠️ IMPORTANT:** Whenever you re-run `nyxora setup` or manually edit the config files, you **must restart the daemon** by running `nyxora restart` for the changes to take effect.
 

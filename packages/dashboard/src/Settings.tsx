@@ -186,7 +186,11 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
                 { id: 'gemini', label: 'Google Gemini', icon: <Cpu size={14} /> },
                 { id: 'openai', label: 'OpenAI', icon: <Cpu size={14} /> },
                 { id: 'openrouter', label: 'OpenRouter', icon: <Cpu size={14} /> },
-                { id: 'ollama', label: 'Ollama (Local)', icon: <Cpu size={14} /> }
+                { id: 'ollama', label: 'Ollama (Local)', icon: <Cpu size={14} /> },
+                { id: 'groq', label: 'Groq', icon: <Cpu size={14} /> },
+                { id: 'mistral', label: 'Mistral AI', icon: <Cpu size={14} /> },
+                { id: 'xai', label: 'xAI (Grok)', icon: <Cpu size={14} /> },
+                { id: 'deepseek', label: 'DeepSeek', icon: <Cpu size={14} /> }
               ]}
             />
           </div>
