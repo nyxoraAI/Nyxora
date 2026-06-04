@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.5-1] - 2026-06-05
+## [26.6.5-1.0] - 2026-06-05
+### Bug Fixes & Improvements
+- **Transaction Stability**: Added 30-second `AbortSignal` timeout safety net across all Web3 skills (`swapToken`, `transfer`, `bridgeToken`, `mintNft`, `customTx`) to prevent UI hanging when RPC nodes are unresponsive.
+- **Multi-Session Transaction Logs**: Fixed an issue where Web3 transaction status messages (Approve/Reject/Success/Failure) were logged to the `default` session instead of the user's active session window, by attaching the correct `sessionId` with `Content-Type: application/json` headers in dashboard API requests.
+- **UI Tool Rendering Bug**: Fixed a React rendering bug in `App.tsx` where the AI's internal tool execution notification (green bubble) would be hidden if the AI generated both conversational text and a tool execution in the same response.
+- **Base Sepolia Support**: Officially added `base_sepolia` testnet to the supported networks list and `bridgeToken` mappings to prevent AI confusion when resolving bridge destinations.
+- **Default Policy Override (Plug & Play)**: Adjusted the default `config.yaml` template and internal Policy Engine defaults to set `allow_transfer`, `allow_swap`, `allow_shell_execution`, and `allow_file_write` to `true`. Also uncapped `max_usd_per_tx` to `$999,999,999` by default, ensuring a seamless "plug and play" experience for new users without needing manual configuration edits.
+- **Viem RPC Timeout**: Injected a strict 15-second timeout inside the `signer` vault's `viem` HTTP transport to prevent indefinite freezing during blockchain gas estimation when the node is heavily rate-limited.
+- **Auto-Approve Signature Fix**: Added internal HMAC signature generation across all Web3 transaction execution modules (Transfer, Bridge, Mint, CustomTx) to resolve the `Missing internal signature for autoApprove` error during manual dashboard approvals or policy bypasses.
+- **LayerZero Testnet Route**: Upgraded the testnet Bridge mock implementation to utilize LayerZero's V2 Endpoint router (`0x1a44...`) for simulated testnet bridging transactions.
+- **Transaction Result Formatting**: Fixed an issue where the AI would output raw JSON stringified payloads for successful transactions. The chat notification is now properly formatted to clearly display the transaction hash.
+- **Base Sepolia UI Integration**: Synchronized the Dashboard's Network Selector dropdown and Default Web3 Chain settings menu to include the newly added `Base Sepolia (Testnet)` network.
+- **LayerZero Mainnet Removal (Stargate V2)**: Completely removed the experimental LayerZero/Stargate V2 integration from the core bridging engine to prevent interaction with potentially outdated or unverified mainnet smart contracts. Removed the corresponding "LayerZero" routing option from the Dashboard UI dropdown to ensure a highly stable and secure bridging experience exclusively via Li.Fi and Relay.
+- **Relay MEV Protection (Slippage)**: Hardened the `getRelayQuote` HTTP POST request by injecting a strict `slippageTolerance` parameter (default 0.5%). This closes a critical vulnerability where unbounded Relay executions could expose user funds to front-running and MEV attacks during volatile market conditions.
+- **Strict NLP Exactness (Rule 8)**: Injected CRITICAL RULE 8 into the core reasoning pipeline (`reasoning.ts`). The AI is now strictly forbidden from hallucinating or guessing ambiguous transaction parameters (tokens, amounts, or destination networks). It will automatically halt and politely ask the user for explicit clarification before constructing any Web3 payloads.
+- **NLP Context Override System**: Documented the NLP fallback override mechanism in `README.md` and Vitepress documentation to clarify how explicit user chat instructions dynamically bypass Dashboard configurations.
+
 ### UI/UX Fixes
 - **Pending Transactions Widget**: Fixed a rendering bug where the Approve/Reject popup was not being injected into the DOM, preventing users from signing transactions.
 

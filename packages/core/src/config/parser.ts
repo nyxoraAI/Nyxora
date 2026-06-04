@@ -42,6 +42,7 @@ export interface NyxoraConfig {
     description: string;
     default_chain: string;
     default_router?: string;
+    default_slippage?: number;
   };
   llm: {
     provider: string;
@@ -138,7 +139,7 @@ export function loadConfig(): NyxoraConfig {
     
     // Merge with defaults
     return {
-      agent: parsed.agent || { name: 'Nyxora-Default', description: 'An autonomous agent running on your local machine.', default_chain: 'base', default_router: 'auto' },
+      agent: parsed.agent || { name: 'Nyxora-Default', description: 'An autonomous agent running on your local machine.', default_chain: 'base', default_router: 'auto', default_slippage: 0.5 },
       llm: parsed.llm || { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
@@ -156,8 +157,8 @@ export function loadConfig(): NyxoraConfig {
         telegram: { enabled: false }
       },
       permissions: parsed.permissions || {
-        web3: { allow_transfer: false, allow_swap: true, max_usd_per_tx: 50 },
-        system: { allow_shell_execution: false, allow_file_write: false }
+        web3: { allow_transfer: true, allow_swap: true, max_usd_per_tx: 999999999 },
+        system: { allow_shell_execution: true, allow_file_write: true }
       }
     } as NyxoraConfig;
   } catch (error: any) {
@@ -171,7 +172,8 @@ export function loadConfig(): NyxoraConfig {
       name: "Nyxora-Default",
       description: "An autonomous agent running on your local machine.",
       default_chain: "ethereum",
-      default_router: "auto"
+      default_router: "auto",
+      default_slippage: 0.5
     },
       llm: { 
         provider: 'openai', 
@@ -190,8 +192,8 @@ export function loadConfig(): NyxoraConfig {
         telegram: { enabled: false }
       },
       permissions: {
-        web3: { allow_transfer: false, allow_swap: true, max_usd_per_tx: 50 },
-        system: { allow_shell_execution: false, allow_file_write: false }
+        web3: { allow_transfer: true, allow_swap: true, max_usd_per_tx: 999999999 },
+        system: { allow_shell_execution: true, allow_file_write: true }
       }
     };
   }

@@ -4,7 +4,7 @@ import { Save, User, Cpu, Key, Network, Globe } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
 
 interface Config {
-  agent: { name: string; default_chain: string };
+  agent: { name: string; default_chain: string; default_slippage?: number };
   llm: { provider: string; model: string; temperature: number; api_keys?: string[] };
   web3?: { rpc_urls?: Record<string, string | string[]> };
 }
@@ -23,7 +23,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
       setFormData({
         agent: {
           name: config.agent?.name || 'Nyxora',
-          default_chain: config.agent?.default_chain || 'base'
+          default_chain: config.agent?.default_chain || 'base',
+          default_slippage: config.agent?.default_slippage || 0.5
         },
         llm: {
           provider: config.llm?.provider || 'openai',
@@ -162,10 +163,26 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
                 { id: 'arbitrum', label: 'Arbitrum One', icon: <Globe size={14} /> },
                 { id: 'optimism', label: 'OP Mainnet', icon: <Globe size={14} /> },
                 { id: 'polygon', label: 'Polygon (Matic)', icon: <Globe size={14} /> },
-                { id: 'sepolia', label: 'Sepolia Testnet', icon: <Globe size={14} /> }
+                { id: 'sepolia', label: 'Sepolia Testnet', icon: <Globe size={14} /> },
+                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <Globe size={14} /> }
               ]}
             />
           </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group flex-1">
+            <label className="nord-label">Default Slippage (%)</label>
+            <input 
+              className="nord-pill-input"
+              type="number" 
+              step="0.1"
+              min="0.1"
+              max="50"
+              value={formData.agent.default_slippage ?? 0.5} 
+              onChange={e => handleChange('agent', 'default_slippage', parseFloat(e.target.value) || 0.5)} 
+            />
+          </div>
+          <div className="form-group flex-1"></div>
         </div>
       </div>
 
@@ -303,7 +320,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           Separate multiple URLs with a comma for Fallback High-Availability.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia'].map(chain => {
+          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia', 'base_sepolia'].map(chain => {
             const rpcVal = formData.web3?.rpc_urls?.[chain];
             const displayVal = Array.isArray(rpcVal) ? rpcVal.join(', ') : (rpcVal || '');
             return (

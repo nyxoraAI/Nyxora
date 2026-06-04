@@ -30,6 +30,9 @@ To set up your security rules, simply edit the `security_policy.md` file in your
 *   **Tool Prioritization (Rule 7):**
     > *"When the user asks about crypto prices, market analysis, token security, or blockchain data, YOU MUST prioritize using the dedicated Web3 skills (e.g., get_price, analyze_market) FIRST before falling back to generic web search."*
 
+*   **Strict Exactness (Rule 8):**
+    > *"NEVER hallucinate or guess missing transaction parameters (like destination chains, tokens, or amounts). If ambiguous, HALT and explicitly ask the user for clarification."*
+
 ## The Power of Semantic Evaluation
 
 Unlike traditional Regex or exact-match firewalls, the NLP Security Policy relies on **Semantic Evaluation**. 

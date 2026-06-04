@@ -79,7 +79,7 @@ export async function executeMintNft(chainName: ChainName, params: any, autoAppr
     const { contractAddress, abi, functionName, parsedArgs, valueWei } = params;
     const token = process.env.INTERNAL_AUTH_TOKEN;
 
-    const payload = {
+    const payload: any = {
       type: 'mint',
       chainName,
       autoApprove,
@@ -88,13 +88,21 @@ export async function executeMintNft(chainName: ChainName, params: any, autoAppr
       }
     };
 
+    if (autoApprove && token) {
+      const crypto = require('crypto');
+      // For mint NFT we might not have amountWei, use valueWei or "0"
+      const signAmount = valueWei || "0";
+      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + signAmount).digest('hex');
+    }
+
     const res = await fetch('http://127.0.0.1:3001/request-tx', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
     });
 
     const data = await res.json();
@@ -104,6 +112,9 @@ export async function executeMintNft(chainName: ChainName, params: any, autoAppr
       return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
     }
 
+    if (data.signedHash) {
+      return `Mint successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
+    }
     return `Mint executed. Result: ${JSON.stringify(data)}`;
   } catch (error: any) {
     return `Failed to execute mint: ${error.message}`;

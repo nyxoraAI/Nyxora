@@ -49,7 +49,7 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
   return await res.json();
 }
 
-async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string) {
+async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippagePercent: number) {
   const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
   const baseUrl = isTestnet ? "https://api.testnets.relay.link" : "https://api.relay.link";
 
@@ -60,7 +60,8 @@ async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: 
     originCurrency: fromToken,
     destinationCurrency: toToken,
     amount: amountWei,
-    tradeType: "EXACT_INPUT"
+    tradeType: "EXACT_INPUT",
+    slippageTolerance: (slippagePercent / 100).toString()
   };
 
   const res = await fetch(`${baseUrl}/quote`, {
@@ -82,7 +83,7 @@ export async function prepareSwapToken(
   amountStr: string,
   mode: "auto" | "manual" = "auto",
   providerName: "auto" | "lifi" | "relay" | "uniswap_v2" | "uniswap_v3" | "pancakeswap" | "1inch" | "cowswap" = "auto",
-  slippagePercent: number = 0.5
+  slippagePercent?: number
 ): Promise<string> {
   try {
     const publicClient = getPublicClient(chainName);
@@ -117,6 +118,16 @@ export async function prepareSwapToken(
     let approvalAddress: string | null = null;
     let expectedOutputStr = "";
 
+    let actualSlippage = slippagePercent;
+    if (actualSlippage === undefined || actualSlippage === null) {
+      try {
+        const config = loadConfig();
+        actualSlippage = (config.agent as any).default_slippage || 0.5;
+      } catch (e) {
+        actualSlippage = 0.5;
+      }
+    }
+
     // If auto, read from global configuration set by Dashboard UI
     let actualProvider = mode === "auto" ? "auto" : providerName;
     if (actualProvider === "auto") {
@@ -148,7 +159,7 @@ export async function prepareSwapToken(
     // --- END MOCK ---
 
     if (actualProvider === "relay") {
-      const relayQuote = await getRelayQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress);
+      const relayQuote = await getRelayQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage);
       if (!relayQuote.steps || relayQuote.steps.length === 0) throw new Error("No route found by Relay.");
       
       // Relay returns steps. We need to find the main transaction step.
@@ -166,7 +177,7 @@ export async function prepareSwapToken(
     } else {
       // Use Li.Fi for lifi, 1inch, cowswap, uniswap_v2, uniswap_v3, pancakeswap
       // We mapped the allowExchanges inside getLifiQuote
-      const quote = await getLifiQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, slippagePercent / 100, actualProvider);
+      const quote = await getLifiQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage / 100, actualProvider);
       txRequest = quote.transactionRequest;
       approvalAddress = quote.estimate.approvalAddress;
       
@@ -234,7 +245,8 @@ export async function executeSwap(chainName: ChainName, params: any, autoApprove
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
     });
 
     const data = await res.json();
@@ -244,6 +256,9 @@ export async function executeSwap(chainName: ChainName, params: any, autoApprove
       return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
     }
 
+    if (data.signedHash) {
+      return `Swap successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
+    }
     return `Swap executed. Result: ${JSON.stringify(data)}`;
   } catch (error: any) {
     return `Failed to execute swap: ${error.message}`;
@@ -284,6 +299,10 @@ export const swapTokenToolDefinition = {
           type: "string",
           enum: ["auto", "lifi", "relay", "uniswap_v2", "uniswap_v3", "pancakeswap", "1inch", "cowswap"],
           description: "Used if mode is manual."
+        },
+        slippagePercent: {
+          type: "number",
+          description: "Optional slippage tolerance percentage (e.g. 0.5, 5, 10). If not specified, defaults to the globally configured slippage."
         }
       },
       required: ["chainName", "fromToken", "toToken", "amountStr"],
