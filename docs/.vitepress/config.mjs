@@ -25,7 +25,7 @@ export default defineConfig({
         items: [
           { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
           { text: '🔌 MCP Integration Guide', link: '/guide/mcp-integration' },
-          { text: '🛣️ Nyxora v2 Roadmap', link: '/guide/roadmap' }
+          { text: '🛣️ Nyxora Next Update', link: '/guide/roadmap' }
         ]
       },
       {
@@ -48,6 +48,13 @@ export default defineConfig({
           { text: '📦 Plugin Sandbox VM', link: '/security/sandbox' },
           { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
           { text: '🛟 Troubleshooting', link: '/security/troubleshooting' }
+        ]
+      },
+      {
+        text: 'Legal',
+        items: [
+          { text: '📜 Privacy Policy', link: '/privacy' },
+          { text: '⚖️ Terms of Service', link: '/terms' }
         ]
       }
     ],

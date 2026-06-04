@@ -35,7 +35,7 @@ Nyxora goes beyond simple token transfers. It is equipped with pro-trader tools:
 - **Dynamic Portfolio Engine:** Merges standard tokens, custom CAs, and daily CoinGecko trending tokens into a hyper-fast, spam-free Multicall scan for instant Net Worth estimations.
 
 ### 5. Plugin Sandboxing Architecture
-We are developing a robust **Plugin Sandboxing** architecture to ensure that if third-party developers create custom skills or extensions for Nyxora, they are not granted unrestricted System Access (File System/Shell), thereby preventing Supply Chain Attacks.
+Nyxora natively enforces a robust **Plugin Sandboxing** architecture. If third-party developers create custom skills or extensions for Nyxora, they are executed inside an isolated `vm2` sandbox. They are strictly denied unrestricted System Access (File System/Shell/Network), thereby completely neutralizing Supply Chain Attacks.
 
 ---
 
