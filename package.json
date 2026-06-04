@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.5",
+  "version": "26.6.5-1",
   "license": "MIT",
   "workspaces": [
     "packages/*"
