@@ -15,6 +15,7 @@ When you launch Nyxora via the background daemon (`nyxora start`), the launcher 
 ### 1. Core Runtime (The Brain) - Port 3000
 The Core is the front-facing gateway. It serves the Dashboard UI, connects to the Telegram Bot API, and houses the LLM orchestration logic. 
 *   **Role:** Analyzes user intent, reads memory, and builds transaction payloads (unsigned drafts).
+*   **NLP Intelligence ("Context Overrides Defaults"):** The Core is designed to prioritize your explicit natural language commands over the static Dashboard configurations. If your Dashboard is locked to `Base` and `Uniswap V2`, but you chat via Telegram asking to *"Swap on Arbitrum using Li.Fi"*, the Brain dynamically overrides the default fallback variables in real-time, executing the specific intent without permanently altering your Dashboard settings.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
 ### 2. Policy Engine (The Guard) - Port 3001

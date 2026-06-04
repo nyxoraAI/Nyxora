@@ -48,6 +48,7 @@ This architecture is designed to enforce maximum security while maintaining seam
 ### The Execution Flow (Outflow Explanation)
 
 1. **Input & NLP Parsing:** It all starts when a user sends a natural language command via the Web Dashboard or Telegram Bot (e.g., *"Buy 1 ETH"* or *"Read my system logs"*). This text is routed directly to the **Nyxora LLM Core**.
+   - **Context Overrides Defaults:** If the command contains specific routing details (e.g., *"Swap on Arbitrum using Li.Fi"*), the NLP engine dynamically overrides any global Dashboard defaults, executing the specific intent without permanently altering your background configurations.
 2. **Determine Required Skill:** The LLM acts as the central brain, determining which specialized module is needed. It splits into two main branches:
    - **Web3 Action:** If the user wants to interact with the blockchain.
    - **System Action:** If the user wants to interact with the local Operating System.

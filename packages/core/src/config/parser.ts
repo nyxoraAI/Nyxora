@@ -39,7 +39,9 @@ export async function saveApiKeys(newKeys: Record<string, string>): Promise<void
 export interface NyxoraConfig {
   agent: {
     name: string;
+    description: string;
     default_chain: string;
+    default_router?: string;
   };
   llm: {
     provider: 'openai' | 'anthropic' | 'ollama' | 'gemini' | 'openrouter';
@@ -136,7 +138,7 @@ export function loadConfig(): NyxoraConfig {
     
     // Merge with defaults
     return {
-      agent: parsed.agent || { name: 'Nyxora-Default', default_chain: 'base' },
+      agent: parsed.agent || { name: 'Nyxora-Default', description: 'An autonomous agent running on your local machine.', default_chain: 'base', default_router: 'auto' },
       llm: parsed.llm || { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
@@ -165,7 +167,12 @@ export function loadConfig(): NyxoraConfig {
       console.error('[Config] Failed to load config.yaml. Using default configuration.', error);
     }
     return {
-      agent: { name: 'Nyxora-Default', default_chain: 'base' },
+      agent: {
+      name: "Nyxora-Default",
+      description: "An autonomous agent running on your local machine.",
+      default_chain: "ethereum",
+      default_router: "auto"
+    },
       llm: { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
