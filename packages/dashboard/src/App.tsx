@@ -6,6 +6,7 @@ import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
 import { NetworkSelector } from './NetworkSelector';
+import { RouterSelector } from './RouterSelector';
 import PendingTransactions from './PendingTransactions';
 import BalanceWidget from './BalanceWidget';
 import TransactionWidget from './TransactionWidget';
@@ -22,7 +23,7 @@ interface Message {
 }
 
 interface Config {
-  agent: { name: string; default_chain: string };
+  agent: { name: string; default_chain: string; default_router?: string };
   llm: { provider: string; model: string; temperature: number };
 }
 
@@ -428,6 +429,10 @@ function App() {
                 <NetworkSelector 
                   value={config.agent.default_chain} 
                   onChange={(chain) => updateConfig({ ...config, agent: { ...config.agent, default_chain: chain }})} 
+                />
+                <RouterSelector 
+                  value={config.agent.default_router || 'auto'} 
+                  onChange={(router) => updateConfig({ ...config, agent: { ...config.agent, default_router: router }})} 
                 />
               </>
             )}

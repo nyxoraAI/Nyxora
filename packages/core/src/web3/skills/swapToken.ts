@@ -3,7 +3,8 @@ import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '.
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
-import crypto from 'crypto';
+import { loadConfig } from '../../config/parser';
+import * as crypto from 'crypto';
 
 const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
@@ -15,7 +16,7 @@ const CHAIN_IDS: Record<string, number> = {
   polygon: 137,
 };
 
-async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number) {
+async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number, providerName?: string) {
   const url = new URL('https://li.quest/v1/quote');
   url.searchParams.append('fromChain', fromChainId.toString());
   url.searchParams.append('toChain', toChainId.toString());
@@ -24,6 +25,21 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
   url.searchParams.append('fromAmount', amountWei);
   url.searchParams.append('fromAddress', userAddress);
   url.searchParams.append('slippage', slippage.toString());
+  
+  // Specific Exchange forcing (Native-feel integration via Aggregator constraint)
+  if (providerName && providerName !== 'lifi' && providerName !== 'auto') {
+    // Map our internal names to Li.Fi exchange names
+    const exchangeMap: Record<string, string> = {
+      'uniswap_v2': 'uniswap_v2',
+      'uniswap_v3': 'uniswap_v3',
+      'pancakeswap': 'pancakeswap',
+      '1inch': 'oneinch',
+      'cowswap': 'cowswap'
+    };
+    if (exchangeMap[providerName]) {
+      url.searchParams.append('allowExchanges', exchangeMap[providerName]);
+    }
+  }
 
   const res = await fetch(url.toString());
   if (!res.ok) {
@@ -65,7 +81,7 @@ export async function prepareSwapToken(
   toToken: string, 
   amountStr: string,
   mode: "auto" | "manual" = "auto",
-  providerName: "lifi" | "relay" = "lifi",
+  providerName: "auto" | "lifi" | "relay" | "uniswap_v2" | "uniswap_v3" | "pancakeswap" | "1inch" | "cowswap" = "auto",
   slippagePercent: number = 0.5
 ): Promise<string> {
   try {
@@ -101,7 +117,17 @@ export async function prepareSwapToken(
     let approvalAddress: string | null = null;
     let expectedOutputStr = "";
 
-    let actualProvider = mode === "auto" ? "lifi" : providerName;
+    // If auto, read from global configuration set by Dashboard UI
+    let actualProvider = mode === "auto" ? "auto" : providerName;
+    if (actualProvider === "auto") {
+      try {
+        const config = loadConfig();
+        actualProvider = (config.agent.default_router as any) || "lifi";
+        if (actualProvider === "auto") actualProvider = "lifi"; // strict fallback
+      } catch (e) {
+        actualProvider = "lifi";
+      }
+    }
     const isTestnet = chainId === 11155111;
 
     // --- SEPOLIA TESTNET MOCK ---
@@ -121,14 +147,7 @@ export async function prepareSwapToken(
     }
     // --- END MOCK ---
 
-    if (actualProvider === "lifi") {
-      const quote = await getLifiQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, slippagePercent / 100);
-      txRequest = quote.transactionRequest;
-      approvalAddress = quote.estimate.approvalAddress;
-      
-      const toDecimals = quote.action.toToken.decimals;
-      expectedOutputStr = formatUnits(BigInt(quote.estimate.toAmount), toDecimals);
-    } else if (actualProvider === "relay") {
+    if (actualProvider === "relay") {
       const relayQuote = await getRelayQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress);
       if (!relayQuote.steps || relayQuote.steps.length === 0) throw new Error("No route found by Relay.");
       
@@ -144,6 +163,15 @@ export async function prepareSwapToken(
       }
       
       expectedOutputStr = relayQuote.details?.currencyOut?.amountFormatted || "Unknown";
+    } else {
+      // Use Li.Fi for lifi, 1inch, cowswap, uniswap_v2, uniswap_v3, pancakeswap
+      // We mapped the allowExchanges inside getLifiQuote
+      const quote = await getLifiQuote(chainId, chainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, slippagePercent / 100, actualProvider);
+      txRequest = quote.transactionRequest;
+      approvalAddress = quote.estimate.approvalAddress;
+      
+      const toDecimals = quote.action.toToken.decimals;
+      expectedOutputStr = formatUnits(BigInt(quote.estimate.toAmount), toDecimals);
     }
 
     // Check allowance early so we know if we need to auto-approve
@@ -250,11 +278,11 @@ export const swapTokenToolDefinition = {
         mode: {
           type: "string",
           enum: ["auto", "manual"],
-          description: "auto uses lifi. manual uses the specified provider."
+          description: "auto uses default router. manual uses the specified provider."
         },
         providerName: {
           type: "string",
-          enum: ["lifi", "relay"],
+          enum: ["auto", "lifi", "relay", "uniswap_v2", "uniswap_v3", "pancakeswap", "1inch", "cowswap"],
           description: "Used if mode is manual."
         }
       },
