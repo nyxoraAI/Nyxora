@@ -158,8 +158,12 @@ export function loadConfig(): NyxoraConfig {
         system: { allow_shell_execution: false, allow_file_write: false }
       }
     } as NyxoraConfig;
-  } catch (error) {
-    console.error('Failed to load config.yaml. Using default configuration.', error);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      console.log('[Config] No config.yaml found. Using default configuration.');
+    } else {
+      console.error('[Config] Failed to load config.yaml. Using default configuration.', error);
+    }
     return {
       agent: { name: 'Nyxora-Default', default_chain: 'base' },
       llm: { 

@@ -1,6 +1,6 @@
 {
-  "name": "nyxora-agent-policy",
-  "version": "1.7.1",
+  "name": "nyxora-policy-engine",
+  "version": "1.7.2",
   "private": true,
   "main": "src/server.ts",
   "dependencies": {
