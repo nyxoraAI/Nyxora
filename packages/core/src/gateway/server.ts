@@ -44,7 +44,7 @@ import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendR
 
 import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
-import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated } from './googleAuthModule';
+import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated, logoutGoogle } from './googleAuthModule';
 
 // Initialize Google Auth
 initGoogleAuth();
@@ -291,7 +291,13 @@ app.get('/api/auth/google/callback', async (req, res) => {
 });
 
 app.get('/api/auth/google/status', async (req, res) => {
-  res.json({ connected: await isAuthenticated() });
+  const connected = await isAuthenticated();
+  res.json({ connected });
+});
+
+app.delete('/api/auth/google', async (req, res) => {
+  const success = await logoutGoogle();
+  res.json({ success });
 });
 
 app.get('/api/transactions', (req, res) => {
@@ -405,7 +411,7 @@ export function startServer() {
   limitOrderManager.startMonitor();
 
   const PORT = Number(process.env.PORT || 3000);
-  app.listen(PORT, '127.0.0.1', () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
     
     // Start the Telegram bot listener

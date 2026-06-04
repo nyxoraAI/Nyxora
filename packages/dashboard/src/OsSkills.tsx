@@ -144,9 +144,37 @@ const OsSkills: React.FC = () => {
         </div>
         <div>
           {googleConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(163, 190, 140, 0.1)', color: '#a3be8c', padding: '8px 16px', borderRadius: '6px', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', background: '#a3be8c', borderRadius: '50%', display: 'inline-block' }}></span>
-              Connected to Google
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(163, 190, 140, 0.1)', color: '#a3be8c', padding: '8px 16px', borderRadius: '6px', fontWeight: 600 }}>
+                <span style={{ width: '8px', height: '8px', background: '#a3be8c', borderRadius: '50%', display: 'inline-block' }}></span>
+                Connected to Google
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch('/api/auth/google', { method: 'DELETE' });
+                    if (res.ok) {
+                      setGoogleConnected(false);
+                    }
+                  } catch (e) {
+                    alert('Failed to disconnect.');
+                  }
+                }}
+                style={{
+                  background: 'transparent',
+                  color: '#bf616a',
+                  border: '1px solid rgba(191, 97, 106, 0.4)',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(191, 97, 106, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                Disconnect
+              </button>
             </div>
           ) : (
             <button 
