@@ -500,6 +500,11 @@ function App() {
                 <div className="dot"></div>
               </div>
             )}
+            {activeWidget && (
+              <div className="widget-container-live" style={{ marginTop: '16px', marginBottom: '16px' }}>
+                {activeWidget}
+              </div>
+            )}
             <div ref={messagesEndRef} />
             </div>
 

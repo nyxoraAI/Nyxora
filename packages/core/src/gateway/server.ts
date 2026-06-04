@@ -304,52 +304,68 @@ app.get('/api/transactions', (req, res) => {
   res.json(txManager.getPending());
 });
 
-app.post('/api/transactions/:id/approve', (req, res) => {
-  const id = req.params.id;
-  const token = process.env.INTERNAL_AUTH_TOKEN;
-  if (!token) return res.status(500).json({ error: 'Internal Auth Token missing' });
+app.post('/api/transactions/:id/approve', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const tx = txManager.getTransaction(id);
+    if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
 
-  const jwtToken = jwt.sign({ service: 'core' }, token, { expiresIn: '1m' });
-
-  // Generate Challenge Nonce
-  const nonce = crypto.randomBytes(16).toString('hex');
-  const approvalHash = crypto.createHash('sha256').update(id + nonce + token).digest('hex');
-
-  const options = {
-    hostname: '127.0.0.1',
-    port: 3001,
-    path: `/approve-tx/${id}`,
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${jwtToken}`,
-      'Content-Type': 'application/json'
+    let result = '';
+    if (tx.type === 'transfer') {
+      result = await executeTransfer(tx.chainName as any, tx.details, true);
+    } else if (tx.type === 'swap') {
+      result = await executeSwap(tx.chainName as any, tx.details, true);
+    } else if (tx.type === 'bridge') {
+      result = await executeBridge(tx.chainName as any, tx.details, true);
+    } else if (tx.type === 'mint') {
+      result = await executeMintNft(tx.chainName as any, tx.details, true);
+    } else if (tx.type === 'custom') {
+      result = await executeCustomTx(tx.chainName as any, tx.details, true);
     }
-  };
 
-  const requestPayload = JSON.stringify({ nonce, approvalHash });
-  options.headers['Content-Length'] = Buffer.byteLength(requestPayload);
+    if (result.startsWith('Failed to execute')) {
+      let errorMsg = result;
+      if (result.toLowerCase().includes('insufficient funds') || result.toLowerCase().includes('exceeds the balance')) {
+        errorMsg = "Saldo Koin/Token Anda tidak mencukupi untuk menanggung jumlah transaksi beserta biaya Gas (Network Fee).";
+      } else {
+        errorMsg = result.replace('Failed to execute ', '');
+      }
+      
+      txManager.updateStatus(id, 'failed', errorMsg);
+      logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Failed: ${errorMsg}` });
+      
+      logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Gagal**\n\n${errorMsg}` });
+      
+      return res.json({ success: true, result: errorMsg });
+    }
 
-  const proxyReq = http.request(options, (proxyRes) => {
-    res.status(proxyRes.statusCode || 200);
-    proxyRes.pipe(res);
-  });
-
-  proxyReq.on('error', (e) => {
-    res.status(500).json({ error: 'Policy Engine unreachable: ' + e.message });
-  });
-
-  proxyReq.write(requestPayload);
-  proxyReq.end();
+    txManager.updateStatus(id, 'executed', result);
+    logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Success: ${result}` });
+    
+    logger.addEntry({ role: 'assistant', content: `✅ **Transaksi Berhasil Dieksekusi**\n\n${result}` });
+    
+    res.json({ success: true, result });
+  } catch (err: any) {
+    txManager.updateStatus(req.params.id, 'failed', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/transactions/:id/reject', (req, res) => {
-  const id = req.params.id;
-  const tx = txManager.getTransaction(id);
-  if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
-  
-  txManager.updateStatus(id, 'rejected');
-  processUserInput(`Transaction ${id} was REJECTED by the user via Dashboard. Acknowledge this briefly.`, 'system').catch(() => {});
-  res.json({ success: true });
+app.post('/api/transactions/:id/reject', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const tx = txManager.getTransaction(id);
+    if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
+
+    txManager.updateStatus(id, 'rejected');
+    logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: 'User rejected the transaction.' });
+    
+    logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Dibatalkan**\n\nAnda telah membatalkan transaksi ini.` });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 let cachedTrending: string[] | null = null;
