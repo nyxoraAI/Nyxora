@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.5-1] - 2026-06-05
+### UI/UX Fixes
+- **Pending Transactions Widget**: Fixed a rendering bug where the Approve/Reject popup was not being injected into the DOM, preventing users from signing transactions.
+
+### Core AI Engine
+- **Strict Language Matching**: Optimized CRITICAL RULE 2 in the System Prompt. The AI now completely ignores historical chat language context and strictly matches the language of the user's latest prompt.
+
 ## [26.6.5] - 2026-06-04 (Hotfix Patch)
 ### Fixed
 - **NPM Monorepo Resolution:** Synced `@inquirer/search` and `duck-duck-scrape` to root `package.json` to prevent `MODULE_NOT_FOUND` and `ERR_CONNECTION_REFUSED` on global installations.

@@ -543,6 +543,7 @@ function App() {
           </div>
         </div>
         )}
+        <PendingTransactions />
       </main>
 
       {editingSessionId && (
