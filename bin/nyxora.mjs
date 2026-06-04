@@ -208,9 +208,20 @@ async function setup() {
   await new Promise(resolve => child.on('close', resolve));
 }
 
+async function clearMemory(args) {
+  const child = spawn('npx', ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'clear', ...args], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
 async function main() {
   switch (command) {
     case 'setup': await setup(); break;
+    case 'clear': await clearMemory(process.argv.slice(3)); break;
     case 'start': await start(); break;
     case 'stop': await stop(); break;
     case 'restart': await restart(); break;
@@ -234,9 +245,14 @@ Commands:
   start          Start the Nyxora background daemon
   stop           Stop the running daemon
   restart        Restart the daemon
+  setup          Run the interactive Setup Wizard
   dashboard      Open the dashboard in your browser
+  clear          Atomically clear the AI's short/long-term memory SQLite database
   clean-logs     Clear the daemon logs
   autostart      Enable/disable autostart on boot (usage: nyxora autostart enable)
+
+Options:
+  -v, --version  Show current version
 `);
   }
 }

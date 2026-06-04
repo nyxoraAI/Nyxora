@@ -5,9 +5,14 @@ dist/
 !.env.example
 memory.json
 memory.json.bak
-memory.db
+memory.db*
 keystore.json
 config.yaml
+*.token
+*.pid
+user.md
+IDENTITY.md
+security_policy.md
 
 # Vite dashboard ignores
 dashboard/node_modules/
