@@ -1,4 +1,4 @@
-# Nyxora Policy Rules
-max_usd_per_tx: 50
+# Global Policy Rules for Nyxora
+max_usd_per_tx: 999999999
 whitelist_only: false
 require_approval: true

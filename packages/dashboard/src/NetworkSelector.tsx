@@ -8,7 +8,8 @@ const NETWORKS = [
   { id: 'arbitrum', label: 'Arbitrum One' },
   { id: 'optimism', label: 'OP Mainnet' },
   { id: 'polygon', label: 'Polygon (Matic)' },
-  { id: 'sepolia', label: 'Sepolia (Testnet)' }
+  { id: 'sepolia', label: 'Sepolia (Testnet)' },
+  { id: 'base_sepolia', label: 'Base Sepolia (Testnet)' }
 ];
 
 interface NetworkSelectorProps {

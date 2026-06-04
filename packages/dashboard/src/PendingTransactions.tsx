@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from './utils/api';
 import { ShieldAlert, Check, X } from 'lucide-react';
 
-export default function PendingTransactions() {
+export default function PendingTransactions({ sessionId }: { sessionId: string | null }) {
   const [pending, setPending] = useState<any[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -25,7 +25,11 @@ export default function PendingTransactions() {
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setLoadingId(id);
     try {
-      const res = await apiFetch(`/api/transactions/${id}/${action}`, { method: 'POST' });
+      const res = await apiFetch(`/api/transactions/${id}/${action}`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
       if (res.ok) {
         setPending(prev => prev.filter(t => t.id !== id));
         window.dispatchEvent(new CustomEvent('nyxora-refresh-chat'));

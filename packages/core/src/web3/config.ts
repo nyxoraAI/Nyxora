@@ -1,5 +1,5 @@
 import { createPublicClient, http, fallback, PublicClient, Transport } from 'viem';
-import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon, baseSepolia } from 'viem/chains';
 import { loadConfig } from '../config/parser';
 
 export const supportedChains = {
@@ -10,6 +10,7 @@ export const supportedChains = {
   optimism: optimism,
   sepolia: sepolia,
   polygon: polygon,
+  base_sepolia: baseSepolia,
 };
 
 export const SUPPORTED_CHAIN_NAMES = Object.keys(supportedChains);

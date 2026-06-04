@@ -50,7 +50,7 @@ export async function executeCustomTx(chainName: ChainName, params: any, autoApp
     const { toAddress, dataHex, valueWei, gasEstimate } = params;
     const token = process.env.INTERNAL_AUTH_TOKEN;
 
-    const payload = {
+    const payload: any = {
       type: 'custom',
       chainName,
       autoApprove,
@@ -59,13 +59,20 @@ export async function executeCustomTx(chainName: ChainName, params: any, autoApp
       }
     };
 
+    if (autoApprove && token) {
+      const crypto = require('crypto');
+      const signAmount = valueWei || "0";
+      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + signAmount).digest('hex');
+    }
+
     const res = await fetch('http://127.0.0.1:3001/request-tx', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
     });
 
     const data = await res.json();
@@ -75,6 +82,9 @@ export async function executeCustomTx(chainName: ChainName, params: any, autoApp
       return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
     }
 
+    if (data.signedHash) {
+      return `Custom transaction successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
+    }
     return `Custom transaction executed. Result: ${JSON.stringify(data)}`;
   } catch (error: any) {
     return `Failed to execute custom transaction: ${error.message}`;

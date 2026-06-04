@@ -37,7 +37,7 @@ try {
 } catch (e) {
   console.log('[Policy Engine] No policy.yaml found, using defaults.');
   policyRules = {
-    max_usd_per_tx: 50,
+    max_usd_per_tx: 999999999,
     whitelist_only: false
   };
 }

@@ -1,4 +1,5 @@
 import { initSafeLogger } from '../../core/src/utils/safeLogger';
+import { loadConfig } from '../../core/src/config/parser';
 initSafeLogger();
 
 import express from 'express';
@@ -111,7 +112,15 @@ app.post('/sign-transaction', async (req, res) => {
      const account = privateKeyToAccount(vaultPrivateKey);
      const chain = getChain(txPayload.chainName);
      
-     const client = createWalletClient({ account, chain, transport: http() }).extend(publicActions);
+     const config = loadConfig();
+     const customRpcRaw = config.web3?.rpc_urls?.[txPayload.chainName.toLowerCase()];
+     let customRpc = undefined;
+     if (customRpcRaw) {
+       if (Array.isArray(customRpcRaw) && customRpcRaw.length > 0) customRpc = customRpcRaw[0];
+       else if (typeof customRpcRaw === 'string' && customRpcRaw.trim()) customRpc = customRpcRaw.trim();
+     }
+     
+     const client = createWalletClient({ account, chain, transport: http(customRpc, { timeout: 15000 }) }).extend(publicActions);
      const chainId = chain.id;
 
      // Mutex lock for nonce management

@@ -78,7 +78,16 @@ To prevent Supply Chain Attacks, the sandbox **permanently blacklists** critical
 *   `child_process`: Plugins cannot spawn silent background terminals or malicious `curl | bash` supply chain payloads.
 *   `os`, `net`, `cluster`: Blocked to prevent network-level exploitation.
 
-## 5. Reporting Vulnerabilities
+## 5. Anti-MEV & Slippage Defense
+
+To protect user funds from front-running and Maximal Extractable Value (MEV) attacks, Nyxora strictly enforces a **Default Slippage Tolerance of 0.5%** for all decentralized exchange (DEX) routing via Li.Fi and Relay.
+
+Unlike typical web3 interfaces that might expose you to unlimited slippage if left unconfigured, Nyxora's backend hardcodes this protection layer into the API payload. 
+If an AI agent attempts to execute a swap without explicit slippage instructions, the `swapToken` and `bridgeToken` engines will automatically inject the `0.5%` boundary. 
+
+Users can safely override this limit globally via the Dashboard UI Settings or dynamically via NLP chat commands for specific high-volatility pairs (e.g., "Swap with 10% slippage").
+
+## 6. Reporting Vulnerabilities
 
 If you discover a vulnerability in the Nyxora architecture, please DO NOT open a public issue.
 Instead, email the core maintainer directly at **ainyxor@gmail.com**.
