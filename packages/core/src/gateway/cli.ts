@@ -53,7 +53,8 @@ console.log(`================================`);
     
     if (!provider || !key) {
       console.error(pc.red('Usage: nyxora set-key <provider> <api_key>'));
-      console.error(pc.gray('Example: nyxora set-key tavily tvly-xxx'));
+      console.error(pc.gray('Example: nyxora set-key groq gsk_xxx'));
+      console.error(pc.gray('Providers: openai, gemini, openrouter, groq, mistral, xai, deepseek, tavily, brave'));
       process.exit(1);
     }
     
@@ -61,6 +62,10 @@ console.log(`================================`);
       'openai': 'openai_key',
       'gemini': 'gemini_key',
       'openrouter': 'openrouter_key',
+      'groq': 'groq_key',
+      'mistral': 'mistral_key',
+      'xai': 'xai_key',
+      'deepseek': 'deepseek_key',
       'tavily': 'tavily_key',
       'brave': 'brave_key'
     };

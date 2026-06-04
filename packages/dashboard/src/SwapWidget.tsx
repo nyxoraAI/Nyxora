@@ -7,14 +7,7 @@ interface SwapWidgetProps {
 
 const SwapWidget: React.FC<SwapWidgetProps> = ({ data }) => {
   if (data.startsWith('TRANSACTION_PENDING')) {
-    return (
-      <div className="widget-card" style={{ background: '#1e293b', border: '1px solid #eab308' }}>
-        <h3 className="widget-title" style={{ color: '#eab308', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, marginBottom: '8px' }}>
-          Action Required
-        </h3>
-        <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: 0 }}>Please review and approve the swap transaction.</p>
-      </div>
-    );
+    return null;
   }
 
   let parsedData = null;

@@ -28,6 +28,7 @@ export default function PendingTransactions() {
       const res = await apiFetch(`/api/transactions/${id}/${action}`, { method: 'POST' });
       if (res.ok) {
         setPending(prev => prev.filter(t => t.id !== id));
+        window.dispatchEvent(new CustomEvent('nyxora-refresh-chat'));
       } else {
         const data = await res.json();
         alert(`Error: ${data.error}`);
