@@ -145,6 +145,25 @@ export async function getAccessToken(): Promise<string | null> {
   }
 }
 
+export async function logoutGoogle(): Promise<boolean> {
+  try {
+    const { Entry } = require('@napi-rs/keyring');
+    const entry = new Entry('nyxora', 'google_refresh_token');
+    await entry.deletePassword();
+  } catch (e) {}
+
+  try {
+    if (fs.existsSync(FALLBACK_TOKEN_PATH)) {
+      fs.unlinkSync(FALLBACK_TOKEN_PATH);
+    }
+  } catch (e) {}
+
+  accessToken = null;
+  tokenExpiry = 0;
+  console.log('[Google Auth] Successfully logged out.');
+  return true;
+}
+
 // ---- Secure Storage for Refresh Token ----
 
 async function saveRefreshToken(token: string) {
