@@ -63,7 +63,14 @@ async function start() {
     } catch(e) {}
   }
 
-  const child = spawn('npx', ['ts-node', '-T', 'launcher.ts'], {
+  const compiledLauncher = path.join(projectRoot, 'dist', 'launcher.js');
+  const useCompiled = fs.existsSync(compiledLauncher);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledLauncher] : ['ts-node', '-T', 'launcher.ts'];
+
+  if (useCompiled) console.log('⚡ Using pre-compiled JS for blazing fast startup...');
+
+  const child = spawn(cmd, args, {
     cwd: projectRoot,
     detached: true,
     stdio: ['ignore', out, err],

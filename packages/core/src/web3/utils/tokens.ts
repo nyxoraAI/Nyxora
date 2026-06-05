@@ -123,3 +123,49 @@ export function resolveToken(tokenSymbolOrAddress: string, chainName: ChainName)
 
   throw new Error(`Token "${tokenSymbolOrAddress}" pada chain ${chainName} tidak ditemukan. Silakan gunakan alamat kontrak langsung (0x...).`);
 }
+
+export interface TokenMetadata {
+  decimals: number;
+  symbol: string;
+}
+
+// Bounded LRU Cache to prevent RAM bloat from fake tokens (OOM protection)
+const MAX_CACHE_SIZE = 1000;
+const tokenMetadataCache = new Map<string, TokenMetadata>();
+
+export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`): Promise<TokenMetadata> {
+  // If it's the native token address placeholder
+  if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+    return { decimals: 18, symbol: "ETH/BNB/MATIC" }; // Native fallback
+  }
+
+  const cacheKey = `${client.chain?.id || 'unknown'}-${tokenAddress.toLowerCase()}`;
+  if (tokenMetadataCache.has(cacheKey)) {
+    return tokenMetadataCache.get(cacheKey)!;
+  }
+
+  // Parallel RPC execution for extreme latency reduction
+  const [decimals, symbol] = await Promise.all([
+    client.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'decimals',
+    }).catch(() => 18) as Promise<number>,
+    client.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'symbol',
+    }).catch(() => "TOKEN") as Promise<string>
+  ]);
+
+  const metadata: TokenMetadata = { decimals, symbol };
+
+  // Evict oldest (Map iterates in insertion order)
+  if (tokenMetadataCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = tokenMetadataCache.keys().next().value;
+    if (firstKey) tokenMetadataCache.delete(firstKey);
+  }
+  
+  tokenMetadataCache.set(cacheKey, metadata);
+  return metadata;
+}

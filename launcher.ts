@@ -52,19 +52,24 @@ if (fs.existsSync(socketPath)) {
 
 const children: ReturnType<typeof spawn>[] = [];
 
-const signerPath = path.join(__dirname, 'packages/signer/src/server.ts');
-const signer = spawnService('Signer', 'npx', ['ts-node', '-T', signerPath], env);
+const isCompiled = __filename.endsWith('.js');
+const ext = isCompiled ? '.js' : '.ts';
+const cmd = isCompiled ? 'node' : 'npx';
+const baseArgs = isCompiled ? [] : ['ts-node', '-T'];
+
+const signerPath = path.join(__dirname, `packages/signer/src/server${ext}`);
+const signer = spawnService('Signer', cmd, [...baseArgs, signerPath], env);
 children.push(signer);
 
 setTimeout(() => {
-  const policyPath = path.join(__dirname, 'packages/policy/src/server.ts');
-  const policy = spawnService('Policy', 'npx', ['ts-node', '-T', policyPath], env);
+  const policyPath = path.join(__dirname, `packages/policy/src/server${ext}`);
+  const policy = spawnService('Policy', cmd, [...baseArgs, policyPath], env);
   children.push(policy);
   
   setTimeout(() => {
-    const corePath = path.join(__dirname, 'packages/core/src/gateway/cli.ts');
+    const corePath = path.join(__dirname, `packages/core/src/gateway/cli${ext}`);
     const args = process.argv.slice(2);
-    const core = spawnService('Core', 'npx', ['ts-node', '-T', corePath, ...args], env, true);
+    const core = spawnService('Core', cmd, [...baseArgs, corePath, ...args], env, true);
     children.push(core);
   }, 1000);
 }, 1000);
@@ -75,15 +80,17 @@ const cleanup = () => {
   children.forEach(child => {
     if (!child.killed && child.pid) {
       try {
-        process.kill(child.pid, 'SIGKILL');
+        process.kill(child.pid, 'SIGTERM');
       } catch (e) {}
     }
   });
-  // Kill any stray ts-node processes left behind by npx
-  try {
-    require('child_process').execSync('pkill -f ts-node');
-  } catch (e) {}
-  process.exit(0);
+  // Give them a moment to cleanup
+  setTimeout(() => {
+    try {
+      require('child_process').execSync('pkill -f ts-node');
+    } catch (e) {}
+    process.exit(0);
+  }, 1000);
 };
 
 process.on('SIGINT', cleanup);

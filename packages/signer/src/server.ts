@@ -134,6 +134,18 @@ app.post('/sign-transaction', async (req, res) => {
            
            const txRequest = txPayload.details?.txRequest || txPayload;
            
+           // Phase 2: Transaction Simulation (Dry-Run / Anti-Gagal)
+           try {
+              await client.estimateGas({
+                account,
+                to: txRequest.to,
+                data: txRequest.data,
+                value: txRequest.value ? BigInt(txRequest.value) : 0n
+              });
+           } catch (simError: any) {
+              throw new Error(`Simulation failed: ${simError.shortMessage || simError.message}`);
+           }
+           
            // @ts-ignore
            const txHash = await client.sendTransaction({
              account,
@@ -175,3 +187,17 @@ app.listen(SOCKET_PATH, () => {
     console.error('Failed to chmod socket:', err);
   }
 });
+
+// Phase 3: Graceful Shutdown (Keamanan Keyring Lokal)
+const gracefulShutdown = () => {
+  console.log('[Signer Vault] Received shutdown signal. Locking vault...');
+  // @ts-ignore
+  if (typeof vaultPrivateKey !== 'undefined') vaultPrivateKey = null; // Zero out memory reference
+  try {
+    if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
+  } catch (e) {}
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
