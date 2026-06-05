@@ -5,7 +5,7 @@ export default defineConfig({
   description: "Secure AI execution framework for Web3 agents",
   base: '/Nyxora/',
   head: [
-    ['meta', { name: 'jcot-verification', content: 'c2eface47344a9c37665b659cea484364b58a58fc274ef503d41914e26f547cea01393229cc5ba8f49dbdcc888d9eaad66687055bd84181dbacf87c2c70aceb9' }]
+    ['meta', { name: 'talentapp:project_verification', content: 'c2efaae47344a9e37665b659cea484364b58a60fe274af503d41914c26f547eea61393229ee5ba8f49dbdcc088d9eaad66687065bd84181dbacf87c2e70aceb9' }]
   ],
   themeConfig: {
     nav: [
