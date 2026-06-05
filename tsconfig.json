@@ -6,7 +6,8 @@
     "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "outDir": "dist"
   },
   "include": [
     "launcher.ts",
@@ -14,5 +15,5 @@
     "packages/policy/src/**/*",
     "packages/signer/src/**/*"
   ],
-  "exclude": ["node_modules", "packages/dashboard"]
+  "exclude": ["node_modules", "packages/dashboard", "**/__tests__"]
 }

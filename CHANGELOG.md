@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.6] - 2026-06-05
+### Enterprise Stability Upgrades
+- **Strict LLM Output Validation**: Added robust try-catch parsing for LLM tool arguments in `reasoning.ts`. If the AI outputs malformed JSON, the error is fed back into the reasoning loop, allowing the model to autonomously self-correct without crashing the agent pipeline.
+- **Transaction Simulation (Dry-Run)**: Integrated `publicClient.estimateGas` in the Signer Vault before broadcasting transactions. This ensures all Web3 transactions are simulated at the node level, preventing users from wasting gas fees on reverted transactions (e.g., due to insufficient slippage or balance).
+- **Graceful Shutdown (Keyring Security)**: Replaced `SIGKILL` with `SIGTERM` in `launcher.ts` and added explicit process termination listeners in the Signer server. When a user exits the CLI using `Ctrl+C`, the system elegantly clears the in-memory `vaultPrivateKey` reference and unlinks unix sockets, securing the local Keyring vault before terminating.
+- **Undefined Function Fix**: Fixed a silent `TypeError` bug in `reasoning.ts` where a failed LLM parsing attempt would call an undefined `executeReasoningLoop` function. Now gracefully loops via standard `logger.addEntry` continuation.
+
+### Performance & Speed Optimizations
+- **SQLite Indexing (O(1) Lookup)**: Added an automatic `CREATE INDEX` for `session_id` in the memory logger database, drastically reducing query latency from O(n) full table scans to instantaneous lookups for large chat histories.
+- **Sliding Window Context Limit**: Overhauled `getHistory()` with an SQL subquery `LIMIT 40` approach. The agent now only feeds the most recent 40 messages to the LLM context, massively reducing API token costs and preventing latency bloat.
+- **Pre-Compiled Runtime (ts-node Elimination)**: Replaced on-the-fly TypeScript compilation (`ts-node`) with ahead-of-time compilation (`tsc`). `launcher.ts` and `nyxora.mjs` now natively detect and execute compiled `.js` files from the `dist/` directory, resulting in near-instant daemon startup times.
+- **Global Token Metadata Cache (OOM Protected)**: Implemented an in-memory Bounded LRU Cache (max 1000 items) in `tokens.ts` for caching `decimals` and `symbol`. This eliminates repetitive RPC calls for immutable token data, shielding the system from Out-Of-Memory crashes if spammed with fake tokens.
+- **Web3 RPC Parallelization**: Refactored `transfer.ts`, `swapToken.ts`, `bridgeToken.ts`, and `getBalance.ts` to replace slow, sequential `readContract` calls with `Promise.all` fetching via `getTokenMetadata()`. Web3 action preparation latency has been reduced to near 0ms for cached tokens.
+
 ## [26.6.5-1.0] - 2026-06-05
 ### Bug Fixes & Improvements
 - **Transaction Stability**: Added 30-second `AbortSignal` timeout safety net across all Web3 skills (`swapToken`, `transfer`, `bridgeToken`, `mintNft`, `customTx`) to prevent UI hanging when RPC nodes are unresponsive.

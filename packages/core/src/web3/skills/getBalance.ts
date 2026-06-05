@@ -1,6 +1,6 @@
 import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
-import { ERC20_ABI, resolveToken } from '../utils/tokens';
+import { ERC20_ABI, resolveToken, getTokenMetadata } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 
 export async function getBalance(chainName: ChainName, address?: `0x${string}`, token?: string): Promise<string> {
@@ -27,7 +27,7 @@ export async function getBalance(chainName: ChainName, address?: `0x${string}`, 
         // Intercept and save custom ERC20 token to user's whitelist
         saveTokenToWhitelist(targetAddress, chainName, tokenAddress);
 
-        const [balanceWei, decimals, symbol] = await Promise.all([
+        const [balanceWei, metadata] = await Promise.all([
           // @ts-ignore
           client.readContract({
             address: tokenAddress,
@@ -35,22 +35,11 @@ export async function getBalance(chainName: ChainName, address?: `0x${string}`, 
             functionName: 'balanceOf',
             args: [targetAddress as `0x${string}`],
           }) as Promise<bigint>,
-          // @ts-ignore
-          client.readContract({
-            address: tokenAddress,
-            abi: ERC20_ABI,
-            functionName: 'decimals',
-          }) as Promise<number>,
-          // @ts-ignore
-          client.readContract({
-            address: tokenAddress,
-            abi: ERC20_ABI,
-            functionName: 'symbol',
-          }).catch(() => token) as Promise<string>
+          getTokenMetadata(client, tokenAddress as `0x${string}`)
         ]);
         
-        const balanceFormatted = formatUnits(balanceWei, decimals);
-        return `${balanceFormatted} ${symbol} on ${chainName}`;
+        const balanceFormatted = formatUnits(balanceWei, metadata.decimals);
+        return `${balanceFormatted} ${metadata.symbol} on ${chainName}`;
       }
     } else {
       const balanceWei = await client.getBalance({ address: targetAddress as `0x${string}` });

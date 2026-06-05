@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.5-1.0",
+  "version": "26.6.6",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -16,8 +16,8 @@
     "restart": "node ./bin/nyxora.mjs restart",
     "dashboard": "node ./bin/nyxora.mjs dashboard",
     "setup": "node ./bin/nyxora.mjs setup",
-    "build": "npm run build --workspace=dashboard",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && npm run build --workspace=dashboard",
+    "test": "npm run test --workspace=packages/core"
   },
   "dependencies": {
     "@clack/prompts": "^1.4.0",
