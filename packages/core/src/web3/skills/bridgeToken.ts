@@ -34,7 +34,7 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
 }
 
 async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippagePercent: number) {
-  const isTestnet = fromChainId === 11155111 || toChainId === 11155111;
+  const isTestnet = fromChainId === 11155111 || toChainId === 11155111 || fromChainId === 84532 || toChainId === 84532;
   const baseUrl = isTestnet ? "https://api.testnets.relay.link" : "https://api.relay.link";
 
   const body = {
@@ -45,19 +45,30 @@ async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: 
     destinationCurrency: toToken,
     amount: amountWei,
     tradeType: "EXACT_INPUT",
-    slippageTolerance: (slippagePercent / 100).toString()
+    slippageTolerance: Math.round(slippagePercent * 100).toString()
   };
 
-  const res = await fetch(`${baseUrl}/quote`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Relay API Error: ${err.message || res.statusText}`);
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const res = await fetch(`${baseUrl}/quote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`Relay API Error: ${err.message || res.statusText}`);
+      }
+      return await res.json();
+    } catch (error: any) {
+      if (error.message.includes('Relay API Error')) throw error; // Don't retry logic errors
+      retries--;
+      if (retries === 0) throw error;
+      await new Promise(r => setTimeout(r, 1000)); // wait 1s before retry
+    }
   }
-  return await res.json();
 }
 
 export async function prepareBridgeToken(
@@ -104,7 +115,8 @@ export async function prepareBridgeToken(
       }
     }
 
-    let actualProvider = mode === "auto" ? "lifi" : providerName;
+    const isTestnet = fromChainId === 11155111 || toChainId === 11155111 || fromChainId === 84532 || toChainId === 84532;
+    let actualProvider = mode === "auto" ? (isTestnet ? "relay" : "lifi") : providerName;
     
 
     if (actualProvider === "lifi") {
@@ -118,7 +130,7 @@ export async function prepareBridgeToken(
       const relayQuote = await getRelayQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage);
       if (!relayQuote.steps || relayQuote.steps.length === 0) throw new Error("No route found by Relay.");
       
-      const txStep = relayQuote.steps.find((s: any) => s.id === "execute");
+      const txStep = relayQuote.steps.find((s: any) => s.id === "execute" || s.id === "deposit" || s.kind === "transaction");
       if (!txStep || !txStep.items || txStep.items.length === 0) throw new Error("Relay steps invalid.");
       const item = txStep.items[0];
       txRequest = item.data;
@@ -184,7 +196,7 @@ export async function executeBridge(chainName: ChainName, params: any, autoAppro
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(180000)
     });
 
     const data = await res.json();

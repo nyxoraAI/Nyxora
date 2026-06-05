@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Graceful Shutdown (Keyring Security)**: Replaced `SIGKILL` with `SIGTERM` in `launcher.ts` and added explicit process termination listeners in the Signer server. When a user exits the CLI using `Ctrl+C`, the system elegantly clears the in-memory `vaultPrivateKey` reference and unlinks unix sockets, securing the local Keyring vault before terminating.
 - **Undefined Function Fix**: Fixed a silent `TypeError` bug in `reasoning.ts` where a failed LLM parsing attempt would call an undefined `executeReasoningLoop` function. Now gracefully loops via standard `logger.addEntry` continuation.
 
+### Bug Fixes & UX Enhancements
+- **Destructive Config Overwrite Fix**: Fixed a critical bug in `/api/config` where saving settings via the Dashboard UI would silently delete the user's Telegram Bot token and system permissions. The API now performs a deep merge with `config.yaml`.
+- **Asynchronous Transaction UI**: Detached the Web3 transaction execution loop from the Dashboard UI `/approve` endpoint. Approvals now instantly return a success state to the UI (preventing 3-minute freezes) while the transaction safely confirms in the background and reports back via chat.
+
 ### Performance & Speed Optimizations
 - **SQLite Indexing (O(1) Lookup)**: Added an automatic `CREATE INDEX` for `session_id` in the memory logger database, drastically reducing query latency from O(n) full table scans to instantaneous lookups for large chat histories.
 - **Sliding Window Context Limit**: Overhauled `getHistory()` with an SQL subquery `LIMIT 40` approach. The agent now only feeds the most recent 40 messages to the LLM context, massively reducing API token costs and preventing latency bloat.

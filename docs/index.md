@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Nyxora"
   text: "Production-Grade<br>Secure Execution<br>for Web3 Agents."
-  tagline: "Nyxora enables AI agents to safely interact with wallets through a strict 3-Tier IPC Architecture and Cryptographically Bound Human-in-the-Loop approvals."
+  tagline: "Your Personal Web3 Assistant. Safely interact with wallets through a strict 3-Tier IPC Architecture and Cryptographically Bound Human-in-the-Loop approvals."
   image:
     src: /favicon.svg # Dummy to trigger image slot
     alt: Nyxora Execution
