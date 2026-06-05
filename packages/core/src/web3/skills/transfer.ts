@@ -91,7 +91,7 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(180000)
     });
 
     const data = await res.json();

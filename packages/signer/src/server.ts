@@ -81,8 +81,10 @@ const nonceLocks: Record<number, Promise<void>> = {};
 const nonceCache: Record<number, number> = {};
 
 function getChain(chainName: string) {
+  const normalized = chainName.toLowerCase().replace(/_/g, '-');
+  const normalizedSpace = chainName.toLowerCase().replace(/_/g, ' ');
   // @ts-ignore
-  return Object.values(chains).find(c => c.name.toLowerCase() === chainName.toLowerCase() || (c as any).network === chainName.toLowerCase()) || chains.mainnet;
+  return Object.values(chains).find(c => c.name.toLowerCase() === normalizedSpace || c.name.toLowerCase() === normalized || (c as any).network === normalized) || chains.mainnet;
 }
 
 app.use((req, res, next) => {

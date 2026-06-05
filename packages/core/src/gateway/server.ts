@@ -104,7 +104,7 @@ app.use('/api', (req, res, next) => {
 });
 
 // Serve Static Dashboard
-const dashboardPath = path.resolve(__dirname, '../../../dashboard/dist');
+const dashboardPath = path.resolve(process.cwd(), 'packages/dashboard/dist');
 app.use(express.static(dashboardPath));
 
 app.get('/', (req, res) => {
@@ -184,8 +184,16 @@ app.get('/api/config', (req, res) => {
 
 app.post('/api/config', (req, res) => {
   try {
-    // Save new configuration to file
-    saveConfig(req.body);
+    const currentConfig = loadConfig();
+    const newConfig = {
+      ...currentConfig,
+      ...req.body,
+      agent: { ...currentConfig.agent, ...(req.body.agent || {}) },
+      llm: { ...currentConfig.llm, ...(req.body.llm || {}) },
+      web3: { ...currentConfig.web3, ...(req.body.web3 || {}) }
+    };
+    // Save merged configuration to file
+    saveConfig(newConfig);
     Tracker.addEvent('config.updated', { provider: req.body.llm?.provider });
     res.json({ success: true });
   } catch (error: any) {
@@ -311,41 +319,46 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     const tx = txManager.getTransaction(id);
     if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
 
-    let result = '';
-    if (tx.type === 'transfer') {
-      result = await executeTransfer(tx.chainName as any, tx.details, true);
-    } else if (tx.type === 'swap') {
-      result = await executeSwap(tx.chainName as any, tx.details, true);
-    } else if (tx.type === 'bridge') {
-      result = await executeBridge(tx.chainName as any, tx.details, true);
-    } else if (tx.type === 'mint') {
-      result = await executeMintNft(tx.chainName as any, tx.details, true);
-    } else if (tx.type === 'custom') {
-      result = await executeCustomTx(tx.chainName as any, tx.details, true);
-    }
+    txManager.updateStatus(id, 'approved', 'Executing on-chain...');
+    res.json({ success: true, status: 'processing', message: 'Transaction submitted to background processing.' });
 
-    if (result.startsWith('Failed to execute')) {
-      let errorMsg = result;
-      if (result.toLowerCase().includes('insufficient funds') || result.toLowerCase().includes('exceeds the balance')) {
-        errorMsg = "Saldo Koin/Token Anda tidak mencukupi untuk menanggung jumlah transaksi beserta biaya Gas (Network Fee).";
-      } else {
-        errorMsg = result.replace('Failed to execute ', '');
+    // Execute in background
+    (async () => {
+      try {
+        let result = '';
+        if (tx.type === 'transfer') {
+          result = await executeTransfer(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'swap') {
+          result = await executeSwap(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'bridge') {
+          result = await executeBridge(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'mint') {
+          result = await executeMintNft(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'custom') {
+          result = await executeCustomTx(tx.chainName as any, tx.details, true);
+        }
+
+        if (result.startsWith('Failed to execute')) {
+          let errorMsg = result;
+          if (result.toLowerCase().includes('insufficient funds') || result.toLowerCase().includes('exceeds the balance')) {
+            errorMsg = "Insufficient Coin/Token balance to cover the transaction amount and Gas (Network Fee).";
+          } else {
+            errorMsg = result.replace('Failed to execute ', '');
+          }
+          
+          txManager.updateStatus(id, 'failed', errorMsg);
+          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Failed: ${errorMsg}` });
+          logger.addEntry({ role: 'assistant', content: `❌ **Transaction Failed**\n\n${errorMsg}` }, sessionId);
+        } else {
+          txManager.updateStatus(id, 'executed', result);
+          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Success: ${result}` });
+          logger.addEntry({ role: 'assistant', content: `✅ **Transaction Executed Successfully**\n\n${result}` }, sessionId);
+        }
+      } catch (err: any) {
+        txManager.updateStatus(id, 'failed', err.message);
+        logger.addEntry({ role: 'assistant', content: `❌ **Transaction Failed**\n\n${err.message}` }, sessionId);
       }
-      
-      txManager.updateStatus(id, 'failed', errorMsg);
-      logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Failed: ${errorMsg}` });
-      
-      logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Gagal**\n\n${errorMsg}` }, sessionId);
-      
-      return res.json({ success: true, result: errorMsg });
-    }
-
-    txManager.updateStatus(id, 'executed', result);
-    logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Success: ${result}` });
-    
-    logger.addEntry({ role: 'assistant', content: `✅ **Transaksi Berhasil Dieksekusi**\n\n${result}` }, sessionId);
-    
-    res.json({ success: true, result });
+    })();
   } catch (err: any) {
     txManager.updateStatus(req.params.id, 'failed', err.message);
     res.status(500).json({ error: err.message });
@@ -362,8 +375,8 @@ app.post('/api/transactions/:id/reject', async (req, res) => {
     txManager.updateStatus(id, 'rejected');
     logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: 'User rejected the transaction.' });
     
-    logger.addEntry({ role: 'assistant', content: `❌ **Transaksi Dibatalkan**\n\nAnda telah membatalkan transaksi ini.` }, sessionId);
-
+    logger.addEntry({ role: 'assistant', content: `❌ **Transaction Cancelled**\n\nYou have cancelled this transaction.` }, sessionId || 'default');
+    
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

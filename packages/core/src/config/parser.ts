@@ -137,9 +137,8 @@ export function loadConfig(): NyxoraConfig {
       });
     }
     
-    // Merge with defaults
     return {
-      agent: parsed.agent || { name: 'Nyxora-Default', description: 'An autonomous agent running on your local machine.', default_chain: 'base', default_router: 'auto', default_slippage: 0.5 },
+      agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 0.5 },
       llm: parsed.llm || { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
@@ -170,7 +169,7 @@ export function loadConfig(): NyxoraConfig {
     return {
       agent: {
       name: "Nyxora-Default",
-      description: "An autonomous agent running on your local machine.",
+      description: "Your Personal Web3 Assistant.",
       default_chain: "ethereum",
       default_router: "auto",
       default_slippage: 0.5
