@@ -66,6 +66,11 @@ export class Logger {
       )
     `);
 
+    // Phase 1: SQLite Index Optimization
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_session_id ON messages(session_id);
+    `);
+
     // Ensure session_id exists for older DBs
     try {
       this.db.prepare('ALTER TABLE messages ADD COLUMN session_id TEXT').run();
@@ -142,10 +147,26 @@ export class Logger {
 
   public getHistory(sessionId?: string): MemoryEntry[] {
     let rows;
+    // Phase 2: Sliding Window Algorithm (LLM Context Limit)
+    // Fetch only the last 40 messages, then order them chronologically
     if (sessionId) {
-      rows = this.db.prepare('SELECT role, content, name, tool_call_id, tool_calls, session_id FROM messages WHERE session_id = ? ORDER BY id ASC').all(sessionId);
+      rows = this.db.prepare(`
+        SELECT * FROM (
+          SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
+          FROM messages 
+          WHERE session_id = ? 
+          ORDER BY id DESC LIMIT 40
+        ) ORDER BY id ASC
+      `).all(sessionId);
     } else {
-      rows = this.db.prepare('SELECT role, content, name, tool_call_id, tool_calls, session_id FROM messages WHERE session_id IS NULL ORDER BY id ASC').all();
+      rows = this.db.prepare(`
+        SELECT * FROM (
+          SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
+          FROM messages 
+          WHERE session_id IS NULL 
+          ORDER BY id DESC LIMIT 40
+        ) ORDER BY id ASC
+      `).all();
     }
     
     return rows.map((row: any) => {

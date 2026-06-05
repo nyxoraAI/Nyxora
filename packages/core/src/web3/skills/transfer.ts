@@ -1,7 +1,7 @@
 import { parseEther, parseUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
-import { resolveToken, ERC20_ABI } from '../utils/tokens';
+import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
 
 export async function prepareTransfer(chainName: ChainName, toAddress: `0x${string}`, amountStr: string, token?: string): Promise<string> {
   try {
@@ -31,19 +31,9 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
       });
     } else {
       // Simulate ERC-20 Transfer
-      // @ts-ignore
-      decimals = await publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'decimals',
-      }) as number;
-
-      // @ts-ignore
-      symbol = await publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'symbol',
-      }).catch(() => token || "TOKEN") as string;
+      const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
+      decimals = metadata.decimals;
+      symbol = metadata.symbol;
 
       const value = parseUnits(amountStr, decimals);
       

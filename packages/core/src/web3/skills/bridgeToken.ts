@@ -84,12 +84,9 @@ export async function prepareBridgeToken(
     // Get decimals
     let decimals = 18;
     if (!isNativeIn) {
-      // @ts-ignore
-      decimals = await publicClient.readContract({
-        address: fromTokenAddress as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'decimals',
-      }) as number;
+      const { getTokenMetadata } = await import('../utils/tokens');
+      const metadata = await getTokenMetadata(publicClient, fromTokenAddress as `0x${string}`);
+      decimals = metadata.decimals;
     }
     const amountWei = parseUnits(amountStr, decimals).toString();
 

@@ -17,9 +17,14 @@
     "openai": "^6.39.0",
     "pdf-parse": "^2.4.5",
     "telegraf": "^4.16.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/pdf-parse": "^1.1.5"
+    "@types/pdf-parse": "^1.1.5",
+    "vitest": "^2.1.8"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }

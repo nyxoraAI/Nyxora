@@ -278,11 +278,29 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;
         let result = "";
-        const args = JSON.parse(toolCall.function.arguments);
+        let args: any = {};
         const toolName = toolCall.function.name;
 
         console.log(pc.yellow(`[⚡ Eksekusi Tool] AI memanggil ${toolName}...`));
         if (onProgress) onProgress(`_⚡ Menjalankan alat: ${toolName}..._`);
+
+        // Phase 1: LLM Output Validation (Anti-Halusinasi)
+        try {
+          args = JSON.parse(toolCall.function.arguments);
+          // TODO: Zod schema validation could be injected here per-tool
+        } catch (parseError: any) {
+          console.error(pc.red(`[LLM Validation Error] Invalid JSON arguments for ${toolName}: ${parseError.message}`));
+          result = `[System Error] Arguments for ${toolName} must be valid JSON. Please correct the format. Error: ${parseError.message}`;
+          
+          logger.addEntry({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: result
+          }, sessionId);
+          
+          // Let the second LLM call handle the explanation of the failure
+          continue;
+        }
 
         try {
           switch (toolName) {
