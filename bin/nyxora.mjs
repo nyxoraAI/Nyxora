@@ -206,7 +206,11 @@ Comment=Start Nyxora in the background
 
 async function setup() {
   console.log("Running Nyxora Setup Wizard...");
-  const child = spawn('npx', ['ts-node', '-T', 'packages/core/src/gateway/setup-cli.ts'], {
+  const compiledSetup = path.join(projectRoot, 'dist', 'packages/core/src/gateway/setup-cli.js');
+  const useCompiled = fs.existsSync(compiledSetup);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledSetup] : ['ts-node', '-T', 'packages/core/src/gateway/setup-cli.ts'];
+  const child = spawn(cmd, args, {
     cwd: projectRoot,
     stdio: 'inherit',
     env: { ...process.env, TS_NODE_CACHE: 'false' }
@@ -215,8 +219,12 @@ async function setup() {
   await new Promise(resolve => child.on('close', resolve));
 }
 
-async function clearMemory(args) {
-  const child = spawn('npx', ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'clear', ...args], {
+async function clearMemory(cliArgs) {
+  const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
+  const useCompiled = fs.existsSync(compiledCli);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledCli, 'clear', ...cliArgs] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'clear', ...cliArgs];
+  const child = spawn(cmd, args, {
     cwd: projectRoot,
     stdio: 'inherit',
     env: { ...process.env, TS_NODE_CACHE: 'false' }
@@ -225,8 +233,12 @@ async function clearMemory(args) {
   await new Promise(resolve => child.on('close', resolve));
 }
 
-async function setKey(args) {
-  const child = spawn('npx', ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'set-key', ...args], {
+async function setKey(cliArgs) {
+  const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
+  const useCompiled = fs.existsSync(compiledCli);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledCli, 'set-key', ...cliArgs] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'set-key', ...cliArgs];
+  const child = spawn(cmd, args, {
     cwd: projectRoot,
     stdio: 'inherit',
     env: { ...process.env, TS_NODE_CACHE: 'false' }
@@ -256,7 +268,7 @@ async function main() {
       break;
     default:
       console.log(`
-Nyxora CLI Manager
+Nyxora CLI Manager - Your Personal Web3 Assistant
 Usage: nyxora <command>
 
 Commands:

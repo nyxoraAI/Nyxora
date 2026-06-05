@@ -100,7 +100,7 @@ Because Nyxora has a Native OS-Level Skill called `installSkill`, you can simply
 ### Method B: Manual Installation (Developer Mode)
 If you are developing your own skill (like the Price Checker above):
 1. Save your JavaScript code into a file named `src/external_skills/get_external_price.js`.
-2. When Nyxora boots up (via `npm run dev` or `start`), the `PluginManager` will automatically detect the file.
+2. When Nyxora boots up (via `nyxora start` or `npm start`), the `PluginManager` will automatically detect the file.
 3. The code will be read and injected into the **VM Context**. If no syntax errors or forbidden requires are found, the plugin will be loaded.
 4. On Telegram or your Terminal, you can simply ask Nyxora: *"What is the current price of SOL?"*
 5. Nyxora will safely utilize your custom plugin!

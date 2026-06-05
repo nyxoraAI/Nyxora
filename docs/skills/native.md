@@ -2,11 +2,38 @@
 
 Nyxora comes pre-equipped with a robust set of Native Skills built directly into its core reasoning engine (`reasoning.ts`). These skills are fundamentally integrated with the agent's permissions, heavily monitored by the NLP Security Policy, and do not require installing any external NPM plugins.
 
-Native skills are divided into two primary categories: **OS (Operating System) Level Skills** and **Web3 Native Functions**.
+Native skills are divided into two primary categories: **Web3 Native Functions** and **OS (Operating System) Level Skills**.
 
 ---
 
-## 1. Operating System (OS) Level Skills
+## 1. Web3 Native Functions
+
+Unlike generic AI assistants, Nyxora was built from the ground up for the blockchain. The core runtime includes a built-in Web3 provider layer, meaning the AI possesses native instincts for cryptocurrency operations.
+
+### 🔐 Wallet & Key Management
+*   **Secure Signing:** The AI does not hold your private keys in its memory. It generates a cryptographic payload and requests the [OS-Native Keyring Vault](/security/vault) to sign the transaction. 
+*   **Address Awareness:** The AI always knows its own public address (`Agent Address`) and the currently active network (e.g., Ethereum Mainnet, Base, Sepolia).
+
+### 💰 Portfolio & Balance Tracking
+*   **Native Token Balances:** The AI can query RPC endpoints to check its exact balance of ETH, MATIC, BNB, etc.
+*   **ERC-20 Token Tracking:** By passing the contract address, the AI can check the balance of any specific ERC-20 token in the wallet.
+*   **Context:** *"What is my current balance across Ethereum and Base?"*
+
+### 🔄 Asset Transfers, Swaps & Automated Trading
+*   **Token Transfers:** The AI can autonomously construct and broadcast transactions to send tokens to a specified address or ENS domain (e.g., `vitalik.eth`).
+*   **DEX Swaps & Anti-MEV Slippage:** The core engine interfaces with primary decentralized exchanges and aggregators (like Li.Fi and Relay) to swap tokens cross-chain. It enforces a strict **0.5% default slippage** to protect against MEV attacks. You can safely override this limit dynamically via NLP chat commands for specific high-volatility pairs (e.g., *"Swap with 10% slippage"*).
+*   **Take Profit & Cut Loss (Limit Orders):** Nyxora features a built-in `LimitOrderManager`. You can instruct the AI to execute trades automatically based on price conditions. For example: *"Buy 1 ETH if the price drops below $2500"* (Cut Loss / Buy Limit) or *"Sell 50% of my PEPE if it goes up 2x"* (Take Profit). The agent monitors prices continuously in the background.
+*   **Gas Estimation:** The AI natively calculates required Gas Fees (Gwei) before broadcasting to ensure transactions do not fail out of gas.
+
+### 📊 Market Intelligence & Prioritization (Rule 7)
+*   **Prioritized Execution:** According to **Critical Rule 7** in the AI's reasoning engine, whenever a user asks for crypto prices, token contract security, or market analysis, the AI **must** prioritize using dedicated Web3 APIs (e.g., CoinGecko, DexScreener) rather than falling back to a generic web search.
+*   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
+
+*(Note: For highly specialized DeFi operations—such as complex Yield Farming strategies, Flash Loans, or interacting with novel protocols—the agent utilizes the `installSkill` function to load specialized external plugins into its sandbox).*
+
+---
+
+## 2. Operating System (OS) Level Skills
 
 These skills allow the AI to interact directly with your local machine, file system, and terminal. They are the backbone of Nyxora's ability to act as an autonomous developer.
 
@@ -39,30 +66,3 @@ These skills allow the AI to interact directly with your local machine, file sys
 *   **`installSkill`**
     *   **Description:** Dynamically installs external Nyxora community plugins via NPM at runtime.
     *   **Capabilities:** If the AI realizes it lacks the capability to interact with a specific DeFi protocol, it can search for and install the required skill package without requiring a system restart.
-
----
-
-## 2. Web3 Native Functions
-
-Unlike generic AI assistants, Nyxora was built from the ground up for the blockchain. The core runtime includes a built-in Web3 provider layer, meaning the AI possesses native instincts for cryptocurrency operations.
-
-### 🔐 Wallet & Key Management
-*   **Secure Signing:** The AI does not hold your private keys in its memory. It generates a cryptographic payload and requests the [OS-Native Keyring Vault](/security/vault) to sign the transaction. 
-*   **Address Awareness:** The AI always knows its own public address (`Agent Address`) and the currently active network (e.g., Ethereum Mainnet, Base, Sepolia).
-
-### 💰 Portfolio & Balance Tracking
-*   **Native Token Balances:** The AI can query RPC endpoints to check its exact balance of ETH, MATIC, BNB, etc.
-*   **ERC-20 Token Tracking:** By passing the contract address, the AI can check the balance of any specific ERC-20 token in the wallet.
-*   **Context:** *"What is my current balance across Ethereum and Base?"*
-
-### 🔄 Asset Transfers, Swaps & Automated Trading
-*   **Token Transfers:** The AI can autonomously construct and broadcast transactions to send tokens to a specified address or ENS domain (e.g., `vitalik.eth`).
-*   **DEX Swaps & Anti-MEV Slippage:** The core engine interfaces with primary decentralized exchanges and aggregators (like Li.Fi and Relay) to swap tokens cross-chain. It enforces a strict **0.5% default slippage** to protect against MEV attacks. You can safely override this limit dynamically via NLP chat commands for specific high-volatility pairs (e.g., *"Swap with 10% slippage"*).
-*   **Take Profit & Cut Loss (Limit Orders):** Nyxora features a built-in `LimitOrderManager`. You can instruct the AI to execute trades automatically based on price conditions. For example: *"Buy 1 ETH if the price drops below $2500"* (Cut Loss / Buy Limit) or *"Sell 50% of my PEPE if it goes up 2x"* (Take Profit). The agent monitors prices continuously in the background.
-*   **Gas Estimation:** The AI natively calculates required Gas Fees (Gwei) before broadcasting to ensure transactions do not fail out of gas.
-
-### 📊 Market Intelligence & Prioritization (Rule 7)
-*   **Prioritized Execution:** According to **Critical Rule 7** in the AI's reasoning engine, whenever a user asks for crypto prices, token contract security, or market analysis, the AI **must** prioritize using dedicated Web3 APIs (e.g., CoinGecko, DexScreener) rather than falling back to a generic web search.
-*   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
-
-*(Note: For highly specialized DeFi operations—such as complex Yield Farming strategies, Flash Loans, or interacting with novel protocols—the agent utilizes the `installSkill` function to load specialized external plugins into its sandbox).*

@@ -1,5 +1,5 @@
 # Nyxora Agent 🤖
-**Dual-Engine AI Agent: Bridging On-Chain Execution with Off-Chain Automation.**
+**Your Personal Web3 Assistant.**
 
 
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
@@ -109,10 +109,10 @@ npm run build
 # 3. Interactive Setup Wizard (API Keys, Wallet, Telegram)
 npm run setup
 
-# 4. Start the Development Server (Single-Command Boot)
-# This will start the backend vault/services and the frontend Dashboard simultaneously
-npm run dev
+# 4. Start the Application
+npm start
 ```
+*(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 > **⚠️ IMPORTANT:** Whenever you re-run `npm run setup` or manually edit the config files, you **must restart the dev server** for the changes to take effect.
 
 ---

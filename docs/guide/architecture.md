@@ -55,7 +55,8 @@ The Policy Engine communicates with the Signer Vault over a highly secure local 
 - **Web3 Broadcasting:** Using the `viem` library, the transaction is constructed, signed with the isolated Private Key, and safely broadcasted (`sendTransaction`) to the target blockchain's RPC.
 
 ### 5. Response and Finality
-Once broadcasted, the Signer Vault returns the Transaction Hash (TxHash) back down the pipeline to the Policy Engine, which ultimately delivers the success response to the User Interface.
+Once broadcasted, the Signer Vault returns the Transaction Hash (TxHash) back down the pipeline to the Policy Engine.
+Because Web3 transactions can be slow, Nyxora executes them **asynchronously in the background**. This ensures the UI never freezes while waiting for block confirmations. Once finalized, the Policy Engine delivers a strict **English-language** success or failure response back to the User Interface, regardless of the user's primary conversational language.
 
 ---
 

@@ -51,13 +51,13 @@ After building, you can start the interactive setup wizard directly from the sou
 ```bash
 npm run setup
 ```
-To launch the daemon locally:
+To launch the daemon locally (pre-compiled):
 ```bash
-npm run start
+npm start
 ```
-To open the React dashboard locally:
+To run in heavy development mode with hot-reloading:
 ```bash
-npm run dashboard
+npm run dev
 ```
 
 ---
@@ -110,7 +110,7 @@ No manual Master Passwords are required!
 Everything is set! To start using your AI assistant, simply type:
 
 ```bash
-nyxora
+nyxora start
 ```
 
 This command will automatically:

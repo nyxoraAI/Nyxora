@@ -29,6 +29,9 @@ To protect users from malicious contracts and provide the best trading routes, N
 Nyxora is fundamentally **Model-Agnostic**. You are not locked into a single provider. The agent can switch its "Brain" on the fly:
 - **Google Gemini:** Optimized support for `gemini-1.5-pro` and `gemini-2.5-flash` for high-speed reasoning.
 - **OpenAI:** Full support for `gpt-4o` and `o1-preview`.
+- **DeepSeek:** Native integration with DeepSeek's API for top-tier open-source coding and reasoning models.
+- **Groq & Mistral:** Ultra-fast LPU inference (Groq) and European open-weight models (Mistral).
+- **xAI:** Direct access to the Grok language models.
 - **OpenRouter:** A gateway to dozens of open-source models (like Llama 3, Claude, Mistral) through a single API key.
 - **Ollama (Local AI):** Run the LLM entirely offline on your local hardware for ultimate privacy (zero cloud data transmission).
 
