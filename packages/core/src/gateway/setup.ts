@@ -1,4 +1,4 @@
-import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner } from '@clack/prompts';
+import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner, log } from '@clack/prompts';
 import search from '@inquirer/search';
 import pc from 'picocolors';
 import fs from 'fs';
@@ -25,7 +25,7 @@ function encryptKey(privateKey: string, password: string) {
         encryptedData: encrypted
     };
 }
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
+import { generatePrivateKey, privateKeyToAccount, generateMnemonic, mnemonicToAccount, english } from 'viem/accounts';
 
 export async function runSetupWizard() {
   console.clear();
@@ -318,9 +318,14 @@ Provider: ${config.llm.provider}`;
     })) as string;
     if (isCancel(privateKey)) return process.exit(0);
   } else if (walletSetupType === 'generate') {
-    privateKey = generatePrivateKey();
-    const account = privateKeyToAccount(privateKey as any);
-    note(`New Wallet Generated!\n\nAddress: ${account.address}\nPrivate Key: ${privateKey}\n\nIMPORTANT: Backup this Private Key NOW! It is securely injected into your local vault, but you will need it to import your wallet elsewhere.`, 'Wallet Created');
+    const seedPhrase = generateMnemonic(english);
+    const account = mnemonicToAccount(seedPhrase);
+    privateKey = '0x' + Buffer.from(account.getHdKey().privateKey!).toString('hex');
+    log.success('New Wallet Generated!');
+    log.info(`Address: ${account.address}`);
+    log.info(`Private Key: ${privateKey}`);
+    log.info(`Seed Phrase (Mnemonic): ${seedPhrase}`);
+    log.warn('IMPORTANT: Write down these 12 words (or the Private Key) NOW! This is your ONLY backup. The credentials have been securely injected into your local OS vault.');
   }
 
 
