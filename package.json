@@ -1,7 +1,17 @@
 {
   "name": "nyxora",
-  "version": "26.6.6",
+  "version": "26.6.7",
   "description": "Your Personal Web3 Assistant",
+  "keywords": [
+    "web3",
+    "ai",
+    "agent",
+    "crypto",
+    "mcp",
+    "automation",
+    "defi",
+    "zero-trust"
+  ],
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -17,6 +27,7 @@
     "restart": "node ./bin/nyxora.mjs restart",
     "dashboard": "node ./bin/nyxora.mjs dashboard",
     "setup": "node ./bin/nyxora.mjs setup",
+    "doctor": "node ./bin/nyxora.mjs doctor",
     "build": "tsc && npm run build --workspace=dashboard",
     "test": "npm run test --workspace=packages/core"
   },
