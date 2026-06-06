@@ -18,6 +18,7 @@ import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/mark
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
 import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
+import { manageCustomTokensDefinition, executeManageCustomTokens } from '../web3/skills/manageCustomTokens';
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
@@ -232,7 +233,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     const hasWeb3Keyword = /swap|transfer|price|token|crypto|bridge|wallet|balance|portfolio|buy|sell|send|receive|address|market|limit|mint|nft/i.test(lowerInput);
     const hasGoogleKeyword = /email|gmail|calendar|sheet|doc|form|event/i.test(lowerInput);
 
-    const WEB3_TOOLS = [getBalanceToolDefinition, transferToolDefinition, getPriceToolDefinition, swapTokenToolDefinition, bridgeTokenToolDefinition, mintNftToolDefinition, customTxToolDefinition, createWalletToolDefinition, checkSecurityToolDefinition, marketAnalysisToolDefinition, checkPortfolioToolDefinition, checkAddressToolDefinition, getMyAddressToolDefinition, createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition];
+    const WEB3_TOOLS = [getBalanceToolDefinition, transferToolDefinition, getPriceToolDefinition, swapTokenToolDefinition, bridgeTokenToolDefinition, mintNftToolDefinition, customTxToolDefinition, createWalletToolDefinition, checkSecurityToolDefinition, marketAnalysisToolDefinition, checkPortfolioToolDefinition, checkAddressToolDefinition, getMyAddressToolDefinition, manageCustomTokensDefinition, createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition];
     const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition];
     const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
 
@@ -281,8 +282,8 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         let args: any = {};
         const toolName = toolCall.function.name;
 
-        console.log(pc.yellow(`[⚡ Eksekusi Tool] AI memanggil ${toolName}...`));
-        if (onProgress) onProgress(`_⚡ Menjalankan alat: ${toolName}..._`);
+        console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
+        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
 
         // Phase 1: LLM Output Validation (Anti-Halusinasi)
         try {
@@ -372,6 +373,10 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'get_my_address': {
               result = await getMyAddress();
+              break;
+            }
+            case 'manage_custom_tokens': {
+              result = await executeManageCustomTokens(args);
               break;
             }
             case 'create_limit_order': {
@@ -466,14 +471,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           }
 
           if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {
-            console.log(pc.red(`[❌ Gagal] Tool ${toolName} mengembalikan error atau diblokir.`));
+            console.log(pc.red(`[❌ Failed] Tool ${toolName} returned an error or was blocked.`));
           } else {
-            console.log(pc.green(`[✅ Sukses] Tool ${toolName} berhasil dieksekusi.`));
+            console.log(pc.green(`[✅ Success] Tool ${toolName} executed successfully.`));
           }
 
         } catch (toolError: any) {
           result = `Error executing ${toolName}: ${toolError.message}`;
-          console.log(pc.red(`[❌ Error Crash] Eksekusi ${toolName} gagal total: ${toolError.message}`));
+          console.error(pc.red(`[❌ Error Crash] Execution of ${toolName} failed completely: ${toolError.message}`));
         }
 
         logger.addEntry({
