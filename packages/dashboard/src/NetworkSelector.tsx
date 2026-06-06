@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Network, ChevronDown } from 'lucide-react';
+import { getChainLogoUrl } from './utils/logos';
 
 const NETWORKS = [
   { id: 'ethereum', label: 'Ethereum' },
@@ -40,7 +41,14 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
-        <Network size={16} className="network-icon" />
+        <div style={{ width: '16px', height: '16px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <img 
+            src={getChainLogoUrl(currentNetwork.id)} 
+            alt={currentNetwork.id} 
+            style={{ width: '16px', height: '16px', objectFit: 'cover', borderRadius: '50%' }} 
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        </div>
         <span className="network-label">{currentNetwork.label}</span>
         <ChevronDown size={14} className="network-chevron" />
       </button>
@@ -55,7 +63,16 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
                 onChange(net.id);
                 setIsOpen(false);
               }}
+              style={{ display: 'flex', alignItems: 'center' }}
             >
+              <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '8px', flexShrink: 0 }}>
+                <img 
+                  src={getChainLogoUrl(net.id)} 
+                  alt={net.id} 
+                  style={{ width: '14px', height: '14px', objectFit: 'cover', borderRadius: '50%' }} 
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              </div>
               {net.label}
             </li>
           ))}

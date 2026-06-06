@@ -2,6 +2,18 @@ import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
 import { Save, User, Cpu, Key, Network, Globe } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
+import { getChainLogoUrl } from './utils/logos';
+
+const ChainIcon = ({ id }: { id: string }) => (
+  <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <img 
+      src={getChainLogoUrl(id)} 
+      alt={id} 
+      style={{ width: '14px', height: '14px', objectFit: 'cover', borderRadius: '50%' }} 
+      onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+    />
+  </div>
+);
 
 interface Config {
   agent: { name: string; default_chain: string; default_slippage?: number };
@@ -157,14 +169,14 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
               pillColor="#88c0d0"
               textColor="#000000"
               options={[
-                { id: 'ethereum', label: 'Ethereum Mainnet', icon: <Globe size={14} /> },
-                { id: 'bsc', label: 'BNB Chain', icon: <Globe size={14} /> },
-                { id: 'base', label: 'Base', icon: <Globe size={14} /> },
-                { id: 'arbitrum', label: 'Arbitrum One', icon: <Globe size={14} /> },
-                { id: 'optimism', label: 'OP Mainnet', icon: <Globe size={14} /> },
-                { id: 'polygon', label: 'Polygon (Matic)', icon: <Globe size={14} /> },
-                { id: 'sepolia', label: 'Sepolia Testnet', icon: <Globe size={14} /> },
-                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <Globe size={14} /> }
+                { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
+                { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
+                { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
+                { id: 'arbitrum', label: 'Arbitrum One', icon: <ChainIcon id="arbitrum" /> },
+                { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
+                { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
+                { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
+                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> }
               ]}
             />
           </div>

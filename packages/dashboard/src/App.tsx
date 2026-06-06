@@ -5,6 +5,7 @@ import Overview from './Overview';
 import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
+import { Portfolio } from './Portfolio';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
 import PendingTransactions from './PendingTransactions';
@@ -28,7 +29,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'settings' | 'skills' | 'osskills'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -359,6 +360,12 @@ function App() {
               <LayoutDashboard size={15} className="nav-icon" /> Overview
             </div>
             <div 
+              className={`nav-item ${currentView === 'portfolio' ? 'active' : ''}`}
+              onClick={() => setCurrentView('portfolio')}
+            >
+              <Wallet size={15} className="nav-icon" /> Portfolio
+            </div>
+            <div 
               className={`nav-item ${currentView === 'skills' ? 'active' : ''}`}
               onClick={() => setCurrentView('skills')}
             >
@@ -441,6 +448,8 @@ function App() {
 
         {currentView === 'overview' ? (
           <Overview config={config} />
+        ) : currentView === 'portfolio' ? (
+          <Portfolio />
         ) : currentView === 'skills' ? (
           <Skills />
         ) : currentView === 'osskills' ? (
