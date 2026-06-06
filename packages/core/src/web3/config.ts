@@ -38,9 +38,10 @@ export function getPublicClient(chainName: ChainName): PublicClient {
   // Fallback public RPCs (Top tier from Chainlist.org prioritized)
   if (!customRpcRaw) {
     if (chainName === 'ethereum') {
-      transports.push(http('https://ethereum-rpc.publicnode.com', { timeout: 5000 }));
-      transports.push(http('https://eth.llamarpc.com', { timeout: 5000 }));
-      transports.push(http('https://rpc.ankr.com/eth', { timeout: 5000 }));
+      transports.push(http('https://rpc.mevblocker.io', { timeout: 5000 })); // Primary MEV protection
+      transports.push(http('https://rpc.flashbots.net', { timeout: 5000 })); // Secondary MEV protection
+      transports.push(http('https://ethereum-rpc.publicnode.com', { timeout: 5000 })); // Fallback
+
     } else if (chainName === 'bsc') {
       transports.push(http('https://bsc-rpc.publicnode.com', { timeout: 5000 }));
       transports.push(http('https://bsc-dataseed.binance.org', { timeout: 5000 }));

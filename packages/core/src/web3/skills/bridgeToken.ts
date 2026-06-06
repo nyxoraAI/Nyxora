@@ -25,7 +25,9 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
   url.searchParams.append('fromAddress', userAddress);
   url.searchParams.append('slippage', slippage.toString());
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(15000)
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`Li.Fi API Error: ${err.message || res.statusText}`);
