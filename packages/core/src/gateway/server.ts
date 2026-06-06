@@ -9,8 +9,11 @@ import crypto from 'crypto';
 import { getPath } from '../config/paths';
 import { getSessionToken } from '../utils/state';
 
+import fs from 'fs';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
+import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/config';
+import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
 import { limitOrderManager } from '../agent/limitOrderManager';
@@ -20,6 +23,7 @@ import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
 import { checkAddressToolDefinition } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition } from '../web3/skills/getMyAddress';
+import { manageCustomTokensDefinition } from '../web3/skills/manageCustomTokens';
 import { getPriceToolDefinition } from '../web3/skills/getPrice';
 import { checkSecurityToolDefinition } from '../web3/skills/checkSecurity';
 import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
@@ -68,7 +72,17 @@ console.error = function (...args) {
 };
 
 const app = express();
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https://raw.githubusercontent.com', 'https://logos.covalenthq.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", 'https://*']
+    }
+  }
+}));
 app.use(cors({ 
   origin: function (origin, callback) {
     if (!origin || /^(http:\/\/(localhost|127\.0\.0\.1):\d+)$/.test(origin)) {
@@ -224,6 +238,7 @@ app.get('/api/skills', (req, res) => {
     checkPortfolioToolDefinition,
     marketAnalysisToolDefinition,
     createWalletToolDefinition,
+    manageCustomTokensDefinition,
     createLimitOrderToolDefinition,
     listLimitOrdersToolDefinition,
     cancelLimitOrderToolDefinition
@@ -386,6 +401,9 @@ app.post('/api/transactions/:id/reject', async (req, res) => {
 let cachedTrending: string[] | null = null;
 let lastTrendingFetch = 0;
 
+let cachedPrices: Record<string, number> = {};
+let lastPricesFetch = 0;
+
 app.get('/api/trending', async (req, res) => {
   const now = Date.now();
   if (cachedTrending && now - lastTrendingFetch < 5 * 60 * 1000) {
@@ -406,6 +424,166 @@ app.get('/api/trending', async (req, res) => {
     }
   } catch (err: any) {
     if (cachedTrending) return res.json(cachedTrending);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/portfolio', async (req, res) => {
+  try {
+    const userAddress = await getAddress();
+    const customTokensPath = path.join(getPath('custom_tokens.json'));
+    let customTokens: Record<string, any> = {};
+    if (fs.existsSync(customTokensPath)) {
+      try {
+        customTokens = JSON.parse(fs.readFileSync(customTokensPath, 'utf8'));
+      } catch (e) {}
+    }
+
+    const portfolio: Record<string, any[]> = {};
+    
+    await Promise.all(SUPPORTED_CHAIN_NAMES.map(async (chainName) => {
+      portfolio[chainName] = [];
+      try {
+        const publicClient = getPublicClient(chainName as any);
+        
+        // 1. Get Native Balance
+        const nativeBal = await publicClient.getBalance({ address: userAddress as `0x${string}` });
+        if (nativeBal > 0n) {
+          portfolio[chainName].push({
+            symbol: chainName === 'bsc' ? 'BNB' : chainName === 'polygon' ? 'POL' : 'ETH',
+            address: 'native',
+            balanceRaw: nativeBal.toString(),
+            decimals: 18,
+            isNative: true
+          });
+        }
+
+        // 2. Combine TOKEN_MAP and customTokens for this chain
+        const tokensToQuery = { ...((TOKEN_MAP as any)[chainName] || {}) };
+        if (customTokens[chainName]) {
+          Object.assign(tokensToQuery, customTokens[chainName]);
+        }
+
+        // 3. Query all ERC-20 balances in parallel
+        await Promise.all(Object.entries(tokensToQuery).map(async ([symbol, address]) => {
+          if (address === '0x0000000000000000000000000000000000000000') return; // Skip native placeholder
+          try {
+            const balPromise = publicClient.readContract({
+              address: address as `0x${string}`,
+              abi: ERC20_ABI,
+              functionName: 'balanceOf',
+              args: [userAddress as `0x${string}`]
+            } as any);
+            const decPromise = publicClient.readContract({
+              address: address as `0x${string}`,
+              abi: ERC20_ABI,
+              functionName: 'decimals'
+            } as any);
+
+            const [bal, decimals] = await Promise.all([balPromise, decPromise]) as [bigint, number];
+            if (bal > 0n) {
+              portfolio[chainName].push({
+                symbol,
+                address,
+                balanceRaw: bal.toString(),
+                decimals: decimals, // Now using actual on-chain decimals
+                isNative: false
+              });
+            }
+          } catch (e) {
+            // Ignore read errors
+          }
+        }));
+      } catch (e) {
+        console.error(`Portfolio error on ${chainName}:`, e);
+      }
+    }));
+
+    // --- DexScreener Price Fetching ---
+    const addressesToFetch = new Set<string>();
+    const wrapMap: any = {
+      ethereum: 'WETH', arbitrum: 'WETH', base: 'WETH', optimism: 'WETH', sepolia: 'WETH', base_sepolia: 'WETH',
+      bsc: 'WBNB', polygon: 'WMATIC'
+    };
+
+    for (const chain of Object.keys(portfolio)) {
+      for (const t of portfolio[chain]) {
+        if (t.isNative) {
+           const wToken = wrapMap[chain] || 'WETH';
+           const wAddr = ((TOKEN_MAP as any)[chain]?.[wToken]) || '';
+           if (wAddr) addressesToFetch.add(wAddr.toLowerCase());
+        } else {
+           addressesToFetch.add(t.address.toLowerCase());
+        }
+      }
+    }
+
+    const uniqueAddrs = Array.from(addressesToFetch);
+    const now = Date.now();
+    let priceMap = cachedPrices;
+
+    if (uniqueAddrs.length > 0 && now - lastPricesFetch > 2 * 60 * 1000) {
+      try {
+        const newPrices: Record<string, number> = {};
+        
+        await Promise.all(uniqueAddrs.map(async (addr) => {
+          try {
+            const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.pairs && data.pairs.length > 0) {
+                 // Find the pair with highest liquidity
+                 let bestPair = data.pairs[0];
+                 let maxLiq = 0;
+                 for (const p of data.pairs) {
+                    const liq = p.liquidity?.usd || 0;
+                    if (liq > maxLiq) {
+                       maxLiq = liq;
+                       bestPair = p;
+                    }
+                 }
+                 
+                 // Calculate price from bestPair
+                 if (bestPair.priceUsd) {
+                   const baseAddr = bestPair.baseToken.address.toLowerCase();
+                   const quoteAddr = bestPair.quoteToken?.address?.toLowerCase();
+                   
+                   if (baseAddr === addr) {
+                     newPrices[addr] = parseFloat(bestPair.priceUsd);
+                   } else if (quoteAddr === addr && bestPair.priceNative && parseFloat(bestPair.priceNative) > 0) {
+                     newPrices[addr] = parseFloat(bestPair.priceUsd) / parseFloat(bestPair.priceNative);
+                   }
+                 }
+              }
+            }
+          } catch (e) {
+            console.error(`DexScreener error for ${addr}:`, e);
+          }
+        }));
+        
+        console.log('DexScreener Fetched Prices:', newPrices);
+        
+        cachedPrices = { ...cachedPrices, ...newPrices };
+        priceMap = cachedPrices;
+        lastPricesFetch = now;
+      } catch (e) {
+        console.error('DexScreener fetch error:', e);
+      }
+    }
+
+    for (const chain of Object.keys(portfolio)) {
+      for (const t of portfolio[chain]) {
+        let lookupAddr = t.address.toLowerCase();
+        if (t.isNative) {
+           const wToken = wrapMap[chain] || 'WETH';
+           lookupAddr = (((TOKEN_MAP as any)[chain]?.[wToken]) || '').toLowerCase();
+        }
+        t.priceUsd = priceMap[lookupAddr] || 0;
+      }
+    }
+
+    res.json(portfolio);
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
