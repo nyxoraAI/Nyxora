@@ -12,9 +12,24 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ---
 
-## 🚀 Step 1: Global Installation
+## 🚀 Step 1: Global Installation (Recommended)
+The easiest and fastest way to use Nyxora is to install it globally via NPM.
 
-The easiest way to use Nyxora is by installing it globally on your machine. Open your terminal (Command Prompt, PowerShell, or Linux/Mac Terminal) and run:
+### Method 1: Automated Script (Fastest)
+You can install Nyxora with a single command using our automated script:
+
+**For Linux & macOS (Bash):**
+```bash
+curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
+```
+
+**For Windows (PowerShell):**
+```powershell
+iwr https://nyxoraai.github.io/Nyxora/install.ps1 -useb | iex
+```
+
+### Method 2: Manual NPM Install
+Alternatively, you can install it manually on any operating system:
 
 ```bash
 npm install -g nyxora

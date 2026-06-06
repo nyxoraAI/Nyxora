@@ -1,4 +1,4 @@
-# Nyxora Agent 🤖
+# Nyxora Agent <img src="./packages/dashboard/public/favicon.svg" width="36" align="top" />
 **Your Personal Web3 Assistant.**
 
 
@@ -75,9 +75,23 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 ### Global Installation via NPM (Recommended)
 The easiest and fastest way to use Nyxora is to install it globally via NPM. This ensures you get the latest version and can run Nyxora from anywhere on your machine.
 
+The fastest way to install Nyxora is via our automated installation script:
+
+**For Linux & macOS (Bash):**
 ```bash
-# 1. Install Nyxora globally
+curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
+```
+
+**For Windows (PowerShell):**
+```powershell
+iwr https://nyxoraai.github.io/Nyxora/install.ps1 -useb | iex
+```
+
+Alternatively, you can install it manually on any operating system using NPM:
+
+```bash
 npm install -g nyxora@latest
+```
 
 # 2. Run the Interactive Setup Wizard (API Keys, Wallet, Telegram)
 nyxora setup

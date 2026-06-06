@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.7] - Unreleased
+### Enterprise Features & Web3 Enhancements
+- **Enterprise Portfolio Scanner**: Integrated a fully decentralized, real-time Dashboard UI (Nord Theme) to scan all native and ERC-20 token balances across 8 EVM chains natively, without relying on centralized third-party APIs.
+- **Real-Time USD Valuation**: Integrated DexScreener API into the Portfolio Scanner backend to actively compute and display USD portfolio values in real-time. Features an adaptive 2-minute memory cache system to ensure complete immunity against API rate-limits and eliminate LLM token consumption.
+- **Official Web3 Branding**: Integrated TrustWallet and CovalentHQ CDNs to automatically resolve and render official Native Chain icons and ERC-20 Token logos with dynamic address casing, delivering an authentic Tier-1 exchange aesthetic.
+- **Custom Token Management (AI Skill)**: Deployed the new `manage_custom_tokens` Web3 skill. The AI agent can now autonomously recognize, store, and manage user-specified custom token addresses (e.g., obscure/degen tokens) to `~/.nyxora/custom_tokens.json`. These are instantly synced with the Portfolio Scanner.
+- **MEV-Blocker Integration**: Upgraded the Ethereum mainnet routing core in `config.ts` to strictly prioritize `rpc.mevblocker.io` and `rpc.flashbots.net` as primary transports. All user transactions are now forcefully routed through Private Mempools, establishing complete immunity against sandwich attacks and front-running bots.
+- **System Diagnosis (`nyxora doctor`)**: Added a new CLI tool `nyxora doctor` to automatically verify OS requirements, node versions, filesystem permissions, SQLite database r/w access, Keyring vault security, and network port availability for seamless troubleshooting.
+
+### Security & UX Updates
+- **CLI Wallet Management (`nyxora wallet update`)**: Added a highly requested sub-command to allow users to securely overwrite their OS Keyring Web3 wallet directly via the CLI without having to re-run the full LLM setup wizard. Features an aggressive visual confirmation step to prevent accidental Private Key destruction.
+- **Terminal UI Resilience**: Replaced dynamic `note()` text rendering with static linear console logs in the `nyxora setup` wizard. This completely eliminates a UI truncation bug where the `clack` prompter would swallow the 12-word mnemonic phrase on small terminal windows.
+- **Helmet CSP Optimization**: Adjusted the Gateway Server's Content Security Policy (CSP) to securely whitelist decentralized image repositories (GitHub raw, CovalentHQ) without compromising strict anti-XSS protection protocols.
+- **BIP-39 Mnemonic Generation**: Upgraded the `nyxora setup` CLI wizard. When auto-generating a new wallet, the system now provides a standard 12-word Seed Phrase (Mnemonic) instead of a raw hex Private Key, vastly improving user security and cross-wallet compatibility (e.g., MetaMask). The private key is still autonomously extracted and locked in the OS Keyring.
+- **One-Liner Install Script**: Added a new hacker-style `curl | bash` installation method at `https://nyxoraai.github.io/Nyxora/install.sh` for Linux/macOS, and a native PowerShell script `install.ps1` for Windows, providing an instant, frictionless setup experience across all major operating systems.
+- **Global Localization Standardization**: Swept and translated the entire AI reasoning log engine (`reasoning.ts`) from Indonesian to standardized English to maintain strict international professional standards across console output and UI feedback.
+
+### Bug Fixes & Optimizations
+- **ERC-20 Decimals Resolution**: Completely eradicated a critical math bug where all custom tokens were assumed to have 18 decimals. The backend now executes parallel `decimals()` on-chain queries alongside `balanceOf()`, guaranteeing 100% mathematical precision for tokens like USDC/USDT (6 decimals).
+- **NPM Monorepo Build Fix**: Fixed the `packages/core` workspace `package.json` to correctly include the `"build": "tsc"` script and aligned its internal versioning (`v26.6.7`). This resolves the NPM workspace lifecycle crash during global build triggers.
+- **NPM Optimization**: Added official keywords (`web3`, `ai`, `agent`, `crypto`, `mcp`, `automation`, `defi`, `zero-trust`) to the root `package.json` to significantly improve Nyxora's discoverability and SEO on the NPM Registry.
+
 ## [26.6.6] - 2026-06-05
 ### Enterprise Stability Upgrades
 - **Strict LLM Output Validation**: Added robust try-catch parsing for LLM tool arguments in `reasoning.ts`. If the AI outputs malformed JSON, the error is fed back into the reasoning loop, allowing the model to autonomously self-correct without crashing the agent pipeline.
