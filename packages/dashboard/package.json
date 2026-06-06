@@ -1,7 +1,7 @@
 {
-  "name": "dashboard",
+  "name": "nyxora-dashboard",
   "private": true,
-  "version": "26.6.5-1.0",
+  "version": "26.6.7",
   "type": "module",
   "scripts": {
     "dev": "vite",

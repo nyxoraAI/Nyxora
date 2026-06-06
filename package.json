@@ -28,7 +28,7 @@
     "dashboard": "node ./bin/nyxora.mjs dashboard",
     "setup": "node ./bin/nyxora.mjs setup",
     "doctor": "node ./bin/nyxora.mjs doctor",
-    "build": "tsc && npm run build --workspace=dashboard",
+    "build": "tsc && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core"
   },
   "dependencies": {
