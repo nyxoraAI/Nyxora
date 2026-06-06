@@ -10,7 +10,7 @@ import open from 'open';
 import { getAppDir } from '../config/paths';
 import { startServer } from './server';
 import { runSetupWizard } from './setup';
-import { password, isCancel } from '@clack/prompts';
+import { password, isCancel, confirm } from '@clack/prompts';
 import { getSessionToken } from '../utils/state';
 import pc from 'picocolors';
 import { saveApiKeys } from '../config/parser';
@@ -28,6 +28,13 @@ console.log(`================================`);
   // Check for explicit wizard command
   if (process.argv.includes('setup') || process.argv.includes('--wizard')) {
     await runSetupWizard();
+    process.exit(0);
+  }
+
+  // Check for doctor command
+  if (process.argv.includes('doctor')) {
+    const { runDoctor } = await import('./doctor');
+    await runDoctor();
     process.exit(0);
   }
 
@@ -75,6 +82,40 @@ console.log(`================================`);
     await saveApiKeys({ [mappedKey]: key });
     console.log(pc.green(`✅ API Key for ${provider} saved securely to vault.`));
     process.exit(0);
+  }
+
+  // Check for wallet command
+  if (process.argv.includes('wallet')) {
+    if (process.argv.includes('update')) {
+      console.log(pc.cyan('\n🔄 Wallet Update Wizard'));
+      
+      const proceed = await confirm({
+        message: pc.bgRed(pc.white(' ⚠️ WARNING ')) + pc.yellow(' This will immediately OVERWRITE your existing wallet in the OS Vault.\nIf you have not backed up your current Private Key, you will lose access to its funds forever.\n\nAre you absolutely sure you want to proceed?'),
+      });
+      if (isCancel(proceed) || !proceed) process.exit(0);
+
+      const pk = await password({
+        message: 'Enter your new Private Key (0x...):',
+      });
+      if (isCancel(pk)) process.exit(0);
+      
+      try {
+        const { Entry } = await import('@napi-rs/keyring');
+        const entry = new Entry('nyxora', 'wallet');
+        await entry.setPassword(pk as string);
+        console.log(pc.green('✅ Wallet updated securely in OS Native Vault.'));
+        console.log(pc.yellow('⚠️ Please restart your Nyxora agent for the new wallet to take effect.\n'));
+      } catch (e: any) {
+        const vaultPath = path.join(os.homedir(), '.nyxora', 'vault.key');
+        fs.writeFileSync(vaultPath, `PRIVATE_KEY=${pk}\n`, { mode: 0o600 });
+        console.log(pc.green('✅ Wallet updated securely in fallback vault.key.'));
+        console.log(pc.yellow('⚠️ Please restart your Nyxora agent for the new wallet to take effect.\n'));
+      }
+      process.exit(0);
+    } else {
+      console.error(pc.red('Usage: nyxora wallet update'));
+      process.exit(1);
+    }
   }
 
   // 2. Setup boilerplate files if in global mode and they don't exist
