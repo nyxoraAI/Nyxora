@@ -41,7 +41,9 @@ async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: s
     }
   }
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(15000)
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`Li.Fi API Error: ${err.message || res.statusText}`);
@@ -67,7 +69,8 @@ async function getRelayQuote(fromChainId: number, toChainId: number, fromToken: 
   const res = await fetch(`${baseUrl}/quote`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
