@@ -38,7 +38,7 @@ export async function initGoogleAuth(): Promise<boolean> {
     // Check if we already have a refresh token saved
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
-      console.log('[Google Auth] Refresh token found in secure storage.');
+      // console.log('[Google Auth] Refresh token found in secure storage.'); // Suppressed to avoid CLI prompt disruption
       return true;
     }
     return false;
