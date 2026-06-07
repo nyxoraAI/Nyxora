@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.7] - Unreleased
+## [26.6.8-1] - Unreleased
+### Enterprise Features & Web3 Enhancements
+- **Zero-Downtime Directory Migration**: Restructured the root `~/.nyxora` local data directory into a strict `config/`, `data/`, `auth/`, and `run/` subdirectory architecture. Implemented a Lazy Auto-Migration Engine (`getPath()`) that seamlessly relocates legacy files to their new secure zones instantly upon access, ensuring zero-downtime and zero-data-loss upgrades for existing users.
+### Security & UX Updates
+- **Proactive Anti-Crash Engine**: Implemented `Max Retry` & `Exponential Backoff` auto-respawn logic inside the Monorepo Launcher. The daemon now features robust global `unhandledRejection` and `uncaughtException` guards across the Core, Policy, and Signer subsystems, ensuring sporadic Web3 network timeouts can no longer crash the main reasoning engine.
+- **Death Loop Telegram Alerts**: Integrated a critical emergency monitoring system into the Launcher. If a core microservice crashes catastrophically (5 times within 1 minute), the daemon will autonomously initiate an emergency lock-down to protect the system state and immediately broadcast a high-priority alert directly to the administrator's Telegram.
+- **Unix Socket Anti-EADDRINUSE Guard**: Implemented aggressive pre-flight cleanup routines for the `nyxora-signer.sock` IPC channel. The system now guarantees secure file unlinking before rebinding, eliminating recurring `EADDRINUSE` daemon failures upon rapid restart commands.
+
+### Bug Fixes & Optimizations
+- **NPM Package Optimization**: Added `assets/` to `.npmignore` to exclude large architectural diagrams and images from the NPM registry tarball, reducing the total package download size by over 11 MB.
+- **Docker Multi-Stage Build**: Radically refactored `Dockerfile` to a Multi-Stage architecture. The production image now exclusively installs runtime dependencies (`--omit=dev`) and leaves behind heavy build tools (`python3`, `make`, `g++`), dramatically shrinking the final container image size.
+- **Docker Security Patch**: Hardened `.dockerignore` to explicitly block local keystores (`keystore.json`), persistent memory (`memory.db`), and local credentials from accidentally leaking into Docker image layers during local builds.
+
+## [26.6.7] - 2026-06-07
 ### Enterprise Features & Web3 Enhancements
 - **Enterprise Portfolio Scanner**: Integrated a fully decentralized, real-time Dashboard UI (Nord Theme) to scan all native and ERC-20 token balances across 8 EVM chains natively, without relying on centralized third-party APIs.
 - **Real-Time USD Valuation**: Integrated DexScreener API into the Portfolio Scanner backend to actively compute and display USD portfolio values in real-time. Features an adaptive 2-minute memory cache system to ensure complete immunity against API rate-limits and eliminate LLM token consumption.
@@ -121,8 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fast CLI Shortcuts**: Added the `nyxora set-key <provider> <key>` global command shortcut allowing developers to quickly inject or override any API Key (OpenAI, Gemini, OpenRouter, Tavily, Brave) directly into the secure vault without traversing the wizard.
 
 ### AI Engine Optimizations
-- **Hybrid API Vault (Security)**: API Keys are no longer stored in plain text inside `config.yaml`. Nyxora now encrypts and stores them via `@napi-rs/keyring` utilizing OS-native credential management. For Headless/VPS Linux environments lacking DBUS/Secret Service, it automatically falls back to an isolated `api_vault.key` with strict `0600` permissions.
-- **Root-Level Config Auto-Migration**: Restructured `config.yaml` to move all API keys out of the nested `llm.credentials` into a logical, root-level `credentials` object. Implemented a silent auto-migration routine in `parser.ts` that safely upgrades legacy config files on boot without breaking existing setups.
+
 - **Web Search Smart Memory Cache**: Embedded a local Memory Cache (`Map`) into the `searchWeb` skill with a 5-minute (300,000ms) TTL. Exact duplicate queries now execute in 0ms and consume 0 API quota, dramatically improving conversation flow.
 - **Deep Research Mode**: The `search_web` tool definition now accepts a dynamic `depth` parameter (1 to 3). If users instruct the AI to conduct comprehensive research, Nyxora will automatically trigger `advanced` API payloads and extract up to 15 top web snippets simultaneously.
 - **Strict Skill Prioritization**: Added CRITICAL RULE 7 to the core NLP System Prompt. The AI is now hard-coded to prioritize native Web3 Skills (e.g. `get_price`, `analyze_market`, `check_security`) for all crypto-related queries, using `search_web` exclusively as a fallback mechanism.

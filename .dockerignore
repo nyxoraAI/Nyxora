@@ -10,3 +10,12 @@ build
 .nyxora
 vault.key
 api_vault.key
+keystore.json
+memory.json
+memory.db*
+credentials.json
+google-*.json
+*.token
+config.yaml
+custom_tokens.json
+dynamic_tokens.json

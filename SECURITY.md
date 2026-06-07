@@ -38,7 +38,9 @@ Nyxora completely eliminates the need for manual "Master Passwords" or custom AE
 When the background daemon boots via `nyxora start`, the Signer Vault process reads the Private Key directly from the OS Keyring without requiring human intervention. This ensures the daemon can safely persist across reboots while maintaining institutional-grade encryption at rest.
 
 ### Secure Fallback Storage
-In headless server environments (e.g., VPS, Docker) where a GUI Keyring is unavailable, Nyxora gracefully falls back to a strictly permissioned `.env` / `vault.key` file mechanism. This file is programmatically enforced with `chmod 0600` permissions (Read/Write for owner only), preventing access by other system users.
+In headless server environments (e.g., VPS, Docker) where a GUI Keyring is unavailable, Nyxora gracefully falls back to a strictly permissioned `vault.key` file mechanism. This file is programmatically enforced with `chmod 0600` permissions (Read/Write for owner only), preventing access by other system users.
+
+> **Note:** This OS-level keyring protection is strictly reserved for your Web3 Wallet Private Keys. Standard integration credentials (like LLM API Keys or Telegram tokens) are managed separately via the `config.yaml` file for transparent developer access.
 
 ---
 

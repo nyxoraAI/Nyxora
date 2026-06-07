@@ -3,7 +3,7 @@ import search from '@inquirer/search';
 import pc from 'picocolors';
 import fs from 'fs';
 import path from 'path';
-import { getAppDir } from '../config/paths';
+import { getAppDir, getPath } from '../config/paths';
 import { loadConfig, saveConfig, saveApiKeys } from '../config/parser';
 import crypto from 'crypto';
 
@@ -380,7 +380,7 @@ Provider: ${config.llm.provider}`;
       console.log(pc.green('Private key saved securely to OS Keyring.'));
     } catch (error) {
       console.warn(pc.yellow('Failed to save to OS Keyring (Module mismatch or headless server). Falling back to local vault.key'));
-      const vaultPath = path.join(appDir, 'vault.key');
+      const vaultPath = getPath('vault.key');
       fs.writeFileSync(vaultPath, `PRIVATE_KEY=${privateKey}\n`, { mode: 0o600 });
       console.log(pc.green('Private key saved to ~/.nyxora/vault.key with 0600 permissions.'));
     }

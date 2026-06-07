@@ -15,6 +15,7 @@ scratch/
 # Nyxora CLI Specifics
 .github/
 docs/
+assets/
 config.yaml
 packages/policy/policy.yaml
 keystore.json
@@ -39,7 +40,10 @@ security_policy.md
 *.d.ts.map
 test-*.ts
 packages/core/src/utils/safeLogger.js
-launcher.js
+/launcher.ts
+migrate_keys.*
+Dockerfile
+DOCKER.md
 
 # Secret Private Tests
 **/__tests__/

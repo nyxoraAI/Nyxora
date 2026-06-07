@@ -1,9 +1,10 @@
-FROM node:22-bookworm-slim
+# ==========================================
+# STAGE 1: BUILDER
+# ==========================================
+FROM node:22-bookworm-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Set Production Environment
 # Install native dependencies required for isolated-vm, keyring, etc.
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -20,7 +21,7 @@ COPY packages/mcp-server/package*.json ./packages/mcp-server/
 COPY packages/policy/package*.json ./packages/policy/
 COPY packages/signer/package*.json ./packages/signer/
 
-# Install dependencies
+# Install ALL dependencies (including devDependencies for Vite)
 RUN npm install
 
 # Copy the rest of the application code
@@ -29,8 +30,36 @@ COPY . .
 # Build the dashboard (frontend)
 RUN npm run build --workspace=nyxora-dashboard
 
-# Set Production Environment now that build is done
+
+# ==========================================
+# STAGE 2: PRODUCTION
+# ==========================================
+FROM node:22-bookworm-slim
+
+WORKDIR /app
+
+# Install ONLY runtime OS dependencies (saves massive space)
+RUN apt-get update && apt-get install -y \
+    libsecret-1-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package metadata
+COPY package*.json ./
+COPY packages/core/package*.json ./packages/core/
+COPY packages/dashboard/package*.json ./packages/dashboard/
+COPY packages/mcp-server/package*.json ./packages/mcp-server/
+COPY packages/policy/package*.json ./packages/policy/
+COPY packages/signer/package*.json ./packages/signer/
+
+# Install ONLY production dependencies (--omit=dev)
 ENV NODE_ENV=production
+RUN npm install --omit=dev
+
+# Copy source code
+COPY . .
+
+# Inject the compiled frontend dashboard from the Builder stage
+COPY --from=builder /app/packages/dashboard/dist ./packages/dashboard/dist
 
 # Expose the ports used by Core/Dashboard and Policy Engine
 EXPOSE 3000

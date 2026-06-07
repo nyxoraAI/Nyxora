@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import net from 'net';
 import pc from 'picocolors';
-import { getAppDir } from '../config/paths';
+import { getPath } from '../config/paths';
 import { loadConfig } from '../config/parser';
 
 export async function runDoctor() {
@@ -25,8 +25,7 @@ export async function runDoctor() {
   printStatus(`Node.js Version (${nodeVer})`, majorVer >= 22, `Please upgrade to Node.js v22 or higher.`);
 
   // 2. Check App Directory & Config
-  const appDir = getAppDir();
-  const configPath = path.join(appDir, 'config.yaml');
+  const configPath = getPath('config.yaml');
   let configOk = false;
   let configErr = '';
   if (fs.existsSync(configPath)) {
@@ -42,7 +41,7 @@ export async function runDoctor() {
   printStatus(`Configuration File`, configOk, configErr);
 
   // 3. Check SQLite DB access
-  const dbPath = path.join(appDir, 'memory.db');
+  const dbPath = getPath('memory.db');
   let dbOk = false;
   let dbErr = '';
   try {
@@ -91,7 +90,7 @@ export async function runDoctor() {
   const port3001Free = await checkPort(3001);
 
   let isDaemonRunning = false;
-  const pidPath = path.join(appDir, 'daemon.pid');
+  const pidPath = getPath('daemon.pid');
   if (fs.existsSync(pidPath)) {
     try {
       const pidStr = fs.readFileSync(pidPath, 'utf8').trim();

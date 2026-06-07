@@ -10,6 +10,15 @@ import { z } from 'zod';
 import path from 'path';
 import crypto from 'crypto';
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Anti-Crash] Uncaught Exception:', error);
+  process.exit(1);
+});
+
 const PORT = 3001;
 const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
 const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';

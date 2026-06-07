@@ -41,6 +41,7 @@ google-credentials.json
 test-*.ts
 packages/core/src/utils/safeLogger.js
 launcher.js
+migrate_keys.*
 
 # Secret Private Tests
 **/__tests__/

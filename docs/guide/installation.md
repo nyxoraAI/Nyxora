@@ -79,7 +79,7 @@ npm run dev
 
 ## ⚙️ Step 2: Running the Setup Wizard
 
-Once installed, there is no need to manually create `.env` files! Simply run the initialization command:
+Once installed, simply run the initialization command:
 
 ```bash
 nyxora setup
@@ -110,8 +110,8 @@ Select your default blockchain network (e.g., **Base**, **Ethereum**, or **Sepol
 
 ### Stage D: Web3 Wallet Setup
 The most crucial part. You have three options:
-1. **Auto-Generate:** The system will instantly generate a fresh Ethereum address for you on-screen and securely save its Private Key into the vault.
-2. **Manual Input:** Input your own existing Private Key (See [Wallet Import Guide](../security/wallet_import.md)).
+1. **Auto-Generate:** The system will instantly generate a fresh Ethereum address for you on-screen and securely save its Private Key into the OS Keyring.
+2. **Manual Input:** Input your own existing Private Key (See [Wallet Import Guide](../security/wallet_import.md)). The key will also be saved into the OS Keyring.
 3. **Skip:** Skip this stage if you don't need to execute crypto transactions right now.
 
 ### Stage E: Keyring Integration

@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import open from 'open';
-import { getAppDir } from '../config/paths';
+import { getAppDir, getPath } from '../config/paths';
 import { startServer } from './server';
 import { runSetupWizard } from './setup';
 import { password, isCancel, confirm } from '@clack/prompts';
@@ -80,7 +80,7 @@ console.log(`================================`);
     const mappedKey = keyMap[provider.toLowerCase()] || `${provider.toLowerCase()}_key`;
     
     await saveApiKeys({ [mappedKey]: key });
-    console.log(pc.green(`✅ API Key for ${provider} saved securely to vault.`));
+    console.log(pc.green(`✅ API Key for ${provider} saved successfully.`));
     process.exit(0);
   }
 
@@ -121,29 +121,29 @@ console.log(`================================`);
   // 2. Setup boilerplate files if in global mode and they don't exist
   let isFirstBoot = false;
   if (isGlobalMode) {
-  const globalConfigPath = path.join(appDir, 'config.yaml');
-  const globalUserMdPath = path.join(appDir, 'user.md');
-  const globalIdentityMdPath = path.join(appDir, 'IDENTITY.md');
+    const globalConfigPath = getPath('config.yaml');
+    const globalUserMdPath = getPath('user.md');
+    const globalIdentityMdPath = getPath('IDENTITY.md');
 
-  // Copy default config.yaml
-  if (!fs.existsSync(globalConfigPath)) {
-    isFirstBoot = true;
-    const exampleConfigPath = path.resolve(__dirname, '../../../config.yaml');
-    if (fs.existsSync(exampleConfigPath)) {
-      fs.copyFileSync(exampleConfigPath, globalConfigPath);
-    } else {
-      fs.writeFileSync(globalConfigPath, 'agent:\n  name: Nyxora-Agent\n  default_chain: base\nllm:\n  provider: openai\n  model: gpt-4o-mini\n  temperature: 0.2\n  api_keys: []\nmemory:\n  type: file\n  path: memory.json\n');
+    // Copy default config.yaml
+    if (!fs.existsSync(globalConfigPath)) {
+      isFirstBoot = true;
+      const exampleConfigPath = path.resolve(__dirname, '../../../config.yaml');
+      if (fs.existsSync(exampleConfigPath)) {
+        fs.copyFileSync(exampleConfigPath, globalConfigPath);
+      } else {
+        fs.writeFileSync(globalConfigPath, 'agent:\n  name: Nyxora-Agent\n  default_chain: base\nllm:\n  provider: openai\n  model: gpt-4\n  temperature: 0.7\nmemory:\n  type: file\n  path: memory.json\n');
+      }
+    }
+
+    if (!fs.existsSync(globalUserMdPath)) {
+      fs.writeFileSync(globalUserMdPath, 'Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n');
+    }
+
+    if (!fs.existsSync(globalIdentityMdPath)) {
+      fs.writeFileSync(globalIdentityMdPath, 'You are a Web3 AI assistant named Nyxora.\n');
     }
   }
-
-  if (!fs.existsSync(globalUserMdPath)) {
-    fs.writeFileSync(globalUserMdPath, 'Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n');
-  }
-
-  if (!fs.existsSync(globalIdentityMdPath)) {
-    fs.writeFileSync(globalIdentityMdPath, 'You are a Web3 AI assistant named Nyxora.\n');
-  }
-}
 
   if (isFirstBoot) {
     console.log('[Setup] New installation detected. Starting Setup Wizard...');

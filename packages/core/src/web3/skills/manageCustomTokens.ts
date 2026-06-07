@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { getAppDir } from '../../config/paths';
+import { getPath } from '../../config/paths';
 import { SUPPORTED_CHAIN_NAMES, ChainName } from '../config';
 
 export const manageCustomTokensDefinition = {
@@ -42,7 +42,7 @@ export async function executeManageCustomTokens(args: any): Promise<string> {
     return `Error: Unsupported chain ${chain_name}.`;
   }
 
-  const customTokensPath = path.join(getAppDir(), 'custom_tokens.json');
+  const customTokensPath = getPath('custom_tokens.json');
   let customTokens: Record<string, Record<string, string>> = {};
 
   if (fs.existsSync(customTokensPath)) {
