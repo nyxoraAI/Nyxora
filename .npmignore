@@ -14,8 +14,8 @@ scratch/
 
 # Nyxora CLI Specifics
 .github/
-docs/
-assets/
+/docs/
+/assets/
 config.yaml
 packages/policy/policy.yaml
 keystore.json
