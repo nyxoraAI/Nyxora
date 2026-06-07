@@ -4,36 +4,15 @@ import path from 'path';
 import { getPath } from './paths';
 
 export async function loadApiKeys(): Promise<Record<string, string>> {
-  const vaultPath = getPath('api_vault.key');
-  try {
-    const { Entry } = require('@napi-rs/keyring');
-    const entry = new Entry('nyxora', 'api_keys');
-    const data = await entry.getPassword();
-    if (data) return JSON.parse(data);
-  } catch (e) {
-    if (fs.existsSync(vaultPath)) {
-      try {
-        const file = fs.readFileSync(vaultPath, 'utf8');
-        return JSON.parse(file);
-      } catch (err) {}
-    }
-  }
-  return {};
+  const config = loadConfig();
+  return config.credentials || {};
 }
 
 export async function saveApiKeys(newKeys: Record<string, string>): Promise<void> {
-  const vaultPath = getPath('api_vault.key');
-  const currentKeys = await loadApiKeys();
-  const mergedKeys = { ...currentKeys, ...newKeys };
-  const dataString = JSON.stringify(mergedKeys);
-
-  try {
-    const { Entry } = require('@napi-rs/keyring');
-    const entry = new Entry('nyxora', 'api_keys');
-    await entry.setPassword(dataString);
-  } catch (e) {
-    fs.writeFileSync(vaultPath, dataString, { mode: 0o600 });
-  }
+  const config = loadConfig();
+  if (!config.credentials) config.credentials = {};
+  config.credentials = { ...config.credentials, ...newKeys };
+  saveConfig(config);
 }
 
 export interface NyxoraConfig {
@@ -122,20 +101,7 @@ export function loadConfig(): NyxoraConfig {
       }
     }
     
-    // Auto-migrate from config.yaml to Keyring/Vault
-    if (parsed.credentials && Object.keys(parsed.credentials).length > 0) {
-      const credsToMigrate = { ...parsed.credentials };
-      saveApiKeys(credsToMigrate).then(() => {
-        console.log('[Config] Auto-migrated API keys to secure vault.');
-        delete parsed.credentials;
-        try {
-          const yamlStr = yaml.stringify(parsed);
-          fs.writeFileSync(configPath, yamlStr, 'utf8');
-        } catch (e) {}
-      }).catch(e => {
-        console.error('[Config] Failed to migrate API keys to secure vault', e);
-      });
-    }
+
     
     return {
       agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 0.5 },

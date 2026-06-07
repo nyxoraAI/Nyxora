@@ -5,9 +5,11 @@ import os from 'os';
 let sessionToken: string | null = null;
 import crypto from 'crypto';
 
+import { getPath } from '../config/paths';
+
 export function getSessionToken(): string {
   if (!sessionToken) {
-    const tokenFile = path.join(os.homedir(), '.nyxora', 'auth.token');
+    const tokenFile = getPath('auth.token');
     try {
       if (fs.existsSync(tokenFile)) {
         sessionToken = fs.readFileSync(tokenFile, 'utf8').trim();

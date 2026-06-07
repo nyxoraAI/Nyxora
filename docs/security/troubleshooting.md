@@ -25,7 +25,7 @@ Your Internet Service Provider (ISP) or network firewall is blocking access to t
 The agent fails to start and throws an error related to `@napi-rs/keyring` or `Vault Unlock Failed`.
 
 **Cause:**
-Nyxora attempts to securely store your API Keys and Private Keys in your Operating System's native credential manager. If you are running Nyxora on a headless Linux server without a GUI (like Ubuntu Server) or an environment without D-Bus/Secret Service, the native keyring will fail.
+Nyxora attempts to securely store your Web3 Private Keys in your Operating System's native credential manager. If you are running Nyxora on a headless Linux server without a GUI (like Ubuntu Server) or an environment without D-Bus/Secret Service, the native keyring will fail.
 
 **Resolution:**
 - Nyxora has a built-in **Hybrid Vault Fallback**. If the OS Keyring fails, it will automatically encrypt your keys and store them in a local `.nyxora/api_vault.key` file with strict `0600` permissions. 

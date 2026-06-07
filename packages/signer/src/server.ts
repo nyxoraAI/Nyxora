@@ -10,6 +10,15 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http, publicActions } from 'viem';
 import * as chains from 'viem/chains';
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Anti-Crash] Uncaught Exception:', error);
+  process.exit(1);
+});
+
 const SOCKET_PATH = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
 const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
 

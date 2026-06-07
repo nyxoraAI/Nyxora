@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.7",
+  "version": "26.6.8-1",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -27,6 +27,7 @@
     "restart": "node ./bin/nyxora.mjs restart",
     "dashboard": "node ./bin/nyxora.mjs dashboard",
     "setup": "node ./bin/nyxora.mjs setup",
+    "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
     "build": "tsc && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core"

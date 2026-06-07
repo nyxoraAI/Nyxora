@@ -10,8 +10,9 @@ const INTERNAL_AUTH_TOKEN = crypto.randomBytes(64).toString('hex');
 console.log(`[Launcher] Generated Internal Auth Token: ${INTERNAL_AUTH_TOKEN.substring(0, 8)}...`);
 
 const nyxoraDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora');
-if (!fs.existsSync(nyxoraDir)) fs.mkdirSync(nyxoraDir, { recursive: true, mode: 0o700 });
-const tokenPath = path.join(nyxoraDir, 'runtime.token');
+const authDir = path.join(nyxoraDir, 'auth');
+if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true, mode: 0o700 });
+const tokenPath = path.join(authDir, 'runtime.token');
 fs.writeFileSync(tokenPath, INTERNAL_AUTH_TOKEN, { mode: 0o600 });
 console.log(`[Launcher] Secured runtime token at ${tokenPath} (0600)`);
 
@@ -23,23 +24,75 @@ const env = {
 };
 
 const spawnService = (name: string, command: string, args: string[], env: any, inheritStdio: boolean = false) => {
-  const child = spawn(command, args, { env, stdio: inheritStdio ? 'inherit' : 'pipe' });
+  let child: ReturnType<typeof spawn>;
+  let crashCount = 0;
+  let crashWindowStart = Date.now();
+  let isShuttingDown = false;
 
-  if (!inheritStdio) {
-    child.stdout?.on('data', (data) => {
-      process.stdout.write(`[${name}] ${data}`);
+  const startProcess = () => {
+    child = spawn(command, args, { env, stdio: inheritStdio ? 'inherit' : 'pipe' });
+
+    if (!inheritStdio) {
+      child.stdout?.on('data', (data) => process.stdout.write(`[${name}] ${data}`));
+      child.stderr?.on('data', (data) => process.stderr.write(`[${name}] ERROR: ${data}`));
+    }
+
+    child.on('close', async (code) => {
+      console.log(`[${name}] Exited with code ${code}`);
+      if (isShuttingDown) return;
+
+      const now = Date.now();
+      if (now - crashWindowStart > 60000) {
+        crashCount = 0;
+        crashWindowStart = now;
+      }
+      
+      crashCount++;
+      if (crashCount > 5) {
+        console.error(`[Launcher] FATAL: ${name} crashed 5 times in 1 minute. Initiating emergency shutdown.`);
+        isShuttingDown = true;
+        
+        try {
+          const yaml = require('yaml');
+          const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'config', 'config.yaml');
+          // Fallback check just in case it hasn't migrated yet
+          const actualConfigPath = fs.existsSync(configPath) ? configPath : path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'config.yaml');
+          if (fs.existsSync(actualConfigPath)) {
+            const configStr = fs.readFileSync(actualConfigPath, 'utf8');
+            const config = yaml.parse(configStr);
+            const tgToken = config?.telegram?.bot_token;
+            const tgChatId = config?.telegram?.admin_chat_id;
+            
+            if (tgToken && tgChatId) {
+               const alertText = config?.alerts?.emergency_text || "🚨 FATAL ERROR: A critical process has crashed repeatedly. Nyxora is executing an emergency auto-shutdown to protect your system. Please check the server logs.";
+               await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+                 method: 'POST',
+                 headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify({ chat_id: tgChatId, text: alertText })
+               }).catch(() => {});
+            }
+          }
+        } catch(e) {}
+        
+        process.exit(1);
+        return;
+      }
+
+      console.log(`[Launcher] Restarting ${name} in 3 seconds... (Attempt ${crashCount}/5)`);
+      setTimeout(startProcess, 3000);
     });
+  };
 
-    child.stderr?.on('data', (data) => {
-      process.stderr.write(`[${name}] ERROR: ${data}`);
-    });
-  }
+  startProcess();
 
-  child.on('close', (code) => {
-    console.log(`[${name}] Exited with code ${code}`);
-  });
-
-  return child;
+  return {
+    kill: () => {
+      isShuttingDown = true;
+      if (child && !child.killed && child.pid) {
+        try { process.kill(child.pid, 'SIGTERM'); } catch(e) {}
+      }
+    }
+  };
 };
 
 console.log('[Launcher] Starting Monorepo Services...');
@@ -50,7 +103,7 @@ if (fs.existsSync(socketPath)) {
   fs.unlinkSync(socketPath);
 }
 
-const children: ReturnType<typeof spawn>[] = [];
+const children: { kill: () => void }[] = [];
 
 const isCompiled = __filename.endsWith('.js');
 const ext = isCompiled ? '.js' : '.ts';
@@ -75,15 +128,12 @@ setTimeout(() => {
 }, 1000);
 
 // Ensure all child processes are killed when launcher exits
+let isCleaningUp = false;
 const cleanup = () => {
+  if (isCleaningUp) return;
+  isCleaningUp = true;
   console.log('\n[Launcher] Shutting down all services...');
-  children.forEach(child => {
-    if (!child.killed && child.pid) {
-      try {
-        process.kill(child.pid, 'SIGTERM');
-      } catch (e) {}
-    }
-  });
+  children.forEach(c => c.kill());
   // Give them a moment to cleanup
   setTimeout(() => {
     try {
@@ -94,5 +144,6 @@ const cleanup = () => {
 };
 
 process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
 process.on('SIGTERM', cleanup);
 process.on('exit', cleanup);

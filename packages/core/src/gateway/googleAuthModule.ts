@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { getAppDir } from '../config/paths';
+import { getPath } from '../config/paths';
 
-const CREDENTIALS_PATH = path.join(getAppDir(), 'google-credentials.json');
-const FALLBACK_TOKEN_PATH = path.join(getAppDir(), 'google-tokens.json');
+const CREDENTIALS_PATH = getPath('google-credentials.json');
+const FALLBACK_TOKEN_PATH = getPath('google-tokens.json');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
@@ -167,33 +167,18 @@ export async function logoutGoogle(): Promise<boolean> {
 // ---- Secure Storage for Refresh Token ----
 
 async function saveRefreshToken(token: string) {
-  try {
-    const { Entry } = require('@napi-rs/keyring');
-    const entry = new Entry('nyxora', 'google_refresh_token');
-    await entry.setPassword(token);
-    console.log('[Google Auth] Refresh token saved securely to OS Keyring.');
-  } catch (error) {
-    console.warn('[Google Auth] Keyring failed, falling back to local tokens.json');
-    fs.writeFileSync(FALLBACK_TOKEN_PATH, JSON.stringify({ refresh_token: token }), { mode: 0o600 });
-  }
+  fs.writeFileSync(FALLBACK_TOKEN_PATH, JSON.stringify({ refresh_token: token }), { mode: 0o600 });
+  console.log('[Google Auth] Refresh token saved to local tokens.json');
 }
 
 async function getRefreshToken(): Promise<string | null> {
-  try {
-    const { Entry } = require('@napi-rs/keyring');
-    const entry = new Entry('nyxora', 'google_refresh_token');
-    const password = await entry.getPassword();
-    if (password) return password;
-  } catch (error) {
-    // Fallback to file
-    if (fs.existsSync(FALLBACK_TOKEN_PATH)) {
-      try {
-        const content = fs.readFileSync(FALLBACK_TOKEN_PATH, 'utf8');
-        const parsed = JSON.parse(content);
-        if (parsed.refresh_token) return parsed.refresh_token;
-      } catch (e) {
-        return null;
-      }
+  if (fs.existsSync(FALLBACK_TOKEN_PATH)) {
+    try {
+      const content = fs.readFileSync(FALLBACK_TOKEN_PATH, 'utf8');
+      const parsed = JSON.parse(content);
+      if (parsed.refresh_token) return parsed.refresh_token;
+    } catch (e) {
+      return null;
     }
   }
   return null;

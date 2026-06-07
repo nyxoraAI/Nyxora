@@ -23,7 +23,7 @@ Nyxora is an agnostic framework. You can seamlessly switch between models from v
 - **Ollama** (Run AI entirely offline on your local machine)
 - **Custom Model** (Manually define any custom model endpoint)
 
-*The system also features **Round-Robin API Rotation**, automatically rotating up to 10 different API keys to prevent rate limits and token drain.*
+
 
 ### 3. System Automation & Full OS Access
 Beyond Web3, Nyxora acts as your native Operating System assistant:

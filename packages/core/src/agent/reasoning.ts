@@ -47,7 +47,7 @@ import pc from 'picocolors';
 
 export const logger = new Logger();
 
-let currentKeyIndex = 0;
+
 
 const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
   ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
@@ -69,30 +69,13 @@ async function getOpenAI(): Promise<OpenAI> {
   let apiKey = 'local';
   if (providerConf.requiresApiKey) {
     apiKey = '';
-    let configuredKeys = config.llm.api_keys;
-    if (typeof configuredKeys === 'string') {
-      configuredKeys = [configuredKeys];
-    }
-    
-    if (Array.isArray(configuredKeys) && configuredKeys.length > 0) {
-      const keys = configuredKeys.filter(k => typeof k === 'string' && k.trim() !== '');
-      if (keys.length > 0) {
-        currentKeyIndex = currentKeyIndex % keys.length;
-        apiKey = keys[currentKeyIndex];
-        console.log(`[LLM] Using rotated API Key (${currentKeyIndex + 1}/${keys.length}): ${apiKey.substring(0, 4)}...`);
-        currentKeyIndex++;
-      }
-    }
-
-    if (!apiKey) {
-      const fallbackKeyName = `${providerName}_key`;
-      apiKey = vaultKeys[fallbackKeyName] || config.credentials?.[fallbackKeyName] || '';
+    const keyName = `${providerName}_key`;
+    apiKey = vaultKeys[keyName] || config.credentials?.[keyName] || '';
       
-      if (!apiKey) {
-        throw new Error(`No API Key found for ${providerName}. Please run 'nyxora setup' to configure it.`);
-      }
-      console.log(`[LLM] Using API Key from secure vault`);
+    if (!apiKey) {
+      throw new Error(`[Security] No API Key found for ${providerName} in OS Keyring. Please run 'nyxora set-key ${providerName} <key>' or 'nyxora setup'.`);
     }
+    console.log(`[LLM] Using API Key securely unlocked from OS Keyring vault.`);
   }
 
   return new OpenAI({

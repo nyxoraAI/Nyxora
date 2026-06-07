@@ -11,9 +11,9 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, '..');
 
 const appDir = path.join(os.homedir(), '.nyxora');
-const pidFile = path.join(appDir, 'daemon.pid');
-const logFile = path.join(appDir, 'gateway.log');
-const tokenFile = path.join(appDir, 'auth.token');
+const pidFile = path.join(appDir, 'run', 'daemon.pid');
+const logFile = path.join(appDir, 'run', 'gateway.log');
+const tokenFile = path.join(appDir, 'auth', 'auth.token');
 
 if (!fs.existsSync(appDir)) {
   fs.mkdirSync(appDir, { recursive: true });
