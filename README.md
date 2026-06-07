@@ -10,7 +10,7 @@
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Utility-Centric dark-themed UI and strict client-side key isolation. 
 
-**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://nyxoraai.github.io/guide/mcp-integration)
+**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://nyxoraai.github.io/Nyxora/guide/mcp-integration)
 
 It operates under an institutional-grade **Cryptographically Bound Human-in-the-Loop** execution model, ensuring that Remote AIs (LLMs) never have unilateral access to your funds.
 
@@ -66,7 +66,7 @@ The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, sho
 
 ## 🛡️ Advanced Security & Threat Model
 
-To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security Blueprint](https://nyxoraai.github.io/).
+To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security Blueprint](https://nyxoraai.github.io/Nyxora/).
 
 ---
 
@@ -79,12 +79,12 @@ The fastest way to install Nyxora is via our automated installation script:
 
 **For Linux & macOS (Bash):**
 ```bash
-curl -fsSL https://nyxoraai.github.io/install.sh | bash
+curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
 ```
 
 **For Windows (PowerShell):**
 ```powershell
-iwr https://nyxoraai.github.io/install.ps1 -useb | iex
+iwr https://nyxoraai.github.io/Nyxora/install.ps1 -useb | iex
 ```
 
 Alternatively, you can install it manually on any operating system using NPM:
@@ -142,7 +142,7 @@ npm start
 
 For complete technical deep-dives into our Cryptographic Architecture, please visit our official VitePress Documentation Site!
 
-> **🔗 [Read the Full Nyxora Documentation Here](https://nyxoraai.github.io/)**
+> **🔗 [Read the Full Nyxora Documentation Here](https://nyxoraai.github.io/Nyxora/)**
 
 *(Includes guides on Secure Wallet Imports, Architecture Blueprints, Troubleshooting, and Custom Skill Development).*
 
