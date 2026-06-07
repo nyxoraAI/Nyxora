@@ -61,15 +61,41 @@ This transforms Nyxora from an "Ethereum Bot" into an **Agnostic Web3 Agent**. B
 
 ---
 
-## 5. Google OAuth Public Verification
 
-Currently, configuring the Google Workspace Integration requires users to bypass a security warning ("Google hasn't verified this app") since the OAuth client runs in local testing mode.
+
+## 5. Frontend Code Splitting & Lazy Loading
+
+Currently, the React/Vite dashboard bundles the entire application into a single JavaScript payload.
 
 **The Evolution:**
-In future updates, we plan to provide a streamlined, publicly verified OAuth flow. We will establish an officially verified Nyxora Google Cloud Project or introduce a fully automated Dashboard wizard that helps developers configure their own Google Cloud Console settings, generate standard Privacy Policies, and submit their own local instances for Google App Verification effortlessly.
+Future updates will introduce component-level `React.lazy()` boundaries and Route-based Code Splitting. Only the essential components required for the initial paint will be loaded immediately, while heavy modules (like the Portfolio Scanner or Chat Interface) will be fetched asynchronously on demand.
 
 **Why it matters:**
-This ensures a frictionless, enterprise-grade onboarding experience for end-users without alarming security warnings, bridging the gap between local-first privacy and mainstream SaaS usability.
+This drastically reduces the initial Time-to-Interactive (TTI) and payload size, ensuring the Dashboard remains lightning-fast even as we add more complex Web3 visualization tools.
+
+---
+
+## 6. Monorepo Build Caching (Turborepo)
+
+As Nyxora scales into multiple internal packages (`core`, `dashboard`, `policy`, `signer`), linear build times can become a bottleneck during active development.
+
+**The Evolution:**
+The build architecture will be migrated to use **Turborepo** (or Google Wireit). This will introduce intelligent build caching and parallel execution.
+
+**Why it matters:**
+If a developer only modifies the `dashboard` UI, Turborepo will retrieve the `core` and `signer` binaries from local cache in milliseconds instead of rebuilding them from scratch, plummeting compilation times from 5 seconds to 0.1 seconds.
+
+---
+
+## 7. TypeScript Strict Mode Compliance
+
+During rapid prototyping, TypeScript's `strict: false` configuration allows for maximum development velocity.
+
+**The Evolution:**
+A post-hackathon milestone is transitioning the entire Nyxora `tsconfig.json` to `"strict": true`. This involves thoroughly typing all Web3 contract ABIs, IPC socket payloads, and LLM structured JSON outputs.
+
+**Why it matters:**
+Enabling strict mode provides absolute compile-time guarantees, eliminating an entire class of runtime `undefined` errors and solidifying the reliability of the agent when handling highly sensitive financial data on-chain.
 
 ---
 
