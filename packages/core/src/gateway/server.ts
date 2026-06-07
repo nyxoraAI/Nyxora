@@ -656,7 +656,41 @@ app.use((req, res, next) => {
   }
 });
 
+export async function autoMigrateKeys() {
+  const vaultPath = getPath('api_vault.key');
+  let extractedKeys: Record<string, string> = {};
+  
+  try {
+    const { Entry } = require('@napi-rs/keyring');
+    const entry = new Entry('nyxora', 'api_keys');
+    const data = await entry.getPassword();
+    if (data) {
+      extractedKeys = JSON.parse(data);
+      await entry.deletePassword();
+      console.log('[Auto-Migrate] Migrated legacy keys from OS Keyring.');
+    }
+  } catch (e) {}
+
+  if (Object.keys(extractedKeys).length === 0 && fs.existsSync(vaultPath)) {
+    try {
+      const file = fs.readFileSync(vaultPath, 'utf8');
+      extractedKeys = JSON.parse(file);
+      fs.unlinkSync(vaultPath);
+      console.log('[Auto-Migrate] Migrated legacy keys from api_vault.key.');
+    } catch (e) {}
+  }
+
+  if (Object.keys(extractedKeys).length > 0) {
+    const config = loadConfig();
+    config.credentials = { ...config.credentials, ...extractedKeys };
+    saveConfig(config);
+    console.log('[Auto-Migrate] Successfully injected legacy keys into config.yaml.');
+  }
+}
+
 export function startServer() {
+  autoMigrateKeys().catch(e => console.error('[Auto-Migrate] Error:', e));
+
   pluginManager.loadPlugins().then(() => {
     console.log(`[PluginManager] Finished loading external skills.`);
   });
