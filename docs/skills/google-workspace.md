@@ -76,16 +76,16 @@ This is where you print the master key!
 8. Click the **DOWNLOAD JSON** button (the down-arrow icon) in that window.
 
 > [!IMPORTANT]
-> Save the downloaded file and rename it to **`google-credentials.json`**. 
-> You must place this file inside Nyxora's secure local directory:
-> **`~/.nyxora/google-credentials.json`** (e.g. `/home/username/.nyxora/google-credentials.json`).
+> Do not rename or move the downloaded JSON file manually. You will upload it directly through the Nyxora Dashboard in the next step.
 
-### Step 5: Connect via Dashboard
+### Step 5: Upload via Dashboard Wizard
 
-Once the file is placed in the `~/.nyxora/` directory:
+Once you have downloaded the JSON file:
 1. Open the Nyxora Web Dashboard.
-2. Navigate to the **OS Skills** tab.
-3. Click the **Sign in with Google** button.
-4. Complete the Google login flow.
+2. Navigate to the **Settings** tab.
+3. Scroll down to the **Integrations** section and click **Setup OAuth**.
+4. Follow the Wizard and upload your downloaded JSON file.
+5. Once uploaded, navigate to the **OS Skills** tab.
+6. Click the **Sign in with Google** button and complete the Google login flow.
 
 Your agent is now fully connected! The system will securely encrypt and lock your Google Refresh Token into your OS-Native Keyring Vault for maximum security.

@@ -150,7 +150,8 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
             <ol style={{ color: '#d8dee9', lineHeight: '1.6', paddingLeft: '20px', marginBottom: '24px' }}>
               <li>Go to <strong>APIs & Services {'>'} Credentials</strong>.</li>
               <li>Click <strong>Create Credentials {'>'} OAuth client ID</strong>.</li>
-              <li>Choose <strong>Desktop app</strong> as the application type.</li>
+              <li>Choose <strong>Web application</strong> as the application type.</li>
+              <li>Under <strong>Authorized redirect URIs</strong>, add: <code style={{color: '#88c0d0', padding: '2px 4px', background: '#3b4252', borderRadius: '4px'}}>http://localhost:3000/api/auth/google/callback</code></li>
               <li>Click Download JSON and upload the file here:</li>
             </ol>
 
