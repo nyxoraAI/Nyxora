@@ -20,8 +20,8 @@
     "nyxora": "bin/nyxora.mjs"
   },
   "scripts": {
-    "prepare": "npm run build --workspace=dashboard || echo '⚠️ Build failed – dashboard UI may be missing'",
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npx ts-node -T launcher.ts\" \"npm run dev --workspace=dashboard\"",
+    "prepare": "npm run build --workspace=nyxora-dashboard || echo '⚠️ Build failed – dashboard UI may be missing'",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npx ts-node -T launcher.ts\" \"npm run dev --workspace=nyxora-dashboard\"",
     "start": "node ./bin/nyxora.mjs start",
     "stop": "node ./bin/nyxora.mjs stop",
     "restart": "node ./bin/nyxora.mjs restart",
