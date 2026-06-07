@@ -1,5 +1,15 @@
 import express from 'express';
 import cors from 'cors';
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Anti-Crash] Uncaught Exception:', error);
+  process.exit(1);
+});
+
 import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -49,6 +59,7 @@ import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendR
 import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated, logoutGoogle } from './googleAuthModule';
+import { generatePrivacyPolicyHtml, generateTosHtml } from './legalGenerator';
 
 // Initialize Google Auth
 initGoogleAuth();
@@ -123,6 +134,38 @@ app.use(express.static(dashboardPath));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(dashboardPath, 'index.html'));
+});
+
+app.get('/privacy', (req, res) => {
+  res.send(generatePrivacyPolicyHtml());
+});
+
+app.get('/tos', (req, res) => {
+  res.send(generateTosHtml());
+});
+
+app.post('/api/upload-google-credentials', (req, res) => {
+  try {
+    const credentials = req.body.credentials;
+    if (!credentials) {
+      return res.status(400).json({ error: 'Missing credentials payload' });
+    }
+    
+    // Save to ~/.nyxora/google-credentials.json
+    const credsPath = getPath('google-credentials.json');
+    
+    // The format needs to wrap it in "web" or "installed"
+    const finalPayload = credentials.client_id ? { installed: credentials } : credentials;
+    
+    fs.writeFileSync(credsPath, JSON.stringify(finalPayload, null, 2));
+    
+    // Re-initialize google auth module
+    initGoogleAuth();
+    
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/history', (req, res) => {

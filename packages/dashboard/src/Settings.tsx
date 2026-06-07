@@ -1,8 +1,9 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Save, User, Cpu, Key, Network, Globe } from 'lucide-react';
+import { Save, User, Cpu, Key, Network, Globe, Shield } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
 import { getChainLogoUrl } from './utils/logos';
+import { GoogleAuthWizard } from './components/GoogleAuthWizard';
 
 const ChainIcon = ({ id }: { id: string }) => (
   <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -17,7 +18,7 @@ const ChainIcon = ({ id }: { id: string }) => (
 
 interface Config {
   agent: { name: string; default_chain: string; default_slippage?: number };
-  llm: { provider: string; model: string; temperature: number; api_keys?: string[] };
+  llm: { provider: string; model: string; temperature: number };
   web3?: { rpc_urls?: Record<string, string | string[]> };
 }
 
@@ -29,6 +30,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
   const [formData, setFormData] = useState<Config | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showGoogleWizard, setShowGoogleWizard] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -40,11 +42,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
         },
         llm: {
           provider: config.llm?.provider || 'openai',
-          model: config.llm?.model || 'gpt-4o-mini',
-          temperature: config.llm?.temperature ?? 0.2,
-          api_keys: Array.isArray(config.llm?.api_keys) 
-            ? config.llm.api_keys 
-            : (config.llm?.api_keys ? [config.llm.api_keys as unknown as string] : [])
+          model: config.llm?.model || 'gpt-4',
+          temperature: config.llm?.temperature || 0.7
         },
         web3: {
           rpc_urls: config.web3?.rpc_urls || {}
@@ -89,33 +88,6 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           rpc_urls: newRpcUrls
         }
       };
-    });
-  };
-
-  const handleAddApiKey = () => {
-    setFormData(prev => {
-      if (!prev) return prev;
-      const currentKeys = prev.llm.api_keys || [];
-      if (currentKeys.length >= 10) return prev;
-      return { ...prev, llm: { ...prev.llm, api_keys: [...currentKeys, ''] } };
-    });
-  };
-
-  const handleUpdateApiKey = (index: number, value: string) => {
-    setFormData(prev => {
-      if (!prev) return prev;
-      const newKeys = [...(prev.llm.api_keys || [])];
-      newKeys[index] = value;
-      return { ...prev, llm: { ...prev.llm, api_keys: newKeys } };
-    });
-  };
-
-  const handleRemoveApiKey = (index: number) => {
-    setFormData(prev => {
-      if (!prev) return prev;
-      const newKeys = [...(prev.llm.api_keys || [])];
-      newKeys.splice(index, 1);
-      return { ...prev, llm: { ...prev.llm, api_keys: newKeys } };
     });
   };
 
@@ -246,79 +218,26 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
         </div>
       </div>
 
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '32px' }}>
-        <div className="nord-panel-header" style={{ justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Key size={18} color="#81a1c1" />
-            <h3>API Keys (Rotation)</h3>
-          </div>
-          <span style={{ fontSize: '0.8rem', color: '#81a1c1', fontWeight: 600 }}>
-            {formData.llm.api_keys?.length || 0} / 10 Keys
-          </span>
+      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+        <div className="nord-panel-header">
+          <Shield size={18} color="#a3be8c" />
+          <h3>Integrations</h3>
         </div>
         <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
-          Add up to 10 API keys. The system will automatically rotate through them (Round-Robin) for each request to prevent rate limits. Leave empty to fallback to default credentials set via CLI (nyxora setup).
+          Connect Nyxora to external services to expand its capabilities.
         </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {(formData.llm.api_keys || []).map((key, index) => (
-            <div key={index} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <input 
-                className="nord-input"
-                type="password" 
-                value={key}
-                placeholder="sk-..."
-                onChange={(e) => handleUpdateApiKey(index, e.target.value)}
-              />
-              <button 
-                onClick={() => handleRemoveApiKey(index)}
-                style={{ 
-                  background: 'rgba(191, 97, 106, 0.15)', 
-                  color: '#bf616a', 
-                  border: '1px solid rgba(191, 97, 106, 0.3)', 
-                  borderRadius: '6px', 
-                  padding: '10px 16px', 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s',
-                  fontWeight: 600,
-                  fontSize: '0.85rem'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(191, 97, 106, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(191, 97, 106, 0.15)'}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-
-          {(!formData.llm.api_keys || formData.llm.api_keys.length < 10) && (
-            <button 
-              onClick={handleAddApiKey}
-              style={{ 
-                alignSelf: 'flex-start', 
-                background: 'transparent', 
-                color: '#81a1c1', 
-                border: '1px dashed #434c5e', 
-                borderRadius: '6px', 
-                padding: '10px 20px', 
-                cursor: 'pointer', 
-                marginTop: '8px', 
-                transition: 'all 0.2s',
-                fontWeight: 600,
-                fontSize: '0.85rem'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#81a1c1';
-                e.currentTarget.style.background = 'rgba(129, 161, 193, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#434c5e';
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              + Add API Key
-            </button>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
+          <div>
+            <h4 style={{ color: '#eceff4', margin: '0 0 4px 0' }}>Google Workspace</h4>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#d8dee9' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
+          </div>
+          <button 
+            className="nord-btn-primary" 
+            style={{ background: '#a3be8c', color: '#2e3440', fontWeight: 600 }}
+            onClick={() => setShowGoogleWizard(true)}
+          >
+            Setup OAuth
+          </button>
         </div>
       </div>
 
@@ -365,6 +284,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           {isSaving ? 'Saving...' : 'Save Configuration'}
         </button>
       </div>
+
+      {showGoogleWizard && <GoogleAuthWizard onClose={() => setShowGoogleWizard(false)} />}
     </div>
   );
 };
