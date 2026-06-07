@@ -27,7 +27,7 @@ RUN npm install
 COPY . .
 
 # Build the dashboard (frontend)
-RUN npm run build --workspace=dashboard
+RUN npm run build --workspace=nyxora-dashboard
 
 # Set Production Environment now that build is done
 ENV NODE_ENV=production
