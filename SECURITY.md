@@ -66,12 +66,22 @@ approval_hash = sha256(policy_diff + timestamp + user_id)
 ```
 This ensures that what the human saw on the UI matches exactly what is being executed, preventing the LLM from secretly modifying the payload in transit.
 
-### Anti-Replay Challenge Nonce
-Every approval UI prompt utilizes a **Single-Use Challenge Nonce** with a strict expiry time. This mitigates *XSS Token Leaks* and *Replay Attacks*, ensuring that an old approval token cannot be stolen and reused for a malicious transaction later.
+### Anti-Replay Challenge Nonce (Nonce Guard)
+Every approval UI prompt utilizes a **Single-Use Challenge Nonce** (a randomized 16-byte cryptographic string). The `transactionManager` signs all pending payloads with this Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces matching and immediately marks the Nonce as `used_` upon first validation. This completely eliminates *XSS Token Leaks*, *Double-Spending*, and *Replay Attacks*, ensuring that an old approval token cannot be stolen and reused for a malicious transaction later.
 
 ---
 
-## 4. Plugin Sandboxing (Node.js VM Isolation)
+## 4. Physical Access & Data Integrity
+
+### Zero-Trust Auto-Lock (Physical Protection)
+To protect against unauthorized physical access (e.g., leaving a laptop unattended), the Dashboard implements a **Zero-Trust Auto-Lock** mechanism. After a period of inactivity, the UI aggressively blurs and locks all state. Unlocking the interface requires the user to execute `nyxora unlock` directly from the host operating system's CLI. This guarantees that anyone physically sitting at the unlocked dashboard cannot execute transactions without also possessing SSH or direct terminal access to the host machine.
+
+### SQLite WAL Graceful Shutdown (Data Integrity)
+To prevent database corruption during abrupt terminations, the Gateway daemon employs deep `SIGTERM` and `SIGINT` interceptors. When a halt is requested, the system safely terminates active incoming API requests and explicitly flushes the SQLite Write-Ahead Logs (WAL) before fully exiting, ensuring enterprise-grade state stability.
+
+---
+
+## 5. Plugin Sandboxing (Node.js VM Isolation)
 
 Community plugins and custom skills are NEVER executed directly at the OS level. Instead, Nyxora creates an airtight **Virtual Machine (VM) Sandbox** in memory. 
 

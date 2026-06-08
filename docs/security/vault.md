@@ -39,4 +39,4 @@ The raw Private Key only resides in active volatile memory (RAM) within the isol
 
 When the UI asks you to approve a transaction, the transmission is not a simple plaintext POST request. 
 
-The backend generates a **Single-Use Challenge Nonce** with a strict expiry time. Your Dashboard UI must cryptographically bind this nonce to the transaction hash, ensuring that malware extensions or XSS attacks cannot replay an old session token or alter the payload in transit.
+The backend generates a **Single-Use Challenge Nonce** (a randomized 16-byte cryptographic string). The `transactionManager` cryptographically signs all pending payloads with this Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching and immediately marks the Nonce as `used_` upon first validation. This architecture completely eliminates *Double-Spending*, *XSS Token Leaks*, and *Replay Attacks*, ensuring that an old approval token cannot be stolen and reused for a malicious transaction later.

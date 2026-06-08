@@ -24,8 +24,16 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     ? `${API_BASE_URL}${input}` 
     : input;
     
-  return fetch(url, {
-    ...init,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers,
+    });
+
+    window.dispatchEvent(new CustomEvent('nyxora-network-restored'));
+    return response;
+  } catch (error) {
+    window.dispatchEvent(new CustomEvent('nyxora-network-error'));
+    throw error;
+  }
 }

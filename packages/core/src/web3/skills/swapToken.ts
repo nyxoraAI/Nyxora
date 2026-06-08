@@ -239,7 +239,7 @@ export async function executeSwap(chainName: ChainName, params: any, autoApprove
       payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + amountWei).digest('hex');
     }
 
-    const res = await fetch('http://127.0.0.1:3001/request-tx', {
+    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

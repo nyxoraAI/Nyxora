@@ -1,5 +1,6 @@
 import { initSafeLogger } from '../../core/src/utils/safeLogger';
 initSafeLogger();
+import { getPath } from '../../core/src/config/paths';
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
@@ -19,7 +20,7 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const PORT = 3001;
+const PORT = process.env.POLICY_PORT || 3001;
 const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
 const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
 
@@ -40,7 +41,7 @@ const TxRequestSchema = z.object({
 
 let policyRules: any = {};
 try {
-  const policyPath = path.join(process.cwd(), 'policy.yaml');
+  const policyPath = getPath('policy.yaml');
   const file = fs.readFileSync(policyPath, 'utf8');
   policyRules = yaml.parse(file);
 } catch (e) {
@@ -195,6 +196,16 @@ app.post('/approve-tx/:id', (req, res) => {
   signerReq.end();
 });
 
-app.listen(PORT, '127.0.0.1', () => {
+const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`[Policy Engine] Listening on 127.0.0.1:${PORT} (Secured Local Loopback)`);
+});
+
+server.on('error', (e: any) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`[Policy Engine] Port ${PORT} is already in use. Is Nyxora already running?`);
+    process.exit(1);
+  } else {
+    console.error(`[Policy Engine] Server error:`, e);
+    process.exit(1);
+  }
 });

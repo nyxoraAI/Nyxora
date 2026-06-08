@@ -9,6 +9,8 @@ const CHAIN_IDS: Record<ChainName, number> = {
   sepolia: 11155111,
   polygon: 137,
   base_sepolia: 84532,
+  arbitrum_sepolia: 421614,
+  optimism_sepolia: 11155420,
 };
 
 export async function checkTokenSecurity(chainName: ChainName, contractAddress: string): Promise<string> {

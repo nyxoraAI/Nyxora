@@ -95,7 +95,7 @@ export async function executeMintNft(chainName: ChainName, params: any, autoAppr
       payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + signAmount).digest('hex');
     }
 
-    const res = await fetch('http://127.0.0.1:3001/request-tx', {
+    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

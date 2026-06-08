@@ -14,6 +14,7 @@ import TransactionWidget from './TransactionWidget';
 import MarketWidget from './MarketWidget';
 import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
+import ReconnectOverlay from './components/ReconnectOverlay';
 import './index.css';
 
 interface Message {
@@ -48,7 +49,48 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // Auto-Lock State
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedAt, setLockedAt] = useState<number>(0);
+  const lastActivityRef = useRef<number>(Date.now());
+  const [autoLockTime, setAutoLockTime] = useState<number>(() => parseInt(localStorage.getItem('nyxora_auto_lock') || '0'));
 
+  useEffect(() => {
+    const handleActivity = () => { lastActivityRef.current = Date.now(); };
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, []);
+
+  useEffect(() => {
+    const lockCheck = setInterval(() => {
+      if (autoLockTime > 0 && !isLocked && (Date.now() - lastActivityRef.current > autoLockTime * 60 * 1000)) {
+        setIsLocked(true);
+        setLockedAt(Date.now());
+      }
+    }, 1000);
+    return () => clearInterval(lockCheck);
+  }, [autoLockTime, isLocked]);
+
+  useEffect(() => {
+    let unlockCheck: NodeJS.Timeout;
+    if (isLocked) {
+      unlockCheck = setInterval(async () => {
+        try {
+          const res = await apiFetch('/api/status/lock');
+          const data = await res.json();
+          if (data.lastUnlockRequest && data.lastUnlockRequest > lockedAt) {
+            setIsLocked(false);
+            lastActivityRef.current = Date.now();
+          }
+        } catch(e) {}
+      }, 1000);
+    }
+    return () => clearInterval(unlockCheck);
+  }, [isLocked, lockedAt]);
 
   useEffect(() => {
     // Initialize Speech Recognition
@@ -332,6 +374,29 @@ function App() {
 
   return (
     <>
+      <ReconnectOverlay />
+      {isLocked && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontFamily: 'sans-serif'
+        }}>
+          <Shield size={64} color="#88c0d0" style={{ marginBottom: '20px' }} />
+          <h1 style={{ fontSize: '2rem', marginBottom: '10px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Session Locked</h1>
+          <p style={{ color: '#e2e8f0', fontSize: '1.2rem', textShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>
+            Please open your terminal and run <code>nyxora unlock</code> to authorize unlock.
+          </p>
+        </div>
+      )}
       <aside className="sidebar">
         <div className="agent-identity-card">
           <div className="agent-avatar">
@@ -455,7 +520,7 @@ function App() {
         ) : currentView === 'osskills' ? (
           <OsSkills />
         ) : currentView === 'settings' ? (
-          <Settings config={config} onConfigChange={setConfig} />
+          <Settings config={config} onConfigChange={setConfig} autoLockTime={autoLockTime} setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }} />
         ) : (
           <div className="workspace-container">
             <div className="chat-wrapper" style={{ width: '100%', margin: '0 auto', maxWidth: '1000px' }}>

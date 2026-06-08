@@ -19,10 +19,10 @@ hero:
 features:
   - title: 3-Tier IPC Architecture
     details: Complete process isolation between Core LLM (port 3000), Policy Engine (port 3001), and Signer Vault (Unix Socket).
-  - title: Cryptographic Approvals
-    details: UI approvals are strictly bound by sha256 hashes and backend challenge nonces.
-  - title: Zero-Click Multi-Session
-    details: Instantly create and manage isolated chat sessions with smart auto-naming and seamless UI syncing.
+  - title: Replay Protection & Nonce Guard
+    details: UI approvals are strictly cryptographically bound by 16-byte challenge nonces to eliminate Double-Spending and Replay Attacks.
+  - title: Resilient UI & Auto-Lock
+    details: Features a Zero-Trust Physical Auto-Lock and a robust Offline Reconnect Overlay that seamlessly handles daemon restarts without losing state.
   - title: Cross-Chain Hybrid Market Scanner
     details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
   - title: Multi-LLM Support

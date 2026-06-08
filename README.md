@@ -20,10 +20,10 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 
 ### Advanced Security Architecture
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
-*   **Cryptographically Bound Approval**: Policy changes and transactions requested by the AI are drafted as hashes (`sha256`). Approval via the UI requires a challenge nonce, preventing Man-in-the-Middle (MITM) attacks.
+*   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
 *   **Plugin Sandbox VM**: Execute community-built external skills securely inside an airtight Node.js `vm` chamber with zero access to your file system or terminal processes.
-*   **Enterprise-Grade Stability**: Runs on a WAL-enabled SQLite backend with resilient anti-zombie connection timeouts to ensure maximum concurrency without database locks.
+*   **Graceful SQLite WAL Shutdown**: Integrated `SIGTERM`/`SIGINT` interceptors ensure that when the daemon stops, active requests are safely terminated and SQLite Write-Ahead Logs (WAL) are securely flushed, preventing database corruption.
 
 ### 🌐 Web3 Skills (On-Chain)
 *   **Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
@@ -39,8 +39,9 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 *   **Unstoppable Synergy**: Combine both engines with a single prompt. Example: *"Read the latest presale token email from my Gmail, automatically set a Take Profit limit order on Uniswap, and log the execution result to my Google Sheets."*
 
 ### AI & UI Customization
+*   **Zero-Trust Auto-Lock (Passwordless)**: A sleek glassmorphism blur overlay automatically locks the dashboard during inactivity. Unlocking requires physical local execution via the CLI (`nyxora unlock`), preventing unauthorized local access.
+*   **Resilient UI (Reconnect Overlay)**: Built-in global network interceptors ensure that if the daemon restarts or crashes, the UI immediately pauses with a transparent "Offline" overlay and seamlessly resumes your workflow once revived.
 *   **Zero-Click Multi-Session**: Instantly create isolated chat sessions with smart auto-naming triggered by your first prompt, exactly like ChatGPT.
-*   **Dynamic Trending Tokens**: Live top 5 crypto assets feed directly injected into the dashboard, completely clickable for instant AI market analysis.
 *   **Premium Utility-Centric UI**: A sleek, dark-themed dashboard built for high readability and professional Web3 execution, featuring Pseudo-Generative UI widgets (`<BalanceWidget>`, `<MarketWidget>`, `<SwapWidget>`).
 *   **Massive 2026 Model Roster**: Out-of-the-box support for cutting-edge models via Google Gemini, OpenAI, Groq, Mistral, xAI, DeepSeek, OpenRouter, and local Ollama, equipped with a searchable CLI prompt to instantly find your favorite model.
 *   **Strict NLP Exactness (Rule 8)**: The AI is rigorously instructed never to hallucinate or guess missing transaction parameters (like destination chains or swap amounts). It halts and requests human clarification, guaranteeing 100% precision.

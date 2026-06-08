@@ -1,5 +1,5 @@
 import { createPublicClient, http, fallback, PublicClient, Transport } from 'viem';
-import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon, baseSepolia } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon, baseSepolia, arbitrumSepolia, optimismSepolia } from 'viem/chains';
 import { loadConfig } from '../config/parser';
 
 export const supportedChains = {
@@ -11,6 +11,8 @@ export const supportedChains = {
   sepolia: sepolia,
   polygon: polygon,
   base_sepolia: baseSepolia,
+  arbitrum_sepolia: arbitrumSepolia,
+  optimism_sepolia: optimismSepolia,
 };
 
 export const SUPPORTED_CHAIN_NAMES = Object.keys(supportedChains);
@@ -61,6 +63,12 @@ export function getPublicClient(chainName: ChainName): PublicClient {
       transports.push(http('https://polygon-rpc.publicnode.com', { timeout: 5000 }));
       transports.push(http('https://polygon.llamarpc.com', { timeout: 5000 }));
       transports.push(http('https://polygon-rpc.com', { timeout: 5000 }));
+    } else if (chainName === 'arbitrum_sepolia') {
+      transports.push(http('https://arbitrum-sepolia-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://sepolia-rollup.arbitrum.io/rpc', { timeout: 5000 }));
+    } else if (chainName === 'optimism_sepolia') {
+      transports.push(http('https://optimism-sepolia-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://sepolia.optimism.io', { timeout: 5000 }));
     }
   }
 
@@ -81,7 +89,7 @@ export function getPublicClient(chainName: ChainName): PublicClient {
 export async function getAddress(): Promise<string> {
   const token = process.env.INTERNAL_AUTH_TOKEN;
   try {
-    const res = await fetch('http://127.0.0.1:3001/address', {
+    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/address`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Vault is locked or unavailable');

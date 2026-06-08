@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { getPath } from '../../config/paths';
+import { getPath, getAppDir } from '../../config/paths';
 
 export async function installExternalSkill(url: string): Promise<string> {
   try {
@@ -18,7 +18,7 @@ export async function installExternalSkill(url: string): Promise<string> {
     }
     
     // Ensure external_skills directory exists
-    const pluginsDir = path.join(process.cwd(), 'src', 'external_skills');
+    const pluginsDir = path.join(getAppDir(), 'plugins');
     if (!fs.existsSync(pluginsDir)) {
       fs.mkdirSync(pluginsDir, { recursive: true });
     }

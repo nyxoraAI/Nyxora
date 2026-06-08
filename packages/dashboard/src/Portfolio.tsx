@@ -52,7 +52,9 @@ export const Portfolio: React.FC = () => {
       optimism: '#FF0420',
       bsc: '#F0B90B',
       polygon: '#8247E5',
-      sepolia: '#CFB53B'
+      sepolia: '#CFB53B',
+      arbitrum_sepolia: '#28A0F0',
+      optimism_sepolia: '#FF0420'
     };
     return map[chain.toLowerCase()] || '#88C0D0';
   };
