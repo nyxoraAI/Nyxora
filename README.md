@@ -71,7 +71,7 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 
 ---
 
-## 🚀 Quick Start & Installation
+## 1. 🚀 Quick Start & Installation
 
 ### Global Installation via NPM (Recommended)
 The easiest and fastest way to use Nyxora is to install it globally via NPM. This ensures you get the latest version and can run Nyxora from anywhere on your machine.
