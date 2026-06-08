@@ -244,6 +244,9 @@ Provider: ${config.llm.provider}`;
       { value: 'optimism', label: 'OP Mainnet' },
       { value: 'polygon', label: 'Polygon (Matic)' },
       { value: 'sepolia', label: 'Sepolia (Testnet)' },
+      { value: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
+      { value: 'arbitrum_sepolia', label: 'Arbitrum Sepolia (Testnet)' },
+      { value: 'optimism_sepolia', label: 'OP Sepolia (Testnet)' },
     ],
   });
   if (isCancel(defaultChain)) return process.exit(0);

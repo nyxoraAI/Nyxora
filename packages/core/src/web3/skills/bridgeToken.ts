@@ -13,6 +13,8 @@ const CHAIN_IDS: Record<ChainName, number> = {
   sepolia: 11155111,
   polygon: 137,
   base_sepolia: 84532,
+  arbitrum_sepolia: 421614,
+  optimism_sepolia: 11155420,
 };
 
 async function getLifiQuote(fromChainId: number, toChainId: number, fromToken: string, toToken: string, amountWei: string, userAddress: string, slippage: number) {
@@ -118,10 +120,34 @@ export async function prepareBridgeToken(
     }
 
     const isTestnet = fromChainId === 11155111 || toChainId === 11155111 || fromChainId === 84532 || toChainId === 84532;
-    let actualProvider = mode === "auto" ? (isTestnet ? "relay" : "lifi") : providerName;
+    let actualProvider: string = mode === "auto" ? (isTestnet ? "relay" : "lifi") : providerName;
     
 
-    if (actualProvider === "lifi") {
+    if (fromChainId === 11155111 && toChainId === 421614 && isNativeIn) {
+      const { encodeFunctionData } = await import('viem');
+      txRequest = {
+        to: "0xaae29b0366299461418f5324a79afc425be5ae21",
+        value: amountWei,
+        data: encodeFunctionData({
+           abi: [{ type: 'function', name: 'depositEth', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'payable' }],
+           args: []
+        })
+      };
+      expectedOutputStr = amountStr;
+      actualProvider = "arbitrum-canonical-inbox";
+    } else if (fromChainId === 421614 && toChainId === 11155111 && isNativeIn) {
+      const { encodeFunctionData } = await import('viem');
+      txRequest = {
+        to: "0x0000000000000000000000000000000000000064",
+        value: amountWei,
+        data: encodeFunctionData({
+           abi: [{ type: 'function', name: 'withdrawEth', inputs: [{ name: 'destination', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'payable' }],
+           args: [userAddress as `0x${string}`]
+        })
+      };
+      expectedOutputStr = amountStr;
+      actualProvider = "arbsys-canonical-withdraw";
+    } else if (actualProvider === "lifi") {
       const quote = await getLifiQuote(fromChainId, toChainId, fromTokenAddress, toTokenAddress, amountWei, userAddress, actualSlippage / 100);
       txRequest = quote.transactionRequest;
       approvalAddress = quote.estimate.approvalAddress;
@@ -191,7 +217,7 @@ export async function executeBridge(chainName: ChainName, params: any, autoAppro
       payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + amountWei).digest('hex');
     }
 
-    const res = await fetch('http://127.0.0.1:3001/request-tx', {
+    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

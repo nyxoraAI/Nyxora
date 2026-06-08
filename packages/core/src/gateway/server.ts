@@ -17,7 +17,7 @@ import http from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getPath } from '../config/paths';
-import { getSessionToken } from '../utils/state';
+import { validateToken, getSessionToken } from '../utils/state';
 
 import fs from 'fs';
 import { processUserInput, logger } from '../agent/reasoning';
@@ -120,16 +120,24 @@ app.use('/api', (req, res, next) => {
     return next();
   }
 
-  const token = req.headers['x-nyxora-token'];
-  if (token !== getSessionToken()) {
-    console.error(`[Auth] Rejected ${req.method} ${req.originalUrl} - Expected: ${getSessionToken().substring(0,8)}... Received: ${token ? token.toString().substring(0,8) + '...' : 'undefined'}`);
+  const token = req.headers['x-nyxora-token'] as string;
+  const validation = validateToken(token);
+  
+  if (!validation.valid) {
+    console.error(`[Auth] Rejected ${req.method} ${req.originalUrl} - Received invalid token.`);
     return res.status(401).json({ error: `Unauthorized: Invalid or missing token.` });
   }
+  
   next();
 });
 
 // Serve Static Dashboard
-const dashboardPath = path.resolve(process.cwd(), 'packages/dashboard/dist');
+let rootDir = __dirname;
+while (!fs.existsSync(path.join(rootDir, 'package.json'))) {
+  rootDir = path.dirname(rootDir);
+  if (rootDir === '/' || rootDir === 'C:\\') break;
+}
+const dashboardPath = path.join(rootDir, 'packages', 'dashboard', 'dist');
 app.use(express.static(dashboardPath));
 
 app.get('/', (req, res) => {
@@ -366,6 +374,17 @@ app.delete('/api/auth/google', async (req, res) => {
   res.json({ success });
 });
 
+let lastUnlockRequest = 0;
+
+app.post('/api/status/unlock', (req, res) => {
+  lastUnlockRequest = Date.now();
+  res.json({ success: true });
+});
+
+app.get('/api/status/lock', (req, res) => {
+  res.json({ lastUnlockRequest });
+});
+
 app.get('/api/transactions', (req, res) => {
   res.json(txManager.getPending());
 });
@@ -373,9 +392,16 @@ app.get('/api/transactions', (req, res) => {
 app.post('/api/transactions/:id/approve', async (req, res) => {
   try {
     const id = req.params.id;
-    const { sessionId } = req.body || {};
+    const { sessionId, nonce } = req.body || {};
     const tx = txManager.getTransaction(id);
     if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
+
+    if (tx.nonce !== nonce) {
+      return res.status(403).json({ error: 'Invalid or missing nonce. Replay attack detected.' });
+    }
+    
+    // Invalidate the nonce immediately to prevent replay
+    tx.nonce = 'used_' + Date.now();
 
     txManager.updateStatus(id, 'approved', 'Executing on-chain...');
     res.json({ success: true, status: 'processing', message: 'Transaction submitted to background processing.' });
@@ -697,12 +723,40 @@ export function startServer() {
   limitOrderManager.startMonitor();
 
   const PORT = Number(process.env.PORT || 3000);
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
     
     // Start the Telegram bot listener
     startTelegramBot();
   });
+
+  server.on('error', (e: any) => {
+    if (e.code === 'EADDRINUSE') {
+      console.error(`[Nyxora Gateway] Port ${PORT} is already in use. Is Nyxora already running?`);
+      process.exit(1);
+    } else {
+      console.error(`[Nyxora Gateway] Server error:`, e);
+      process.exit(1);
+    }
+  });
+
+  const gracefulShutdown = () => {
+    console.log('[Nyxora Gateway] Received shutdown signal. Closing server...');
+    server.close(() => {
+      console.log('[Nyxora Gateway] HTTP server closed.');
+      logger.close();
+      process.exit(0);
+    });
+    
+    // Force exit after 10s if stuck
+    setTimeout(() => {
+      console.error('[Nyxora Gateway] Forced shutdown after 10s.');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
 }
 
 // Start server if this file is run directly

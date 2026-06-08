@@ -7,7 +7,9 @@ export const getChainLogoUrl = (chain: string) => {
     bsc: 'smartchain',
     polygon: 'polygon',
     sepolia: 'ethereum',
-    base_sepolia: 'base'
+    base_sepolia: 'base',
+    arbitrum_sepolia: 'arbitrum',
+    optimism_sepolia: 'optimism'
   };
   const mapped = twName[chain.toLowerCase()] || 'ethereum';
   return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${mapped}/info/logo.png`;
@@ -23,6 +25,8 @@ export const getChainId = (chain: string) => {
     case 'polygon': return 137;
     case 'sepolia': return 11155111;
     case 'base_sepolia': return 84532;
+    case 'arbitrum_sepolia': return 421614;
+    case 'optimism_sepolia': return 11155420;
     default: return 1;
   }
 };

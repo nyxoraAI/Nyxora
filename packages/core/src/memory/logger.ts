@@ -137,8 +137,10 @@ export class Logger {
   }
 
   public deleteSession(sessionId: string) {
-    this.db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
-    this.db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    const stmt = this.db.prepare('DELETE FROM sessions WHERE id = ?');
+    stmt.run(sessionId);
+    const stmt2 = this.db.prepare('DELETE FROM messages WHERE session_id = ?');
+    stmt2.run(sessionId);
   }
 
   public renameSession(sessionId: string, newTitle: string) {
@@ -205,4 +207,15 @@ export class Logger {
       this.db.prepare('DELETE FROM messages WHERE session_id IS NULL').run();
     }
   }
+
+  public close() {
+    try {
+      this.db.close();
+      console.log('[Nyxora Memory] SQLite database closed gracefully.');
+    } catch (e) {
+      console.error('[Nyxora Memory] Error closing database:', e);
+    }
+  }
 }
+
+export const logger = new Logger();

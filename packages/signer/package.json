@@ -1,6 +1,6 @@
 {
   "name": "nyxora-signer",
-  "version": "26.6.8-2",
+  "version": "26.6.9",
   "private": true,
   "main": "src/server.ts",
   "dependencies": {

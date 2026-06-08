@@ -25,9 +25,11 @@ interface Config {
 interface SettingsProps {
   config: Config | null;
   onConfigChange: (newConfig: Config) => void;
+  autoLockTime: number;
+  setAutoLockTime: (val: number) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
+const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime }) => {
   const [formData, setFormData] = useState<Config | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
@@ -148,7 +150,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
                 { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
                 { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
                 { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
-                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> }
+                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> },
+                { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
+                { id: 'optimism_sepolia', label: 'OP Sepolia', icon: <ChainIcon id="optimism_sepolia" /> }
               ]}
             />
           </div>
@@ -220,7 +224,32 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
-          <Shield size={18} color="#a3be8c" />
+          <Shield size={18} color="#ebcb8b" />
+          <h3>Security & Privacy</h3>
+        </div>
+        <div className="form-row">
+          <div className="form-group flex-1">
+            <label className="nord-label">Auto-Lock Session (Idle Timeout)</label>
+            <PillSelect 
+              value={autoLockTime.toString()}
+              onChange={(val) => setAutoLockTime(parseInt(val))}
+              pillColor="#ebcb8b"
+              textColor="#2e3440"
+              options={[
+                { id: '0', label: 'Off' },
+                { id: '15', label: '15 Minutes' },
+                { id: '30', label: '30 Minutes' },
+                { id: '60', label: '1 Hour' }
+              ]}
+            />
+          </div>
+          <div className="form-group flex-1"></div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+        <div className="nord-panel-header">
+          <Key size={18} color="#a3be8c" />
           <h3>Integrations</h3>
         </div>
         <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
@@ -251,14 +280,14 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange }) => {
           Separate multiple URLs with a comma for Fallback High-Availability.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia', 'base_sepolia'].map(chain => {
+          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia', 'base_sepolia', 'arbitrum_sepolia', 'optimism_sepolia'].map(chain => {
             const rpcVal = formData.web3?.rpc_urls?.[chain];
             const displayVal = Array.isArray(rpcVal) ? rpcVal.join(', ') : (rpcVal || '');
             return (
               <div key={chain} className="form-group" style={{ position: 'relative' }}>
                 <label className="nord-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <img 
-                    src={`https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain === 'bsc' ? 'smartchain' : chain}/info/logo.png`} 
+                    src={`https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain === 'bsc' ? 'smartchain' : chain.replace('_sepolia', '')}/info/logo.png`} 
                     alt={chain} 
                     style={{ width: '14px', height: '14px', borderRadius: '50%' }}
                     onError={(e) => e.currentTarget.style.display = 'none'}

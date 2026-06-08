@@ -10,6 +10,7 @@ export interface PendingTransaction {
   status: 'pending' | 'approved' | 'rejected' | 'executed' | 'failed';
   result?: string;
   createdAt: number;
+  nonce: string;
 }
 
 class TransactionManager {
@@ -17,6 +18,7 @@ class TransactionManager {
 
   createPendingTransaction(type: TransactionType, chainName: string, details: any): PendingTransaction {
     const id = crypto.randomUUID();
+    const nonce = crypto.randomBytes(16).toString('hex');
     const tx: PendingTransaction = {
       id,
       type,
@@ -24,6 +26,7 @@ class TransactionManager {
       details,
       status: 'pending',
       createdAt: Date.now(),
+      nonce,
     };
     this.transactions.set(id, tx);
     return tx;

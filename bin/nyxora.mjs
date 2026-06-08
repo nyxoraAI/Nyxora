@@ -117,7 +117,13 @@ async function dashboard() {
   }
 
   if (fs.existsSync(tokenFile)) {
-    const token = fs.readFileSync(tokenFile, 'utf8').trim();
+    let token = fs.readFileSync(tokenFile, 'utf8').trim();
+    if (token.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(token);
+        token = parsed.token;
+      } catch (e) {}
+    }
     const url = `http://localhost:3000?token=${token}`;
     console.log(`Opening Dashboard at ${url}`);
     try {
@@ -275,8 +281,38 @@ async function runDoctor() {
   await new Promise(resolve => child.on('close', resolve));
 }
 
+async function unlock() {
+  if (fs.existsSync(tokenFile)) {
+    let token = fs.readFileSync(tokenFile, 'utf8').trim();
+    if (token.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(token);
+        token = parsed.token;
+      } catch (e) {}
+    }
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const res = await fetch('http://localhost:3000/api/status/unlock', {
+        method: 'POST',
+        headers: {
+          'x-nyxora-token': token
+        }
+      });
+      if (res.ok) {
+        console.log('✅ Dashboard unlocked successfully.');
+      } else {
+        console.log('❌ Failed to unlock dashboard. Is the daemon running?');
+      }
+    } catch (e) {
+      console.log('❌ Failed to communicate with the daemon. Is it running?');
+    }
+  } else {
+    console.log('❌ Authentication token not found.');
+  }
+}
+
 async function main() {
-  switch (command) {
+  switch(command) {
     case 'doctor': await runDoctor(); break;
     case 'setup': await setup(); break;
     case 'clear': await clearMemory(process.argv.slice(3)); break;
@@ -286,6 +322,7 @@ async function main() {
     case 'stop': await stop(); break;
     case 'restart': await restart(); break;
     case 'dashboard': await dashboard(); break;
+    case 'unlock': await unlock(); break;
     case 'clean-logs': await cleanLogs(); break;
     case 'autostart': await autostart(process.argv[3]); break;
     case '-v':
@@ -307,6 +344,7 @@ Commands:
   restart        Restart the daemon
   setup          Run the interactive Setup Wizard
   dashboard      Open the dashboard in your browser
+  unlock         Unlock an inactive dashboard session
   doctor         Run system diagnostics and check requirements
   clear          Atomically clear the AI's short/long-term memory SQLite database
   clean-logs     Clear the daemon logs

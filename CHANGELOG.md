@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.8-1] - Unreleased
+## [26.6.9] - 2026-06-08
+### Security & UX Hardening
+- **Zero-Trust Auto-Lock (Passwordless)**: Implemented a robust idle timeout mechanism in the React Dashboard with an elegant glassmorphism blur overlay. The dashboard securely locks after periods of inactivity, requiring the user to authorize unlock directly via the CLI (`nyxora unlock`) to prevent unauthorized local access.
+- **Approval Replay Protection (Nonce Guard)**: Hardened the `transactionManager` to cryptographically sign all pending transaction payloads with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint now strictly enforces Nonce matching and immediately marks it as `used_` upon first validation, completely eliminating double-spending and Replay Attack vectors.
+- **Graceful Shutdown (SQLite WAL Guard)**: Integrated deep `SIGTERM` and `SIGINT` signal listeners within the Gateway server. When the daemon is halted, the system now safely terminates active incoming requests and explicitly invokes `logger.close()` to securely flush SQLite Write-Ahead Logs (WAL) before exiting, completely eliminating the risk of database corruption.
+- **Resilient UI (Reconnect Overlay)**: Engineered a global network interceptor inside the Dashboard's React `apiFetch` utility. If the daemon goes offline unexpectedly or is restarting, the UI instantly pauses and deploys a transparent, pulsing "Nyxora Daemon Offline" screen. Once the daemon is revived, the overlay automatically lifts, preserving the user's workflow seamlessly.
+
+### Architecture & Production Readiness
+- **Dynamic Port Anti-Collision**: Replaced the hardcoded `3001` Policy Server port with a dynamic `process.env.POLICY_PORT` fallback. All Web3 Agents (Bridge, Swap, Transfer, etc.) are now dynamically linked to this environment variable, completely eliminating `ECONNREFUSED` crashes when port 3001 is occupied by other local developer applications.
+- **Production-Ready Path Resolution**: Eliminated hardcoded `process.cwd()` dependencies across the Gateway, Dashboard, and Plugin Manager. The CLI now utilizes robust absolute `__dirname` and `getAppDir()` traversal, guaranteeing the Dashboard UI and External Skills load flawlessly regardless of where the global CLI command is executed from.
+
+
+## [26.6.8] - 2026-06-08
 ### Enterprise Features & Web3 Enhancements
 - **Zero-Downtime Directory Migration**: Restructured the root `~/.nyxora` local data directory into a strict `config/`, `data/`, `auth/`, and `run/` subdirectory architecture. Implemented a Lazy Auto-Migration Engine (`getPath()`) that seamlessly relocates legacy files to their new secure zones instantly upon access, ensuring zero-downtime and zero-data-loss upgrades for existing users.
 ### Security & UX Updates

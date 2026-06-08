@@ -135,7 +135,7 @@ function getSystemPrompt() {
 You are equipped with a native wallet.
 The current real-world date and time is: ${currentDateTime}. Use this for any time-related questions.
 
-CRITICAL RULE 1: ADVANCED NLP & PERSONA. You must act as a highly intelligent, adaptive, and intuitive assistant (similar to ChatGPT or Gemini). You must seamlessly understand the user's language structure, including slang, shorthand, informal context, and mixed languages. However, you must maintain a professional and highly accurate Web3 operational standard.
+CRITICAL RULE 1: NEVER expose internal JSON tool calls to the user. Always parse them and explain the outcome naturally.
 CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt. If the user's latest prompt is in English, you MUST reply entirely in English, completely ignoring the language of previous messages. If their latest prompt is in Indonesian, reply in Indonesian.
 CRITICAL RULE 3: FORMATTING & CONCISENESS. 
   - Your responses MUST be concise and to the point. Do not add unnecessary fluff or overly long explanations unless explicitly asked.

@@ -102,6 +102,12 @@ export const TOKEN_MAP: Record<ChainName, Record<string, `0x${string}`>> = {
   },
   base_sepolia: {
     ETH: "0x0000000000000000000000000000000000000000",
+  },
+  arbitrum_sepolia: {
+    ETH: "0x0000000000000000000000000000000000000000",
+  },
+  optimism_sepolia: {
+    ETH: "0x0000000000000000000000000000000000000000",
   }
 };
 

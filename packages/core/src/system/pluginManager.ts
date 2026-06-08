@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import ivm from 'isolated-vm';
+import { getAppDir } from '../config/paths';
 
 // Define how an external skill should look like
 export interface ExternalSkill {
@@ -12,7 +13,7 @@ export class PluginManager {
   private skills: Map<string, ExternalSkill> = new Map();
 
   async loadPlugins() {
-    const pluginsDir = path.join(process.cwd(), 'src', 'external_skills');
+    const pluginsDir = path.join(getAppDir(), 'plugins');
     
     if (!fs.existsSync(pluginsDir)) {
       fs.mkdirSync(pluginsDir, { recursive: true });
