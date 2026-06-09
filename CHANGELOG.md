@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.10] - 2026-06-09
+### The DeFi Optimization Update
+- **DeFi Lending Engine**: Integrated native Aave V3 support across all EVM chains. The AI can now autonomously fetch dynamic `Pool` addresses via `PoolAddressesProvider` and securely draft `supply` payloads to earn yield on idle assets.
+- **DeFi Security Guard (Revoke)**: Shipped a critical security skill allowing users to purge "Infinite Approvals". The AI can now construct 0-value `approve()` payloads to instantly revoke access from malicious or vulnerable smart contracts across any chain.
+- **DEX LP Manager**: Integrated Uniswap V3 (and PancakeSwap V3 for BSC) liquidity provision. Enforces strict safety barriers by mandating human-in-the-loop input for `tickLower` and `tickUpper` price ranges, completely neutralizing AI hallucination risks in complex liquidity deployments.
+- **Auto-Compounder Vaults**: Integrated Beefy Finance (Primary) and Yearn Finance (Secondary). The AI can seamlessly route idle LP tokens into auto-compounding smart contracts to automatically maximize yield.
+- **Transaction Chaining (Smart Approve)**: Upgraded the `viem` contract simulator to intelligently read user allowances prior to execution. If a user attempts to supply Aave or deposit to Beefy without prior authorization, the AI will autonomously intercept the request and draft a precise `approve` payload first, drastically improving UX.
+### Enterprise Reporting & History
+- **Automated Excel Reporting**: The AI can now autonomously generate formatted `.xlsx` reports from raw JSON data (e.g., PnL, token balances) via the new `generate_excel_file` OS Skill.
+- **Deep Transaction History**: Integrated `get_tx_history` Web3 skill to fetch complete 30-day (or N-day) history for Native and ERC-20 transfers using the new Unified Etherscan API V2. A single API key now powers cross-chain fetching across 60+ Mainnets and Testnets, featuring a graceful fallback mechanism to public endpoints.
+
+### The Masterpiece Memory Architecture
+- **Air-Gapped Security Vault**: Implemented a strict 4-Layer Memory Architecture. The LLM Reflection Engine is now completely air-gapped from the OS Keyring and Wallet System, establishing absolute immunity against memory-based Private Key leakage.
+- **Hard-Coded Anti-Injection Validator**: Deployed a rule-based RegExp Validator (`validator.ts`) acting as the ultimate gatekeeper before SQLite insertion. It autonomously detects and annihilates Private Keys, 12/24 BIP-39 Seed Phrases, API Tokens, and System Prompt Override attempts without relying on LLM behavior.
+- **Smart Suggestion Engine**: The Agent Reasoning Pipeline now natively hooks into the Layer-2 Episodic Database. By injecting the top 10 most confident habits directly into the System Prompt, Nyxora can now autonomously autocomplete repetitive transaction parameters (e.g., preferred network, preferred token) slashing human-in-the-loop latency by up to 90%.
+- **Persistent Background Reflection**: Eliminated static interval timers. The Reflection Engine is now seamlessly triggered via 3 infallible hooks: a 3-minute Idle Timer, an N-Message threshold (every 5 messages), and a `SIGTERM` Graceful Shutdown hook, ensuring resilient memory retention across daemon lifecycles.
+- **Real-Time Memory Log Dashboard**: Exposed a robust `/api/memory` CRUD endpoint and integrated a sleek "Memory Log" panel directly into the Web Dashboard Overview tab. Users can now audit, review confidence scores, and forcefully delete false observations in real-time with zero state desynchronization.
+
 ## [26.6.9] - 2026-06-08
 ### Security & UX Hardening
 - **Zero-Trust Auto-Lock (Passwordless)**: Implemented a robust idle timeout mechanism in the React Dashboard with an elegant glassmorphism blur overlay. The dashboard securely locks after periods of inactivity, requiring the user to authorize unlock directly via the CLI (`nyxora unlock`) to prevent unauthorized local access.

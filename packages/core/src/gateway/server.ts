@@ -44,6 +44,12 @@ import { isSkillActive, toggleSkill } from '../utils/skillManager';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
 import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
+import { aaveSupplyToolDefinition } from '../web3/skills/defiLending';
+import { revokeApprovalToolDefinition } from '../web3/skills/revokeApprovals';
+import { vaultDepositToolDefinition } from '../web3/skills/yieldVault';
+import { provideLiquidityToolDefinition } from '../web3/skills/provideLiquidity';
+import { getTxHistoryToolDefinition } from '../web3/skills/getTxHistory';
+import { checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
 
 // System Skills
 import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
@@ -52,6 +58,7 @@ import { installExternalSkillToolDefinition } from '../system/skills/installSkil
 import { readLocalFileToolDefinition } from '../system/skills/readFile';
 import { updateSecurityPolicyToolDefinition } from '../system/skills/updateSecurityPolicy';
 import { writeLocalFileToolDefinition } from '../system/skills/writeFile';
+import { generateExcelToolDefinition } from '../system/skills/generateExcel';
 import { analyzeDocumentToolDefinition } from '../system/skills/analyzeDocument';
 import { searchWebToolDefinition } from '../system/skills/searchWeb';
 import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition } from '../system/skills/googleWorkspace';
@@ -60,6 +67,8 @@ import { startTelegramBot } from './telegram';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated, logoutGoogle } from './googleAuthModule';
 import { generatePrivacyPolicyHtml, generateTosHtml } from './legalGenerator';
+import { episodicDB } from '../memory/episodic';
+import { ReflectionEngine } from '../memory/reflection';
 
 // Initialize Google Auth
 initGoogleAuth();
@@ -133,9 +142,10 @@ app.use('/api', (req, res, next) => {
 
 // Serve Static Dashboard
 let rootDir = __dirname;
-while (!fs.existsSync(path.join(rootDir, 'package.json'))) {
-  rootDir = path.dirname(rootDir);
-  if (rootDir === '/' || rootDir === 'C:\\') break;
+while (!fs.existsSync(path.join(rootDir, 'packages', 'dashboard'))) {
+  const nextDir = path.dirname(rootDir);
+  if (nextDir === rootDir || rootDir === '/' || rootDir === 'C:\\') break;
+  rootDir = nextDir;
 }
 const dashboardPath = path.join(rootDir, 'packages', 'dashboard', 'dist');
 app.use(express.static(dashboardPath));
@@ -292,7 +302,12 @@ app.get('/api/skills', (req, res) => {
     manageCustomTokensDefinition,
     createLimitOrderToolDefinition,
     listLimitOrdersToolDefinition,
-    cancelLimitOrderToolDefinition
+    cancelLimitOrderToolDefinition,
+    aaveSupplyToolDefinition,
+    revokeApprovalToolDefinition,
+    vaultDepositToolDefinition,
+    provideLiquidityToolDefinition,
+    getTxHistoryToolDefinition
   ];
   
   const skillsWithStatus = allSkills.map(skill => ({
@@ -308,6 +323,7 @@ app.get('/api/skills/system', (req, res) => {
     runTerminalCommandToolDefinition,
     readLocalFileToolDefinition,
     writeLocalFileToolDefinition,
+    generateExcelToolDefinition,
     browseWebsiteToolDefinition,
     updateSecurityPolicyToolDefinition,
     installExternalSkillToolDefinition,
@@ -400,6 +416,15 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
       return res.status(403).json({ error: 'Invalid or missing nonce. Replay attack detected.' });
     }
     
+    // --- Arbitrum Registry Kill-Switch Interceptor ---
+    const registryCheck = await checkRegistryStatus();
+    if (!registryCheck.isActive) {
+      txManager.updateStatus(id, 'failed', registryCheck.reason);
+      logger.addEntry({ role: 'assistant', content: `❌ **Security Blocked:** ${registryCheck.reason}` }, sessionId);
+      return res.status(403).json({ error: `[On-Chain Policy] ${registryCheck.reason}` });
+    }
+    // ------------------------------------------------
+
     // Invalidate the nonce immediately to prevent replay
     tx.nonce = 'used_' + Date.now();
 
@@ -657,6 +682,18 @@ app.get('/api/portfolio', async (req, res) => {
   }
 });
 
+// --- Memory Triggers ---
+let messageCounter = 0;
+let idleTimer: NodeJS.Timeout | null = null;
+
+function resetIdleTimer() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    console.log('[Memory] Idle trigger activated. Running Reflection Engine...');
+    ReflectionEngine.runReflection();
+  }, 3 * 60 * 1000); // 3 minutes idle
+}
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, session_id } = req.body;
@@ -667,11 +704,46 @@ app.post('/api/chat', async (req, res) => {
     // Process input (this will automatically add to memory)
     const response = await processUserInput(message, 'user', undefined, session_id);
     
+    // Memory Triggers
+    resetIdleTimer();
+    messageCounter++;
+    if (messageCounter >= 5) {
+      console.log('[Memory] N-Message threshold reached. Running Reflection Engine...');
+      messageCounter = 0;
+      // Run asynchronously
+      ReflectionEngine.runReflection();
+    }
+
     res.json({ response });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
+
+// --- Memory API Endpoints ---
+app.get('/api/memory', (req, res) => {
+  try {
+    const memories = episodicDB.getMemories();
+    res.json(memories);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/memory/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    episodicDB.deleteMemory(id);
+    // When memory is deleted manually, trigger promotion engine to resync user.md
+    // To avoid circular dependency inside server.ts, we import here or assume it updates next cycle
+    const { PromotionEngine } = require('../memory/promotionEngine');
+    PromotionEngine.runPromotionAndDecay();
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Fallback for React Router (Single Page Application)
 app.use((req, res, next) => {

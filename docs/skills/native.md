@@ -19,6 +19,10 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 *   **ERC-20 Token Tracking:** By passing the contract address, the AI can check the balance of any specific ERC-20 token in the wallet.
 *   **Context:** *"What is my current balance across Ethereum and Base?"*
 
+### 📜 Deep Transaction History
+*   **Unified Multi-Chain History:** The AI queries the unified Etherscan API V2 to fetch your historical Native and ERC-20 transactions over the last N days (e.g., 30 days). A single API Key now supports cross-chain fetching across 60+ Mainnets and Testnets simultaneously.
+*   **Graceful API Fallback:** You can configure a single Etherscan API key in the Dashboard for ultra-fast fetching, or leave it blank to automatically fallback to free public endpoints.
+
 ### 🔄 Asset Transfers, Swaps & Automated Trading
 *   **Token Transfers:** The AI can autonomously construct and broadcast transactions to send tokens to a specified address or ENS domain (e.g., `vitalik.eth`).
 *   **DEX Swaps & Anti-MEV Slippage:** The core engine interfaces with primary decentralized exchanges and aggregators (like Li.Fi and Relay) to swap tokens cross-chain. It enforces a strict **0.5% default slippage** to protect against MEV attacks. You can safely override this limit dynamically via NLP chat commands for specific high-volatility pairs (e.g., *"Swap with 10% slippage"*).
@@ -28,6 +32,13 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 ### 📊 Market Intelligence & Prioritization (Rule 7)
 *   **Prioritized Execution:** According to **Critical Rule 7** in the AI's reasoning engine, whenever a user asks for crypto prices, token contract security, or market analysis, the AI **must** prioritize using dedicated Web3 APIs (e.g., CoinGecko, DexScreener) rather than falling back to a generic web search.
 *   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
+
+### 🏦 Advanced DeFi Optimization
+*   **DeFi Lending Engine (Aave V3):** The AI can autonomously fetch dynamic `Pool` addresses and securely draft `supply` payloads to earn yield on idle assets.
+*   **Auto-Compounder Vaults:** Integrates Beefy Finance and Yearn Finance. The AI can seamlessly route idle LP tokens into auto-compounding smart contracts to automatically maximize yield.
+*   **DEX LP Manager:** Integrated Uniswap V3 (and PancakeSwap V3 for BSC) liquidity provision with strict human-in-the-loop safety barriers for `tickLower` and `tickUpper` price ranges.
+*   **DeFi Security Guard (Revoke):** A critical security skill allowing the AI to construct 0-value `approve()` payloads to instantly revoke "Infinite Approvals" from malicious or vulnerable smart contracts.
+*   **Transaction Chaining (Smart Approve):** The AI intelligently reads user allowances prior to execution. It will autonomously draft a precise `approve` payload before supplying Aave or depositing to Beefy, drastically improving UX.
 
 *(Note: For highly specialized DeFi operations—such as complex Yield Farming strategies, Flash Loans, or interacting with novel protocols—the agent utilizes the `installSkill` function to load specialized external plugins into its sandbox).*
 
@@ -50,6 +61,11 @@ These skills allow the AI to interact directly with your local machine, file sys
 *   **`writeFile`**
     *   **Description:** Writes new content to a file or overwrites an existing one.
     *   **Capabilities:** Creating new React components, scaffolding API endpoints, or updating configuration files. The AI uses this to autonomously build software for you.
+
+### 📊 Enterprise Reporting
+*   **`generateExcel`**
+    *   **Description:** Converts raw JSON data into beautifully formatted `.xlsx` spreadsheet files.
+    *   **Capabilities:** Often chained with `getTxHistory` or `checkPortfolio` to autonomously generate 30-day PnL reports, trading logs, or token balance summaries directly to your local file system.
 
 ### 🌐 Advanced Information Retrieval
 *   **`searchWeb`**

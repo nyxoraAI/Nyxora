@@ -39,6 +39,8 @@ security_policy.md
 *.tsbuildinfo
 *.d.ts.map
 test-*.ts
+test_*.ts
+test_*.mjs
 packages/core/src/utils/safeLogger.js
 /launcher.ts
 migrate_keys.*
