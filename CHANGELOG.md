@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.10] - 2026-06-09
+## [26.6.10]
 ### The DeFi Optimization Update
 - **DeFi Lending Engine**: Integrated native Aave V3 support across all EVM chains. The AI can now autonomously fetch dynamic `Pool` addresses via `PoolAddressesProvider` and securely draft `supply` payloads to earn yield on idle assets.
 - **DeFi Security Guard (Revoke)**: Shipped a critical security skill allowing users to purge "Infinite Approvals". The AI can now construct 0-value `approve()` payloads to instantly revoke access from malicious or vulnerable smart contracts across any chain.
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent Background Reflection**: Eliminated static interval timers. The Reflection Engine is now seamlessly triggered via 3 infallible hooks: a 3-minute Idle Timer, an N-Message threshold (every 5 messages), and a `SIGTERM` Graceful Shutdown hook, ensuring resilient memory retention across daemon lifecycles.
 - **Real-Time Memory Log Dashboard**: Exposed a robust `/api/memory` CRUD endpoint and integrated a sleek "Memory Log" panel directly into the Web Dashboard Overview tab. Users can now audit, review confidence scores, and forcefully delete false observations in real-time with zero state desynchronization.
 
-## [26.6.9] - 2026-06-08
+## [26.6.9]
 ### Security & UX Hardening
 - **Zero-Trust Auto-Lock (Passwordless)**: Implemented a robust idle timeout mechanism in the React Dashboard with an elegant glassmorphism blur overlay. The dashboard securely locks after periods of inactivity, requiring the user to authorize unlock directly via the CLI (`nyxora unlock`) to prevent unauthorized local access.
 - **Approval Replay Protection (Nonce Guard)**: Hardened the `transactionManager` to cryptographically sign all pending transaction payloads with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint now strictly enforces Nonce matching and immediately marks it as `used_` upon first validation, completely eliminating double-spending and Replay Attack vectors.
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Production-Ready Path Resolution**: Eliminated hardcoded `process.cwd()` dependencies across the Gateway, Dashboard, and Plugin Manager. The CLI now utilizes robust absolute `__dirname` and `getAppDir()` traversal, guaranteeing the Dashboard UI and External Skills load flawlessly regardless of where the global CLI command is executed from.
 
 
-## [26.6.8] - 2026-06-08
+## [26.6.8]
 ### Enterprise Features & Web3 Enhancements
 - **Zero-Downtime Directory Migration**: Restructured the root `~/.nyxora` local data directory into a strict `config/`, `data/`, `auth/`, and `run/` subdirectory architecture. Implemented a Lazy Auto-Migration Engine (`getPath()`) that seamlessly relocates legacy files to their new secure zones instantly upon access, ensuring zero-downtime and zero-data-loss upgrades for existing users.
 ### Security & UX Updates
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker Multi-Stage Build**: Radically refactored `Dockerfile` to a Multi-Stage architecture. The production image now exclusively installs runtime dependencies (`--omit=dev`) and leaves behind heavy build tools (`python3`, `make`, `g++`), dramatically shrinking the final container image size.
 - **Docker Security Patch**: Hardened `.dockerignore` to explicitly block local keystores (`keystore.json`), persistent memory (`memory.db`), and local credentials from accidentally leaking into Docker image layers during local builds.
 
-## [26.6.7] - 2026-06-07
+## [26.6.7]
 ### Enterprise Features & Web3 Enhancements
 - **Enterprise Portfolio Scanner**: Integrated a fully decentralized, real-time Dashboard UI (Nord Theme) to scan all native and ERC-20 token balances across 8 EVM chains natively, without relying on centralized third-party APIs.
 - **Real-Time USD Valuation**: Integrated DexScreener API into the Portfolio Scanner backend to actively compute and display USD portfolio values in real-time. Features an adaptive 2-minute memory cache system to ensure complete immunity against API rate-limits and eliminate LLM token consumption.
@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **NPM Monorepo Build Fix**: Fixed the `packages/core` workspace `package.json` to correctly include the `"build": "tsc"` script and aligned its internal versioning (`v26.6.7`). This resolves the NPM workspace lifecycle crash during global build triggers.
 - **NPM Optimization**: Added official keywords (`web3`, `ai`, `agent`, `crypto`, `mcp`, `automation`, `defi`, `zero-trust`) to the root `package.json` to significantly improve Nyxora's discoverability and SEO on the NPM Registry.
 
-## [26.6.6] - 2026-06-05
+## [26.6.6]
 ### Enterprise Stability Upgrades
 - **Strict LLM Output Validation**: Added robust try-catch parsing for LLM tool arguments in `reasoning.ts`. If the AI outputs malformed JSON, the error is fed back into the reasoning loop, allowing the model to autonomously self-correct without crashing the agent pipeline.
 - **Transaction Simulation (Dry-Run)**: Integrated `publicClient.estimateGas` in the Signer Vault before broadcasting transactions. This ensures all Web3 transactions are simulated at the node level, preventing users from wasting gas fees on reverted transactions (e.g., due to insufficient slippage or balance).
@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Global Token Metadata Cache (OOM Protected)**: Implemented an in-memory Bounded LRU Cache (max 1000 items) in `tokens.ts` for caching `decimals` and `symbol`. This eliminates repetitive RPC calls for immutable token data, shielding the system from Out-Of-Memory crashes if spammed with fake tokens.
 - **Web3 RPC Parallelization**: Refactored `transfer.ts`, `swapToken.ts`, `bridgeToken.ts`, and `getBalance.ts` to replace slow, sequential `readContract` calls with `Promise.all` fetching via `getTokenMetadata()`. Web3 action preparation latency has been reduced to near 0ms for cached tokens.
 
-## [26.6.5-1.0] - 2026-06-05
+## [26.6.5-1.0]
 ### Bug Fixes & Improvements
 - **Transaction Stability**: Added 30-second `AbortSignal` timeout safety net across all Web3 skills (`swapToken`, `transfer`, `bridgeToken`, `mintNft`, `customTx`) to prevent UI hanging when RPC nodes are unresponsive.
 - **Multi-Session Transaction Logs**: Fixed an issue where Web3 transaction status messages (Approve/Reject/Success/Failure) were logged to the `default` session instead of the user's active session window, by attaching the correct `sessionId` with `Content-Type: application/json` headers in dashboard API requests.
@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **NPM Monorepo Resolution:** Synced `@inquirer/search` and `duck-duck-scrape` to root `package.json` to prevent `MODULE_NOT_FOUND` and `ERR_CONNECTION_REFUSED` on global installations.
 
-## [26.6.4] - 2026-06-04
+## [26.6.4]
 
 ### AI Engine Optimizations
 - **Semantic Keyword Router (Zero-Latency)**: Restructured the `reasoning.ts` pipeline to dynamically group tools into specific clusters (`WEB3`, `SYSTEM`, `GOOGLE`). The engine now intercepts the user's prompt using highly optimized Regex keyword-matching. This eliminates "Context Bloat" by only injecting relevant tools into the LLM payload, dramatically increasing LLM responsiveness and minimizing API token consumption.
@@ -135,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### UI & Developer Experience
 - **CLI Memory Purge**: Introduced a new developer utility command: `nyxora clear`. It instantly and atomically resets the AI's short-term/long-term memory SQLite database. Includes a mandatory `--force` flag safeguard to prevent accidental data destruction.
-## [1.7.3] - 2026-06-04
+## [1.7.3]
 
 ### Web3 Routing & Integrations
 - **Multi-Router Selection (DeFi)**: Added a dynamic Router dropdown to the Dashboard UI, allowing users to forcefully route transactions through specific protocols natively. Supported routers include `1inch`, `CowSwap (MEV-Protected)`, `Li.Fi`, `Relay`, `Uniswap V2`, `Uniswap V3`, and `PancakeSwap`. This integration heavily relies on deep aggregator proxying (bypassing the need for complex V2/V3 ABI calldata overhead) to ensure 100% smooth, anti-fail execution without requiring additional API keys.
@@ -143,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security & Polish
 - **Dashboard:** Redacted the sensitive Nyxora Auth Token from appearing in the Gateway Logs component on the frontend to prevent visual leakage during screen sharing or screenshots.
 
-## [1.7.2] - 2026-06-04
+## [1.7.2]
 
 ### UI/UX Enhancements
 - **Google Workspace Logout**: Users can now easily disconnect their Google Workspace accounts directly from the Dashboard (OS Skills tab). This triggers a secure token purge from both the OS Keyring and local storage, ensuring privacy and seamless account switching.
