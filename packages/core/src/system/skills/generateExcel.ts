@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import * as xlsx from 'xlsx';
 import path from 'path';
 import fs from 'fs';
 
@@ -11,34 +11,17 @@ export async function generateExcelFile(data: any[], filePath: string): Promise<
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Report');
-
-    if (data && data.length > 0) {
-      // Create headers from the keys of the first object
-      const firstItem = data[0];
-      const headers = Object.keys(firstItem);
-      
-      worksheet.columns = headers.map(header => ({
-        header: header.toUpperCase(),
-        key: header,
-        width: 20
-      }));
-
-      // Add rows
-      data.forEach(item => {
-        worksheet.addRow(item);
-      });
-
-      // Style header row
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.commit();
-    } else {
-      worksheet.addRow(['No data available']);
+    let reportData = data;
+    if (!reportData || reportData.length === 0) {
+      reportData = [{ Message: 'No data available' }];
     }
 
-    await workbook.xlsx.writeFile(absolutePath);
+    const worksheet = xlsx.utils.json_to_sheet(reportData);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Report');
+
+    xlsx.writeFile(workbook, absolutePath);
+    
     return `Success: Excel file generated at ${absolutePath}`;
   } catch (error: any) {
     return `Failed to generate Excel file: ${error.message}`;
