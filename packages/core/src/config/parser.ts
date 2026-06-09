@@ -48,6 +48,7 @@ export interface NyxoraConfig {
   };
   web3?: {
     rpc_urls?: Record<string, string | string[]>;
+    explorer_api_key?: string;
   };
   integrations?: {
     telegram?: {

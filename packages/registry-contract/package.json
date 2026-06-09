@@ -1,6 +1,6 @@
 {
   "name": "@nyxora/registry-contract",
-  "version": "1.0.0",
+  "version": "26.6.10",
   "description": "Hardhat deployment for Nyxora Agent Registry",
   "private": true,
   "scripts": {

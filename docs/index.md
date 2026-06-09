@@ -97,5 +97,9 @@ features:
       <h3>🌐 Cross-Chain Intelligence</h3>
       <p>Don't be locked into a single network. Nyxora's hybrid market engine automatically queries CoinGecko and DexScreener to find tokens on any blockchain.</p>
     </div>
+    <div class="why-card">
+      <h3>🧠 Persistent Memory Architecture</h3>
+      <p>Nyxora quietly extracts and learns your Web3 habits in the background through a secure 4-Layer air-gapped system, slashing repetitive prompts by up to 90%.</p>
+    </div>
   </div>
 </div>

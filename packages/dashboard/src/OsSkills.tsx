@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, DownloadCloud, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar } from 'lucide-react';
+import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, DownloadCloud, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -43,6 +43,9 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'search web': return <SearchIcon size={size} color={color} />;
     case 'read gmail inbox': return <Mail size={size} color={color} />;
     case 'list calendar events': return <Calendar size={size} color={color} />;
+    case 'append row to sheets': return <FileSpreadsheet size={size} color={color} />;
+    case 'read google docs': return <BookOpen size={size} color={color} />;
+    case 'read google form responses': return <ClipboardList size={size} color={color} />;
     default: return <Compass size={size} color={color} />;
   }
 };

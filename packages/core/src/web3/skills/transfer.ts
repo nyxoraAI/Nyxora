@@ -1,4 +1,4 @@
-import { parseEther, parseUnits } from 'viem';
+import { parseEther, parseUnits, encodeFunctionData } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
@@ -70,11 +70,31 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
     const token = process.env.INTERNAL_AUTH_TOKEN;
     const amountWei = isNative ? parseEther(amountStr).toString() : parseUnits(amountStr, decimals).toString();
 
+    let txRequest: any = {};
+    if (isNative) {
+      txRequest = {
+        to: toAddress,
+        value: amountWei,
+        data: "0x"
+      };
+    } else {
+      txRequest = {
+        to: tokenAddress,
+        value: "0",
+        data: encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [toAddress as `0x${string}`, BigInt(amountWei)]
+        })
+      };
+    }
+
     const payload: any = {
       type: 'transfer',
       chainName,
       autoApprove,
       details: {
+        txRequest,
         toAddress, amountWei, tokenAddress
       }
     };

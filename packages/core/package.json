@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-core",
-  "version": "26.6.9",
+  "version": "26.6.10",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -8,6 +8,7 @@
     "@inquirer/search": "^4.2.1",
     "cors": "^2.8.6",
     "duck-duck-scrape": "^2.2.7",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
@@ -21,6 +22,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/node": "^25.9.2",
     "@types/pdf-parse": "^1.1.5",
     "vitest": "^2.1.8"
   },

@@ -4,6 +4,7 @@ import { OpenAI } from 'openai';
 import { loadConfig, loadApiKeys } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
+import { episodicDB } from '../memory/episodic';
 import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance';
 import { transferToolDefinition, prepareTransfer } from '../web3/skills/transfer';
 import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
@@ -19,12 +20,18 @@ import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/che
 import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
 import { manageCustomTokensDefinition, executeManageCustomTokens } from '../web3/skills/manageCustomTokens';
+import { revokeApprovalToolDefinition, prepareRevokeApproval } from '../web3/skills/revokeApprovals';
+import { aaveSupplyToolDefinition, prepareAaveSupply } from '../web3/skills/defiLending';
+import { vaultDepositToolDefinition, prepareVaultDeposit } from '../web3/skills/yieldVault';
+import { provideLiquidityToolDefinition, prepareProvideLiquidity } from '../web3/skills/provideLiquidity';
+import { getTxHistoryToolDefinition, getTxHistory } from '../web3/skills/getTxHistory';
 import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
 import { analyzeDocumentToolDefinition, analyzeDocument } from '../system/skills/analyzeDocument';
 import { readLocalFileToolDefinition, readLocalFile } from '../system/skills/readFile';
 import { writeLocalFileToolDefinition, writeLocalFile } from '../system/skills/writeFile';
+import { generateExcelToolDefinition, generateExcelFile } from '../system/skills/generateExcel';
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
 import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
 import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
@@ -60,7 +67,7 @@ const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boole
   openai: { requiresApiKey: true }
 };
 
-async function getOpenAI(): Promise<OpenAI> {
+export async function getOpenAI(): Promise<OpenAI> {
   const config = loadConfig();
   const vaultKeys = await loadApiKeys();
   const providerName = config.llm.provider || 'openai';
@@ -180,6 +187,19 @@ CRITICAL RULE 8: EXACTNESS AND SAFETY IN TRANSACTIONS. Never guess or hallucinat
     console.error('Failed to read security_policy.md:', error);
   }
 
+  // Inject Episodic Memories (Smart Suggestions Context)
+  try {
+    const recentMemories = episodicDB.getMemories().slice(0, 10);
+    if (recentMemories.length > 0) {
+      basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\nUse these recent observations to proactively suggest or autocomplete parameters (like networks or tokens) without asking the user if they align with the current request:\n`;
+      recentMemories.forEach(mem => {
+        basePrompt += `- [${mem.category.toUpperCase()}] ${mem.fact} (Confidence: ${(mem.confidence * 100).toFixed(0)}%)\n`;
+      });
+    }
+  } catch (error) {
+    // Ignore db errors if not initialized
+  }
+
   return basePrompt;
 }
 
@@ -211,25 +231,49 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       return `Provider ${config.llm.provider} is configured, but currently only OpenAI, OpenRouter, Ollama, and Gemini adapters are implemented.`;
     }
 
-    // --- v1.7.4 Semantic Keyword Router ---
     const lowerInput = input.toLowerCase();
     const hasWeb3Keyword = /swap|transfer|price|token|crypto|bridge|wallet|balance|portfolio|buy|sell|send|receive|address|market|limit|mint|nft/i.test(lowerInput);
     const hasGoogleKeyword = /email|gmail|calendar|sheet|doc|form|event/i.test(lowerInput);
 
-    const WEB3_TOOLS = [getBalanceToolDefinition, transferToolDefinition, getPriceToolDefinition, swapTokenToolDefinition, bridgeTokenToolDefinition, mintNftToolDefinition, customTxToolDefinition, createWalletToolDefinition, checkSecurityToolDefinition, marketAnalysisToolDefinition, checkPortfolioToolDefinition, checkAddressToolDefinition, getMyAddressToolDefinition, manageCustomTokensDefinition, createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition];
-    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition];
+    let tools: any[] = [];
+    if (isSkillActive('web3')) {
+      tools.push(
+        getBalanceToolDefinition,
+        transferToolDefinition,
+        getPriceToolDefinition,
+        swapTokenToolDefinition,
+        bridgeTokenToolDefinition,
+        mintNftToolDefinition,
+        customTxToolDefinition,
+        createWalletToolDefinition,
+        checkSecurityToolDefinition,
+        marketAnalysisToolDefinition,
+        checkPortfolioToolDefinition,
+        checkAddressToolDefinition,
+        getMyAddressToolDefinition,
+        manageCustomTokensDefinition,
+        createLimitOrderToolDefinition,
+        listLimitOrdersToolDefinition,
+        cancelLimitOrderToolDefinition,
+        revokeApprovalToolDefinition,
+        aaveSupplyToolDefinition,
+        vaultDepositToolDefinition,
+        provideLiquidityToolDefinition,
+        getTxHistoryToolDefinition
+      );
+    }
+    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition];
     const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
 
     let activeTools: any[] = [];
     if (hasGoogleKeyword && !hasWeb3Keyword) {
       activeTools = [...GOOGLE_TOOLS, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
     } else if (hasWeb3Keyword && !hasGoogleKeyword) {
-      activeTools = [...WEB3_TOOLS, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
+      activeTools = [...tools, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
     } else {
-      activeTools = [...WEB3_TOOLS, ...SYSTEM_TOOLS, ...GOOGLE_TOOLS, ...pluginManager.getToolDefinitions()];
+      activeTools = [...tools, ...SYSTEM_TOOLS, ...GOOGLE_TOOLS, ...pluginManager.getToolDefinitions()];
     }
     activeTools = activeTools.filter(t => isSkillActive(t.function.name));
-    // ----------------------------------------
 
     const response = await executeWithRetry(async (client) => {
       return await client.chat.completions.create({
@@ -243,21 +287,18 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
 
     const responseMessage = response.choices[0].message;
     
-    // Log tracking
     Tracker.addMessage();
     if (response.usage?.total_tokens) {
       Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
     }
     Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
-    // Log assistant response
     logger.addEntry({
       role: 'assistant',
       content: responseMessage.content || "",
       tool_calls: responseMessage.tool_calls,
     }, sessionId);
 
-    // Check if the model wants to call a tool
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;
@@ -268,10 +309,8 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
         if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
 
-        // Phase 1: LLM Output Validation (Anti-Halusinasi)
         try {
           args = JSON.parse(toolCall.function.arguments);
-          // TODO: Zod schema validation could be injected here per-tool
         } catch (parseError: any) {
           console.error(pc.red(`[LLM Validation Error] Invalid JSON arguments for ${toolName}: ${parseError.message}`));
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Please correct the format. Error: ${parseError.message}`;
@@ -282,7 +321,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             content: result
           }, sessionId);
           
-          // Let the second LLM call handle the explanation of the failure
           continue;
         }
 
@@ -310,7 +348,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
                 result = `[Security Blocked] Runtime Permission Denied: Web3 swaps are disabled. Update config.yaml to allow.`;
                 break;
               }
-              // Note: max_usd_per_tx validation would ideally be calculated here before prepareSwapToken
               result = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
               break;
             }
@@ -362,6 +399,49 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               result = await executeManageCustomTokens(args);
               break;
             }
+            case 'revoke_approval': {
+              result = await prepareRevokeApproval(
+                args.chainName,
+                args.tokenAddressOrSymbol,
+                args.spenderAddress
+              );
+              break;
+            }
+            case 'supply_aave': {
+              result = await prepareAaveSupply(
+                args.chainName,
+                args.tokenAddressOrSymbol,
+                args.amountStr
+              );
+              break;
+            }
+            case 'deposit_yield_vault': {
+              result = await prepareVaultDeposit(
+                args.chainName,
+                args.protocol || 'beefy',
+                args.vaultAddress,
+                args.tokenAddressOrSymbol,
+                args.amountStr
+              );
+              break;
+            }
+            case 'provide_liquidity_v3': {
+              result = await prepareProvideLiquidity(
+                args.chainName,
+                args.token0AddressOrSymbol,
+                args.token1AddressOrSymbol,
+                args.amount0Str,
+                args.amount1Str,
+                args.feeTier,
+                args.tickLower,
+                args.tickUpper
+              );
+              break;
+            }
+            case 'get_tx_history': {
+              result = await getTxHistory(args.chainName, args.address, args.days);
+              break;
+            }
             case 'create_limit_order': {
               if (config.permissions?.web3?.allow_swap === false) {
                 result = `[Security Blocked] Runtime Permission Denied: Limit orders require swap permissions. Update config.yaml to allow.`;
@@ -400,6 +480,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
                 break;
               }
               result = writeLocalFile(args.filePath, args.content);
+              break;
+            }
+            case 'generate_excel_file': {
+              if (config.permissions?.system?.allow_file_write === false) {
+                result = `[Security Blocked] Runtime Permission Denied: File writing is disabled. Update config.yaml to allow.`;
+                break;
+              }
+              result = await generateExcelFile(args.data, args.filePath);
               break;
             }
             case 'run_terminal_command': {

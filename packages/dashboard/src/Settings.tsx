@@ -19,7 +19,7 @@ const ChainIcon = ({ id }: { id: string }) => (
 interface Config {
   agent: { name: string; default_chain: string; default_slippage?: number };
   llm: { provider: string; model: string; temperature: number };
-  web3?: { rpc_urls?: Record<string, string | string[]> };
+  web3?: { rpc_urls?: Record<string, string | string[]>; explorer_api_key?: string };
 }
 
 interface SettingsProps {
@@ -48,7 +48,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           temperature: config.llm?.temperature || 0.7
         },
         web3: {
-          rpc_urls: config.web3?.rpc_urls || {}
+          rpc_urls: config.web3?.rpc_urls || {},
+          explorer_api_key: config.web3?.explorer_api_key || ''
         }
       });
     }
@@ -56,7 +57,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
   if (!formData) return <div className="overview-container">Loading settings...</div>;
 
-  const handleChange = (section: 'agent' | 'llm', field: string, value: string | number) => {
+  const handleChange = (section: 'agent' | 'llm' | 'web3', field: string, value: string | number) => {
     setFormData(prev => {
       if (!prev) return prev;
       return {
@@ -279,6 +280,16 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           Override the default public RPCs with your own Premium endpoints (Alchemy/Infura). 
           Separate multiple URLs with a comma for Fallback High-Availability.
         </p>
+        <div style={{ marginBottom: '24px' }} className="form-group">
+          <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>
+          <input 
+            className="nord-input"
+            type="text" 
+            placeholder="Leaves empty to use free public endpoints" 
+            value={formData.web3?.explorer_api_key || ''}
+            onChange={(e) => handleChange('web3', 'explorer_api_key', e.target.value)}
+          />
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia', 'base_sepolia', 'arbitrum_sepolia', 'optimism_sepolia'].map(chain => {
             const rpcVal = formData.web3?.rpc_urls?.[chain];

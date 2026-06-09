@@ -139,7 +139,7 @@ export async function prepareSwapToken(
         actualProvider = "lifi";
       }
     }
-    const isTestnet = chainId === 11155111;
+    const isTestnet = [11155111, 84532, 421614, 11155420].includes(chainId);
 
     // --- SEPOLIA TESTNET MOCK ---
     if (isTestnet) {

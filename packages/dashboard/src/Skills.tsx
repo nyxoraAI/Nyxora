@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle } from 'lucide-react';
+import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle, Droplet, Lock, Vault, Landmark } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -49,6 +49,10 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'create limit order': return <Target size={size} color={color} />;
     case 'list limit orders': return <ListOrdered size={size} color={color} />;
     case 'cancel limit order': return <XCircle size={size} color={color} />;
+    case 'supply aave': return <Landmark size={size} color={color} />;
+    case 'revoke approval': return <Lock size={size} color={color} />;
+    case 'deposit yield vault': return <Vault size={size} color={color} />;
+    case 'provide liquidity v3': return <Droplet size={size} color={color} />;
     default: return <Compass size={size} color={color} />;
   }
 };
