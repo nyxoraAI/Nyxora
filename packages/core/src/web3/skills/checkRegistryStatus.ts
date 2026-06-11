@@ -2,7 +2,7 @@ import { getPublicClient } from '../config';
 import { getAddress } from '../config';
 import { loadConfig } from '../../config/parser';
 
-const REGISTRY_ADDRESS = '0x5031A58CD3D19dfBCCDD1DDea83613542Cf87a9F';
+const REGISTRY_ADDRESS = '0x6C811587ce9A50f1CF1fE5a42bF2b18a9787318F';
 
 const REGISTRY_ABI = [
   {

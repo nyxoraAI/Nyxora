@@ -163,12 +163,24 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <label className="nord-label">Default Slippage (%)</label>
             <input 
               className="nord-pill-input"
-              type="number" 
-              step="0.1"
-              min="0.1"
-              max="50"
-              value={formData.agent.default_slippage ?? 0.5} 
-              onChange={e => handleChange('agent', 'default_slippage', parseFloat(e.target.value) || 0.5)} 
+              type="text" 
+              placeholder="e.g. 0.5 or auto"
+              value={formData.agent.default_slippage ?? 'auto'} 
+              onChange={e => {
+                const val = e.target.value;
+                if (val.toLowerCase() === 'auto' || val === '') {
+                  handleChange('agent', 'default_slippage', 'auto');
+                } else {
+                  handleChange('agent', 'default_slippage', val);
+                }
+              }} 
+              onBlur={e => {
+                const val = String(e.target.value);
+                if (val.toLowerCase() !== 'auto') {
+                   const num = parseFloat(val);
+                   handleChange('agent', 'default_slippage', isNaN(num) ? 'auto' : num);
+                }
+              }}
             />
           </div>
           <div className="form-group flex-1"></div>
@@ -284,7 +296,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>
           <input 
             className="nord-input"
-            type="text" 
+            type="password" 
             placeholder="Leaves empty to use free public endpoints" 
             value={formData.web3?.explorer_api_key || ''}
             onChange={(e) => handleChange('web3', 'explorer_api_key', e.target.value)}
@@ -307,7 +319,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                 </label>
                 <input 
                   className="nord-input"
-                  type="text" 
+                  type="password" 
                   placeholder="https://..." 
                   value={displayVal}
                   onChange={(e) => handleWeb3Change(chain, e.target.value)}

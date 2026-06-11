@@ -22,6 +22,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 ### Advanced Security Architecture
 *   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by an Arbitrum Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Arbitrum Architecture ->](https://nyxoraai.github.io/Nyxora/security/smart-contract)
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
+*   **DeFi Configuration BYOK & UI Masking**: All aggregator and provider API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into a heavily guarded `~/.nyxora/defi_keys.yaml` file. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
 *   **Plugin Sandbox VM**: Execute community-built external skills securely inside an airtight Node.js `vm` chamber with zero access to your file system or terminal processes.
@@ -30,8 +31,9 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 ### 🌐 Web3 Skills (On-Chain)
 *   **Security Scanner**: Nyxora can scan smart contracts via GoPlus Labs to detect Honeypots, Hidden Taxes, and malicious proxy upgrades before you buy.
 *   **Advanced DeFi Optimization**: Autonomously supply assets to Aave V3, deposit into Beefy/Yearn Auto-Compounder Vaults, manage Uniswap V3 Liquidity (LP), and instantly revoke infinite approvals to secure your wallet. Features intelligent Transaction Chaining to auto-approve allowances prior to execution.
-*   **Anti-MEV Slippage Protection**: Hardened routing engine with dynamic Slippage Tolerance (default 0.5%) for Relay and Li.Fi. You can manually adjust slippage via the UI or dynamically override it using natural language (e.g., "Swap 1 ETH to PEPE with 10% slippage").
-*   **Automated Take Profit (TP) & Cut Loss (CL)**: The trader's holy grail. Set natural language rules (e.g., "Sell my PEPE if price drops below $0.001"). Nyxora runs a background cron monitor and executes the swap while you sleep.
+*   **6-Engine Meta-Aggregator & Anti-MEV**: The core engine interfaces with a powerful 6-Engine Meta-Aggregator (**1inch, 0x, LI.FI, Relay, OpenOcean, and KyberSwap**) to route tokens cross-chain, ensuring absolute maximum liquidity depth.
+*   **Adaptive Auto Slippage Protection**: Nyxora enforces a dynamic and adaptive **'auto' slippage** by default to leverage dynamic MEV-protection from these enterprise aggregators. However, the user retains absolute control to override this dynamically—either globally via the Dashboard Settings or on a per-transaction basis through NLP chat commands (e.g., *"Swap 1 ETH to PEPE with 10% slippage"*).
+
 *   **Cross-Chain Hybrid Market Scanner**: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, BSC, and more.
 *   **"Lean Degen" Auto-Whitelist**: Automatically intercepts Contract Addresses (CAs) whenever you check balances or swap tokens, saving them to your localized `user_whitelist.json` for future tracking.
 *   **Dynamic Portfolio Engine**: Merges standard tokens, your custom Degen CAs, and CoinGecko's daily trending list into a single hyper-fast Multicall scan to deliver a clean, spam-free PnL portfolio report in under 1 second.
@@ -71,6 +73,12 @@ The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, sho
 1. **🧠 Core (The AI Brain)**: The intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
 2. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
 3. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring (GNOME Keyring / macOS Keychain / Windows Credential Manager). It only signs transactions after they pass all rigorous security checks.
+
+### Web3 Separation of Concerns (Zero-Trust Routing)
+Within the AI Brain, the Web3 codebase is strictly divided to prevent the LLM from hallucinating or maliciously manipulating low-level routing paths:
+- **`aggregator/`**: The core routing engine (1inch, 0x, KyberSwap, etc.) immune to prompt injection. The AI cannot modify execution rules here.
+- **`skills/`**: The execution muscles. Pure functions and tools explicitly exposed to the AI for usage.
+- **`utils/`**: The nervous system managing blockchain configurations, supported tokens, and the RPC Engine.
 
 *(Note: Despite the multi-layered security process appearing lengthy, the internal system validation and cryptographic signing occurs in **milliseconds**, ensuring zero latency bottlenecks).*
 

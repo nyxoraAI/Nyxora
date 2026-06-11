@@ -2,12 +2,17 @@ import { parseEther, parseUnits, encodeFunctionData } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
+import { submitTransaction } from '../utils/vaultClient';
 
 export async function prepareTransfer(chainName: ChainName, toAddress: `0x${string}`, amountStr: string, token?: string): Promise<string> {
   try {
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;
+    
+    if (toAddress === "0x0000000000000000000000000000000000000000") {
+        return `Error: You cannot transfer assets to the Zero Address (burn). For security reasons, this action is blocked.`;
+    }
     
     let tokenAddress = "0x0000000000000000000000000000000000000000";
     let isNative = true;
@@ -22,13 +27,19 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
     let gasEstimate: bigint = 0n;
 
     if (isNative) {
-      // Simulate Native Transfer
-      const value = parseEther(amountStr);
-      gasEstimate = await publicClient.estimateGas({
-        account,
-        to: toAddress,
-        value,
-      });
+      // Fast-path for EOA Native Transfers (ZK-Aware)
+      const code = await publicClient.getCode({ address: toAddress }).catch(() => null);
+      if (!code || code === '0x') {
+        gasEstimate = 21000n;
+      } else {
+        // Simulate Native Transfer for contracts
+        const value = parseEther(amountStr);
+        gasEstimate = await publicClient.estimateGas({
+          account,
+          to: toAddress,
+          value,
+        });
+      }
     } else {
       // Simulate ERC-20 Transfer
       const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
@@ -67,7 +78,6 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
 export async function executeTransfer(chainName: ChainName, params: any, autoApprove: boolean = false): Promise<string> {
   try {
     const { toAddress, amountStr, tokenAddress, isNative, decimals } = params;
-    const token = process.env.INTERNAL_AUTH_TOKEN;
     const amountWei = isNative ? parseEther(amountStr).toString() : parseUnits(amountStr, decimals).toString();
 
     let txRequest: any = {};
@@ -93,38 +103,10 @@ export async function executeTransfer(chainName: ChainName, params: any, autoApp
       type: 'transfer',
       chainName,
       autoApprove,
-      details: {
-        txRequest,
-        toAddress, amountWei, tokenAddress
-      }
+      details: { ...params, txRequest }
     };
 
-    if (autoApprove && token) {
-      const crypto = require('crypto');
-      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + amountWei).digest('hex');
-    }
-
-    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(180000)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Unknown error from Policy API');
-
-    if (data.status === 'pending') {
-      return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
-    }
-
-    if (data.signedHash) {
-      return `Transfer successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
-    }
-    return `Transaction executed. Result: ${JSON.stringify(data)}`;
+    return await submitTransaction(payload);
   } catch (error: any) {
     return `Failed to execute transfer: ${error.message}`;
   }

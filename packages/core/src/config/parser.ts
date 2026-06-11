@@ -21,7 +21,7 @@ export interface NyxoraConfig {
     description: string;
     default_chain: string;
     default_router?: string;
-    default_slippage?: number;
+    default_slippage?: number | "auto";
   };
   llm: {
     provider: string;
@@ -105,7 +105,7 @@ export function loadConfig(): NyxoraConfig {
 
     
     return {
-      agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 0.5 },
+      agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 'auto' },
       llm: parsed.llm || { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
@@ -139,7 +139,7 @@ export function loadConfig(): NyxoraConfig {
       description: "Your Personal Web3 Assistant.",
       default_chain: "ethereum",
       default_router: "auto",
-      default_slippage: 0.5
+      default_slippage: "auto"
     },
       llm: { 
         provider: 'openai', 

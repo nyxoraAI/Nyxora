@@ -24,3 +24,12 @@ Nyxora's Dashboard uses a global network interceptor to monitor the health of th
 If you restart the daemon (`nyxora restart`) or if the connection is unexpectedly lost, the UI will immediately pause and display a pulsing **"Nyxora Daemon Offline"** overlay. This prevents you from executing "ghost" transactions or losing state.
 
 Once the daemon revives, the overlay automatically lifts, seamlessly resuming your workflow exactly where you left off.
+
+## Bring Your Own Keys (BYOK) & UI Masking
+
+Nyxora supports overriding public endpoints with your own private API keys (e.g., Alchemy, 1inch, KyberSwap, Etherscan). To protect these secrets from malicious browser extensions or accidental screen-sharing leaks, the Dashboard employs **UI Masking**:
+
+1. **Defi Config Isolation:** Keys entered in the DeFi Configuration tab are saved to a separate, isolated YAML file (`defi_keys.yaml`). When the Dashboard requests this configuration, the backend actively censors the actual keys, transmitting only the string `"IS_SET"` to the frontend browser.
+2. **Settings Masking:** Keys within the general Web3 settings (like Etherscan and RPC URLs) are rendered using native password masking (`••••••••`). 
+
+This architecture guarantees that once a secret is injected into the backend, it never travels back to the frontend in plain text.

@@ -21,13 +21,16 @@ process.on('uncaughtException', (error) => {
 });
 
 const PORT = process.env.POLICY_PORT || 3001;
-const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
-const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
-
-if (!JWT_SECRET) {
-  console.error("Missing INTERNAL_AUTH_TOKEN in policy process.");
+const tokenPath = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
+let JWT_SECRET = '';
+try {
+  JWT_SECRET = fs.readFileSync(tokenPath, 'utf8').trim();
+} catch (e) {
+  console.error("Missing runtime.token. Please run Nyxora launcher.");
   process.exit(1);
 }
+
+const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
 
 const app = express();
 app.use(express.json());
@@ -88,6 +91,30 @@ app.get('/address', (req, res) => {
   });
 
   signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to contact Signer: ' + e.message }));
+  signerReq.end();
+});
+
+app.post('/sign-typed-data', (req, res) => {
+  const requestPayload = JSON.stringify(req.body);
+  const options = {
+    socketPath: SIGNER_SOCKET,
+    path: '/sign-typed-data',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
+      'Content-Length': Buffer.byteLength(requestPayload)
+    }
+  };
+
+  const signerReq = http.request(options, (signerRes) => {
+    let data = '';
+    signerRes.on('data', chunk => data += chunk);
+    signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
+  });
+
+  signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to contact Signer for sign-typed-data: ' + e.message }));
+  signerReq.write(requestPayload);
   signerReq.end();
 });
 

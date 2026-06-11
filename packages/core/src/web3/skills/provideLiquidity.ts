@@ -48,6 +48,8 @@ const POSITION_MANAGERS: Record<string, `0x${string}`> = {
   bsc: "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364" // PancakeSwap V3 Position Manager
 };
 
+import { loadConfig } from '../../config/parser';
+
 export async function prepareProvideLiquidity(
     chainName: ChainName, 
     token0AddressOrSymbol: string, 
@@ -56,9 +58,22 @@ export async function prepareProvideLiquidity(
     amount1Str: string,
     feeTier: number,
     tickLower?: number,
-    tickUpper?: number
+    tickUpper?: number,
+    slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    let actualSlippage = slippagePercent;
+    if (actualSlippage === undefined || actualSlippage === null || actualSlippage === "auto") {
+      try {
+        const config = loadConfig();
+        const cfgSlippage = (config.agent as any).default_slippage;
+        actualSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage);
+      } catch (e) {
+        actualSlippage = 0.5;
+      }
+    }
+    if (typeof actualSlippage !== 'number' || isNaN(actualSlippage)) actualSlippage = 0.5;
+
     // CRITICAL SAFETY REQUIREMENT: AI MUST ASK USER FOR TICKS
     if (tickLower === undefined || tickUpper === undefined) {
         return `ACTION REQUIRED: I cannot calculate the Uniswap V3 price range (tickLower and tickUpper) autonomously for safety reasons. Please ask the user to provide the exact tickLower and tickUpper values they want for this liquidity pool before I can prepare the transaction.`;
@@ -126,11 +141,15 @@ export async function prepareProvideLiquidity(
     // 2. Simulate Mint
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 mins
     
-    // amountMin set to 0 for simplicity in bot context (relying on UI confirmation)
+    // Calculate MEV-protected minimums based on dynamic slippage
+    const slippageFactor = BigInt(Math.floor(actualSlippage * 100)); // e.g. 0.5% -> 50
+    const amount0Min = (amount0Wei * (10000n - slippageFactor)) / 10000n;
+    const amount1Min = (amount1Wei * (10000n - slippageFactor)) / 10000n;
+
     const mintParams = {
         token0, token1, fee: feeTier, tickLower, tickUpper,
         amount0Desired: amount0Wei, amount1Desired: amount1Wei,
-        amount0Min: 0n, amount1Min: 0n,
+        amount0Min, amount1Min,
         recipient: account, deadline
     };
 

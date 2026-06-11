@@ -14,7 +14,7 @@ Once configured, your agent will be able to perform the following actions via na
 - **Write to Google Sheets:** (`append_row_to_sheets`) - Appends new rows of data (like expense reports or trade logs) to your Google Spreadsheets.
 
 > [!TIP]
-> **Ultimate Synergy:** You can combine Web3 Skills and OS Skills! Try prompting the agent: *"Read the latest presale token email from my Gmail, automatically set a Take Profit limit order on Uniswap, and log the execution result to my Google Sheets."*
+> **Ultimate Synergy:** You can combine Web3 Skills and OS Skills! Try prompting the agent: *"Read the latest presale token email from my Gmail, automatically execute a swap for 1 ETH to that token on Uniswap, and log the execution result to my Google Sheets."*
 
 ---
 

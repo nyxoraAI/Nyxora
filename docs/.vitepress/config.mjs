@@ -40,6 +40,7 @@ export default defineConfig({
           { text: '🔍 Web Search & Deep Research', link: '/skills/web-search' },
           { text: '💻 Google Workspace MVP', link: '/skills/google-workspace' },
           { text: '🔗 External Plugins', link: '/guide/custom_skills' },
+          { text: '⚙️ DeFi Configuration', link: '/skills/defi-config' },
           { text: '🪙 Chain Specifics', link: '/skills/chains' },
           { text: '🔌 Custom RPC Configuration', link: '/skills/rpc' },
           { text: '🔑 Etherscan API V2 Key', link: '/skills/etherscan' },

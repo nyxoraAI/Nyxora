@@ -8,7 +8,7 @@ Here is the current state of blockchain support in Nyxora.
 
 ## 🟢 Fully Supported Networks (EVM)
 
-Nyxora currently has 100% native support for the following EVM-compatible networks. The agent can seamlessly read balances, transfer assets, swap tokens, check security, and deploy Limit Orders across any of these chains.
+Nyxora currently has 100% native support for the following EVM-compatible networks. The agent can seamlessly read balances, transfer assets, swap tokens, and check security across any of these chains.
 
 1.  **Ethereum Mainnet (`ethereum`)**
     - The gold standard. Fully supported for all DeFi operations.

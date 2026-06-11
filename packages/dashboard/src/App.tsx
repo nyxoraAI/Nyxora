@@ -1,16 +1,16 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard } from 'lucide-react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
+import { DefiKeys } from './DefiKeys';
 import { Portfolio } from './Portfolio';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
 import PendingTransactions from './PendingTransactions';
 import BalanceWidget from './BalanceWidget';
-import TransactionWidget from './TransactionWidget';
 import MarketWidget from './MarketWidget';
 import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
@@ -30,7 +30,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -354,12 +354,12 @@ function App() {
   if (latestToolMessage && latestToolMessage.name) {
     if (latestToolMessage.name === 'get_balance') {
       activeWidget = <BalanceWidget data={latestToolMessage.content} />;
-    } else if (latestToolMessage.name === 'transfer_native') {
-      activeWidget = <TransactionWidget data={latestToolMessage.content} />;
-    } else if (latestToolMessage.name === 'get_price') {
+    } else if (['analyze_market'].includes(latestToolMessage.name)) {
       activeWidget = <MarketWidget data={latestToolMessage.content} />;
     } else if (latestToolMessage.name === 'swap_token') {
-      activeWidget = <SwapWidget data={latestToolMessage.content} />;
+      if (!latestToolMessage.content.startsWith('Failed') && !latestToolMessage.content.startsWith('Error')) {
+        activeWidget = <SwapWidget data={latestToolMessage.content} />;
+      }
     }
   }
   
@@ -443,6 +443,12 @@ function App() {
               <Terminal size={15} className="nav-icon" /> OS Skills
             </div>
             <div 
+              className={`nav-item ${currentView === 'defikeys' ? 'active' : ''}`}
+              onClick={() => setCurrentView('defikeys')}
+            >
+              <Key size={15} className="nav-icon" /> DeFi Configuration
+            </div>
+            <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
             >
@@ -521,6 +527,8 @@ function App() {
           <OsSkills />
         ) : currentView === 'settings' ? (
           <Settings config={config} onConfigChange={setConfig} autoLockTime={autoLockTime} setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }} />
+        ) : currentView === 'defikeys' ? (
+          <DefiKeys />
         ) : (
           <div className="workspace-container">
             <div className="chat-wrapper" style={{ width: '100%', margin: '0 auto', maxWidth: '1000px' }}>

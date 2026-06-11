@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.10]
+
+## [26.6.11]
+### Security
+- **Foundry Registry Migration**: Successfully migrated the `NyxoraAgentRegistry` Arbitrum Smart Contract from Hardhat to Foundry, stripping out hundreds of vulnerable NPM dependencies and drastically reducing the attack surface.
+
+### Core AI Engine (Reasoning V2)
+- **Zero-Hallucination Framework**: Injected 11 new advanced Critical Rules into the core System Prompt (`reasoning.ts`). The AI is now explicitly forbidden from guessing or hallucinating missing parameters (tokens, chains, amounts) and will gracefully ask for user clarification.
+- **Transaction Intent Confirmation**: Mandated a strict 4-step execution flow for all state-changing actions. The AI must gather details, display a markdown summary, await UI approval, and only then execute.
+- **Network Safety & Risk Disclosure**: For high-level financial strategies (e.g., "Find yield"), the AI is now required to draft a plan and explicitly disclose major DeFi risks (Impermanent Loss, Smart Contract Risk) before requesting execution approval.
+
+### Web3 Architecture Restructuring
+- **Separation of Concerns (SoC)**: Completely restructured the `web3` engine into isolated domains (`aggregator/`, `skills/`, and `config`). The AI business logic (`skills/`) is now entirely decoupled from the routing execution layer, enabling massive scalability without spaghetti code.
+- **Testnet/Mainnet Contamination Shield**: Aggregator logic is now strictly split between `aggregatorMainnet.ts` (1inch/0x/LI.FI) and `aggregatorTestnet.ts` (Relay). This absolute physical separation ensures experimental testnet logic can never leak into or crash production mainnet operations.
+- **Zero-Trust AI Sandbox**: The AI no longer has direct access to execution paths. It can only call functions within `skills/` to prepare transaction drafts, which are then passed to `defiRouter.ts` for strictly controlled optimal routing.
+
+### Performance & Security
+- **Native EOA Transfer Fast-Path**: Integrated a strict `getCode` verification check in `transfer.ts`. If the recipient is confirmed as a pure EOA (`0x`), the AI immediately bypasses costly `estimateGas` dry-runs and injects a raw `21000` gas limit, achieving instant P2P Native Transfers. ZK-aware.
+- **JSON-RPC Rate Limit Optimization**: Implemented `batchSize: 100` chunking for all `createPublicClient` HTTP transports, coupled with a WSS Auto-Reconnect mechanism that gracefully degrades to HTTP polling.
+- **Multicall Chunking & Self-Healing Cache**: Refactored `tokens.ts` metadata fetching using batched `multicall` with persistent self-healing caching. Added Background Preload Allowance dynamic checking on boot.
+- **Independent Parallel Execution**: Refactored `swapToken.ts` to perform Quote fetching and Balance checking in strict parallel via `Promise.all`.
+- **Safe-Path Enforcement**: Added mandatory `estimateGas()` dry-runs in complex DeFi transactions to detect reverts before broadcasting, saving user gas fees.
+- **Meta-Aggregator Architecture**: Built `defiRouter.ts` to seamlessly route Mainnet transactions to 6 competing APIs (1inch, 0x, LI.FI, Relay, OpenOcean, KyberSwap) for best quotes, while exclusively routing all Testnets (e.g. `base_sepolia`) via Relay to prevent conflicts.
+- **DeFi Keys (BYOK) Security**: Added a unified `defiConfigManager.ts` securely saving API Keys in `~/.nyxora/defi_keys.yaml` to prevent leaks. Integrated a Dashboard UI panel with `IS_SET` masking so sensitive keys never return to the browser frontend. Removed all insecure `process.env` dependencies.
+- **Unified Chain Registry**: Consolidated all supported Mainnet and Testnet network IDs into a single `chains.ts` registry, completely eliminating hardcoded chain bugs across the Dashboard UI and CLI logic.
+
+## [26.6.10] - 2026-06-09
+
 ### The DeFi Optimization Update
 - **DeFi Lending Engine**: Integrated native Aave V3 support across all EVM chains. The AI can now autonomously fetch dynamic `Pool` addresses via `PoolAddressesProvider` and securely draft `supply` payloads to earn yield on idle assets.
 - **DeFi Security Guard (Revoke)**: Shipped a critical security skill allowing users to purge "Infinite Approvals". The AI can now construct 0-value `approve()` payloads to instantly revoke access from malicious or vulnerable smart contracts across any chain.

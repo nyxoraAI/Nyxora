@@ -7,6 +7,9 @@ import { executeSwap } from '../web3/skills/swapToken';
 import { executeBridge } from '../web3/skills/bridgeToken';
 import { executeMintNft } from '../web3/skills/mintNft';
 import { executeCustomTx } from '../web3/skills/customTx';
+
+import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
+import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
 
@@ -25,6 +28,10 @@ export function formatToTelegramHTML(text: string): string {
   // Convert code blocks and inline code
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Strip <thought> blocks completely for user-friendly output
+  html = html.replace(/&lt;thought&gt;[\s\S]*?&lt;\/thought&gt;\n?/g, '');
+  html = html.replace(/<thought>[\s\S]*?<\/thought>\n?/g, '');
   
   // Transform Markdown Tables to <pre> monospaced blocks so they don't break on mobile
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
@@ -111,7 +118,7 @@ export function startTelegramBot() {
     });
 
     bot.command('clear', async (ctx) => {
-      logger.clear();
+      logger.clear(ctx.chat?.id.toString());
       await ctx.reply('✅ Memori AI telah dihapus. Mari kita mulai obrolan baru!');
     });
 
@@ -137,27 +144,26 @@ export function startTelegramBot() {
           } catch (e) {}
         };
 
-        const response = await processUserInput(text, 'user', onProgress);
+        const response = await processUserInput(text, 'user', onProgress, ctx.chat?.id.toString());
 
         if (progressMsgId) {
           await ctx.telegram.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
 
         const pendingTxs = txManager.getPending();
-        if (pendingTxs.length > 0) {
-          const latestTx = pendingTxs[pendingTxs.length - 1];
-          if (Date.now() - latestTx.createdAt < 120000) {
-            await ctx.reply(formatToTelegramHTML(response), {
-              parse_mode: 'HTML',
-              ...Markup.inlineKeyboard([
-                [
-                  Markup.button.callback('✅ Approve', `approve_${latestTx.id}`),
-                  Markup.button.callback('❌ Reject', `reject_${latestTx.id}`)
-                ]
-              ])
-            });
-            return;
-          }
+        const recentPendingTxs = pendingTxs.filter(tx => Date.now() - tx.createdAt < 120000);
+        
+        if (recentPendingTxs.length > 0) {
+          const keyboard = recentPendingTxs.map(tx => [
+            Markup.button.callback(`✅ Approve ${tx.type}`, `approve_${tx.id}`),
+            Markup.button.callback(`❌ Reject`, `reject_${tx.id}`)
+          ]);
+          
+          await ctx.reply(formatToTelegramHTML(response), {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard(keyboard)
+          });
+          return;
         }
 
         await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
@@ -186,15 +192,25 @@ export function startTelegramBot() {
       try {
         let result = '';
         if (tx.type === 'transfer') {
-          result = await executeTransfer(tx.chainName as any, tx.details);
+          result = await executeTransfer(tx.chainName as any, tx.details, true);
         } else if (tx.type === 'swap') {
-          result = await executeSwap(tx.chainName as any, tx.details);
+          result = await executeSwap(tx.chainName as any, tx.details, true);
         } else if (tx.type === 'bridge') {
-          result = await executeBridge(tx.chainName as any, tx.details);
+          result = await executeBridge(tx.chainName as any, tx.details, true);
         } else if (tx.type === 'mint') {
-          result = await executeMintNft(tx.chainName as any, tx.details);
+          result = await executeMintNft(tx.chainName as any, tx.details, true);
         } else if (tx.type === 'custom') {
-          result = await executeCustomTx(tx.chainName as any, tx.details);
+          result = await executeCustomTx(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'approve') {
+          result = await executeApprove(tx.chainName as any, tx.details);
+        } else if (tx.type === 'aaveSupply') {
+          result = await executeAaveSupply(tx.chainName as any, tx.details);
+        } else if (tx.type === 'vaultDeposit') {
+          result = await executeVaultDeposit(tx.chainName as any, tx.details);
+        } else if (tx.type === 'univ3Mint') {
+          result = await executeUniv3Mint(tx.chainName as any, tx.details);
+        } else if (tx.type === 'revokeApproval') {
+          result = await executeRevokeApproval(tx.chainName as any, tx.details, true);
         }
         
         txManager.updateStatus(txId, 'executed', result);
@@ -210,24 +226,21 @@ export function startTelegramBot() {
         }
 
         const prettyMsg = formatTransactionSuccess(tx, result, isIndonesian);
-        await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed:**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
+        await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed: Success**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
         
-        logger.addEntry({ role: 'assistant', content: `✅ Transaction processed:\n\n${prettyMsg}` });
-        logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: result });
-        
-        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system').catch(() => {});
+        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
       } catch (err: any) {
         txManager.updateStatus(txId, 'failed', err.message);
         const prettyError = formatTransactionError(tx, err.message);
         await ctx.reply(prettyError);
-        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system').catch(() => {});
+        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
       }
     });
 
     bot.action(/^reject_(.+)$/, async (ctx) => {
       const txId = ctx.match[1];
       txManager.updateStatus(txId, 'rejected');
-      processUserInput(`Transaction ${txId} was REJECTED via Telegram. Acknowledge this briefly.`, 'system').catch(() => {});
+      processUserInput(`Transaction ${txId} was REJECTED via Telegram. CRITICAL: DO NOT retry or recreate this transaction. Acknowledge this cancellation to the user and stop.`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
       
       await ctx.answerCbQuery('Transaction cancelled.');
       await ctx.reply(`❌ Transaction cancelled.`);

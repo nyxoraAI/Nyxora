@@ -150,19 +150,21 @@ export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`)
     return tokenMetadataCache.get(cacheKey)!;
   }
 
-  // Parallel RPC execution for extreme latency reduction
-  const [decimals, symbol] = await Promise.all([
-    client.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'decimals',
-    }).catch(() => 18) as Promise<number>,
-    client.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'symbol',
-    }).catch(() => "TOKEN") as Promise<string>
-  ]);
+  // Multicall Chunking: Reduce HTTP overhead by batching decimals and symbol in 1 request
+  let decimals = 18;
+  let symbol = "TOKEN";
+  try {
+    const results = await client.multicall({
+      contracts: [
+        { address: tokenAddress, abi: ERC20_ABI, functionName: 'decimals' },
+        { address: tokenAddress, abi: ERC20_ABI, functionName: 'symbol' }
+      ]
+    });
+    if (results[0].status === 'success') decimals = results[0].result as number;
+    if (results[1].status === 'success') symbol = results[1].result as string;
+  } catch (err) {
+    // Fallback if multicall fails
+  }
 
   const metadata: TokenMetadata = { decimals, symbol };
 
@@ -174,4 +176,30 @@ export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`)
   
   tokenMetadataCache.set(cacheKey, metadata);
   return metadata;
+}
+
+// Self-Healing Cache: Invalidates cache if a transaction fails (e.g. proxy upgrade changing decimals)
+export function invalidateTokenCache(client: any, tokenAddress: `0x${string}`) {
+  const cacheKey = `${client.chain?.id || 'unknown'}-${tokenAddress.toLowerCase()}`;
+  tokenMetadataCache.delete(cacheKey);
+}
+
+// Preload Allowance Dinamis (Boot-up)
+export async function preloadTokenMetadataAndAllowance(client: any, userAddress: `0x${string}`, chainName: ChainName) {
+  const tokens = Object.values(TOKEN_MAP[chainName] || {});
+  const contracts = [];
+  
+  for (const token of tokens) {
+    if (token === "0x0000000000000000000000000000000000000000") continue;
+    contracts.push({ address: token, abi: ERC20_ABI, functionName: 'decimals' });
+    contracts.push({ address: token, abi: ERC20_ABI, functionName: 'symbol' });
+    // In actual AA flow, you'd add allowance checks here against common spenders.
+  }
+
+  // Chunking multicall in batches of 20
+  const CHUNK_SIZE = 20;
+  for (let i = 0; i < contracts.length; i += CHUNK_SIZE) {
+    const chunk = contracts.slice(i, i + CHUNK_SIZE);
+    await client.multicall({ contracts: chunk }).catch(() => null); // Fire and forget in background
+  }
 }

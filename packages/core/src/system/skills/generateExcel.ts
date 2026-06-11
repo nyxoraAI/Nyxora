@@ -1,4 +1,4 @@
-import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 
@@ -16,11 +16,17 @@ export async function generateExcelFile(data: any[], filePath: string): Promise<
       reportData = [{ Message: 'No data available' }];
     }
 
-    const worksheet = xlsx.utils.json_to_sheet(reportData);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Report');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Report');
 
-    xlsx.writeFile(workbook, absolutePath);
+    const headers = Object.keys(reportData[0]);
+    worksheet.columns = headers.map(h => ({ header: h, key: h }));
+
+    reportData.forEach(row => {
+      worksheet.addRow(row);
+    });
+
+    await workbook.xlsx.writeFile(absolutePath);
     
     return `Success: Excel file generated at ${absolutePath}`;
   } catch (error: any) {
