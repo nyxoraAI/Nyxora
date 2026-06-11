@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.11-2]
+### Hotfixes
+- **Monorepo Dependency Resolver**: Fixed an NPM workspace bug by elevating internal package dependencies (`playwright`, `twitter-api-v2`, `@notionhq/client`) directly to the root `package.json`, completely resolving `Error: Cannot find module` crashes during daemon boot.
+
+## [26.6.11-1]
+### Hotfixes
+- **Global Installation Path Fix**: Included the compiled `dist/` directory into the NPM tarball, preventing `ts-node` fallback crashes during `nyxora start`.
 
 ## [26.6.11]
 ### Security
