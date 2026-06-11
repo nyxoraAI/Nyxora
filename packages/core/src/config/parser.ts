@@ -57,6 +57,13 @@ export interface NyxoraConfig {
       authorized_chat_id?: number;
     };
   };
+  skills?: {
+    web3: string[];
+    os: string[];
+  };
+  channels?: {
+    active: string[];
+  };
   permissions?: {
     web3?: {
       allow_transfer?: boolean;

@@ -1,4 +1,4 @@
-import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner, log } from '@clack/prompts';
+import { intro, outro, confirm, select, text, isCancel, cancel, note, password, spinner, log, multiselect } from '@clack/prompts';
 import search from '@inquirer/search';
 import pc from 'picocolors';
 import fs from 'fs';
@@ -173,7 +173,7 @@ Provider: ${config.llm.provider}`;
     ];
   }
   
-  modelOptions.push({ value: 'custom', name: '[Tulis Manual / Custom Model]' });
+  modelOptions.push({ value: 'custom', name: '[Enter Manual / Custom Model]' });
 
   let model = '';
   try {
@@ -213,51 +213,142 @@ Provider: ${config.llm.provider}`;
     if (isCancel(apiKey)) return process.exit(0);
   }
 
-  // 3.5. Smart Web Search Setup
-  const searchProvider = await select({
-    message: 'Enable Smart Web Search for Nyxora AI?',
+  // --- WEB3 SKILLS ---
+  const activeWeb3Skills = await multiselect({
+    message: '🔹 Select Web3 Skills to enable (Space to toggle, Enter to confirm):',
     options: [
-      { value: 'skip', label: 'Skip (Use basic decentralized mesh)' },
-      { value: 'tavily', label: 'Tavily Search (Built for AI - 1000 free/mo)' },
-      { value: 'brave', label: 'Brave Search (Privacy focused - 2000 free/mo)' },
+      { value: 'transfer', label: 'Transfer Tokens (Native/ERC20)', hint: 'essential' },
+      { value: 'swapToken', label: 'Token Swapping (DEX)', hint: 'essential' },
+      { value: 'bridgeToken', label: 'Cross-Chain Bridging' },
+      { value: 'customTx', label: 'Execute Custom Transaction (ABI)' },
+      { value: 'mintNft', label: 'Mint NFT' },
+      { value: 'defiLending', label: 'DeFi Lending (AAVE Supply/Borrow)' },
+      { value: 'provideLiquidity', label: 'Provide Liquidity (UniV3)' },
+      { value: 'yieldVault', label: 'Yield Vaults (ERC4626 Deposit/Withdraw)' },
+      { value: 'revokeApprovals', label: 'Revoke Token Approvals', hint: 'security' },
+      { value: 'getBalance', label: 'Check Wallet Balance' },
+      { value: 'getMyAddress', label: 'Get Agent Wallet Address' },
+      { value: 'checkPortfolio', label: 'Deep Portfolio Analysis' },
+      { value: 'getPrice', label: 'Check Token Price' },
+      { value: 'marketAnalysis', label: 'Market & Trend Analysis' },
+      { value: 'getTxHistory', label: 'Transaction History' },
+      { value: 'checkSecurity', label: 'Smart Contract / Token Security Scanner' },
+      { value: 'checkAddress', label: 'Address Validation' },
+      { value: 'checkRegistryStatus', label: 'Verify Nyxora On-Chain Registry' },
+      { value: 'manageCustomTokens', label: 'Manage Custom Tokens List' },
     ],
-  });
-  if (isCancel(searchProvider)) return process.exit(0);
+    required: false,
+  }) as string[];
+  if (isCancel(activeWeb3Skills)) return process.exit(0);
 
+  let defaultChain: any = config.agent.default_chain || 'ethereum';
+  let privateKey = '';
+
+  if (activeWeb3Skills.length > 0) {
+    // 4. Default Chain
+    defaultChain = await select({
+      message: 'Select Default Chain:',
+      initialValue: config.agent.default_chain,
+      options: [
+        { value: 'ethereum', label: 'Ethereum Mainnet' },
+        { value: 'bsc', label: 'BSC' },
+        { value: 'base', label: 'Base' },
+        { value: 'arbitrum', label: 'Arbitrum One' },
+        { value: 'optimism', label: 'OP Mainnet' },
+        { value: 'polygon', label: 'Polygon (Matic)' },
+        { value: 'sepolia', label: 'Sepolia (Testnet)' },
+        { value: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
+        { value: 'arbitrum_sepolia', label: 'Arbitrum Sepolia (Testnet)' },
+        { value: 'optimism_sepolia', label: 'OP Sepolia (Testnet)' },
+      ],
+    });
+    if (isCancel(defaultChain)) return process.exit(0);
+
+    // 6. Wallet Setup
+    const walletSetupType = await select({
+      message: 'Web3 Wallet Setup:',
+      options: [
+        { value: 'skip', label: 'Skip for now (No Web3 execution)' },
+        { value: 'generate', label: 'Auto-Generate New Wallet' },
+        { value: 'manual', label: 'Manual Input (Existing Private Key)' },
+      ],
+    });
+    if (isCancel(walletSetupType)) return process.exit(0);
+
+    if (walletSetupType === 'manual') {
+      privateKey = (await password({
+        message: 'Enter Wallet Private Key (0x...)\n  (Will be securely locked in your OS Native Keyring Vault):',
+      })) as string;
+      if (isCancel(privateKey)) return process.exit(0);
+    } else if (walletSetupType === 'generate') {
+      const seedPhrase = generateMnemonic(english);
+      const account = mnemonicToAccount(seedPhrase);
+      privateKey = '0x' + Buffer.from(account.getHdKey().privateKey!).toString('hex');
+      log.success('New Wallet Generated!');
+      log.info(`Address: ${account.address}`);
+      log.info(`Private Key: ${privateKey}`);
+      log.info(`Seed Phrase (Mnemonic): ${seedPhrase}`);
+      log.warn('IMPORTANT: Write down these 12 words (or the Private Key) NOW! This is your ONLY backup. The credentials have been securely injected into your local OS vault.');
+    }
+  }
+
+  // --- OS SKILLS ---
+  const activeOsSkills = await multiselect({
+    message: '🔸 Select OS & System Skills to enable (Space to toggle, Enter to confirm):',
+    options: [
+      { value: 'readFile', label: 'Read Local File' },
+      { value: 'writeFile', label: 'Write Local File' },
+      { value: 'editFile', label: 'Edit Local File (Patch/Diff)' },
+      { value: 'generateExcel', label: 'Generate Excel Reports' },
+      { value: 'analyzeDocument', label: 'Analyze Docs (PDF/Word)' },
+      { value: 'run_terminal', label: 'Run Terminal Command', hint: '⚠️ UNSAFE' },
+      { value: 'installSkill', label: 'Install External Skills (Plugins)' },
+      { value: 'gitManager', label: 'Git Operations (Commit/Push/Pull)' },
+      { value: 'updateSecurityPolicy', label: 'Update security_policy.md', hint: 'safeguard' },
+      { value: 'browseWeb', label: 'Browse & Scrape Webpages' },
+      { value: 'searchWeb', label: 'Smart Web Search (Tavily/Brave)', hint: 'Requires API Key' },
+      { value: 'googleWorkspace', label: 'Google Workspace (Gmail, Docs, Sheets, Forms)', hint: 'Requires OAuth' },
+      { value: 'notionWorkspace', label: 'Notion Integration' },
+      { value: 'xManager', label: 'X/Twitter Management' },
+      { value: 'audioTranscribe', label: 'Audio Transcription (Whisper)' },
+      { value: 'summarizeText', label: 'Summarize Long Text' },
+    ],
+    required: false,
+  }) as string[];
+  if (isCancel(activeOsSkills)) return process.exit(0);
+
+  // --- CHANNELS ---
+  const activeChannels = await multiselect({
+    message: '💬 Select Integration Channels to enable:',
+    options: [
+      { value: 'telegram', label: 'Telegram Bot', hint: 'Requires Token' },
+      { value: 'dashboard', label: 'Local Web Dashboard', hint: 'enabled by default' },
+    ],
+    initialValues: ['dashboard'],
+    required: false,
+  }) as string[];
+  if (isCancel(activeChannels)) return process.exit(0);
+
+  // --- CONDITIONAL CREDENTIALS ---
+  let searchProvider: any = 'skip';
   let searchApiKey = '';
-  if (searchProvider !== 'skip') {
+  if (activeOsSkills.includes('searchWeb')) {
+    searchProvider = await select({
+      message: 'Choose Web Search Provider:',
+      options: [
+        { value: 'tavily', label: 'Tavily Search (Built for AI - 1000 free/mo)' },
+        { value: 'brave', label: 'Brave Search (Privacy focused - 2000 free/mo)' },
+      ],
+    });
+    if (isCancel(searchProvider)) return process.exit(0);
+
     searchApiKey = (await password({
       message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : 'search.brave.com'}):`,
     })) as string;
     if (isCancel(searchApiKey)) return process.exit(0);
   }
 
-  // 4. Default Chain
-  const defaultChain = await select({
-    message: 'Select Default Chain:',
-    initialValue: config.agent.default_chain,
-    options: [
-      { value: 'ethereum', label: 'Ethereum Mainnet' },
-      { value: 'bsc', label: 'BSC' },
-      { value: 'base', label: 'Base' },
-      { value: 'arbitrum', label: 'Arbitrum One' },
-      { value: 'optimism', label: 'OP Mainnet' },
-      { value: 'polygon', label: 'Polygon (Matic)' },
-      { value: 'sepolia', label: 'Sepolia (Testnet)' },
-      { value: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
-      { value: 'arbitrum_sepolia', label: 'Arbitrum Sepolia (Testnet)' },
-      { value: 'optimism_sepolia', label: 'OP Sepolia (Testnet)' },
-    ],
-  });
-  if (isCancel(defaultChain)) return process.exit(0);
-
-  // 5. Telegram Bot
-  const setupTelegram = await confirm({
-    message: 'Do you want to setup the Telegram Bot?',
-    initialValue: config.integrations?.telegram?.enabled || false,
-  });
-  if (isCancel(setupTelegram)) return process.exit(0);
-
+  const setupTelegram = activeChannels.includes('telegram');
   let telegramToken = '';
   let authorizedChatId = config.integrations?.telegram?.authorized_chat_id;
   if (setupTelegram) {
@@ -303,34 +394,6 @@ Provider: ${config.llm.provider}`;
     }
   }
 
-  // 6. Wallet Setup
-  const walletSetupType = await select({
-    message: 'Web3 Wallet Setup:',
-    options: [
-      { value: 'skip', label: 'Skip for now (No Web3 execution)' },
-      { value: 'generate', label: 'Auto-Generate New Wallet' },
-      { value: 'manual', label: 'Manual Input (Existing Private Key)' },
-    ],
-  });
-  if (isCancel(walletSetupType)) return process.exit(0);
-
-  let privateKey = '';
-  if (walletSetupType === 'manual') {
-    privateKey = (await password({
-      message: 'Enter Wallet Private Key (0x...)\n  (Will be securely locked in your OS Native Keyring Vault):',
-    })) as string;
-    if (isCancel(privateKey)) return process.exit(0);
-  } else if (walletSetupType === 'generate') {
-    const seedPhrase = generateMnemonic(english);
-    const account = mnemonicToAccount(seedPhrase);
-    privateKey = '0x' + Buffer.from(account.getHdKey().privateKey!).toString('hex');
-    log.success('New Wallet Generated!');
-    log.info(`Address: ${account.address}`);
-    log.info(`Private Key: ${privateKey}`);
-    log.info(`Seed Phrase (Mnemonic): ${seedPhrase}`);
-    log.warn('IMPORTANT: Write down these 12 words (or the Private Key) NOW! This is your ONLY backup. The credentials have been securely injected into your local OS vault.');
-  }
-
 
 
   // --- SAVING ---
@@ -340,20 +403,29 @@ Provider: ${config.llm.provider}`;
   config.llm.model = model as string;
   config.agent.default_chain = defaultChain as string;
   
+  if (!config.skills) config.skills = { web3: [], os: [] } as any;
+  config.skills.web3 = activeWeb3Skills;
+  config.skills.os = activeOsSkills;
+
+  if (!config.channels) config.channels = { active: [] } as any;
+  config.channels.active = activeChannels;
+
   const newApiKeys: Record<string, string> = {};
   if (apiKey) {
     newApiKeys[`${provider}_key`] = apiKey;
   }
 
   if (!config.web_search) config.web_search = { provider: 'mesh', enabled: true };
-  if (searchProvider !== 'skip') {
+  if (activeOsSkills.includes('searchWeb')) {
     config.web_search.provider = searchProvider as any;
+    config.web_search.enabled = true;
     if (searchApiKey) {
       if (searchProvider === 'tavily') newApiKeys.tavily_key = searchApiKey;
       if (searchProvider === 'brave') newApiKeys.brave_key = searchApiKey;
     }
   } else {
     config.web_search.provider = 'mesh';
+    config.web_search.enabled = false;
   }
 
   if (Object.keys(newApiKeys).length > 0) {
@@ -373,6 +445,35 @@ Provider: ${config.llm.provider}`;
   }
 
   saveConfig(config);
+
+  // Sync disabled_skills.json based on user selection
+  const allWeb3Skills = [
+    'transfer', 'swapToken', 'bridgeToken', 'customTx', 'mintNft',
+    'defiLending', 'provideLiquidity', 'yieldVault', 'revokeApprovals',
+    'getBalance', 'getMyAddress', 'checkPortfolio', 'getPrice', 'marketAnalysis',
+    'getTxHistory', 'checkSecurity', 'checkAddress', 'checkRegistryStatus', 'manageCustomTokens'
+  ];
+  
+  const allOsSkills = [
+    'readFile', 'writeFile', 'editFile', 'generateExcel', 'analyzeDocument',
+    'run_terminal', 'installSkill', 'gitManager', 'updateSecurityPolicy',
+    'browseWeb', 'searchWeb', 'googleWorkspace', 'notionWorkspace', 'xManager',
+    'audioTranscribe', 'summarizeText'
+  ];
+
+  const disabledSkills: string[] = [];
+  allWeb3Skills.forEach(skill => {
+    if (!activeWeb3Skills.includes(skill)) disabledSkills.push(skill);
+  });
+  allOsSkills.forEach(skill => {
+    if (!activeOsSkills.includes(skill)) disabledSkills.push(skill);
+  });
+
+  // Note: the backend uses 'run_terminal_command', but the UI/wizard used 'run_terminal'
+  // I need to map it just in case:
+  if (!activeOsSkills.includes('run_terminal')) disabledSkills.push('run_terminal_command');
+
+  fs.writeFileSync(getPath('disabled_skills.json'), JSON.stringify(disabledSkills, null, 2));
 
   // Save Private Key to OS Keyring or fallback to .env
   if (privateKey) {

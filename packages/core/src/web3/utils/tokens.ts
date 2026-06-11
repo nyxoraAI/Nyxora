@@ -119,7 +119,7 @@ export function resolveToken(tokenSymbolOrAddress: string, chainName: ChainName)
   const symbolUpper = tokenSymbolOrAddress.toUpperCase().trim();
   
   if (["ETH", "MATIC", "POL", "BNB", "AVAX", "NATIVE"].includes(symbolUpper)) {
-    return "0x0000000000000000000000000000000000000000";
+    return "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   }
 
   const chainTokens = TOKEN_MAP[chainName];
@@ -141,7 +141,7 @@ const tokenMetadataCache = new Map<string, TokenMetadata>();
 
 export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`): Promise<TokenMetadata> {
   // If it's the native token address placeholder
-  if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+  if (tokenAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" || tokenAddress === "0x0000000000000000000000000000000000000000") {
     return { decimals: 18, symbol: "ETH/BNB/MATIC" }; // Native fallback
   }
 
