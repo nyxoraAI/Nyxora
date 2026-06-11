@@ -10,6 +10,7 @@ import http from 'http';
 import { z } from 'zod';
 import path from 'path';
 import crypto from 'crypto';
+import os from 'os';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);

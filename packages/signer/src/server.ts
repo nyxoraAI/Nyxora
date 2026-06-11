@@ -4,6 +4,8 @@ initSafeLogger();
 
 import express from 'express';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import jwt from 'jsonwebtoken';
 import { decryptKey } from './crypto';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -33,8 +35,6 @@ const app = express();
 app.use(express.json());
 
 import { Entry } from '@napi-rs/keyring';
-import path from 'path';
-import os from 'os';
 
 let vaultPrivateKey: `0x${string}` | null = null;
 let vaultAddress: string | null = null;

@@ -90,7 +90,9 @@ async function fetchArbitrumBridgeTestnet(fromChain: string, toChain: string, fr
   }
 
   // Ensure it's Native ETH
-  const isNative = fromToken.toLowerCase() === 'eth' || fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+  const isNative = fromToken.toLowerCase() === 'eth' || 
+                   fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
+                   fromToken === '0x0000000000000000000000000000000000000000';
   if (!isNative) {
     throw new Error(`[Arbitrum Bridge] Only Native ETH bridging is supported via the Delayed Inbox.`);
   }
