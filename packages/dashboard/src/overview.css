@@ -286,6 +286,21 @@ input:read-only {
   background: transparent;
 }
 
+.memory-log-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.memory-log-container::-webkit-scrollbar-thumb {
+  background: #434c5e;
+  border-radius: 4px;
+}
+.memory-log-container::-webkit-scrollbar-thumb:hover {
+  background: #4c566a;
+}
+.memory-log-container::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .log-content code, .log-json {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.75rem;
