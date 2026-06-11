@@ -74,7 +74,10 @@ console.log(`================================`);
       'xai': 'xai_key',
       'deepseek': 'deepseek_key',
       'tavily': 'tavily_key',
-      'brave': 'brave_key'
+      'brave': 'brave_key',
+      'twitter': 'twitter_key',
+      'notion': 'notion_key',
+      'github': 'github_key'
     };
     
     const mappedKey = keyMap[provider.toLowerCase()] || `${provider.toLowerCase()}_key`;
@@ -105,8 +108,15 @@ console.log(`================================`);
         await entry.setPassword(pk as string);
         console.log(pc.green('✅ Wallet updated securely in OS Native Vault.'));
         console.log(pc.yellow('⚠️ Please restart your Nyxora agent for the new wallet to take effect.\n'));
+        // 2. Clear vault.key
+        try {
+          const vaultPath = path.join(os.homedir(), '.nyxora', 'auth', 'vault.key');
+          if (fs.existsSync(vaultPath)) fs.unlinkSync(vaultPath);
+        } catch (e) {}
       } catch (e: any) {
-        const vaultPath = path.join(os.homedir(), '.nyxora', 'vault.key');
+        const vaultDir = path.join(os.homedir(), '.nyxora', 'auth');
+        if (!fs.existsSync(vaultDir)) fs.mkdirSync(vaultDir, { recursive: true });
+        const vaultPath = path.join(vaultDir, 'vault.key');
         fs.writeFileSync(vaultPath, `PRIVATE_KEY=${pk}\n`, { mode: 0o600 });
         console.log(pc.green('✅ Wallet updated securely in fallback vault.key.'));
         console.log(pc.yellow('⚠️ Please restart your Nyxora agent for the new wallet to take effect.\n'));

@@ -1,6 +1,7 @@
 import { loadConfig } from '../../config/parser';
 import { getAddress, ChainName } from '../config';
 import { formatUnits } from 'viem';
+import { safeFetchJson } from '../../utils/httpClient';
 
 const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
@@ -31,12 +32,10 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     const startTimestamp = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
 
     // Fetch Native Txs
-    const nativeRes = await fetch(`${apiUrl}&module=account&action=txlist&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
-    const nativeData = await nativeRes.json();
+    const nativeData = await safeFetchJson<any>(`${apiUrl}&module=account&action=txlist&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
 
     // Fetch ERC20 Txs
-    const tokenRes = await fetch(`${apiUrl}&module=account&action=tokentx&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
-    const tokenData = await tokenRes.json();
+    const tokenData = await safeFetchJson<any>(`${apiUrl}&module=account&action=tokentx&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
 
     let history: any[] = [];
 

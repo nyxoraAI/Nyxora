@@ -5,6 +5,10 @@ import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import dns from 'dns';
+
+// Fix Node 18+ native fetch randomly failing on dual-stack VPS (IPv6 issues)
+dns.setDefaultResultOrder('ipv4first');
 
 const INTERNAL_AUTH_TOKEN = crypto.randomBytes(64).toString('hex');
 console.log(`[Launcher] Generated Internal Auth Token: ${INTERNAL_AUTH_TOKEN.substring(0, 8)}...`);

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { safeFetch } from '../utils/httpClient';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -22,11 +23,11 @@ import { validateToken, getSessionToken } from '../utils/state';
 import fs from 'fs';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
+import { loadDefiKeys, saveDefiKeys } from '../config/defiConfigManager';
 import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/config';
 import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
-import { limitOrderManager } from '../agent/limitOrderManager';
 import { pluginManager } from '../system/pluginManager';
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
@@ -38,8 +39,8 @@ import { getPriceToolDefinition } from '../web3/skills/getPrice';
 import { checkSecurityToolDefinition } from '../web3/skills/checkSecurity';
 import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
 import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
-import { createWalletToolDefinition } from '../web3/skills/createWallet';
-import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition } from '../agent/limitOrderManager';
+import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
+import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { isSkillActive, toggleSkill } from '../utils/skillManager';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
@@ -56,6 +57,12 @@ import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
 import { runTerminalCommandToolDefinition } from '../system/skills/executeShell';
 import { installExternalSkillToolDefinition } from '../system/skills/installSkill';
 import { readLocalFileToolDefinition } from '../system/skills/readFile';
+import { editLocalFileToolDefinition } from '../system/skills/editFile';
+import { gitManagerToolDefinition } from '../system/skills/gitManager';
+import { xManagerToolDefinition } from '../system/skills/xManager';
+import { notionWorkspaceToolDefinition } from '../system/skills/notionWorkspace';
+import { audioTranscribeToolDefinition } from '../system/skills/audioTranscribe';
+import { summarizeTextToolDefinition } from '../system/skills/summarizeText';
 import { updateSecurityPolicyToolDefinition } from '../system/skills/updateSecurityPolicy';
 import { writeLocalFileToolDefinition } from '../system/skills/writeFile';
 import { generateExcelToolDefinition } from '../system/skills/generateExcel';
@@ -125,7 +132,8 @@ app.use('/api/', apiLimiter);
 // API Auth Middleware
 app.use('/api', (req, res, next) => {
   // Bypass auth for Google OAuth callback and URLs since they are handled externally or by the browser
-  if (req.path.startsWith('/auth/google')) {
+  const allowedPaths = ['/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google'];
+  if (allowedPaths.includes(req.path) || allowedPaths.includes(req.path.replace(/\/$/, ''))) {
     return next();
   }
 
@@ -276,6 +284,28 @@ app.post('/api/config', (req, res) => {
   }
 });
 
+app.get('/api/defi-keys', (req, res) => {
+  try {
+    const keys = loadDefiKeys();
+    const masked: Record<string, string> = {};
+    for (const [k, v] of Object.entries(keys)) {
+      if (v && v.trim().length > 0) masked[k] = 'IS_SET';
+    }
+    res.json(masked);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/defi-keys', (req, res) => {
+  try {
+    saveDefiKeys(req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/stats', (req, res) => {
   res.json(Tracker.getStats());
 });
@@ -298,11 +328,7 @@ app.get('/api/skills', (req, res) => {
     checkSecurityToolDefinition,
     checkPortfolioToolDefinition,
     marketAnalysisToolDefinition,
-    createWalletToolDefinition,
     manageCustomTokensDefinition,
-    createLimitOrderToolDefinition,
-    listLimitOrdersToolDefinition,
-    cancelLimitOrderToolDefinition,
     aaveSupplyToolDefinition,
     revokeApprovalToolDefinition,
     vaultDepositToolDefinition,
@@ -333,7 +359,13 @@ app.get('/api/skills/system', (req, res) => {
     listCalendarEventsToolDefinition,
     appendRowToSheetsToolDefinition,
     readGoogleDocsToolDefinition,
-    readGoogleFormResponsesToolDefinition
+    readGoogleFormResponsesToolDefinition,
+    editLocalFileToolDefinition,
+    gitManagerToolDefinition,
+    xManagerToolDefinition,
+    notionWorkspaceToolDefinition,
+    audioTranscribeToolDefinition,
+    summarizeTextToolDefinition
   ];
   
   const skillsWithStatus = systemSkills.map(skill => ({
@@ -436,18 +468,51 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
       try {
         let result = '';
         if (tx.type === 'transfer') {
-          result = await executeTransfer(tx.chainName as any, tx.details, true);
+          const hash = await executeTransfer(tx.chainName as any, tx.details, true);
+          result = `Successfully transferred ${tx.details.amountStr || tx.details.amountEth || '0'} on ${tx.chainName} to ${tx.details.toAddress || tx.details.recipient} (Hash: ${hash})`;
         } else if (tx.type === 'swap') {
-          result = await executeSwap(tx.chainName as any, tx.details, true);
+          const hash = await executeSwap(tx.chainName as any, tx.details, true);
+          result = `Successfully transferred ${tx.details.amountStr || '0'} on ${tx.chainName} to ${tx.chainName} swap contract (Hash: ${hash})`;
         } else if (tx.type === 'bridge') {
-          result = await executeBridge(tx.chainName as any, tx.details, true);
+          const hash = await executeBridge(tx.chainName as any, tx.details, true);
+          result = `Successfully transferred ${tx.details.amount || '0'} on ${tx.chainName} to ${tx.details.toChain} bridge (Hash: ${hash})`;
         } else if (tx.type === 'mint') {
-          result = await executeMintNft(tx.chainName as any, tx.details, true);
+          const hash = await executeMintNft(tx.chainName as any, tx.details, true);
+          result = `Successfully transferred 0 on ${tx.chainName} to mint contract (Hash: ${hash})`;
         } else if (tx.type === 'custom') {
           result = await executeCustomTx(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'approve') {
+          result = await executeApprove(tx.chainName as any, tx.details);
+        } else if (tx.type === 'aaveSupply') {
+          result = await executeAaveSupply(tx.chainName as any, tx.details);
+        } else if (tx.type === 'vaultDeposit') {
+          result = await executeVaultDeposit(tx.chainName as any, tx.details);
+        } else if (tx.type === 'univ3Mint') {
+          result = await executeUniv3Mint(tx.chainName as any, tx.details);
+        } else if (tx.type === 'revokeApproval') {
+          const hash = await executeRevokeApproval(tx.chainName as any, tx.details, true);
+          result = `Successfully revoked approval for ${tx.details.tokenAddress} from ${tx.details.spenderAddress} on ${tx.chainName} (Hash: ${hash})`;
         }
 
-        if (result.startsWith('Failed to execute')) {
+        const typeToTool: Record<string, string> = {
+          'transfer': 'transfer_token',
+          'swap': 'swap_token',
+          'bridge': 'bridge_token',
+          'mint': 'mint_nft',
+          'custom': 'execute_custom_tx',
+          'approve': 'approve_token',
+          'aaveSupply': 'aave_supply',
+          'vaultDeposit': 'vault_deposit',
+          'univ3Mint': 'univ3_mint',
+          'revokeApproval': 'revoke_approval'
+        };
+        const toolName = typeToTool[tx.type] || 'transfer_native';
+
+        if (!result) {
+          result = 'Transaction executed successfully (No Output)';
+        }
+        
+        if (typeof result === 'string' && result.startsWith('Failed to execute')) {
           let errorMsg = result;
           if (result.toLowerCase().includes('insufficient funds') || result.toLowerCase().includes('exceeds the balance')) {
             errorMsg = "Insufficient Coin/Token balance to cover the transaction amount and Gas (Network Fee).";
@@ -456,15 +521,18 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
           }
           
           txManager.updateStatus(id, 'failed', errorMsg);
-          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Failed: ${errorMsg}` });
+          logger.addEntry({ role: 'tool', name: toolName, content: `Failed: ${errorMsg}` }, sessionId);
           logger.addEntry({ role: 'assistant', content: `❌ **Transaction Failed**\n\n${errorMsg}` }, sessionId);
         } else {
           txManager.updateStatus(id, 'executed', result);
-          logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: `Success: ${result}` });
+          logger.addEntry({ role: 'tool', name: toolName, content: `Success: ${result}` }, sessionId);
           logger.addEntry({ role: 'assistant', content: `✅ **Transaction Executed Successfully**\n\n${result}` }, sessionId);
         }
       } catch (err: any) {
+        const typeToTool: Record<string, string> = { 'transfer': 'transfer_token', 'swap': 'swap_token' };
+        const toolName = typeToTool[tx.type] || 'transfer_native';
         txManager.updateStatus(id, 'failed', err.message);
+        logger.addEntry({ role: 'tool', name: toolName, content: `Failed: ${err.message}` }, sessionId);
         logger.addEntry({ role: 'assistant', content: `❌ **Transaction Failed**\n\n${err.message}` }, sessionId);
       }
     })();
@@ -482,7 +550,20 @@ app.post('/api/transactions/:id/reject', async (req, res) => {
     if (!tx || tx.status !== 'pending') return res.status(404).json({ error: 'Transaction not found or not pending' });
 
     txManager.updateStatus(id, 'rejected');
-    logger.addEntry({ role: 'tool', name: tx.type === 'swap' ? 'swap_token' : 'transfer_native', content: 'User rejected the transaction.' });
+    const typeToTool: Record<string, string> = {
+      'transfer': 'transfer_token',
+      'swap': 'swap_token',
+      'bridge': 'bridge_token',
+      'mint': 'mint_nft',
+      'custom': 'execute_custom_tx',
+      'approve': 'approve_token',
+      'aaveSupply': 'aave_supply',
+      'vaultDeposit': 'vault_deposit',
+      'univ3Mint': 'univ3_mint'
+    };
+    const toolName = typeToTool[tx.type] || 'transfer_native';
+    
+    logger.addEntry({ role: 'tool', name: toolName, content: 'User rejected the transaction. CRITICAL: DO NOT retry or recreate this transaction.' }, sessionId || 'default');
     
     logger.addEntry({ role: 'assistant', content: `❌ **Transaction Cancelled**\n\nYou have cancelled this transaction.` }, sessionId || 'default');
     
@@ -504,7 +585,7 @@ app.get('/api/trending', async (req, res) => {
     return res.json(cachedTrending);
   }
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
+    const response = await safeFetch('https://api.coingecko.com/api/v3/search/trending');
     if (response.ok) {
       const data = await response.json();
       const top5 = data.coins.slice(0, 5).map((c: any) => '$' + c.item.symbol.toUpperCase());
@@ -622,7 +703,7 @@ app.get('/api/portfolio', async (req, res) => {
         
         await Promise.all(uniqueAddrs.map(async (addr) => {
           try {
-            const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
+            const res = await safeFetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
             if (res.ok) {
               const data = await res.json();
               if (data.pairs && data.pairs.length > 0) {
@@ -792,10 +873,9 @@ export function startServer() {
   pluginManager.loadPlugins().then(() => {
     console.log(`[PluginManager] Finished loading external skills.`);
   });
-  limitOrderManager.startMonitor();
 
   const PORT = Number(process.env.PORT || 3000);
-  const server = app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
     
     // Start the Telegram bot listener

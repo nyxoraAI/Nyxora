@@ -68,54 +68,38 @@ export async function prepareMintNft(
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: Simulated NFT Minting successfully. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}. Wait for user to approve.`;
+    return `TRANSACTION_PENDING: Simulated NFT Minting successfully. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}.\n\n⚠️ **SECURITY WARNING**: You are about to mint an NFT from an unverified contract address (${contractAddress}). Please ensure this is the official contract and not a honeypot or malicious proxy before approving on the Dashboard.`;
   } catch (error: any) {
     return `Simulation failed! Cannot prepare mint. Error: ${error.message}`;
   }
 }
 
+import { submitTransaction } from '../utils/vaultClient';
+
 export async function executeMintNft(chainName: ChainName, params: any, autoApprove: boolean = false): Promise<string> {
   try {
-    const { contractAddress, abi, functionName, parsedArgs, valueWei } = params;
-    const token = process.env.INTERNAL_AUTH_TOKEN;
+    const { contractAddress, dataHex, amountStr, valueWei } = params;
 
     const payload: any = {
       type: 'mint',
       chainName,
       autoApprove,
-      details: {
-        contractAddress, abi, functionName, parsedArgs, valueWei
+      details: { 
+        contractAddress, 
+        dataHex, 
+        amountStr, 
+        valueWei, 
+        amountWei: valueWei,
+        txRequest: {
+          to: contractAddress,
+          value: valueWei,
+          data: dataHex
+        }
       }
     };
 
-    if (autoApprove && token) {
-      const crypto = require('crypto');
-      // For mint NFT we might not have amountWei, use valueWei or "0"
-      const signAmount = valueWei || "0";
-      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + signAmount).digest('hex');
-    }
-
-    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30000)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Unknown error from Policy API');
-
-    if (data.status === 'pending') {
-      return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
-    }
-
-    if (data.signedHash) {
-      return `Mint successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
-    }
-    return `Mint executed. Result: ${JSON.stringify(data)}`;
+    const result = await submitTransaction(payload);
+    return result;
   } catch (error: any) {
     return `Failed to execute mint: ${error.message}`;
   }

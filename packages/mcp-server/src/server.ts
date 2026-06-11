@@ -7,17 +7,15 @@ import http from 'http';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
-let JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
-
-if (!JWT_SECRET) {
-  try {
-    const tokenPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'runtime.token');
-    JWT_SECRET = fs.readFileSync(tokenPath, 'utf8').trim();
-  } catch (e) {
-    console.error("Missing INTERNAL_AUTH_TOKEN in mcp-server process and could not read ~/.nyxora/runtime.token");
-    process.exit(1);
-  }
+const tokenPath = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
+let JWT_SECRET = '';
+try {
+  JWT_SECRET = fs.readFileSync(tokenPath, 'utf8').trim();
+} catch (e) {
+  console.error("Could not read ~/.nyxora/auth/runtime.token");
+  process.exit(1);
 }
 
 const server = new McpServer({

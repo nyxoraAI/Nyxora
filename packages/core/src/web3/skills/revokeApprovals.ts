@@ -48,51 +48,33 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
   }
 }
 
+import { submitTransaction } from '../utils/vaultClient';
+
 export async function executeRevokeApproval(chainName: ChainName, params: any, autoApprove: boolean = false): Promise<string> {
   try {
-    const { spenderAddress, tokenAddress } = params;
-    const token = process.env.INTERNAL_AUTH_TOKEN;
+    const { tokenAddress, spenderAddress, dataHex } = params;
 
     const payload: any = {
-      type: 'custom_contract',
+      type: 'revokeApproval',
       chainName,
       autoApprove,
-      details: {
-        contractAddress: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [spenderAddress, "0"],
-        value: "0"
+      details: { 
+        tokenAddress, 
+        spenderAddress, 
+        dataHex,
+        amountWei: "0",
+        txRequest: {
+          to: tokenAddress,
+          value: "0",
+          data: dataHex
+        }
       }
     };
 
-    if (autoApprove && token) {
-      payload.internalSignature = crypto.createHmac('sha256', token).update(chainName + JSON.stringify(payload.details)).digest('hex');
-    }
-
-    const res = await fetch(`http://127.0.0.1:${process.env.POLICY_PORT || 3001}/request-tx`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(180000)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Unknown error from Policy API');
-
-    if (data.status === 'pending') {
-      return `Transaction pending approval via Policy API. Tx ID: ${data.txId}`;
-    }
-
-    if (data.signedHash) {
-      return `Revoke successfully executed on-chain! Transaction Hash: ${data.signedHash}`;
-    }
-    return `Transaction executed. Result: ${JSON.stringify(data)}`;
+    const result = await submitTransaction(payload);
+    return result;
   } catch (error: any) {
-    return `Failed to execute revoke: ${error.message}`;
+    return `Failed to execute revocation: ${error.message}`;
   }
 }
 

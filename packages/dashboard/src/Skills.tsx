@@ -46,9 +46,6 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'check portfolio': return <PieChart size={size} color={color} />;
     case 'analyze market': return <LineChart size={size} color={color} />;
     case 'create wallet': return <WalletCards size={size} color={color} />;
-    case 'create limit order': return <Target size={size} color={color} />;
-    case 'list limit orders': return <ListOrdered size={size} color={color} />;
-    case 'cancel limit order': return <XCircle size={size} color={color} />;
     case 'supply aave': return <Landmark size={size} color={color} />;
     case 'revoke approval': return <Lock size={size} color={color} />;
     case 'deposit yield vault': return <Vault size={size} color={color} />;

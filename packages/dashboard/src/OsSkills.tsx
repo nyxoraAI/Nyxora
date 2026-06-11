@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, DownloadCloud, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList } from 'lucide-react';
+import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, DownloadCloud, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, Twitter, Layout, Mic, AlignLeft, Scissors } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -23,17 +23,21 @@ interface SkillDefinition {
 }
 
 const formatSkillName = (name: string) => {
-  return name
+  let formatted = name
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+  if (name === 'run_terminal_command') {
+    formatted += ' (UNSAFE)';
+  }
+  return formatted;
 };
 
 const getSkillIcon = (skillName: string, isActive: boolean) => {
   const color = isActive !== false ? "#88c0d0" : "#4c566a";
   const size = 20;
   switch (formatSkillName(skillName).toLowerCase()) {
-    case 'run terminal command': return <Terminal size={size} color={color} />;
+    case 'run terminal command (unsafe)': return <Terminal size={size} color={color} />;
     case 'read local file': return <FileText size={size} color={color} />;
     case 'write local file': return <FileEdit size={size} color={color} />;
     case 'browse website': return <Globe size={size} color={color} />;
@@ -46,6 +50,12 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'append row to sheets': return <FileSpreadsheet size={size} color={color} />;
     case 'read google docs': return <BookOpen size={size} color={color} />;
     case 'read google form responses': return <ClipboardList size={size} color={color} />;
+    case 'edit local file': return <Scissors size={size} color={color} />;
+    case 'execute git command': return <GitBranch size={size} color={color} />;
+    case 'manage twitter': return <Twitter size={size} color={color} />;
+    case 'manage notion': return <Layout size={size} color={color} />;
+    case 'transcribe audio': return <Mic size={size} color={color} />;
+    case 'summarize text': return <AlignLeft size={size} color={color} />;
     default: return <Compass size={size} color={color} />;
   }
 };

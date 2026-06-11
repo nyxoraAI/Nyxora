@@ -20,10 +20,12 @@ process.on('uncaughtException', (error) => {
 });
 
 const SOCKET_PATH = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
-const JWT_SECRET = process.env.INTERNAL_AUTH_TOKEN;
-
-if (!JWT_SECRET) {
-  console.error("Missing INTERNAL_AUTH_TOKEN in signer process.");
+const tokenPathAuth = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
+let JWT_SECRET = '';
+try {
+  JWT_SECRET = fs.readFileSync(tokenPathAuth, 'utf8').trim();
+} catch (e) {
+  console.error("Missing runtime.token in signer process.");
   process.exit(1);
 }
 
@@ -54,7 +56,7 @@ async function loadPrivateKey() {
   }
 
   // Fallback to vault.key
-  const vaultPath = path.join(os.homedir(), '.nyxora', 'vault.key');
+  const vaultPath = path.join(os.homedir(), '.nyxora', 'auth', 'vault.key');
   if (fs.existsSync(vaultPath)) {
     const stats = fs.statSync(vaultPath);
     const mode = stats.mode & 0o777;
@@ -143,7 +145,7 @@ app.post('/sign-transaction', async (req, res) => {
            const rpcNonce = await client.getTransactionCount({ address: account.address, blockTag: 'pending' });
            let nextNonce = Math.max(rpcNonce, nonceCache[chainId] || 0);
            
-           const txRequest = txPayload.details?.txRequest || txPayload;
+           const txRequest = txPayload.details?.txRequest || txPayload.details?.txData || txPayload;
            
            // Phase 2: Transaction Simulation (Dry-Run / Anti-Gagal)
            try {
@@ -158,29 +160,31 @@ app.post('/sign-transaction', async (req, res) => {
            }
            
            // @ts-ignore
-           const txHash = await client.sendTransaction({
+           const hash = await client.sendTransaction({
              account,
-             chain,
              to: txRequest.to,
              data: txRequest.data,
              value: txRequest.value ? BigInt(txRequest.value) : 0n,
-             gas: txRequest.gasLimit ? (BigInt(txRequest.gasLimit) * 12n / 10n) : undefined,
-             nonce: nextNonce
+             nonce: nextNonce,
+             gas: txRequest.gas ? BigInt(txRequest.gas) : undefined,
+             maxFeePerGas: txRequest.maxFeePerGas ? BigInt(txRequest.maxFeePerGas) : undefined,
+             maxPriorityFeePerGas: txRequest.maxPriorityFeePerGas ? BigInt(txRequest.maxPriorityFeePerGas) : undefined,
            });
-           
            nonceCache[chainId] = nextNonce + 1;
-           resolve({ success: true, signedHash: txHash });
-         } catch (e) {
-           reject(e);
+           resolve(hash);
+         } catch (err: any) {
+           reject(err);
          }
-       }).catch(() => {});
+       }).catch(reject);
      });
      
-     res.json(result);
-  } catch (error: any) {
-     res.status(500).json({ error: `Signing failed: ${error.message}` });
+     res.json({ hash: result });
+  } catch (e: any) {
+     res.status(500).json({ error: e.message });
   }
 });
+
+
 
 if (fs.existsSync(SOCKET_PATH)) {
   try {

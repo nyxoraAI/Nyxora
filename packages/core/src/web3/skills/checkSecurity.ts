@@ -1,4 +1,5 @@
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
+import { safeFetchJson } from '../../utils/httpClient';
 
 const CHAIN_IDS: Record<ChainName, number> = {
   ethereum: 1,
@@ -21,12 +22,8 @@ export async function checkTokenSecurity(chainName: ChainName, contractAddress: 
     }
 
     const url = `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${contractAddress}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`GoPlus API Error: ${res.statusText}`);
-    }
-
-    const data = await res.json();
+    const data = await safeFetchJson<any>(url);
+    
     if (data.code !== 1 || !data.result) {
       throw new Error(`API returned error: ${data.message || 'Unknown error'}`);
     }

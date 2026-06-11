@@ -18,6 +18,7 @@ Nyxora natively supports EVM-compatible chains through `viem`. Agents can read d
 ## 💱 DeFi, Cross-Chain, & Security Integrations
 To protect users from malicious contracts and provide the best trading routes, Nyxora is plugged into top-tier Web3 infrastructure:
 - **1inch Network & CowSwap:** Deep liquidity aggregation and MEV-protected batch auctions for secure, institutional-grade execution.
+- **0x, OpenOcean & KyberSwap:** Integrated Meta-Aggregators that dynamically detect chains and route deep liquidity without requiring user-side API keys.
 - **Uniswap V2 / V3 & PancakeSwap:** Native router integration for autonomous token swaps across Ethereum, Base, and BNB Smart Chain (BSC).
 - **Li.Fi & Relay Protocol:** Advanced cross-chain bridge aggregators. Nyxora can autonomously find the cheapest and fastest routes to move your assets across different blockchains.
 - **GoPlus Security API:** The agent actively queries GoPlus before any purchase to detect honeypots, hidden mint functions, or malicious proxies in smart contracts.

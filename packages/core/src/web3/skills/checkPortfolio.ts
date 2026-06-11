@@ -1,6 +1,7 @@
 import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { TOKEN_MAP, ERC20_ABI } from '../utils/tokens';
+import { safeFetchJson } from '../../utils/httpClient';
 
 const portfolioCache: Record<string, { data: string, timestamp: number }> = {};
 const CACHE_TTL = 5000; // 5 seconds TTL
@@ -135,8 +136,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     if (addressesToFetch.length > 0) {
       const url = `https://api.dexscreener.com/latest/dex/tokens/${addressesToFetch.join(',')}`;
       try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await safeFetchJson<any>(url);
         if (data.pairs) {
           data.pairs.forEach((p: any) => {
             if (!priceMap[p.baseToken.address.toLowerCase()]) {

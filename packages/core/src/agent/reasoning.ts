@@ -13,7 +13,7 @@ import { bridgeTokenToolDefinition, prepareBridgeToken } from '../web3/skills/br
 import { isSkillActive } from '../utils/skillManager';
 import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
 import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
-import { createWalletToolDefinition, createWallet } from '../web3/skills/createWallet';
+
 import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/checkSecurity';
 import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
@@ -25,7 +25,7 @@ import { aaveSupplyToolDefinition, prepareAaveSupply } from '../web3/skills/defi
 import { vaultDepositToolDefinition, prepareVaultDeposit } from '../web3/skills/yieldVault';
 import { provideLiquidityToolDefinition, prepareProvideLiquidity } from '../web3/skills/provideLiquidity';
 import { getTxHistoryToolDefinition, getTxHistory } from '../web3/skills/getTxHistory';
-import { createLimitOrderToolDefinition, listLimitOrdersToolDefinition, cancelLimitOrderToolDefinition, limitOrderManager } from './limitOrderManager';
+
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
 import { analyzeDocumentToolDefinition, analyzeDocument } from '../system/skills/analyzeDocument';
@@ -36,6 +36,12 @@ import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/
 import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
 import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
 import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
+import { editLocalFileToolDefinition, editLocalFile } from '../system/skills/editFile';
+import { gitManagerToolDefinition, executeGitCommand } from '../system/skills/gitManager';
+import { xManagerToolDefinition, manageTwitter } from '../system/skills/xManager';
+import { notionWorkspaceToolDefinition, manageNotion } from '../system/skills/notionWorkspace';
+import { audioTranscribeToolDefinition, transcribeAudio } from '../system/skills/audioTranscribe';
+import { summarizeTextToolDefinition, summarizeText } from '../system/skills/summarizeText';
 import { 
   readGmailInbox, 
   listCalendarEvents, 
@@ -143,16 +149,21 @@ You are equipped with a native wallet.
 The current real-world date and time is: ${currentDateTime}. Use this for any time-related questions.
 
 CRITICAL RULE 1: NEVER expose internal JSON tool calls to the user. Always parse them and explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt. If the user's latest prompt is in English, you MUST reply entirely in English, completely ignoring the language of previous messages. If their latest prompt is in Indonesian, reply in Indonesian.
-CRITICAL RULE 3: FORMATTING & CONCISENESS. 
-  - Your responses MUST be concise and to the point. Do not add unnecessary fluff or overly long explanations unless explicitly asked.
-  - When displaying numbers or monetary values, separate thousands with commas (e.g., $1,000,000) for readability.
-  - When displaying a list of assets, tokens, portfolio, or transaction history, YOU MUST USE MARKDOWN TABLES. Do not use bullet points for financial data.
-CRITICAL RULE 4: When the user asks to check "my balance", "saldo saya", or anything about their own wallet generally, ALWAYS use the check_portfolio tool to show all assets on the chain that have a USD value greater than 0. LEAVE THE ADDRESS PARAMETER EMPTY. Do NOT use get_balance unless the user explicitly asks for the balance of ONE specific token.
-CRITICAL RULE 5: If the user doesn't specify a chain, default to: ${config.agent.default_chain}. If the user mentions a specific chain (e.g., "on BNB", "di Base"), you MUST override the default and execute the tool on that specific chain. For transactions that require two chains (like bridge_token), if the user only provides the destination chain, you MUST automatically use ${config.agent.default_chain} as the source chain (fromChainName) without asking for clarification.
-CRITICAL RULE 6: If you use the default chain because the user forgot to specify one, you MUST politely confirm which chain you checked in your response (e.g., "I checked your balance on the ${config.agent.default_chain} network..."). Do not issue scary warnings.
-CRITICAL RULE 7: TOOL PRIORITIZATION. When the user asks about crypto prices, market analysis, token security, or blockchain data, YOU MUST prioritize using the dedicated Web3 skills (e.g., get_price, analyze_market, check_security) FIRST. Only if those tools fail or cannot provide the requested information, you may fallback to using search_web.
-CRITICAL RULE 8: EXACTNESS AND SAFETY IN TRANSACTIONS. Never guess or hallucinate token symbols, network chains, or amounts for Web3 transactions. If the user's intent is ambiguous, you MUST politely ask for clarification instead of attempting a potentially risky transaction. Before confirming any swap or bridge, reiterate the exact tokens, chains, and amounts.`;
+CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE 3: FORMATTING & CONCISENESS. Be concise. Use markdown tables for lists of assets/transactions. Use commas for thousands.
+CRITICAL RULE 4: TOOL PRIORITIZATION. Web3 tasks must use Web3 Skills exclusively. OS Skills (search, browse) are fallbacks only. Use get_my_address to show wallet address, and check_portfolio to show balances.
+CRITICAL RULE 5: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified. If overridden, confirm the chain politely. For 2-chain txs (bridge), default source to ${config.agent.default_chain}.
+CRITICAL RULE 6: NETWORK SAFETY VALIDATION. If a request implies cross-chain or mainnet/testnet mixing, or the token symbol is ambiguous (USDC vs USDC.e), YOU MUST NOT GUESS. Ask for confirmation.
+CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data. If a tool fails or data is missing, state it explicitly. Do not estimate balances, prices, APY, or gas.
+CRITICAL RULE 8: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies between them.
+CRITICAL RULE 9: DEFI CONFIGURATION FALLBACK. If a tool fails due to Rate Limits, Unauthorized, or Missing API Keys, instruct the user to visit the "DeFi Configuration 🔑" menu in the dashboard.
+CRITICAL RULE 10: PLANNING & RISK DISCLOSURE. For high-level instructions (e.g. "Get yield"), formulate a plan and briefly disclose major risks (smart contract risk, impermanent loss) before asking for approval.
+CRITICAL RULE 11: FAST RETURN RULE. If parameters for read-only tools are complete, execute them IMMEDIATELY without preamble or conversational filler.
+CRITICAL RULE 12: SMART SLIPPAGE AWARENESS. For low-liquidity assets, warn the user that default slippage might not be enough. NEVER invent specific slippage percentage numbers.
+CRITICAL RULE 13: WALLET CONTEXT CACHING. Portfolio data in chat history is potentially stale. Do not use cached data for transactional planning; refresh the balance via tools first.
+CRITICAL RULE 14: TRANSACTION INTENT CONFIRMATION. Distinguish Informational vs Transactional intent. For ALL state-changing transactions (swap, bridge, transfer, stake), follow this 4-step sequence WITHOUT EXCEPTION: 1) Gather details. 2) Display summary. 3) Wait for explicit APPROVE/REJECT. 4) Execute.
+CRITICAL RULE 16: CAPABILITY HONESTY. NEVER claim a capability not available through installed tools. If asked for an unsupported action, state honestly that the skill is missing.
+CRITICAL RULE 17: MINIMIZE UNNECESSARY TOOL CALLS. Do not call tools if the answer exists in recent verified context and freshness is not strictly required. Use history to save latency.`;
 
   // Read IDENTITY.md for core AI persona
   try {
@@ -245,16 +256,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         bridgeTokenToolDefinition,
         mintNftToolDefinition,
         customTxToolDefinition,
-        createWalletToolDefinition,
         checkSecurityToolDefinition,
         marketAnalysisToolDefinition,
         checkPortfolioToolDefinition,
         checkAddressToolDefinition,
         getMyAddressToolDefinition,
         manageCustomTokensDefinition,
-        createLimitOrderToolDefinition,
-        listLimitOrdersToolDefinition,
-        cancelLimitOrderToolDefinition,
+
         revokeApprovalToolDefinition,
         aaveSupplyToolDefinition,
         vaultDepositToolDefinition,
@@ -262,7 +270,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         getTxHistoryToolDefinition
       );
     }
-    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition];
+    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition];
     const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
 
     let activeTools: any[] = [];
@@ -300,6 +308,13 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     }, sessionId);
 
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+      let canFastReturnAll = true;
+      let accumulatedResults: string[] = [];
+      const fastReturnTools = [
+        'check_portfolio', 'check_address', 'get_price', 'get_my_address',
+        'analyze_market', 'check_token_security', 'search_web', 'read_gmail_inbox', 'list_calendar_events'
+      ];
+
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;
         let result = "";
@@ -356,7 +371,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
                 result = `[Security Blocked] Runtime Permission Denied: Web3 bridging (transfer) is disabled. Update config.yaml to allow.`;
                 break;
               }
-              result = await prepareBridgeToken(args.fromChainName, args.toChainName, args.fromToken, args.toToken, args.amountStr, args.mode, args.providerName);
+              result = await prepareBridgeToken(args.fromChain, args.toChain, args.tokenSymbol, args.amountStr, args.mode, args.providerName);
               break;
             }
             case 'mint_nft': {
@@ -369,10 +384,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
                 break;
               }
               result = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
-              break;
-            }
-            case 'create_wallet': {
-              result = await createWallet();
               break;
             }
             case 'check_token_security': {
@@ -442,22 +453,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               result = await getTxHistory(args.chainName, args.address, args.days);
               break;
             }
-            case 'create_limit_order': {
-              if (config.permissions?.web3?.allow_swap === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Limit orders require swap permissions. Update config.yaml to allow.`;
-                break;
-              }
-              result = limitOrderManager.createOrder(args.chainName, args.fromToken, args.toToken, args.amountStr, args.targetPriceUsd, args.condition);
-              break;
-            }
-            case 'list_limit_orders': {
-              result = limitOrderManager.listOrders();
-              break;
-            }
-            case 'cancel_limit_order': {
-              result = limitOrderManager.cancelOrder(args.id);
-              break;
-            }
             case 'update_profile': {
               result = updateProfile(args.content, args.mode);
               break;
@@ -471,7 +466,31 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'read_local_file': {
-              result = readLocalFile(args.filePath);
+              result = readLocalFile(args.filePath, args.startLine, args.endLine);
+              break;
+            }
+            case 'edit_local_file': {
+              result = editLocalFile(args.filePath, args.searchString, args.replacementString);
+              break;
+            }
+            case 'execute_git_command': {
+              result = await executeGitCommand(args.action, args.commitMessage);
+              break;
+            }
+            case 'manage_twitter': {
+              result = await manageTwitter(args.action, args.content, args.username);
+              break;
+            }
+            case 'manage_notion': {
+              result = await manageNotion(args.action, args.pageId, args.text);
+              break;
+            }
+            case 'transcribe_audio': {
+              result = await transcribeAudio(args.filePath);
+              break;
+            }
+            case 'summarize_text': {
+              result = await summarizeText(args.text, args.focus);
               break;
             }
             case 'write_local_file': {
@@ -559,16 +578,18 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           content: result,
         }, sessionId);
 
-        // V2 Optimization (Expanded in v1.7.4): Zero-LLM Fast Return for data-heavy and read-only tools
-        // If the tool already returns perfectly formatted markdown, skip the second LLM call to save 5-10s latency and tokens!
-        const fastReturnTools = [
-          'check_portfolio', 'check_address', 'get_price', 'get_my_address',
-          'analyze_market', 'check_token_security', 'search_web', 'read_gmail_inbox', 'list_calendar_events'
-        ];
-        if (fastReturnTools.includes(toolName)) {
-          logger.addEntry({ role: 'assistant', content: result }, sessionId);
-          return result;
+        accumulatedResults.push(result);
+        if (!fastReturnTools.includes(toolName)) {
+          canFastReturnAll = false;
         }
+      }
+
+      // V2 Optimization (Expanded in v1.7.4): Zero-LLM Fast Return for data-heavy and read-only tools
+      // If all tools already return perfectly formatted markdown, skip the second LLM call to save 5-10s latency!
+      if (canFastReturnAll && accumulatedResults.length > 0) {
+        const finalContent = accumulatedResults.join('\n\n---\n\n');
+        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
+        return finalContent;
       }
 
       // Second call to get the final answer after tool execution

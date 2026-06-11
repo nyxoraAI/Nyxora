@@ -2,14 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Route, ChevronDown } from 'lucide-react';
 
 const ROUTERS = [
-  { id: 'auto', label: 'Default (Auto-Route)' },
-  { id: '1inch', label: '1inch (Aggregator)' },
-  { id: 'cowswap', label: 'CowSwap (MEV-Protect)' },
-  { id: 'lifi', label: 'Li.Fi' },
+  { id: 'auto', label: 'Meta-Aggregator (Auto)' },
+  { id: '1inch', label: '1inch' },
+  { id: '0x', label: '0x API' },
+  { id: 'lifi', label: 'LI.FI' },
   { id: 'relay', label: 'Relay' },
-  { id: 'uniswap_v2', label: 'Uniswap V2' },
-  { id: 'uniswap_v3', label: 'Uniswap V3' },
-  { id: 'pancakeswap', label: 'PancakeSwap' }
+  { id: 'openocean', label: 'OpenOcean' },
+  { id: 'kyberswap', label: 'KyberSwap' }
 ];
 
 interface RouterSelectorProps {
