@@ -147,7 +147,7 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           <h3>Memory Log</h3>
           <p>AI's episodic memory and extracted habits. You can delete incorrect observations.</p>
         </div>
-        <div className="form-row" style={{ flexDirection: 'column', gap: '10px' }}>
+        <div className="form-row memory-log-container" style={{ flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
           {memories.length === 0 ? (
             <div style={{ color: '#88C0D0', fontStyle: 'italic', padding: '10px' }}>No episodic memories recorded yet. Start chatting to teach the AI your habits!</div>
           ) : (
