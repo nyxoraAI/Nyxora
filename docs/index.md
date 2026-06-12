@@ -17,15 +17,15 @@ hero:
       link: /guide/custom_skills
 
 features:
-  - title: 3-Tier IPC Architecture
+  - title: 🏛️ 3-Tier IPC Architecture
     details: Complete process isolation between Core LLM (port 3000), Policy Engine (port 3001), and Signer Vault (Unix Socket).
-  - title: Replay Protection & Nonce Guard
+  - title: 🛡️ Replay Protection & Nonce Guard
     details: UI approvals are strictly cryptographically bound by 16-byte challenge nonces to eliminate Double-Spending and Replay Attacks.
-  - title: Resilient UI & Auto-Lock
+  - title: 🖥️ Resilient UI & Auto-Lock
     details: Features a Zero-Trust Physical Auto-Lock and a robust Offline Reconnect Overlay that seamlessly handles daemon restarts without losing state.
-  - title: Cross-Chain Hybrid Market Scanner
+  - title: 🌐 Cross-Chain Hybrid Market Scanner
     details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
-  - title: Multi-LLM Support
+  - title: 🤖 Multi-LLM Support
     details: Easily switch between Gemini, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
   - title: ⛓️ Decentralized Agent Registry
     details: Nyxora embeds a native On-Chain Kill-Switch on the Arbitrum network. If you suspect a local compromise, instantly revoke your agent's execution rights globally from any device via Arbiscan.
