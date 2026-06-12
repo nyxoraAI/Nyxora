@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant User as User Wallet
+    participant Arbiscan as Arbiscan (Arbitrum)
+    participant Contract as NyxoraAgentRegistry
+    participant Gateway as Nyxora Local Gateway
+    participant Web3 as Web3 Network (e.g. Ethereum)
+
+    Note over User, Web3: Normal Registration Flow
+    User->>Contract: registerAgent("My Agent")
+    Contract-->>User: Success (isActive = true)
+    
+    Note over User, Web3: Normal Transaction Flow
+    Gateway->>Contract: checkRegistryStatus()
+    Contract-->>Gateway: isActive = true
+    Gateway->>Web3: Execute transaction
+    Web3-->>Gateway: Success
+
+    Note over User, Web3: Emergency Kill-Switch Flow
+    User->>Arbiscan: Connect Wallet (Mobile/Safe Device)
+    Arbiscan->>Contract: toggleAgentStatus(false)
+    Contract-->>Arbiscan: Success (isActive = false)
+    
+    Gateway->>Contract: checkRegistryStatus()
+    Contract-->>Gateway: isActive = false
+    Gateway--xWeb3: Transaction Blocked (403)

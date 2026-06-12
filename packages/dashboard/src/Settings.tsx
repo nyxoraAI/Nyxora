@@ -22,6 +22,13 @@ interface Config {
   web3?: { rpc_urls?: Record<string, string | string[]>; explorer_api_key?: string };
 }
 
+interface UserProfile {
+  risk_level: string;
+  max_slippage: number;
+  avoid_memecoins: boolean;
+  custom_rules: string;
+}
+
 interface SettingsProps {
   config: Config | null;
   onConfigChange: (newConfig: Config) => void;
@@ -31,10 +38,31 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime }) => {
   const [formData, setFormData] = useState<Config | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    risk_level: 'Moderate',
+    max_slippage: 1.0,
+    avoid_memecoins: false,
+    custom_rules: ''
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
 
   useEffect(() => {
+    // Fetch User Profile
+    apiFetch('/api/profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data && !data.error) {
+          setUserProfile({
+            risk_level: data.risk_level || 'Moderate',
+            max_slippage: data.max_slippage || 1.0,
+            avoid_memecoins: Boolean(data.avoid_memecoins),
+            custom_rules: data.custom_rules || ''
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load profile', err));
+
     if (config) {
       setFormData({
         agent: {
@@ -102,6 +130,15 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      
+      if (userProfile) {
+        await apiFetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userProfile)
+        });
+      }
+
       if (res.ok) {
         onConfigChange(formData);
         alert('Settings saved successfully!');
@@ -234,6 +271,59 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           </div>
         </div>
       </div>
+
+      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+          <div className="nord-panel-header">
+            <Shield size={18} color="#bf616a" />
+            <h3>Personalized Risk Profile</h3>
+          </div>
+          <div className="form-row">
+            <div className="form-group flex-1">
+              <label className="nord-label">Risk Tolerance Level</label>
+              <PillSelect 
+                value={userProfile.risk_level}
+                onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
+                pillColor="#bf616a"
+                textColor="#eceff4"
+                options={[
+                  { id: 'Conservative', label: 'Conservative (Safe)' },
+                  { id: 'Moderate', label: 'Moderate' },
+                  { id: 'Aggressive', label: 'Aggressive (Degen)' }
+                ]}
+              />
+            </div>
+            <div className="form-group flex-1">
+              <label className="nord-label">Max Allowed Slippage (%)</label>
+              <input 
+                className="nord-pill-input"
+                type="number" 
+                step="0.1"
+                value={userProfile.max_slippage} 
+                onChange={e => setUserProfile({ ...userProfile, max_slippage: parseFloat(e.target.value) || 1.0 })} 
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '15px', marginBottom: '5px' }}>
+            <input 
+              type="checkbox" 
+              id="avoid_memecoins"
+              checked={userProfile.avoid_memecoins}
+              onChange={e => setUserProfile({ ...userProfile, avoid_memecoins: e.target.checked })}
+              style={{ cursor: 'pointer', accentColor: '#bf616a', width: '16px', height: '16px', margin: 0, flexShrink: 0 }}
+            />
+            <label htmlFor="avoid_memecoins" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>Strictly Avoid Memecoins / Unknown Contracts</label>
+          </div>
+          <div className="form-group" style={{ marginTop: '15px' }}>
+            <label className="nord-label">Custom Rules (Natural Language)</label>
+            <input 
+              className="nord-input"
+              type="text" 
+              placeholder="e.g. Never buy a token if liquidity is below $10,000" 
+              value={userProfile.custom_rules}
+              onChange={e => setUserProfile({ ...userProfile, custom_rules: e.target.value })}
+            />
+          </div>
+        </div>
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">

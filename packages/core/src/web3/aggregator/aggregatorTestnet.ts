@@ -59,9 +59,15 @@ async function fetchRelayTestnet(fromChain: string, toChain: string, fromToken: 
     const destChainId = RELAY_CHAIN_MAP[toChain];
     if (!originChainId || !destChainId) return null;
 
+    // Relay API strictly requires the zero address for Native ETH instead of 0xeeee...
+    const relayOriginCurrency = fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' 
+      ? '0x0000000000000000000000000000000000000000' : fromToken;
+    const relayDestCurrency = toToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ? '0x0000000000000000000000000000000000000000' : toToken;
+
     const payload = {
       user: address, originChainId, destinationChainId: destChainId,
-      originCurrency: fromToken, destinationCurrency: toToken,
+      originCurrency: relayOriginCurrency, destinationCurrency: relayDestCurrency,
       recipient: address, tradeType: 'EXACT_INPUT', amount,
       referrer: 'nyxora', useExternalLiquidity: false
     };

@@ -25,6 +25,7 @@ import { aaveSupplyToolDefinition, prepareAaveSupply } from '../web3/skills/defi
 import { vaultDepositToolDefinition, prepareVaultDeposit } from '../web3/skills/yieldVault';
 import { provideLiquidityToolDefinition, prepareProvideLiquidity } from '../web3/skills/provideLiquidity';
 import { getTxHistoryToolDefinition, getTxHistory } from '../web3/skills/getTxHistory';
+import { createLimitOrderToolDefinition, createLimitOrder } from '../web3/skills/createLimitOrder';
 
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
@@ -144,26 +145,35 @@ async function executeWithRetry(
 function getSystemPrompt() {
   const config = loadConfig();
   const currentDateTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
-  let basePrompt = `You are an autonomous Web3 agent operating on EVM chains.
+  let basePrompt = `[CORE DIRECTIVES]
+You are an autonomous Web3 agent operating on EVM chains.
 You are equipped with a native wallet.
 The current real-world date and time is: ${currentDateTime}. Use this for any time-related questions.
+Default Chain: ${config.agent.default_chain}
 
+CRITICAL: You MUST use a Chain of Thought approach for every response. You must enclose your internal reasoning steps within <think>...</think> XML tags BEFORE taking any action or providing a final response. This allows you to plan your tool usage, recall the rules, and avoid hallucinations.
+IMPORTANT: The <think> block is strictly for your internal hidden monologue. NEVER put your final answer, conversational text, or questions to the user inside the <think> block. The actual response that the user will see MUST be written OUTSIDE and AFTER the </think> tag.
+
+[EXECUTION WORKFLOW]
 CRITICAL RULE 1: NEVER expose internal JSON tool calls to the user. Always parse them and explain the outcome naturally.
 CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt.
-CRITICAL RULE 3: FORMATTING & CONCISENESS. Be concise. Use markdown tables for lists of assets/transactions. Use commas for thousands.
+CRITICAL RULE 3: FORMATTING & CONCISENESS. Provide concise analytical summaries of data rather than just dumping raw markdown tables. Be analytical but brief. Use commas for thousands.
 CRITICAL RULE 4: TOOL PRIORITIZATION. Web3 tasks must use Web3 Skills exclusively. OS Skills (search, browse) are fallbacks only. Use get_my_address to show wallet address, and check_portfolio to show balances.
 CRITICAL RULE 5: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified. If overridden, confirm the chain politely. For 2-chain txs (bridge), default source to ${config.agent.default_chain}.
-CRITICAL RULE 6: NETWORK SAFETY VALIDATION. If a request implies cross-chain or mainnet/testnet mixing, or the token symbol is ambiguous (USDC vs USDC.e), YOU MUST NOT GUESS. Ask for confirmation.
-CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data. If a tool fails or data is missing, state it explicitly. Do not estimate balances, prices, APY, or gas.
 CRITICAL RULE 8: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies between them.
-CRITICAL RULE 9: DEFI CONFIGURATION FALLBACK. If a tool fails due to Rate Limits, Unauthorized, or Missing API Keys, instruct the user to visit the "DeFi Configuration 🔑" menu in the dashboard.
 CRITICAL RULE 10: PLANNING & RISK DISCLOSURE. For high-level instructions (e.g. "Get yield"), formulate a plan and briefly disclose major risks (smart contract risk, impermanent loss) before asking for approval.
-CRITICAL RULE 11: FAST RETURN RULE. If parameters for read-only tools are complete, execute them IMMEDIATELY without preamble or conversational filler.
-CRITICAL RULE 12: SMART SLIPPAGE AWARENESS. For low-liquidity assets, warn the user that default slippage might not be enough. NEVER invent specific slippage percentage numbers.
+CRITICAL RULE 11: ADAPTIVE RESPONSE RULE. You must process Web3 data (portfolio, price) and provide a concise, to-the-point analysis based on the context. Do not use useless filler greetings/closings. Provide deep analysis only if the data requires it to protect the user's portfolio.
 CRITICAL RULE 13: WALLET CONTEXT CACHING. Portfolio data in chat history is potentially stale. Do not use cached data for transactional planning; refresh the balance via tools first.
 CRITICAL RULE 14: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer, stake), do NOT ask for verbal confirmation. Execute the tool IMMEDIATELY. The tool itself will trigger a secure popup in the user's dashboard UI for final approval.
+CRITICAL RULE 17: MINIMIZE UNNECESSARY TOOL CALLS. Do not call tools if the answer exists in recent verified context and freshness is not strictly required. Use history to save latency.
+
+[ANTI-HALLUCINATION PROTOCOL]
+CRITICAL RULE 6: NETWORK SAFETY VALIDATION. If a request implies cross-chain or mainnet/testnet mixing, or the token symbol is ambiguous (USDC vs USDC.e), YOU MUST NOT GUESS. Ask for confirmation.
+CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data. If a tool fails or data is missing, state it explicitly. Do not estimate balances, prices, APY, or gas.
+CRITICAL RULE 9: DEFI CONFIGURATION FALLBACK. If a tool fails due to Rate Limits, Unauthorized, or Missing API Keys, instruct the user to visit the "DeFi Configuration 🔑" menu in the dashboard.
+CRITICAL RULE 12: SMART SLIPPAGE AWARENESS. For low-liquidity assets, warn the user that default slippage might not be enough. NEVER invent specific slippage percentage numbers.
 CRITICAL RULE 16: CAPABILITY HONESTY. NEVER claim a capability not available through installed tools. If asked for an unsupported action, state honestly that the skill is missing.
-CRITICAL RULE 17: MINIMIZE UNNECESSARY TOOL CALLS. Do not call tools if the answer exists in recent verified context and freshness is not strictly required. Use history to save latency.`;
+CRITICAL RULE 19: MARKET CONFIDENCE SCORE. When analyzing market data, token security, or preparing trades, you MUST explicitly declare a 'Confidence Score (0-100%)' INSIDE your <think> block. If your score is below 40%, you must firmly WARN the user and advise against the trade in your final response.`;
 
   // Read IDENTITY.md for core AI persona
   try {
@@ -209,6 +219,23 @@ CRITICAL RULE 17: MINIMIZE UNNECESSARY TOOL CALLS. Do not call tools if the answ
     }
   } catch (error) {
     // Ignore db errors if not initialized
+  }
+
+  // V3: Inject Personalized Risk Profile
+  try {
+    const profile = logger.getUserProfile();
+    if (profile) {
+      basePrompt += `\n\n--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
+      basePrompt += `Risk Level: ${profile.risk_level}\n`;
+      basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
+      basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
+      if (profile.custom_rules) {
+        basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
+      }
+      basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
+    }
+  } catch (e) {
+    // Ignore if db not ready
   }
 
   return basePrompt;
@@ -262,12 +289,12 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         checkAddressToolDefinition,
         getMyAddressToolDefinition,
         manageCustomTokensDefinition,
-
         revokeApprovalToolDefinition,
         aaveSupplyToolDefinition,
         vaultDepositToolDefinition,
         provideLiquidityToolDefinition,
-        getTxHistoryToolDefinition
+        getTxHistoryToolDefinition,
+        createLimitOrderToolDefinition
       );
     }
     const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition];
@@ -310,10 +337,8 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
-      const fastReturnTools = [
-        'check_portfolio', 'check_address', 'get_price', 'get_my_address',
-        'analyze_market', 'check_token_security', 'search_web', 'read_gmail_inbox', 'list_calendar_events'
-      ];
+      // Disabled fastReturnTools to enforce Web3 Reasoning (V3 feature)
+      const fastReturnTools: string[] = [];
 
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;
@@ -451,6 +476,18 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'get_tx_history': {
               result = await getTxHistory(args.chainName, args.address, args.days);
+              break;
+            }
+            case 'create_limit_order': {
+              result = await createLimitOrder(
+                args.tokenSymbol,
+                args.tokenAddress,
+                args.triggerCondition as any,
+                args.triggerPriceUsd,
+                args.action as any,
+                args.amountUsd,
+                args.slippageTolerance
+              );
               break;
             }
             case 'update_profile': {

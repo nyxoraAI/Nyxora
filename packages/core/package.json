@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-core",
-  "version": "26.6.11",
+  "version": "26.6.12",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -8,8 +8,8 @@
     "@inquirer/search": "^4.2.1",
     "@notionhq/client": "^5.22.0",
     "cors": "^2.8.6",
+    "csv-parse": "^6.2.1",
     "duck-duck-scrape": "^2.2.7",
-    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
@@ -19,8 +19,10 @@
     "openai": "^6.39.0",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.60.0",
+    "read-excel-file": "^9.2.0",
     "telegraf": "^4.16.3",
     "twitter-api-v2": "^1.29.0",
+    "write-excel-file": "^4.1.1",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"
   },

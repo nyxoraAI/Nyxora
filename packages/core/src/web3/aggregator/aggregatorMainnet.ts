@@ -197,12 +197,18 @@ async function fetchLifi(fromChain: string, toChain: string, fromToken: string, 
 
 async function fetchRelay(fromChain: string, toChain: string, fromToken: string, toToken: string, amount: string, address: string, slippage: number | "auto", key?: string): Promise<RouteQuote | null> {
   try {
+    // Relay API strictly requires the zero address for Native ETH instead of 0xeeee...
+    const relayOriginCurrency = fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' 
+      ? '0x0000000000000000000000000000000000000000' : fromToken;
+    const relayDestCurrency = toToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ? '0x0000000000000000000000000000000000000000' : toToken;
+
     const payload = {
       user: address,
       originChainId: CHAIN_IDS[fromChain].toString(),
       destinationChainId: CHAIN_IDS[toChain].toString(),
-      originCurrency: fromToken,
-      destinationCurrency: toToken,
+      originCurrency: relayOriginCurrency,
+      destinationCurrency: relayDestCurrency,
       recipient: address,
       tradeType: 'EXACT_INPUT',
       amount: amount,

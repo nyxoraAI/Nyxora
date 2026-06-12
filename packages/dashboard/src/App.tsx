@@ -364,12 +364,26 @@ function App() {
   }
   
   const renderMessageContent = (content: string) => {
-    return content.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
+    const cleanContent = content.replace(/(?:```(?:xml|html)?\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?|```think[\s\S]*?```/gi, '').trim();
+
+    const parseBold = (text: string) => {
+      return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {cleanContent && (
+          <div style={{ whiteSpace: 'pre-wrap' }}>
+            {parseBold(cleanContent)}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
