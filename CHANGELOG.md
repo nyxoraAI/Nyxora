@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [26.6.13]
 ### Bug Fixes & UX Hardening
 - **Telegram Reasoning Leak**: Implemented a strict Regex pre-processor within the Telegram `formatToTelegramHTML` pipeline to silently intercept and annihilate raw `<think>` and `<thought>` Chain of Thought XML tags. This guarantees a clean, distraction-free user experience when integrating reasoning models (like DeepSeek R1) via the Telegram Bot interface.
+- **Zero-LLM Fast Return (Instant UI Popups)**: Re-enabled the `fastReturnTools` bypass architecture for all transactional Web3 skills (transfer, swap, bridge, etc.). This optimization skips the redundant secondary LLM summarization phase, cutting transaction generation latency by 3-10 seconds and delivering the UI Approve/Reject popup instantly upon tool completion.
 
 ## [26.6.12]
 ### Security & Web3 Routing
