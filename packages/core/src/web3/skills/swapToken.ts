@@ -56,7 +56,7 @@ export async function prepareSwapToken(
       rawQuote: route.rawQuote
     });
 
-    return `TRANSACTION_PENDING\nSwap transaction of ${amountStr} ${fromToken} to ${toToken} on ${chainName.toUpperCase()} via ${route.provider} has been queued. Expected output: ${route.expectedOutput} ${toToken}.\nTransaction ID: ${tx.id}\nPlease review and approve this transaction in your dashboard UI.`;
+    return `⏳ **Swap queued:** ${amountStr} ${fromToken} ➡️ ${route.expectedOutput} ${toToken} | ${chainName.toUpperCase()} | Via ${route.provider} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare swap: ${error.message}`;
   }

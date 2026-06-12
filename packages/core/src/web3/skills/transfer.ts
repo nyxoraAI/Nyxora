@@ -69,7 +69,7 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
     });
 
     const tokenName = isNative ? "Native Token" : symbol;
-    return `TRANSACTION_PENDING: I have prepared the ${tokenName} transfer and simulated it successfully. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}. Wait for user to approve.`;
+    return `⏳ **Transfer queued:** ${amountStr} ${tokenName} | ${chainName.toUpperCase()} ➡️ ${toAddress} | Approve below.`;
   } catch (error: any) {
     return `Simulation failed! Cannot prepare transfer. Error: ${error.message}`;
   }

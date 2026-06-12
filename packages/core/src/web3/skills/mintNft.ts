@@ -68,7 +68,7 @@ export async function prepareMintNft(
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: Simulated NFT Minting successfully. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}.\n\n⚠️ **SECURITY WARNING**: You are about to mint an NFT from an unverified contract address (${contractAddress}). Please ensure this is the official contract and not a honeypot or malicious proxy before approving on the Dashboard.`;
+    return `⏳ **Mint NFT queued:** ${contractAddress} | ${chainName.toUpperCase()} | ⚠️ Verify Contract | Approve below.`;
   } catch (error: any) {
     return `Simulation failed! Cannot prepare mint. Error: ${error.message}`;
   }

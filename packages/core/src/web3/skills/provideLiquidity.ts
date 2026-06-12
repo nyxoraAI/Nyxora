@@ -130,12 +130,12 @@ export async function prepareProvideLiquidity(
 
     if (allowance0 < amount0Wei) {
         const tx = txManager.createPendingTransaction('approve', chainName, { spenderAddress: positionManagerAddress, tokenAddress: token0, amountStr: amount0, symbol: meta0.symbol, gasEstimate: "60000" });
-        return `TRANSACTION_PENDING: You need to approve Uniswap V3 to spend your ${meta0.symbol}. ID: ${tx.id}. Please approve on Dashboard first.`;
+        return `⏳ **Approve queued:** ${meta0.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Approve below.`;
     }
 
     if (allowance1 < amount1Wei) {
         const tx = txManager.createPendingTransaction('approve', chainName, { spenderAddress: positionManagerAddress, tokenAddress: token1, amountStr: amount1, symbol: meta1.symbol, gasEstimate: "60000" });
-        return `TRANSACTION_PENDING: You need to approve Uniswap V3 to spend your ${meta1.symbol}. ID: ${tx.id}. Please approve on Dashboard first.`;
+        return `⏳ **Approve queued:** ${meta1.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Approve below.`;
     }
 
     // 2. Simulate Mint
@@ -173,7 +173,7 @@ export async function prepareProvideLiquidity(
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: Prepared Univ3 Liquidity deposit for ${amount0} ${meta0.symbol} & ${amount1} ${meta1.symbol}. Estimated gas: ${gasEstimate}. ID: ${tx.id}. Wait for user approval.`;
+    return `⏳ **Add Liquidity queued:** ${amount0} ${meta0.symbol} & ${amount1} ${meta1.symbol} | ${chainName.toUpperCase()} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare liquidity provision: ${error.message}`;
   }

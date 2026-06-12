@@ -17,7 +17,7 @@ export async function prepareCustomTx(
       description
     });
 
-    return `TRANSACTION_PENDING\nCustom transaction (${description}) on ${chainName.toUpperCase()} has been queued.\nTransaction ID: ${tx.id}\nPlease review and approve this transaction in your dashboard UI.`;
+    return `⏳ **Custom Tx queued:** ${description} | ${chainName.toUpperCase()} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare custom tx: ${error.message}`;
   }
