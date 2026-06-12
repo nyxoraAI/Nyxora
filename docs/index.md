@@ -27,8 +27,8 @@ features:
     details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
   - title: Multi-LLM Support
     details: Easily switch between Gemini, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
-  - title: Immutable Policy Guardrails
-    details: All write actions and policy changes are verified by checksums and require explicit operator confirmation.
+  - title: ⛓️ Decentralized Agent Registry
+    details: Nyxora embeds a native On-Chain Kill-Switch on the Arbitrum network. If you suspect a local compromise, instantly revoke your agent's execution rights globally from any device via Arbiscan.
 ---
 
 <style>
@@ -78,12 +78,12 @@ features:
   <h2>Why Nyxora?</h2>
   <div class="why-grid">
     <div class="why-card">
-      <h3>🛡️ Secure Local Execution</h3>
-      <p>Nyxora runs locally on your machine. We don't host your wallet keys on remote servers, minimizing attack vectors for critical onchain operations.</p>
+      <h3>🔐 OS-Native Keyring Vault</h3>
+      <p>Eliminates vulnerable "Master Passwords" and plaintext <code>.env</code> files. Private keys are encrypted and stored directly within your operating system's trusted Keyring (GNOME Secret Service, macOS Keychain, or Windows Credential Manager).</p>
     </div>
     <div class="why-card">
-      <h3>🧩 Plugin Runtime</h3>
-      <p>Extend your agent's capabilities dynamically. Our isolated sandbox allows you to safely install third-party plugins without risking private key exposure.</p>
+      <h3>🧩 OS Automation Constraints</h3>
+      <p>Empower your agent with OS-level System Automation. Run shell scripts and manage local files dynamically while retaining explicit power to revoke privileges at any time.</p>
     </div>
     <div class="why-card">
       <h3>🚦 Human Approval Flows</h3>
@@ -94,8 +94,8 @@ features:
       <p>A sleek, readable dashboard built for professional Web3 execution. Manage multiple ChatGPT-style isolated chat sessions effortlessly.</p>
     </div>
     <div class="why-card">
-      <h3>🌐 Cross-Chain Intelligence</h3>
-      <p>Don't be locked into a single network. Nyxora's hybrid market engine automatically queries CoinGecko and DexScreener to find tokens on any blockchain.</p>
+      <h3>🛡️ MEV & Slippage Defense</h3>
+      <p>Automatically routes trades through MEV-protected aggregators and enforces strict dual-layered slippage hard-limits to block front-running and sandwich attacks.</p>
     </div>
     <div class="why-card">
       <h3>🧠 Persistent Memory Architecture</h3>
