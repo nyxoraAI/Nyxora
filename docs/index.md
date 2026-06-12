@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "Nyxora"
-  text: "Production-Grade<br>Secure Execution<br>for Web3 Agents."
-  tagline: "Your Personal Web3 Assistant. Safely interact with wallets through a strict 3-Tier IPC Architecture and Cryptographically Bound Human-in-the-Loop approvals."
+  text: "Local-First,<br>Zero-Trust AI Agent<br>for DeFi Automation."
+  tagline: "Autonomous on-chain execution without sacrificing self-custody. Powered by an Isolated Signer Vault, OS-native credential storage, and an On-Chain Arbitrum Kill-Switch."
   image:
     src: /favicon.svg # Dummy to trigger image slot
     alt: Nyxora Execution
