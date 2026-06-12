@@ -28,19 +28,4 @@ Nyxora currently has 100% native support for the following EVM-compatible networ
 > [!TIP]
 > Nyxora uses a dynamic `SUPPORTED_CHAIN_NAMES` registry. If you want to add a new EVM chain (e.g., Avalanche or Linea), you only need to add it to `packages/core/src/web3/config.ts`. The rest of the AI's logic will automatically adapt!
 
----
 
-## 🟡 Non-EVM Networks (Roadmap v2)
-
-The Web3 ecosystem is vastly expanding beyond EVM. Nyxora is actively developing a **Multi-VM Architecture** to support high-throughput, non-EVM chains. 
-
-These networks are currently **NOT** supported natively in the current version, but are slated for the `v2.x.x` release:
-
-*   **Solana (SVM)**
-    *   *Status: In Development.*
-    *   *Architecture:* Requires a Dual-Vault System for Ed25519 keypairs and `@solana/web3.js` provider abstraction. DEX routing will utilize Jupiter Aggregator instead of Uniswap routers.
-*   **Aptos & Sui (MoveVM)**
-    *   *Status: Planned.*
-    *   *Architecture:* Will require integration with the Move Virtual Machine RPC standards and Ed25519 signature schemes.
-
-If you desperately need to interact with Solana or Aptos *today*, you can achieve this by creating a [Custom External Skill](/guide/custom_skills) that uses their respective SDKs, though you will need to pass the private key to the sandbox manually (not recommended for production).
