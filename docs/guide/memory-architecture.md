@@ -20,7 +20,7 @@ The **Promotion Engine** asynchronously evaluates Layer 2. If an episodic memory
 ### 4. Layer 4: Web3 Knowledge Profile
 Unlike generic AI agents, Nyxora also maps behavioral signatures to public blockchain addresses. It learns the functionality of your assets (e.g., *Wallet A is a cold vault, Wallet B is a burner address*), making cross-chain routing suggestions contextually brilliant.
 
-## Enterprise-Grade Security & Triggers
+## Defense-in-Depth Security & Triggers
 
 ### Hard-Coded Memory Validator (Anti-Injection Shield)
 We operate under a **Zero-Trust** paradigm. We do not rely on LLM System Prompts as the primary defense against Prompt Injection. 

@@ -18,7 +18,7 @@ The policy configuration acts as the ultimate risk control center for the system
 Before any transaction reaches the OS-Native Secure Vault for signing, it must pass through the local **Policy Gatekeeper**. 
 Even if the AI hallucinates and tries to execute a trade that violates your settings (e.g., setting a slippage of 50% when your limit is 2%), the Gatekeeper physically intercepts the Web3 payload. It rejects the transaction outright, effectively sandboxing the AI's execution power within your predefined limits.
 
-By separating the language generation (LLM) from the cryptographic execution (Signer Vault), Nyxora achieves institutional-grade reliability, allowing users to trust the agent with autonomous operations within strictly guarded boundaries.
+By separating the language generation (LLM) from the cryptographic execution (Signer Vault), Nyxora achieves robust, Zero-Trust reliability, allowing users to trust the agent with autonomous operations within strictly guarded boundaries.
 
 <br>
 

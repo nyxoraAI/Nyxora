@@ -1,4 +1,4 @@
-# 🛣️ Nyxora Next Update: The Enterprise Vision
+# 🛣️ Nyxora Next Update: The Advanced Security Vision
 
 As Nyxora continues to establish itself as the premier zero-trust framework for Web3 AI Agents, our engineering team is constantly anticipating the future of decentralized security. While our current architecture provides a robust 3-Tier Defense System, the upcoming **future major releases** will push the boundaries of operational security to unprecedented heights.
 
@@ -8,14 +8,14 @@ Here is an exclusive look at the next-generation architectural innovations we ar
 
 ## 1. Rust-Native Signer (Ultra-High Security)
 
-In the current ecosystem, most JavaScript/Node.js applications rely on the V8 Engine's Garbage Collector to manage memory. While we successfully isolate our keys using OS-Native Keyrings via Rust N-API bindings, the ultimate goal for enterprise clients is **Absolute Low-Level Memory Control**.
+In the current ecosystem, most JavaScript/Node.js applications rely on the V8 Engine's Garbage Collector to manage memory. While we successfully isolate our keys using OS-Native Keyrings via Rust N-API bindings, the ultimate goal for a true Zero-Trust architecture is **Absolute Low-Level Memory Control**.
 
 **The Evolution:**
 In future updates, the `Signer Vault` will be completely rewritten as a native Rust daemon. 
 Instead of loading the decrypted Private Key into Node.js space, the Rust process will read the key from the OS Keyring, sign the raw Ethereum transaction directly in Rust, and instantly zero-out (shred) the memory before returning the Hex Signature to the Node.js layer. 
 
 **Why it matters:**
-This provides institutional-grade protection against advanced **Memory Scraping** attacks. Even if a highly sophisticated state-sponsored actor gains root access to the server, the private key will never linger in the system's RAM for more than a microsecond, making it virtually impossible to dump.
+This provides robust Defense-in-Depth protection against advanced **Memory Scraping** attacks. Even if a highly sophisticated state-sponsored actor gains root access to the server, the private key will never linger in the system's RAM for more than a microsecond, making it virtually impossible to dump.
 
 
 ## 2. Multi-VM Architecture (Solana Integration)

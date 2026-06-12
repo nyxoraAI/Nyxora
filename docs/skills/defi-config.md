@@ -1,6 +1,6 @@
 # ⚙️ DeFi Configuration (BYOK)
 
-Nyxora is designed as a highly secure, Enterprise-grade platform. Therefore, all aggregator secrets (such as API Keys for 1inch, 0x, Relay, etc.) are never stored in the frontend interface nor explicitly in open databases.
+Nyxora is designed as a highly secure, Zero-Trust platform. Therefore, all aggregator secrets (such as API Keys for 1inch, 0x, Relay, etc.) are never stored in the frontend interface nor explicitly in open databases.
 
 Nyxora implements a strictly isolated **Bring Your Own Keys (BYOK)** system.
 
@@ -25,7 +25,7 @@ Here is how you can obtain private API keys for the supported Meta-Aggregators:
 *   **1inch Network:** Visit the [1inch Developer Portal](https://portal.1inch.dev/), create an account, and generate an API key under the "APIs" section.
 *   **0x API:** Go to the [0x Dashboard](https://dashboard.0x.org/), sign up, and create a new Web3 app to reveal your API key.
 *   **LI.FI:** Register at the [LI.FI Developer Portal](https://li.fi/) or contact their sales team for a premium API key to bypass public rate limits.
-*   **Relay Protocol:** API keys are typically provided to enterprise partners. Check the [Relay Documentation](https://docs.relay.link/) for authentication options.
+*   **Relay Protocol:** API keys are typically provided to professional partners. Check the [Relay Documentation](https://docs.relay.link/) for authentication options.
 
 *(Note: OpenOcean and KyberSwap currently operate primarily via public endpoints and do not strictly require user-side API keys in Nyxora).*
 
@@ -53,5 +53,5 @@ This architecture guarantees that once a secret is injected into Nyxora, it can 
 Although Nyxora supports using DeFi services without API keys (Free Public Routing), registering and using your private API keys provides significant advantages:
 
 *   **Bypass Rate Limits:** Evade strict rate limiting often imposed on free public routes.
-*   **Deep Liquidity Access:** Some providers require enterprise API keys to access maximum liquidity depth, which minimizes slippage.
+*   **Deep Liquidity Access:** Some providers require premium API keys to access maximum liquidity depth, which minimizes slippage.
 *   **Execution Priority:** Avoid quote timeouts when the blockchain network is highly congested.
