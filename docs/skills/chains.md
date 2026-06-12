@@ -24,6 +24,12 @@ Nyxora currently has 100% native support for the following EVM-compatible networ
     - Supported for low-cost swaps and BEP-20 token management.
 7.  **Sepolia Testnet (`sepolia`)**
     - Supported for developers to test their AI Agent strategies without spending real money. *(Note: Security scanning via GoPlus is disabled on Testnets).*
+8.  **Arbitrum Sepolia (`arbitrum_sepolia`)**
+    - Supported for testing fast L2 routing and cross-chain bridging on Arbitrum testnet.
+9.  **Base Sepolia (`base_sepolia`)**
+    - Supported for testing Base L2 integrations.
+10. **Optimism Sepolia (`optimism_sepolia`)**
+    - Supported for testing OP Stack integrations.
 
 > [!TIP]
 > Nyxora uses a dynamic `SUPPORTED_CHAIN_NAMES` registry. If you want to add a new EVM chain (e.g., Avalanche or Linea), you only need to add it to `packages/core/src/web3/config.ts`. The rest of the AI's logic will automatically adapt!
