@@ -18,23 +18,8 @@ Instead of loading the decrypted Private Key into Node.js space, the Rust proces
 This provides robust Defense-in-Depth protection against advanced **Memory Scraping** attacks. Even if a highly sophisticated state-sponsored actor gains root access to the server, the private key will never linger in the system's RAM for more than a microsecond, making it virtually impossible to dump.
 
 
-## 2. Multi-VM Architecture (Solana Integration)
 
-Nyxora's current architecture is robustly designed around the Ethereum Virtual Machine (EVM) ecosystem, heavily relying on `viem` and `secp256k1` cryptography. As the market evolves, supporting high-throughput non-EVM chains like Solana (SVM) becomes imperative.
-
-**The Evolution:**
-A future update will introduce a **Multi-VM (Virtual Machine) Architecture**, requiring several core rewrites:
-1. **Dual-Vault System:** The Keyring Vault will be expanded to securely handle both EVM private keys (Hex) and Solana keypairs (Ed25519/Base58), allowing the agent to seamlessly switch identities.
-2. **Provider Abstraction:** We will abstract the Web3 client layer. Instead of direct `viem` calls, an internal router will inject either `viem` (for EVM) or `@solana/web3.js` (for SVM) at runtime.
-3. **Parallel Skill Execution:** DEX routing and Portfolio Tracking will be dual-pathed. For Solana, the agent will natively integrate **Jupiter Aggregator** instead of Uniswap/Li.Fi, and parse SPL Token accounts instead of ERC-20 balances.
-4. **Agent Context Routing:** The NLP Policy Engine and AI Prompt will be trained to autonomously route execution logic based on context (e.g., automatically engaging the SVM engine when the user mentions "$SOL" or "$BONK").
-
-**Why it matters:**
-This transforms Nyxora from an "Ethereum Bot" into an **Agnostic Web3 Agent**. By successfully bridging the architectural gap between EVM and SVM, the AI will possess total sovereignty over the two most liquid decentralized ecosystems in the world.
-
----
-
-## 3. Developer SDK Framework (4-Tier Distribution)
+## 2. Developer SDK Framework (4-Tier Distribution)
 
 While Nyxora currently serves as an advanced CLI application and standalone daemon, our ultimate vision is to evolve it into the **Standard Security Protocol** for Web3 AI development. We plan to distribute Nyxora as a modular Software Development Kit (SDK) via NPM, empowering developers to build their own AI trading bots, DeFi interfaces, or Discord agents with institutional-grade security out-of-the-box.
 
@@ -51,7 +36,7 @@ This modularity allows enterprise developers to build true Microservices. For ex
 
 ---
 
-## 4. AI-Driven Smart Contract Deployment (The DevOps Agent)
+## 3. AI-Driven Smart Contract Deployment (The DevOps Agent)
 
 While Nyxora currently masters interacting with existing DeFi protocols (swapping, bridging, lending), the ultimate vision of an Autonomous Agent is one that can **build and deploy its own infrastructure**.
 
