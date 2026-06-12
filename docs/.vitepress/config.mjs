@@ -27,6 +27,7 @@ export default defineConfig({
         text: 'Developer & Architecture',
         items: [
           { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
+          { text: '📁 Codebase Structure', link: '/guide/structure' },
           { text: '🔌 MCP Integration Guide', link: '/guide/mcp-integration' },
           { text: '🧠 Guarded Autonomy', link: '/guide/guarded_autonomy' },
           { text: '🗄️ Memory Architecture', link: '/guide/memory-architecture' },
