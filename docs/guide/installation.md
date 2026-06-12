@@ -8,7 +8,7 @@ Nyxora is designed for a frictionless onboarding experience. We provide a CLI-ba
 Before installing Nyxora, ensure your system meets the following requirements:
 1. **Node.js** (Version 18 or higher).
 2. A minimum of 2GB RAM.
-3. A valid API Key from one of the supported providers (Google Gemini AI, OpenAI, or OpenRouter).
+3. A valid API Key from one of the supported providers (OpenAI, Gemini, OpenRouter, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
 
 ---
 
@@ -93,30 +93,38 @@ nyxora set-key <provider> <your_api_key>
 # Example: nyxora set-key tavily tvly-...
 ```
 
-This command-line wizard will guide you through five simple stages:
+This interactive command-line wizard will guide you through the configuration process:
 
-### Stage A: LLM Provider Selection
+### Stage A: AI Engine & Provider Selection
 Choose the brain behind your agent.
-- We recommend **Google Gemini** or **OpenAI** for the best reasoning capabilities.
-- The wizard will auto-populate options like `gemini-2.5-flash` (fast & cheap) or `gpt-4o`.
-- You can also select the **"Custom Model"** option if you wish to manually type a specific model name (e.g., local Ollama models).
+- Supported providers include **OpenAI**, **Google Gemini**, **OpenRouter**, **Groq**, **Mistral**, **xAI**, **DeepSeek**, and **Ollama**.
+- The wizard features a searchable list of models (e.g., `gpt-4o`, `gemini-2.5-pro`, `deepseek-reasoner`).
+- You can also select **"Custom Model"** to manually input a specific model string.
+- Enter your Provider's API Key. *This key is securely saved in your local vault.*
 
-### Stage B: Entering the API Key
-Enter the API Key corresponding to your chosen provider.
-*This key will be securely saved in your local configuration vault and will never be exposed.*
+### Stage B: Skill Selection (Web3 & OS)
+Nyxora operates on a principle of least privilege. You must explicitly grant the agent its capabilities:
+- **Web3 Skills:** Toggle capabilities like Token Swapping, Bridging, NFT Minting, or Portfolio Analysis.
+- **OS Skills:** Toggle system-level actions like Reading/Writing Files, Web Scraping, or Google Workspace integration.
+*(Any unselected skills are injected into a local `disabled_skills.json` sandbox, preventing the AI from executing them).*
 
-### Stage C: Network & Telegram Configuration
-Select your default blockchain network (e.g., **Base**, **Ethereum**, or **Sepolia Testnet**). You will also be asked if you want to enable the Telegram bot integration for remote control.
+### Stage C: Web Search Configuration (Conditional)
+If you enabled the **Smart Web Search** skill, you will be prompted to choose a search provider (**Tavily** or **Brave Search**) and enter its respective API Key.
 
-### Stage D: Web3 Wallet Setup
-The most crucial part. You have three options:
-1. **Auto-Generate:** The system will instantly generate a fresh Ethereum address for you on-screen and securely save its Private Key into the OS Keyring.
-2. **Manual Input:** Input your own existing Private Key (See [Wallet Import Guide](../security/wallet_import.md)). The key will also be saved into the OS Keyring.
-3. **Skip:** Skip this stage if you don't need to execute crypto transactions right now.
+### Stage D: Default Chain & Wallet Setup
+Select your primary network (e.g., Ethereum, Arbitrum, Base, or Sepolia). For your Web3 Wallet, you have three options:
+1. **Auto-Generate:** The system generates a fresh Wallet on-screen.
+2. **Manual Input:** Securely input your existing Private Key.
+3. **Skip:** Skip if you only need off-chain AI capabilities.
+*Your Private Key is instantly encrypted and saved directly into your OS-Native Keyring (GNOME Secret Service, macOS Keychain, or Windows Credential Manager).*
 
-### Stage E: Keyring Integration
-To protect the Private Key you just generated or inputted, Nyxora will securely integrate with your Operating System's native Keyring (macOS Keychain, Windows Credential Vault, or Linux Secret Service).
-No manual Master Passwords are required!
+### Stage E: Integration Channels (Telegram & Dashboard)
+Select how you want to interact with Nyxora. The **Local Web Dashboard** is enabled by default.
+If you enable the **Telegram Bot**:
+1. Enter your Telegram Bot Token from `@BotFather`.
+2. Nyxora will generate a unique 6-digit PIN on your terminal.
+3. Send `/auth <PIN>` to your bot via the Telegram app.
+4. Nyxora will instantly pair with your device, ensuring only your Chat ID can control the agent.
 
 ---
 
