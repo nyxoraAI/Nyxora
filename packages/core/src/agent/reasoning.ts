@@ -337,8 +337,12 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
-      // Disabled fastReturnTools to enforce Web3 Reasoning (V3 feature)
-      const fastReturnTools: string[] = [];
+      // Enabled fastReturnTools to eliminate 2nd LLM latency for transaction popups
+      const fastReturnTools: string[] = [
+        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
+        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
+        'deposit_yield_vault', 'provide_liquidity_v3'
+      ];
 
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;
