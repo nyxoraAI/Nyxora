@@ -42,7 +42,7 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: I have prepared the Revoke Approval transaction for ${symbol} to block spender ${spenderAddress}. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}. Wait for user to approve on the Dashboard.`;
+    return `⏳ **Revoke queued:** ${symbol} | Spender: ${spenderAddress} | ${chainName.toUpperCase()} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare revoke approval: ${error.message}`;
   }

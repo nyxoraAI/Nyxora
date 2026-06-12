@@ -61,7 +61,7 @@ export async function prepareBridgeToken(
       rawQuote: route.rawQuote
     });
 
-    return `TRANSACTION_PENDING\nBridge transaction of ${amountStr} ${tokenSymbol} from ${fromChain.toUpperCase()} to ${toChain.toUpperCase()} via ${route.provider} has been queued.\nTransaction ID: ${tx.id}\nPlease review and approve this transaction in your dashboard UI.`;
+    return `⏳ **Bridge queued:** ${amountStr} ${tokenSymbol} | ${fromChain.toUpperCase()} ➡️ ${toChain.toUpperCase()} | Via ${route.provider} | Approve below.`;
   } catch (error: any) {
     console.error("BRIDGE TOKEN ERROR:", error);
     return `Failed to prepare bridge: ${error.message}`;

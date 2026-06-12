@@ -53,7 +53,7 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
             symbol: metadata.symbol,
             gasEstimate: "60000"
         });
-        return `TRANSACTION_PENDING: You need to approve the ${protocol.toUpperCase()} Vault to spend your ${metadata.symbol}. I have prepared the Approval transaction. ID: ${tx.id}. Please approve it on the Dashboard first.`;
+        return `⏳ **Approve queued:** ${metadata.symbol} | For: ${protocol.toUpperCase()} Vault | ${chainName.toUpperCase()} | Approve below.`;
     }
 
     // 2. Simulate Deposit
@@ -81,7 +81,7 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: I have prepared the deposit of ${amountStr} ${metadata.symbol} into the ${protocol.toUpperCase()} Auto-Compounder Vault. Estimated gas: ${gasEstimate}. Transaction ID: ${tx.id}. Wait for user approval on Dashboard.`;
+    return `⏳ **Vault Deposit queued:** ${amountStr} ${metadata.symbol} | ${protocol.toUpperCase()} | ${chainName.toUpperCase()} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare Vault deposit: ${error.message}`;
   }

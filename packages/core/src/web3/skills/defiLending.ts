@@ -67,7 +67,7 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
             symbol: metadata.symbol,
             gasEstimate: "60000"
         });
-        return `TRANSACTION_PENDING: You need to approve Aave V3 to spend your ${metadata.symbol} before supplying. I have prepared the Approval transaction. ID: ${tx.id}. Please approve it on the Dashboard first.`;
+        return `⏳ **Approve queued:** ${metadata.symbol} | For: Aave V3 | ${chainName.toUpperCase()} | Approve below.`;
     }
 
     // 2. Simulate Supply
@@ -94,7 +94,7 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
       gasEstimate: gasEstimate.toString()
     });
 
-    return `TRANSACTION_PENDING: I have prepared the Aave V3 Supply transaction for ${amountStr} ${metadata.symbol} on ${chainName}. Estimated gas units: ${gasEstimate}. Transaction ID: ${tx.id}. Wait for user to approve on the Dashboard.`;
+    return `⏳ **Aave Supply queued:** ${amountStr} ${metadata.symbol} | ${chainName.toUpperCase()} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare Aave supply: ${error.message}`;
   }
