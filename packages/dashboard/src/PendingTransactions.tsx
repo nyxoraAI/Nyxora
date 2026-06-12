@@ -45,10 +45,23 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
     }
   };
 
+  const handleApproveAll = async () => {
+    // We execute sequentially or concurrently. Doing concurrently for speed.
+    const promises = pending.map(tx => handleAction(tx, 'approve'));
+    await Promise.all(promises);
+  };
+
   if (pending.length === 0) return null;
 
   return (
     <div style={{ position: 'fixed', bottom: 20, right: 20, width: 350, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {pending.length > 1 && (
+        <button 
+          onClick={handleApproveAll}
+          style={{ padding: '12px', background: '#eab308', color: '#1e293b', border: 'none', borderRadius: 12, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, fontWeight: 'bold' }}>
+          <Check size={18} /> Approve All Transactions ({pending.length})
+        </button>
+      )}
       {pending.map(tx => (
         <div key={tx.id} style={{ background: '#1e293b', padding: 20, borderRadius: 16, border: '1px solid #eab308', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 15 }}>
@@ -58,7 +71,13 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
           <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginBottom: 15 }}>
             Type: {tx.type.toUpperCase()}<br/>
             Chain: {tx.chainName.toUpperCase()}<br/>
-            {tx.type === 'transfer' ? `To: ${tx.details.toAddress}\nAmount: ${tx.details.amountEth}` : `Swap: ${tx.details.amount} ${tx.details.fromToken} to ${tx.details.toToken}`}
+            {tx.type === 'transfer' 
+              ? `To: ${tx.details.toAddress}\nAmount: ${tx.details.amountEth}` 
+              : tx.type === 'limit_order' 
+                ? `Trigger: ${tx.details.trigger_condition} $${tx.details.trigger_price_usd}\nAction: ${tx.details.action} $${tx.details.amount_usd} of ${tx.details.token_symbol}`
+                : tx.type === 'swap' 
+                  ? `Swap: ${tx.details.amount} ${tx.details.fromToken} to ${tx.details.toToken}`
+                  : `Execute Action`}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button 

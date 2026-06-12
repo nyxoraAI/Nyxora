@@ -211,6 +211,13 @@ export function startTelegramBot() {
           result = await executeUniv3Mint(tx.chainName as any, tx.details);
         } else if (tx.type === 'revokeApproval') {
           result = await executeRevokeApproval(tx.chainName as any, tx.details, true);
+        } else if (tx.type === 'limit_order') {
+          const success = logger.activateLimitOrder(tx.details.orderId);
+          if (success) {
+            result = `Limit Order ${tx.details.orderId} is now ACTIVE. The Event-Driven Engine is monitoring the market.`;
+          } else {
+            throw new Error(`Failed to activate Limit Order. ID not found in database.`);
+          }
         }
         
         txManager.updateStatus(txId, 'executed', result);

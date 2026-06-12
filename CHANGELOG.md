@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.12]
+### Maintenance & Refactor
+- **Clean Installation Initiative**: Completely removed `exceljs` to eliminate all `npm warn deprecated` warnings (e.g., `inflight`, `rimraf@2`, `glob@7`) during global installations. 
+- **Modernized Excel/CSV Engine**: Refactored `generateExcel.ts` and `analyzeDocument.ts` to use ultra-lightweight, zero-dependency modern libraries (`write-excel-file` and `csv-parse`), ensuring a 100% warning-free and vulnerability-free `npm install -g nyxora` experience.
+
+### Dashboard & UI Refactoring
+- **Clean Agent Reasoning UI**: Restructured the frontend message rendering (`App.tsx`) to completely isolate and strip out raw `<think>` blocks from the AI's internal Chain of Thought. The user interface is now 100% focused on final outputs, keeping the conversation view clean.
+- **Strict Think Block Escaping**: Hardened the system prompt in `reasoning.ts` with a new Anti-Hallucination rule. The AI is now strictly forbidden from injecting conversational text or final answers inside the `<think>` block, completely neutralizing the bug where the UI appeared to be "stuck" due to missing output.
+
 ## [26.6.11-2]
 ### Hotfixes
 - **Monorepo Dependency Resolver**: Fixed an NPM workspace bug by elevating internal package dependencies (`playwright`, `twitter-api-v2`, `@notionhq/client`) directly to the root `package.json`, completely resolving `Error: Cannot find module` crashes during daemon boot.

@@ -17,22 +17,8 @@ Instead of loading the decrypted Private Key into Node.js space, the Rust proces
 **Why it matters:**
 This provides institutional-grade protection against advanced **Memory Scraping** attacks. Even if a highly sophisticated state-sponsored actor gains root access to the server, the private key will never linger in the system's RAM for more than a microsecond, making it virtually impossible to dump.
 
----
 
-## 2. Universal MCP Client Integration
-
-Currently, integrating new capabilities (like querying token prices, reading GitHub repositories, or checking weather data) requires developers to manually author TypeScript plugins within the `Core Brain`. This manual process inherently limits the speed of ecosystem expansion.
-
-**The Evolution:**
-Future updates aim to transform the `Core Brain` into a native **Model Context Protocol (MCP) Client**. 
-Instead of relying on statically coded skills, Nyxora will dynamically connect to any MCP Server globally. 
-
-**Why it matters:**
-This integration unlocks a borderless ecosystem of tools. Nyxora will instantly absorb thousands of external capabilities—such as Postgres MCP, Google Drive MCP, or Brave Search MCP—granting our AI agents universal knowledge and utility without requiring a single line of internal code updates.
-
----
-
-## 3. Multi-VM Architecture (Solana Integration)
+## 2. Multi-VM Architecture (Solana Integration)
 
 Nyxora's current architecture is robustly designed around the Ethereum Virtual Machine (EVM) ecosystem, heavily relying on `viem` and `secp256k1` cryptography. As the market evolves, supporting high-throughput non-EVM chains like Solana (SVM) becomes imperative.
 
@@ -45,44 +31,6 @@ A future update will introduce a **Multi-VM (Virtual Machine) Architecture**, re
 
 **Why it matters:**
 This transforms Nyxora from an "Ethereum Bot" into an **Agnostic Web3 Agent**. By successfully bridging the architectural gap between EVM and SVM, the AI will possess total sovereignty over the two most liquid decentralized ecosystems in the world.
-
----
-
-
-
-## 4. Frontend Code Splitting & Lazy Loading
-
-Currently, the React/Vite dashboard bundles the entire application into a single JavaScript payload.
-
-**The Evolution:**
-Future updates will introduce component-level `React.lazy()` boundaries and Route-based Code Splitting. Only the essential components required for the initial paint will be loaded immediately, while heavy modules (like the Portfolio Scanner or Chat Interface) will be fetched asynchronously on demand.
-
-**Why it matters:**
-This drastically reduces the initial Time-to-Interactive (TTI) and payload size, ensuring the Dashboard remains lightning-fast even as we add more complex Web3 visualization tools.
-
----
-
-## 5. Monorepo Build Caching (Turborepo)
-
-As Nyxora scales into multiple internal packages (`core`, `dashboard`, `policy`, `signer`), linear build times can become a bottleneck during active development.
-
-**The Evolution:**
-The build architecture will be migrated to use **Turborepo** (or Google Wireit). This will introduce intelligent build caching and parallel execution.
-
-**Why it matters:**
-If a developer only modifies the `dashboard` UI, Turborepo will retrieve the `core` and `signer` binaries from local cache in milliseconds instead of rebuilding them from scratch, plummeting compilation times from 5 seconds to 0.1 seconds.
-
----
-
-## 6. TypeScript Strict Mode Compliance
-
-During rapid prototyping, TypeScript's `strict: false` configuration allows for maximum development velocity.
-
-**The Evolution:**
-A post-hackathon milestone is transitioning the entire Nyxora `tsconfig.json` to `"strict": true`. This involves thoroughly typing all Web3 contract ABIs, IPC socket payloads, and LLM structured JSON outputs.
-
-**Why it matters:**
-Enabling strict mode provides absolute compile-time guarantees, eliminating an entire class of runtime `undefined` errors and solidifying the reliability of the agent when handling highly sensitive financial data on-chain.
 
 ---
 

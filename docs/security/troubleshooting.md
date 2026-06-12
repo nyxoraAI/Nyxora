@@ -102,5 +102,31 @@ POLICY_PORT=4005
 
 ---
 
+## 7. Global Installation Path Conflict
+
+**Symptoms:**
+You run `npm install -g nyxora@latest` and it shows that the installation was successful. However, when you check `nyxora -v`, the terminal still reports the old version, and new features or bug fixes do not take effect.
+
+**Cause:**
+If you use NVM (Node Version Manager) or have changed your Node.js configuration, your terminal might have multiple global binary paths. The new version is successfully installed in the NVM directory (e.g., `~/.nvm/versions/node/.../bin/nyxora`), but your terminal's `$PATH` is prioritizing an old, stale version of Nyxora stuck in another directory (like `~/.local/bin/nyxora`). This causes a "Split Personality" conflict.
+
+**Resolution:**
+You must manually delete the stale "ghost" binaries so your terminal defaults back to the correct NVM installation.
+
+Run these commands in your terminal one by one:
+```bash
+# 1. Delete the stale shortcut
+rm ~/.local/bin/nyxora
+
+# 2. Delete the old original directory
+rm -rf ~/.local/lib/node_modules/nyxora
+
+# 3. Refresh your terminal's path cache
+hash -r
+```
+After executing those commands, `nyxora -v` will point to the correct, newly installed version.
+
+---
+
 *Still facing issues? Feel free to open an issue on our [GitHub Repository](https://github.com/nyxoraAI/Nyxora/issues).*
 

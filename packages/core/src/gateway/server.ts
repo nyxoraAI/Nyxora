@@ -51,6 +51,7 @@ import { vaultDepositToolDefinition } from '../web3/skills/yieldVault';
 import { provideLiquidityToolDefinition } from '../web3/skills/provideLiquidity';
 import { getTxHistoryToolDefinition } from '../web3/skills/getTxHistory';
 import { checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
+import { createLimitOrderToolDefinition } from '../web3/skills/createLimitOrder';
 
 // System Skills
 import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
@@ -71,6 +72,7 @@ import { searchWebToolDefinition } from '../system/skills/searchWeb';
 import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition } from '../system/skills/googleWorkspace';
 
 import { startTelegramBot } from './telegram';
+import { eventListener } from '../web3/eventListener';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated, logoutGoogle } from './googleAuthModule';
 import { generatePrivacyPolicyHtml, generateTosHtml } from './legalGenerator';
@@ -333,7 +335,8 @@ app.get('/api/skills', (req, res) => {
     revokeApprovalToolDefinition,
     vaultDepositToolDefinition,
     provideLiquidityToolDefinition,
-    getTxHistoryToolDefinition
+    getTxHistoryToolDefinition,
+    createLimitOrderToolDefinition
   ];
   
   const skillsWithStatus = allSkills.map(skill => ({
@@ -826,6 +829,25 @@ app.delete('/api/memory/:id', (req, res) => {
 });
 
 
+// --- User Persona / Risk Profile Endpoints (V3) ---
+app.get('/api/profile', (req, res) => {
+  try {
+    const profile = logger.getUserProfile();
+    res.json(profile || { risk_level: 'Moderate', max_slippage: 1.0, avoid_memecoins: false, custom_rules: '' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/profile', (req, res) => {
+  try {
+    logger.updateUserProfile(req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Fallback for React Router (Single Page Application)
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
@@ -880,6 +902,9 @@ export function startServer() {
     
     // Start the Telegram bot listener
     startTelegramBot();
+    
+    // Start Event Listener for Limit Orders (V3)
+    eventListener.start();
   });
 
   server.on('error', (e: any) => {

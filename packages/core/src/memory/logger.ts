@@ -20,6 +20,14 @@ export interface ChatSession {
   timestamp: string;
 }
 
+export interface UserProfile {
+  id: string;
+  risk_level: string;
+  max_slippage: number;
+  avoid_memecoins: boolean;
+  custom_rules: string | null;
+}
+
 export class Logger {
   private db: DatabaseSync;
 
@@ -70,6 +78,37 @@ export class Logger {
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_session_id ON messages(session_id);
     `);
+
+    // V3: Limit Orders & Event-Driven Engine
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS limit_orders (
+        id TEXT PRIMARY KEY,
+        token_address TEXT NOT NULL,
+        token_symbol TEXT NOT NULL,
+        trigger_condition TEXT NOT NULL,
+        trigger_price_usd REAL NOT NULL,
+        action TEXT NOT NULL,
+        amount_usd REAL NOT NULL,
+        slippage_tolerance REAL DEFAULT 5.0,
+        status TEXT DEFAULT 'ACTIVE',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME,
+        tx_hash TEXT
+      )
+    `);
+
+    // V3: Personalized Risk Profile
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS user_profiles (
+        id TEXT PRIMARY KEY,
+        risk_level TEXT DEFAULT 'Moderate',
+        max_slippage REAL DEFAULT 1.0,
+        avoid_memecoins BOOLEAN DEFAULT 0,
+        custom_rules TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
 
     // Ensure session_id exists for older DBs
     try {
@@ -215,6 +254,80 @@ export class Logger {
     } catch (e) {
       console.error('[Nyxora Memory] Error closing database:', e);
     }
+  }
+
+  // V3: User Persona & Risk Profile
+  public getUserProfile(): UserProfile | null {
+    try {
+      const row = this.db.prepare('SELECT * FROM user_profiles WHERE id = ?').get('default') as any;
+      if (row) {
+        return {
+          id: row.id,
+          risk_level: row.risk_level,
+          max_slippage: row.max_slippage,
+          avoid_memecoins: Boolean(row.avoid_memecoins),
+          custom_rules: row.custom_rules
+        };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  public updateUserProfile(profile: Partial<UserProfile>) {
+    const existing = this.getUserProfile() || {
+      id: 'default',
+      risk_level: 'Moderate',
+      max_slippage: 1.0,
+      avoid_memecoins: false,
+      custom_rules: null
+    };
+    
+    const updated = { ...existing, ...profile };
+    
+    this.db.prepare(`
+      INSERT INTO user_profiles (id, risk_level, max_slippage, avoid_memecoins, custom_rules, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        risk_level = excluded.risk_level,
+        max_slippage = excluded.max_slippage,
+        avoid_memecoins = excluded.avoid_memecoins,
+        custom_rules = excluded.custom_rules,
+        updated_at = excluded.updated_at
+    `).run(
+      'default',
+      updated.risk_level,
+      updated.max_slippage,
+      updated.avoid_memecoins ? 1 : 0,
+      updated.custom_rules
+    );
+  }
+
+  // V3: Limit Orders
+  public createLimitOrder(order: any): string {
+    const id = crypto.randomUUID();
+    this.db.prepare(`
+      INSERT INTO limit_orders (
+        id, token_address, token_symbol, trigger_condition, trigger_price_usd, action, amount_usd, slippage_tolerance, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      order.token_address,
+      order.token_symbol,
+      order.trigger_condition,
+      order.trigger_price_usd,
+      order.action,
+      order.amount_usd,
+      order.slippage_tolerance || 5.0,
+      'PENDING_APPROVAL' // Requires user approval in Dashboard/Telegram
+    );
+    return id;
+  }
+
+  public activateLimitOrder(orderId: string): boolean {
+    const result = this.db.prepare(`UPDATE limit_orders SET status = 'ACTIVE' WHERE id = ?`).run(orderId);
+    return result.changes > 0;
   }
 }
 

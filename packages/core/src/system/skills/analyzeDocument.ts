@@ -60,24 +60,25 @@ export async function analyzeDocument(filePath: string): Promise<string> {
     }
 
     if (ext === '.xlsx' || ext === '.csv') {
-      const ExcelJS = await import('exceljs');
-      const workbook = new ExcelJS.Workbook();
-      
-      if (ext === '.csv') {
-        await workbook.csv.readFile(absolutePath);
-      } else {
-        await workbook.xlsx.readFile(absolutePath);
-      }
-      
       let text = `--- Spreadsheet Data from ${path.basename(absolutePath)} ---\n`;
       
-      workbook.eachSheet((worksheet) => {
-        text += `\n[Sheet: ${worksheet.name}]\n`;
-        worksheet.eachRow((row) => {
-          const values = Array.isArray(row.values) ? row.values.slice(1) : Object.values(row.values);
-          text += values.join(',') + '\n';
+      if (ext === '.csv') {
+        const { parse } = await import('csv-parse/sync');
+        const content = fs.readFileSync(absolutePath, 'utf8');
+        const records = parse(content, { skip_empty_lines: true });
+        records.forEach((row: any[]) => {
+          text += row.join(',') + '\n';
         });
-      });
+      } else {
+        const readXlsxFile = (await import('read-excel-file/node')).default;
+        const sheets = await readXlsxFile(absolutePath);
+        sheets.forEach((s: any) => {
+          text += `\n[Sheet: ${s.sheet}]\n`;
+          s.data.forEach((row: any[]) => {
+            text += row.map(cell => cell === null ? '' : String(cell)).join(',') + '\n';
+          });
+        });
+      }
       
       if (text.length > 20000) {
         text = text.substring(0, 20000) + "... [Content Truncated]";

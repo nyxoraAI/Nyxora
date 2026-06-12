@@ -50,6 +50,7 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'revoke approval': return <Lock size={size} color={color} />;
     case 'deposit yield vault': return <Vault size={size} color={color} />;
     case 'provide liquidity v3': return <Droplet size={size} color={color} />;
+    case 'create limit order': return <Target size={size} color={color} />;
     default: return <Compass size={size} color={color} />;
   }
 };
