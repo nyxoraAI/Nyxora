@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [26.6.12]
+### Security & Web3 Routing
+- **Relay API Mainnet Fallback**: Fixed a critical routing bug for native ETH. The aggregator now precisely translates the native token identifier (`0xeeee...`) into the Zero Address (`0x0000...`) exclusively when communicating with Relay's cross-chain API. This completely neutralizes "Invalid input currency" rejections on mainnet bridges.
+
+### Documentation & Architecture
+- **Guarded Autonomy Reboot**: Completely rewrote the core conceptual architecture documents (`guarded_autonomy.md`). Eradicated legacy "Quantitative Scoring Engine" hallucinations, solidly aligning the documentation with Nyxora's actual production architecture: a free-thinking AI sandboxed by an immutable, local NLP Policy Engine interceptor.
+- **Slippage & Security Guide**: Added a dedicated, comprehensive page (`slippage.md`) clearly delineating the operational differences between the AI's *Default Slippage* and the strict *Max Allowed Slippage* security hard-limit to educate users on MEV and honeypot attack vectors.
+- **Roadmap Cleansing**: Removed completed technical milestones (e.g., Universal MCP Client Integration) from the `roadmap.md`. The roadmap now exclusively highlights high-tier enterprise visions such as the Rust-Native Signer and Multi-VM Solana architecture.
+
 ### Maintenance & Refactor
 - **Clean Installation Initiative**: Completely removed `exceljs` to eliminate all `npm warn deprecated` warnings (e.g., `inflight`, `rimraf@2`, `glob@7`) during global installations. 
 - **Modernized Excel/CSV Engine**: Refactored `generateExcel.ts` and `analyzeDocument.ts` to use ultra-lightweight, zero-dependency modern libraries (`write-excel-file` and `csv-parse`), ensuring a 100% warning-free and vulnerability-free `npm install -g nyxora` experience.
