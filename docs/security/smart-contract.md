@@ -42,7 +42,7 @@ Before any AI-generated transaction (e.g., a token swap or bridge) is forwarded 
 
 ## Smart Contract Details
 
-- **Network:** Arbitrum Sepolia (Testnet deployment for the hackathon)
+- **Network:** Arbitrum Sepolia (Testnet deployment for the testing phase)
 - **Contract Address:** [`0x6C811587ce9A50f1CF1fE5a42bF2b18a9787318F`](https://sepolia.arbiscan.io/address/0x6c811587ce9a50f1cf1fe5a42bf2b18a9787318f)
 - **Core Functions:**
   - `registerAgent(string _agentName)`: Initializes your on-chain agent identity and registers it within the global directory.
@@ -63,4 +63,4 @@ Activating your on-chain security requires registering your wallet address direc
 We chose Arbitrum as the security backbone because of its **lightning-fast block times** and **sub-cent transaction fees**. Users can flip the Kill-Switch in seconds without worrying about exorbitant gas costs, ensuring the fail-safe is both rapid and economically viable during emergencies.
 
 > [!NOTE]
-> *Saat ini (periode Hackathon), Smart Contract dideploy di jaringan Arbitrum Sepolia (Testnet). Pada pembaruan berikutnya, sistem ini akan dimigrasikan secara penuh ke Arbitrum Mainnet.*
+> *Saat ini (masa pengujian), Smart Contract dideploy di jaringan Arbitrum Sepolia (Testnet). Pada pembaruan berikutnya, sistem ini akan dimigrasikan secara penuh ke Arbitrum Mainnet.*
