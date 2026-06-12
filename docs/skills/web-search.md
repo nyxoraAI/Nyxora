@@ -7,7 +7,7 @@ Nyxora features an incredibly robust Web Search module engineered specifically f
 Nyxora guarantees 100% search uptime by utilizing a three-layer fallback mechanism:
 
 1.  **Primary Engine (Tavily/Brave):** 
-    By default, Nyxora attempts to use enterprise-grade search APIs (Tavily or Brave) configured via your API keys.
+    By default, Nyxora attempts to use premium search APIs (Tavily or Brave) configured via your API keys.
 2.  **Secondary Engine Fallback:** 
     If your primary provider encounters a Rate Limit (`429`) or Authentication Error (`401/403`), Nyxora instantly falls back to the secondary provider (e.g., from Tavily to Brave).
 3.  **Decentralized Mesh (L3 Fallback):** 

@@ -16,7 +16,7 @@ Unlike traditional bots that force you to paste your key in a `.env` file or use
 
 When you run `nyxora setup`, your Private Key is swallowed by the OS and never exposed to the disk in plaintext. 
 
-When the background daemon boots via `nyxora start`, the Signer Vault process requests the key directly from the OS Keyring programmatically. This ensures the daemon can safely run 24/7 in the background across reboots while maintaining institutional-grade encryption at rest without human intervention.
+When the background daemon boots via `nyxora start`, the Signer Vault process requests the key directly from the OS Keyring programmatically. This ensures the daemon can safely run 24/7 in the background across reboots while maintaining robust encryption at rest without human intervention.
 
 ## 2. Secure Fallback Mechanism (Headless Servers)
 

@@ -62,7 +62,7 @@ These skills allow the AI to interact directly with your local machine, file sys
     *   **Description:** Writes new content to a file or overwrites an existing one.
     *   **Capabilities:** Creating new React components, scaffolding API endpoints, or updating configuration files. The AI uses this to autonomously build software for you.
 
-### 📊 Enterprise Reporting
+### 📊 Advanced Reporting
 *   **`generateExcel`**
     *   **Description:** Converts raw JSON data into beautifully formatted `.xlsx` spreadsheet files.
     *   **Capabilities:** Often chained with `getTxHistory` or `checkPortfolio` to autonomously generate 30-day PnL reports, trading logs, or token balance summaries directly to your local file system.

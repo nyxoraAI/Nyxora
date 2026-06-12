@@ -1,6 +1,6 @@
 # Nyxora Security Architecture & Threat Model
 
-Nyxora employs an institutional-grade, **Cryptographically Bound Human-in-the-Loop** security model to protect user assets and private keys against compromised LLMs, supply chain attacks, and prompt injections.
+Nyxora employs a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human-in-the-Loop** security model to protect user assets and private keys against compromised LLMs, supply chain attacks, and prompt injections.
 
 ---
 
@@ -40,7 +40,7 @@ Nyxora completely eliminates the need for manual "Master Passwords" or custom AE
 *   **macOS:** Utilizes the native `Keychain Access`.
 *   **Windows:** Uses `Windows Credential Manager`.
 
-When the background daemon boots via `nyxora start`, the Signer Vault process reads the Private Key directly from the OS Keyring. This ensures the daemon can safely persist across reboots while maintaining institutional-grade encryption at rest.
+When the background daemon boots via `nyxora start`, the Signer Vault process reads the Private Key directly from the OS Keyring. This ensures the daemon can safely persist across reboots while maintaining robust encryption at rest.
 
 ---
 

@@ -1,6 +1,6 @@
 # Google Workspace Integration
 
-Nyxora features an Institutional-Grade integration with Google Workspace, allowing your agent to autonomously interact with your emails, calendar, documents, and spreadsheets. 
+Nyxora features an advanced integration with Google Workspace, allowing your agent to autonomously interact with your emails, calendar, documents, and spreadsheets. 
 
 This is part of Nyxora's **OS Skills** engine, which runs locally and independently, meaning you have absolute control over your data without relying on any third-party SaaS middleman.
 
