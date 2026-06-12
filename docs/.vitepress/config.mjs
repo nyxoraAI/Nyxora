@@ -9,6 +9,7 @@ export default defineConfig({
     ['meta', { name: 'talentapp:project_verification', content: 'c2efaae47344a9e37665b659cea484364b58a60fe274af503d41914c26f547eea61393229ee5ba8f49dbdcc088d9eaad66687065bd84181dbacf87c2e70aceb9' }]
   ],
   themeConfig: {
+    logo: '/favicon.svg',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/introduction' }
