@@ -29,9 +29,11 @@ export function formatToTelegramHTML(text: string): string {
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   
-  // Strip <thought> blocks completely for user-friendly output
+  // Strip <thought> and <think> blocks completely for user-friendly output
   html = html.replace(/&lt;thought&gt;[\s\S]*?&lt;\/thought&gt;\n?/g, '');
   html = html.replace(/<thought>[\s\S]*?<\/thought>\n?/g, '');
+  html = html.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;\n?/g, '');
+  html = html.replace(/<think>[\s\S]*?<\/think>\n?/g, '');
   
   // Transform Markdown Tables to <pre> monospaced blocks so they don't break on mobile
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
