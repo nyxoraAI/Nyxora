@@ -63,4 +63,4 @@ Activating your on-chain security requires registering your wallet address direc
 We chose Arbitrum as the security backbone because of its **lightning-fast block times** and **sub-cent transaction fees**. Users can flip the Kill-Switch in seconds without worrying about exorbitant gas costs, ensuring the fail-safe is both rapid and economically viable during emergencies.
 
 > [!NOTE]
-> *Saat ini (masa pengujian), Smart Contract dideploy di jaringan Arbitrum Sepolia (Testnet). Pada pembaruan berikutnya, sistem ini akan dimigrasikan secara penuh ke Arbitrum Mainnet.*
+> *Currently (during the testing phase), the Smart Contract is deployed on the Arbitrum Sepolia (Testnet) network. In the next update, the system will be fully migrated to Arbitrum Mainnet.*
