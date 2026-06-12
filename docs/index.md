@@ -99,7 +99,7 @@ features:
     </div>
     <div class="why-card">
       <h3>🧠 Persistent Memory Architecture</h3>
-      <p>Nyxora quietly extracts and learns your Web3 habits in the background through a secure 4-Layer air-gapped system, slashing repetitive prompts by up to 90%.</p>
+      <p>Nyxora quietly extracts and learns your Web3 habits in the background through a secure 4-Layer air-gapped system, drastically minimizing repetitive user instructions and eliminating the need to repeatedly define DeFi preferences.</p>
     </div>
   </div>
 </div>
