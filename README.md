@@ -20,7 +20,7 @@ It operates under an institutional-grade **Cryptographically Bound Human-in-the-
 ## 🔥 Key Features
 
 ### Advanced Security Architecture
-*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by an Arbitrum Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Arbitrum Architecture ->](https://nyxoraai.github.io/Nyxora/security/smart-contract)
+*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by an Arbitrum Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Arbitrum Architecture](https://nyxoraai.github.io/Nyxora/security/smart-contract)
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **DeFi Configuration BYOK & UI Masking**: All aggregator and provider API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into a heavily guarded `~/.nyxora/defi_keys.yaml` file. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
