@@ -376,11 +376,11 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
           <Network size={18} color="#81a1c1" />
-          <h3>Web3 & RPC Settings</h3>
+          <h3>Web3 Explorer Settings</h3>
         </div>
         <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
-          Override the default public RPCs with your own Premium endpoints (Alchemy/Infura). 
-          Separate multiple URLs with a comma for Fallback High-Availability.
+          Configure blockchain explorer API keys to enable agent verification of smart contracts.
+          <br/><span style={{ color: '#ebcb8b', fontWeight: 'bold' }}>Note: RPC Endpoint configurations have been moved to the dedicated "RPC Configuration" tab in the sidebar.</span>
         </p>
         <div style={{ marginBottom: '24px' }} className="form-group">
           <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>
@@ -391,32 +391,6 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             value={formData.web3?.explorer_api_key || ''}
             onChange={(e) => handleChange('web3', 'explorer_api_key', e.target.value)}
           />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {['ethereum', 'base', 'bsc', 'arbitrum', 'optimism', 'polygon', 'sepolia', 'base_sepolia', 'arbitrum_sepolia', 'optimism_sepolia'].map(chain => {
-            const rpcVal = formData.web3?.rpc_urls?.[chain];
-            const displayVal = Array.isArray(rpcVal) ? rpcVal.join(', ') : (rpcVal || '');
-            return (
-              <div key={chain} className="form-group" style={{ position: 'relative' }}>
-                <label className="nord-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <img 
-                    src={`https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain === 'bsc' ? 'smartchain' : chain.replace('_sepolia', '')}/info/logo.png`} 
-                    alt={chain} 
-                    style={{ width: '14px', height: '14px', borderRadius: '50%' }}
-                    onError={(e) => e.currentTarget.style.display = 'none'}
-                  />
-                  {chain} RPC
-                </label>
-                <input 
-                  className="nord-input"
-                  type="password" 
-                  placeholder="https://..." 
-                  value={displayVal}
-                  onChange={(e) => handleWeb3Change(chain, e.target.value)}
-                />
-              </div>
-            );
-          })}
         </div>
       </div>
 

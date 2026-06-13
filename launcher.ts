@@ -38,7 +38,14 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
 
     if (!inheritStdio) {
       child.stdout?.on('data', (data) => process.stdout.write(`[${name}] ${data}`));
-      child.stderr?.on('data', (data) => process.stderr.write(`[${name}] ERROR: ${data}`));
+      child.stderr?.on('data', (data) => {
+        const msg = data.toString();
+        if (msg.toLowerCase().includes('warn')) {
+          process.stderr.write(`[${name}] ${msg}`);
+        } else {
+          process.stderr.write(`[${name}] ERROR: ${msg}`);
+        }
+      });
     }
 
     child.on('close', async (code) => {
@@ -111,8 +118,8 @@ const children: { kill: () => void }[] = [];
 
 const isCompiled = __filename.endsWith('.js');
 const ext = isCompiled ? '.js' : '.ts';
-const cmd = isCompiled ? 'node' : 'npx';
-const baseArgs = isCompiled ? [] : ['ts-node', '-T'];
+const cmd = isCompiled ? 'node' : path.join(__dirname, 'node_modules', '.bin', 'ts-node');
+const baseArgs = isCompiled ? [] : ['-T'];
 
 const signerPath = path.join(__dirname, `packages/signer/src/server${ext}`);
 const signer = spawnService('Signer', cmd, [...baseArgs, signerPath], env);

@@ -8,6 +8,7 @@ memory.json.bak
 memory.db*
 keystore.json
 config.yaml
+rpc_key.yaml
 *.token
 *.pid
 user.md

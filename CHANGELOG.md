@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.14]
+### Security & Privacy
+- **Isolated Private RPC Vault**: Extracted `web3.rpc_urls` from the main `config.yaml` and moved them into a highly isolated `~/.nyxora/config/rpc_key.yaml` file. This guarantees zero risk of leaking Premium Node Endpoints (Alchemy, Infura) when sharing config files or prompts.
+- **Auto-Migration Engine**: Implemented a background migration routine (`parser.ts`) that automatically detects legacy RPC setups and seamlessly extracts, transfers, and wipes them from `config.yaml` during the next daemon boot without data loss.
+- **Frontend Key Masking**: Upgraded the new "RPC Configuration" UI to strictly use `type="password"`, ensuring sensitive API keys are never visible in plaintext during screen-sharing or recordings.
+
+### UI/UX Enhancements
+- **Dedicated RPC Dashboard**: Added a brand-new "RPC Configuration" tab to the Web Dashboard sidebar, complete with Public Fallback awareness and full support for all Mainnet and Testnet environments.
+- **DeFi Configuration Refactor**: Overhauled the "DeFi Configuration" interface layout to utilize a clean, elegant horizontal list design, achieving absolute visual consistency with the new RPC module.
+- **Clean Daemon Boot (NPM Suppression)**: Refactored `launcher.ts` and `package.json` to directly invoke local binaries (`./node_modules/.bin/ts-node`), completely bypassing `npx`. This definitively eliminates the annoying `npm warn allow-scripts` console spam during the multi-service boot sequence.
+
 ## [26.6.13]
 ### Bug Fixes & UX Hardening
 - **Telegram Reasoning Leak**: Implemented a strict Regex pre-processor within the Telegram `formatToTelegramHTML` pipeline to silently intercept and annihilate raw `<think>` and `<thought>` Chain of Thought XML tags. This guarantees a clean, distraction-free user experience when integrating reasoning models (like DeepSeek R1) via the Telegram Bot interface.
