@@ -98,5 +98,8 @@
     "concurrently": "^10.0.3",
     "oxc-minify": "^0.135.0",
     "vitepress": "^2.0.0-alpha.17"
+  },
+  "allowScripts": {
+    "isolated-vm": "true"
   }
 }
