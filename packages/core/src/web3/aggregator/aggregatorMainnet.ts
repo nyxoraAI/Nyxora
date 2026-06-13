@@ -271,6 +271,9 @@ async function fetchKyberSwap(fromChain: string, fromToken: string, toToken: str
     if (!buildRes.ok) throw new Error(await buildRes.text());
     const buildData = await buildRes.json();
 
+    const isNative = fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
+                     fromToken === '0x0000000000000000000000000000000000000000';
+
     return {
       provider: 'KyberSwap',
       expectedOutput: (Number(routeData.data.routeSummary.amountOut) / 1e18).toString(),
@@ -279,7 +282,7 @@ async function fetchKyberSwap(fromChain: string, fromToken: string, toToken: str
       txPayload: {
         to: buildData.data.routerAddress,
         data: buildData.data.data,
-        value: routeData.data.routeSummary.amountInUsd // simplified value mapping
+        value: isNative ? amount : "0" // FIXED: Mengirim jumlah asli dalam WEI jika Native ETH, atau 0 jika ERC20
       },
       rawQuote: buildData.data
     };
