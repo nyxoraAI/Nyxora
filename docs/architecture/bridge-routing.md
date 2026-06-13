@@ -46,5 +46,8 @@ This ensures total zero-trust autonomy without relying on centralized UI platfor
 **Q: I bridged to Optimism, why does the Agent show a Sepolia Tx Hash?**
 > In OP Stack rollups, a deposit is fundamentally a cross-chain message. You cryptographically sign the transaction on the **Source Chain** (L1). The L1 Smart Contract locks your funds and emits a `TransactionDeposited` event. The **L2 Sequencer** continuously monitors the L1 for this event and *asynchronously* mints the corresponding funds on L2. Nyxora gives you the L1 receipt as proof of deposit.
 
+**Q: Why are Mainnet bridge withdrawals instant, but Testnet takes 7 days?**
+> The native OP Stack protocol strictly enforces a 7-day challenge period for ALL L2-to-L1 withdrawals (both Mainnet and Testnet) to secure the network. However, on **Mainnet**, Meta-Aggregators bypass this wait by utilizing wealthy third-party "**Solvers**" (Liquidity Providers). These Solvers lock your OP tokens and instantly pay you out of their own pockets on the destination chain (e.g., Base) for a small fee, taking the 7-day waiting burden upon themselves. On **Testnet**, there are no Solvers providing liquidity pools for test-tokens, so Nyxora routes you through the pure Native Bridge, forcing you to experience the true underlying 7-day cryptographic wait.
+
 **Q: Can Relay, KyberSwap, and Li.Fi perform standard swaps?**
 > Yes! While they excel at cross-chain bridging, they are fully functional Meta-Aggregators that can perform Same-Chain Swaps. Nyxora utilizes their APIs for both purposes.
