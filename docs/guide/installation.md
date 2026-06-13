@@ -35,6 +35,13 @@ Alternatively, you can install it manually on any operating system:
 npm install -g nyxora
 ```
 
+> [!NOTE]
+> **NPM Installation Warning:** If you see a yellow warning that says `npm warn allow-scripts isolated-vm`, **do not panic! Your installation is 100% successful.**
+> This is a strict NPM v10+ security feature blocking automatic C++ script execution during global installs. This only disables the *Custom Plugin Sandbox* feature. To permanently allow the sandbox compiler and silence the warning, simply run:
+> ```bash
+> npm config set allow-scripts=isolated-vm --location=user
+> ```
+
 *If you are a developer looking to contribute to the source code, please see the Developer Installation section below.*
 
 ---
