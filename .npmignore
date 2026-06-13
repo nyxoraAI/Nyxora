@@ -17,6 +17,7 @@ scratch/
 /docs/
 /assets/
 config.yaml
+rpc_key.yaml
 packages/policy/policy.yaml
 keystore.json
 memory.db*
@@ -36,11 +37,12 @@ security_policy.md
 *.tgz
 
 # Build Caches & Test Files
-*.tsbuildinfo
-*.d.ts.map
-test-*.ts
-test_*.ts
-test_*.mjs
+**/*.tsbuildinfo
+**/*.d.ts.map
+**/test-*.ts
+**/test_*.ts
+**/test.ts
+**/*.test.ts
 packages/core/src/utils/safeLogger.js
 /launcher.ts
 migrate_keys.*

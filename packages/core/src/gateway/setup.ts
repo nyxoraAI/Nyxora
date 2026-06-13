@@ -4,7 +4,7 @@ import pc from 'picocolors';
 import fs from 'fs';
 import path from 'path';
 import { getAppDir, getPath } from '../config/paths';
-import { loadConfig, saveConfig, saveApiKeys } from '../config/parser';
+import { loadConfig, saveConfig, saveApiKeys, saveRpcConfig } from '../config/parser';
 import crypto from 'crypto';
 
 function encryptKey(privateKey: string, password: string) {
@@ -445,6 +445,7 @@ Provider: ${config.llm.provider}`;
   }
 
   saveConfig(config);
+  saveRpcConfig({});
 
   // Sync disabled_skills.json based on user selection
   const allWeb3Skills = [

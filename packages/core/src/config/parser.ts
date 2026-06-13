@@ -3,6 +3,27 @@ import yaml from 'yaml';
 import path from 'path';
 import { getPath } from './paths';
 
+export function loadRpcConfig(): Record<string, string | string[]> {
+  const rpcPath = getPath('rpc_key.yaml');
+  if (fs.existsSync(rpcPath)) {
+    try {
+      return yaml.parse(fs.readFileSync(rpcPath, 'utf8')) || {};
+    } catch (e) {
+      console.error('[Config] Failed to parse rpc_key.yaml', e);
+    }
+  }
+  return {};
+}
+
+export function saveRpcConfig(rpcUrls: Record<string, string | string[]>): void {
+  const rpcPath = getPath('rpc_key.yaml');
+  try {
+    fs.writeFileSync(rpcPath, yaml.stringify(rpcUrls), 'utf8');
+  } catch (error) {
+    console.error('Failed to save rpc_key.yaml', error);
+  }
+}
+
 export async function loadApiKeys(): Promise<Record<string, string>> {
   const config = loadConfig();
   return config.credentials || {};
@@ -79,6 +100,9 @@ export interface NyxoraConfig {
 
 export function loadConfig(): NyxoraConfig {
   const configPath = getPath('config.yaml');
+  const rpcPath = getPath('rpc_key.yaml');
+  let rpcUrls = loadRpcConfig();
+  
   try {
     const file = fs.readFileSync(configPath, 'utf8');
     const parsed = yaml.parse(file) as Partial<NyxoraConfig>;
@@ -96,6 +120,17 @@ export function loadConfig(): NyxoraConfig {
         }
       });
       delete (parsed.llm as any).credentials;
+      needsSave = true;
+    }
+
+    // Auto-migration logic: move web3.rpc_urls to rpc_key.yaml
+    if (parsed.web3 && parsed.web3.rpc_urls && Object.keys(parsed.web3.rpc_urls).length > 0) {
+      if (!fs.existsSync(rpcPath)) {
+        rpcUrls = parsed.web3.rpc_urls;
+        saveRpcConfig(rpcUrls);
+        console.log('[Config] Auto-migrated web3.rpc_urls to rpc_key.yaml.');
+      }
+      delete parsed.web3.rpc_urls;
       needsSave = true;
     }
 
@@ -125,7 +160,7 @@ export function loadConfig(): NyxoraConfig {
       },
       credentials: parsed.credentials || {},
       memory: parsed.memory || { type: 'file', path: './memory.json' },
-      web3: parsed.web3 || { rpc_urls: {} },
+      web3: { ...parsed.web3, rpc_urls: rpcUrls },
       integrations: parsed.integrations || {
         telegram: { enabled: false }
       },
@@ -160,7 +195,7 @@ export function loadConfig(): NyxoraConfig {
       },
       credentials: {},
       memory: { type: 'file', path: './memory.json' },
-      web3: { rpc_urls: {} },
+      web3: { rpc_urls: rpcUrls },
       integrations: {
         telegram: { enabled: false }
       },
@@ -175,7 +210,11 @@ export function loadConfig(): NyxoraConfig {
 export function saveConfig(newConfig: NyxoraConfig): void {
   const configPath = getPath('config.yaml');
   try {
-    const yamlStr = yaml.stringify(newConfig);
+    const configToSave = JSON.parse(JSON.stringify(newConfig));
+    if (configToSave.web3 && configToSave.web3.rpc_urls) {
+      delete configToSave.web3.rpc_urls;
+    }
+    const yamlStr = yaml.stringify(configToSave);
     fs.writeFileSync(configPath, yamlStr, 'utf8');
   } catch (error) {
     console.error('Failed to save config.yaml', error);

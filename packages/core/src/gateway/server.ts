@@ -22,7 +22,7 @@ import { validateToken, getSessionToken } from '../utils/state';
 
 import fs from 'fs';
 import { processUserInput, logger } from '../agent/reasoning';
-import { loadConfig, saveConfig } from '../config/parser';
+import { loadConfig, saveConfig, loadRpcConfig, saveRpcConfig } from '../config/parser';
 import { loadDefiKeys, saveDefiKeys } from '../config/defiConfigManager';
 import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/config';
 import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
@@ -281,6 +281,26 @@ app.post('/api/config', (req, res) => {
     // Save merged configuration to file
     saveConfig(newConfig);
     Tracker.addEvent('config.updated', { provider: req.body.llm?.provider });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/rpc', (req, res) => {
+  try {
+    const rpcConfig = loadRpcConfig();
+    res.json(rpcConfig);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/rpc', (req, res) => {
+  try {
+    const currentRpc = loadRpcConfig();
+    const newRpc = { ...currentRpc, ...req.body };
+    saveRpcConfig(newRpc);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

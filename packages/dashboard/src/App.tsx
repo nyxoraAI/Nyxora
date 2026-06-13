@@ -1,11 +1,12 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key } from 'lucide-react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
 import { DefiKeys } from './DefiKeys';
+import RpcConfig from './RpcConfig';
 import { Portfolio } from './Portfolio';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
@@ -30,7 +31,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'rpcconfig'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -457,6 +458,12 @@ function App() {
               <Terminal size={15} className="nav-icon" /> OS Skills
             </div>
             <div 
+              className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`}
+              onClick={() => setCurrentView('rpcconfig')}
+            >
+              <Server size={15} className="nav-icon" /> RPC Configuration
+            </div>
+            <div 
               className={`nav-item ${currentView === 'defikeys' ? 'active' : ''}`}
               onClick={() => setCurrentView('defikeys')}
             >
@@ -541,6 +548,8 @@ function App() {
           <OsSkills />
         ) : currentView === 'settings' ? (
           <Settings config={config} onConfigChange={setConfig} autoLockTime={autoLockTime} setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }} />
+        ) : currentView === 'rpcconfig' ? (
+          <RpcConfig />
         ) : currentView === 'defikeys' ? (
           <DefiKeys />
         ) : (

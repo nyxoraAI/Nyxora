@@ -78,23 +78,25 @@ export const DefiKeys: React.FC = () => {
         <h3 className="section-title" style={{ color: '#88c0d0', marginBottom: '8px', fontSize: '1.2rem' }}>Protocol Integrations</h3>
         <p className="section-description" style={{ marginBottom: '32px', color: '#d8dee9', fontSize: '0.95rem' }}>Provide your own API keys to bypass public rate limits and unlock full Meta-Aggregator speed.</p>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
           {DEFI_PROTOCOLS.map(protocol => {
             const isSet = keys[protocol.id] === 'IS_SET';
             return (
-              <div key={protocol.id} style={{ background: '#2e3440', padding: '24px', borderRadius: '12px', border: '1px solid #434c5e', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <strong style={{ color: '#eceff4', fontSize: '1.1rem' }}>{protocol.name}</strong>
-                  {isSet && <span style={{ color: '#a3be8c', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, background: 'rgba(163, 190, 140, 0.1)', padding: '4px 10px', borderRadius: '9999px' }}><CheckCircle2 size={14}/> ACTIVE</span>}
+              <div key={protocol.id} style={{ background: '#2e3440', padding: '20px', borderRadius: '12px', border: '1px solid #434c5e', display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ width: '250px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <strong style={{ color: '#eceff4', fontSize: '1rem', display: 'block' }}>{protocol.name}</strong>
+                    {isSet && <span style={{ color: '#a3be8c', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, background: 'rgba(163, 190, 140, 0.1)', padding: '2px 8px', borderRadius: '9999px' }}><CheckCircle2 size={12}/> ACTIVE</span>}
+                  </div>
+                  <span style={{ color: '#81a1c1', fontSize: '0.8rem', lineHeight: 1.4, display: 'block' }}>{protocol.desc}</span>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#81a1c1', marginBottom: '20px' }}>{protocol.desc}</div>
                 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <input
                       type={showKey[protocol.id] ? "text" : "password"}
                       className="nord-input"
-                      style={{ paddingRight: '40px', borderColor: isSet ? '#a3be8c' : '#434c5e' }}
+                      style={{ paddingRight: '40px', borderColor: isSet ? '#a3be8c' : '#434c5e', width: '100%' }}
                       placeholder={isSet ? "••••••••••••••••" : "Paste API Key here..."}
                       value={keys[protocol.id] === 'IS_SET' ? '' : (keys[protocol.id] || '')}
                       onChange={e => setKeys({ ...keys, [protocol.id]: e.target.value })}
@@ -113,7 +115,7 @@ export const DefiKeys: React.FC = () => {
                     className="nord-btn-primary" 
                     onClick={() => handleSave(protocol.id)}
                     disabled={!keys[protocol.id] || keys[protocol.id] === 'IS_SET'}
-                    style={{ padding: '0 20px', height: '40px', gap: '8px' }}
+                    style={{ padding: '0 20px', height: '40px', gap: '8px', flexShrink: 0 }}
                   >
                     <Save size={16} /> Save
                   </button>
