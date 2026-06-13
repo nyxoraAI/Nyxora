@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Zero-LLM Fast Return (Instant UI Popups)**: Re-enabled the `fastReturnTools` bypass architecture for all transactional Web3 skills (transfer, swap, bridge, etc.). This optimization skips the redundant secondary LLM summarization phase, cutting transaction generation latency by 3-10 seconds and delivering the UI Approve/Reject popup instantly upon tool completion.
 - **One-Liner Transaction UX**: Radically refactored the raw `TRANSACTION_PENDING` LLM string outputs across 9 Web3 modules (Bridge, Swap, Transfer, DeFi Lending, etc.) into ultra-sleek, single-line Markdown formats. This maximizes screen real-estate and delivers an HFT (High-Frequency Trading) aesthetic to the Dashboard and Telegram chat interfaces.
 
+### Cross-Chain Architecture
+- **L2 Asynchronous Watcher**: Built a robust Node.js background daemon (`bridgeWatcher.ts`) to autonomously track the 7-day L2-to-L1 challenge periods. This completely modernizes withdrawal operations from blocking UI threads to a passive, state-managed background cron-job.
+- **Push Notifications with Inline Actions**: Telegram gateway now natively supports pushing spontaneous server-to-client alerts. The L2 Watcher triggers an immediate Telegram push notification the exact minute an L1 Claim becomes valid, complete with an inline `[ Approve Claim ]` callback button.
+- **Universal OP Stack Native Bridge**: Implemented a dedicated `nativeOpBridge.ts` module hardcoded with strictly validated (EIP-55 fully lowercased) `L1StandardBridgeProxy` addresses for both Base Sepolia and OP Sepolia. Nyxora can now encode and simulate native OP Stack portal deposits without relying on external APIs.
+- **Testnet Meta-Aggregator Hierarchy**: Overhauled the logic inside `aggregatorTestnet.ts`. The router now intelligently prioritizes the `nativeOpBridge` for all OP Stack chains, gracefully degrading to `fetchRelayTestnet` for Base and `fetchArbitrumBridgeTestnet` for Arbitrum exclusively.
+
 ## [26.6.12]
 ### Security & Web3 Routing
 - **Relay API Mainnet Fallback**: Fixed a critical routing bug for native ETH. The aggregator now precisely translates the native token identifier (`0xeeee...`) into the Zero Address (`0x0000...`) exclusively when communicating with Relay's cross-chain API. This completely neutralizes "Invalid input currency" rejections on mainnet bridges.

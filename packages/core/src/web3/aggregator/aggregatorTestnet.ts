@@ -4,6 +4,7 @@ import { ChainName } from '../config';
 import { loadDefiKeys } from '../../config/defiConfigManager';
 import { safeFetch } from '../../utils/httpClient';
 import { encodeFunctionData, parseAbi } from 'viem';
+import { fetchNativeOpBridgeTestnet } from '../skills/nativeOpBridge';
 
 export async function fetchTestnetBestRoute(
   fromChain: ChainName,
@@ -16,19 +17,34 @@ export async function fetchTestnetBestRoute(
 ): Promise<RouteQuote> {
   const promises: Promise<RouteQuote | null>[] = [];
 
-  // Routing Logic
-  const isRelayRoute = (fromChain === 'sepolia' && toChain === 'base_sepolia') || 
-                       (fromChain === 'base_sepolia' && toChain === 'sepolia');
-                       
-  const isArbitrumRoute = (fromChain === 'sepolia' && toChain === 'arbitrum_sepolia') || 
-                          (fromChain === 'arbitrum_sepolia' && toChain === 'sepolia');
+  // Routing Logic Hierarchy
+  const isOpStack = toChain === 'optimism_sepolia' || toChain === 'base_sepolia' || 
+                    fromChain === 'optimism_sepolia' || fromChain === 'base_sepolia';
+  
+  const isArbitrum = toChain === 'arbitrum_sepolia' || fromChain === 'arbitrum_sepolia';
 
-  if (isRelayRoute) {
-    promises.push(fetchRelayTestnet(fromChain, toChain, fromToken, toToken, amountInWei, userAddress));
-  } else if (isArbitrumRoute) {
-    promises.push(fetchArbitrumBridgeTestnet(fromChain, toChain, fromToken, toToken, amountInWei, userAddress));
+  if (isOpStack) {
+    // Primary: Universal OP Stack
+    promises.push(
+      fetchNativeOpBridgeTestnet(fromChain, toChain, fromToken, toToken, amountInWei, userAddress)
+        .catch(e => { console.warn('Native OP failed:', e.message); return null; })
+    );
+
+    // Fallback 1: Relay Testnet (Only supports Base Sepolia natively via Relay endpoint)
+    if (toChain === 'base_sepolia' || fromChain === 'base_sepolia') {
+      promises.push(
+        fetchRelayTestnet(fromChain, toChain, fromToken, toToken, amountInWei, userAddress)
+          .catch(e => { console.warn('Relay Fallback failed:', e.message); return null; })
+      );
+    }
+  } else if (isArbitrum) {
+    // Fallback 2: Official Arbitrum Bridge
+    promises.push(
+      fetchArbitrumBridgeTestnet(fromChain, toChain, fromToken, toToken, amountInWei, userAddress)
+        .catch(e => { console.warn('Arbitrum Bridge failed:', e.message); return null; })
+    );
   } else {
-    throw new Error(`[Testnet Meta-Aggregator] Unsupported testnet route from ${fromChain} to ${toChain}. Only Sepolia <-> Base Sepolia or Sepolia <-> Arbitrum Sepolia are supported.`);
+    throw new Error(`[Testnet Meta-Aggregator] Unsupported testnet route from ${fromChain} to ${toChain}.`);
   }
 
   const results = await Promise.allSettled(promises);
