@@ -50,3 +50,6 @@ DOCKER.md
 # Secret Private Tests
 **/__tests__/
 vitest.config.*
+
+# Unreleased Strategy Documents
+GOVERNANCE.md
