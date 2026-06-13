@@ -13,6 +13,8 @@ import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
 
+let globalBotInstance: Telegraf | null = null;
+
 export function formatToTelegramHTML(text: string): string {
   if (!text) return "";
   let html = text
@@ -55,6 +57,7 @@ export function startTelegramBot() {
 
   try {
     const bot = new Telegraf(token);
+    globalBotInstance = bot;
     
     // Pairing state variables
     const isPaired = !!config.integrations?.telegram?.authorized_chat_id;
@@ -274,5 +277,23 @@ export function startTelegramBot() {
 
   } catch (error) {
     console.error('[Telegram] Failed to initialize bot:', error);
+  }
+}
+
+export async function sendPushNotification(chatId: string | number, message: string, withdrawalId?: string) {
+  if (!globalBotInstance) return;
+  try {
+    let extraParams: any = { parse_mode: 'HTML' };
+    if (withdrawalId) {
+      extraParams = {
+        ...extraParams,
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(`✅ Approve Claim`, `claim_${withdrawalId}`)]
+        ])
+      };
+    }
+    await globalBotInstance.telegram.sendMessage(chatId, formatToTelegramHTML(message), extraParams);
+  } catch (error) {
+    console.error('[Telegram] Failed to send push notification:', error);
   }
 }

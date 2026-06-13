@@ -72,6 +72,7 @@ import { searchWebToolDefinition } from '../system/skills/searchWeb';
 import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition } from '../system/skills/googleWorkspace';
 
 import { startTelegramBot } from './telegram';
+import { startBridgeWatcher } from '../agent/bridgeWatcher';
 import { eventListener } from '../web3/eventListener';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import { initGoogleAuth, getAuthUrl, processCallback, isAuthenticated, logoutGoogle } from './googleAuthModule';
@@ -902,6 +903,9 @@ export function startServer() {
     
     // Start the Telegram bot listener
     startTelegramBot();
+    
+    // Start Asynchronous Bridge Watcher
+    startBridgeWatcher();
     
     // Start Event Listener for Limit Orders (V3)
     eventListener.start();
