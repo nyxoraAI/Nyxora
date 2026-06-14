@@ -53,10 +53,11 @@ function App() {
   // Auto-Lock State
   const [isLocked, setIsLocked] = useState(false);
   const [lockedAt, setLockedAt] = useState<number>(0);
-  const lastActivityRef = useRef<number>(Date.now());
+  const lastActivityRef = useRef<number>(0);
   const [autoLockTime, setAutoLockTime] = useState<number>(() => parseInt(localStorage.getItem('nyxora_auto_lock') || '0'));
 
   useEffect(() => {
+    lastActivityRef.current = Date.now();
     const handleActivity = () => { lastActivityRef.current = Date.now(); };
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
