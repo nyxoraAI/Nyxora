@@ -1,6 +1,6 @@
 # 🧠 Native Skills (Comprehensive Guide)
 
-Nyxora comes pre-equipped with a robust set of Native Skills built directly into its core reasoning engine (`reasoning.ts`). These skills are fundamentally integrated with the agent's permissions, heavily monitored by the NLP Security Policy, and do not require installing any external NPM plugins.
+Nyxora comes pre-equipped with a robust set of Native Skills built directly into its core reasoning engine (`reasoning.ts`). These skills are fundamentally integrated with the agent's permissions and heavily monitored by the NLP Security Policy.
 
 Native skills are divided into two primary categories: **Web3 Native Functions** and **OS (Operating System) Level Skills**.
 
@@ -44,7 +44,6 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 *   **DeFi Security Guard (Revoke):** A critical security skill allowing the AI to construct 0-value `approve()` payloads to instantly revoke "Infinite Approvals" from malicious or vulnerable smart contracts.
 *   **Transaction Chaining (Smart Approve):** The AI intelligently reads user allowances prior to execution. It will autonomously draft a precise `approve` payload before supplying Aave or depositing to Beefy, drastically improving UX.
 
-*(Note: For highly specialized DeFi operations—such as complex Yield Farming strategies, Flash Loans, or interacting with novel protocols—the agent utilizes the `installSkill` function to load specialized external plugins into its sandbox).*
 
 ---
 
@@ -83,6 +82,3 @@ These skills allow the AI to interact directly with your local machine, file sys
 *   **`updateSecurityPolicy`**
     *   **Description:** Allows the AI to programmatically append or modify its own security constraints in `policy.yaml` (under the `custom_llm_rules` configuration).
     *   **Capabilities:** If you instruct the agent *"From now on, never touch the src/core directory,"* it will use this skill to permanently remember the rule.
-*   **`installSkill`**
-    *   **Description:** Dynamically installs external Nyxora community plugins via NPM at runtime.
-    *   **Capabilities:** If the AI realizes it lacks the capability to interact with a specific DeFi protocol, it can search for and install the required skill package without requiring a system restart.

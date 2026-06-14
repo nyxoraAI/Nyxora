@@ -37,7 +37,7 @@ import { generateExcelToolDefinition, generateExcelFile } from '../system/skills
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
 import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
 import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
-import { installExternalSkillToolDefinition, installExternalSkill } from '../system/skills/installSkill';
+
 import { editLocalFileToolDefinition, editLocalFile } from '../system/skills/editFile';
 import { gitManagerToolDefinition, executeGitCommand } from '../system/skills/gitManager';
 import { xManagerToolDefinition, manageTwitter } from '../system/skills/xManager';
@@ -56,7 +56,7 @@ import {
   readGoogleDocsToolDefinition,
   readGoogleFormResponsesToolDefinition
 } from '../system/skills/googleWorkspace';
-import { pluginManager } from '../system/pluginManager';
+
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
 
@@ -303,16 +303,16 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         createLimitOrderToolDefinition
       );
     }
-    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, installExternalSkillToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition];
+    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition];
     const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
 
     let activeTools: any[] = [];
     if (hasGoogleKeyword && !hasWeb3Keyword) {
-      activeTools = [...GOOGLE_TOOLS, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
+      activeTools = [...GOOGLE_TOOLS, ...SYSTEM_TOOLS];
     } else if (hasWeb3Keyword && !hasGoogleKeyword) {
-      activeTools = [...tools, ...SYSTEM_TOOLS, ...pluginManager.getToolDefinitions()];
+      activeTools = [...tools, ...SYSTEM_TOOLS];
     } else {
-      activeTools = [...tools, ...SYSTEM_TOOLS, ...GOOGLE_TOOLS, ...pluginManager.getToolDefinitions()];
+      activeTools = [...tools, ...SYSTEM_TOOLS, ...GOOGLE_TOOLS];
     }
     activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
@@ -548,10 +548,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               result = await searchWeb(args.query, args.depth);
               break;
             }
-            case 'install_external_skill': {
-              result = await installExternalSkill(args.url);
-              break;
-            }
+
             case 'read_gmail_inbox': {
               result = await readGmailInbox(args.maxResults);
               break;
@@ -573,12 +570,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             default: {
-              const externalResult = await pluginManager.executeTool(toolName, args);
-              if (externalResult !== null) {
-                result = externalResult;
-              } else {
-                result = `Error: Tool ${toolName} is not implemented.`;
-              }
+              result = `Error: Tool ${toolName} is not implemented.`;
               break;
             }
           }

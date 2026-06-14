@@ -25,7 +25,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 *   **DeFi Configuration BYOK & UI Masking**: All aggregator and provider API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into a heavily guarded `~/.nyxora/defi_keys.yaml` file. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
-*   **Plugin Sandbox VM**: Execute community-built external skills securely inside an airtight Node.js `vm` chamber with zero access to your file system or terminal processes.
+
 *   **Graceful SQLite WAL Shutdown**: Integrated `SIGTERM`/`SIGINT` interceptors ensure that when the daemon stops, active requests are safely terminated and SQLite Write-Ahead Logs (WAL) are securely flushed, preventing database corruption.
 
 ### 🌐 Web3 Skills (On-Chain)
