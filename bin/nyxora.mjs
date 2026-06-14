@@ -15,9 +15,9 @@ const pidFile = path.join(appDir, 'run', 'daemon.pid');
 const logFile = path.join(appDir, 'run', 'gateway.log');
 const tokenFile = path.join(appDir, 'auth', 'auth.token');
 
-if (!fs.existsSync(appDir)) {
-  fs.mkdirSync(appDir, { recursive: true });
-}
+[path.join(appDir, 'run'), path.join(appDir, 'auth')].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
 
 const command = process.argv[2];
 
