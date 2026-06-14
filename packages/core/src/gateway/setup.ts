@@ -445,7 +445,7 @@ Provider: ${config.llm.provider}`;
   }
 
   saveConfig(config);
-  saveRpcConfig({});
+
 
   // Sync disabled_skills.json based on user selection
   const allWeb3Skills = [
