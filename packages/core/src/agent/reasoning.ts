@@ -15,8 +15,8 @@ import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
 import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
 
 import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/checkSecurity';
-import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
-import { analyzeMarketEngine } from '../web3/utils/marketEngine';
+import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
+import { createMarketWatchAgentToolDefinition, createMarketWatchAgent } from '../web3/skills/createMarketWatchAgent';
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
 import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
@@ -157,7 +157,7 @@ IMPORTANT: The <think> block is strictly for your internal hidden monologue. NEV
 
 [EXECUTION WORKFLOW]
 CRITICAL RULE 1: NEVER expose internal JSON tool calls to the user. Always parse them and explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE 2: STRICT LANGUAGE MATCHING. You MUST strictly reply in the exact same language as the user's LATEST prompt. Render all output, metric labels, and suggested actions entirely in the language the user initiated the prompt with, while strictly preserving the visual structure of the progress bars.
 CRITICAL RULE 3: FORMATTING & CONCISENESS. Provide concise analytical summaries of data rather than just dumping raw markdown tables. Be analytical but brief. Use commas for thousands.
 CRITICAL RULE 4: TOOL PRIORITIZATION. Web3 tasks must use Web3 Skills exclusively. OS Skills (search, browse) are fallbacks only. Use get_my_address to show wallet address, and check_portfolio to show balances.
 CRITICAL RULE 5: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified. If overridden, confirm the chain politely. For 2-chain txs (bridge), default source to ${config.agent.default_chain}.
@@ -290,6 +290,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         customTxToolDefinition,
         checkSecurityToolDefinition,
         marketAnalysisToolDefinition,
+        createMarketWatchAgentToolDefinition,
         checkPortfolioToolDefinition,
         checkAddressToolDefinition,
         getMyAddressToolDefinition,
@@ -409,7 +410,11 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'analyze_market': {
-              result = await analyzeMarketEngine(args.chainName, args.tokenAddressOrSymbol);
+              result = await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
+              break;
+            }
+            case 'create_market_watch_agent': {
+              result = await createMarketWatchAgent(args.chainName, args.contractAddress, args.rules, args.durationDays);
               break;
             }
             case 'check_portfolio': {
