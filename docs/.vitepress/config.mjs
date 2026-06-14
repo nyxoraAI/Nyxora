@@ -44,7 +44,7 @@ export default defineConfig({
           { text: '📊 Market Intelligence', link: '/skills/market-intelligence' },
           { text: '🔍 Web Search & Deep Research', link: '/skills/web-search' },
           { text: '💻 Google Workspace MVP', link: '/skills/google-workspace' },
-          { text: '🔗 External Plugins', link: '/guide/custom_skills' },
+
           { text: '⚙️ DeFi Configuration', link: '/skills/defi-config' },
           { text: '📈 Understanding Slippage', link: '/skills/slippage' },
           { text: '🪙 Chain Specifics', link: '/skills/chains' },
@@ -59,7 +59,7 @@ export default defineConfig({
           { text: '⛓️ Arbitrum Smart Contract', link: '/security/smart-contract' },
           { text: '🛡️ Wallet Import Guide', link: '/security/wallet_import' },
           { text: '🔐 OS-Native Keyring Vault', link: '/security/vault' },
-          { text: '🛡️ Policy Engine & Sandbox', link: '/security/sandbox' },
+          { text: '🛡️ Policy Engine', link: '/security/sandbox' },
           { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
           { text: '🛟 Troubleshooting', link: '/security/troubleshooting' }
         ]

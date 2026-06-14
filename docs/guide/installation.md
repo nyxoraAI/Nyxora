@@ -35,12 +35,7 @@ Alternatively, you can install it manually on any operating system:
 npm install -g nyxora
 ```
 
-> [!NOTE]
-> **NPM Installation Warning:** If you see a yellow warning that says `npm warn allow-scripts isolated-vm`, **do not panic! Your installation is 100% successful.**
-> This is a strict NPM v10+ security feature blocking automatic C++ script execution during global installs. This only disables the *Custom Plugin Sandbox* feature. To permanently allow the sandbox compiler and silence the warning, simply run:
-> ```bash
-> npm config set allow-scripts=isolated-vm --location=user
-> ```
+
 
 *If you are a developer looking to contribute to the source code, please see the Developer Installation section below.*
 
@@ -113,7 +108,7 @@ Choose the brain behind your agent.
 Nyxora operates on a principle of least privilege. You must explicitly grant the agent its capabilities:
 - **Web3 Skills:** Toggle capabilities like Token Swapping, Bridging, NFT Minting, or Portfolio Analysis.
 - **OS Skills:** Toggle system-level actions like Reading/Writing Files, Web Scraping, or Google Workspace integration.
-*(Any unselected skills are injected into a local `disabled_skills.json` sandbox, preventing the AI from executing them).*
+*(Any unselected skills are injected into a local `disabled_skills.json` blacklist file, preventing the AI from executing them).*
 
 ### Stage C: Web Search Configuration (Conditional)
 If you enabled the **Smart Web Search** skill, you will be prompted to choose a search provider (**Tavily** or **Brave Search**) and enter its respective API Key.
