@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pristine Local Development Logs**: Injected `NODE_NO_WARNINGS=1` environment variables into the core `launcher.ts` monorepo runner. This entirely suppresses noisy `MODULE_TYPELESS_PACKAGE_JSON` CommonJS/ESM reparsing warnings during `npm run dev`, providing a flawless, 100% clean boot log for presentation and development purposes.
 - **Internal Version Synchronization**: Synced all sub-packages (`core`, `signer`, `policy`, `mcp-server`) explicitly to `v26.6.14-1` for consistent NPM publishing.
 
+### Bug Fixes
+- **Rapid Graceful Shutdown**: Refactored the core gateway server shutdown sequence to aggressively call `server.closeAllConnections()`. This eliminates the 10-second hang caused by persistent UI polling / SSE connections when stopping the daemon via `CTRL+C`.
+- **Market Analysis Cascade Architecture**: Rewired the AI `analyzeMarket` capability in `reasoning.ts` to correctly route through the advanced `analyzeMarketEngine`. This strictly enforces the 3-Tier Cascading Fallback logic (CoinMarketCap ➔ CoinGecko ➔ DexScreener), maximizing market data resilience against API rate-limits.
+
 ## [26.6.14]
 ### Security & Privacy
 - **Isolated Private RPC Vault**: Extracted `web3.rpc_urls` from the main `config.yaml` and moved them into a highly isolated `~/.nyxora/config/rpc_key.yaml` file. This guarantees zero risk of leaking Premium Node Endpoints (Alchemy, Infura) when sharing config files or prompts.
