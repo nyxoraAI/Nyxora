@@ -30,8 +30,12 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 *   **Gas Estimation:** The AI natively calculates required Gas Fees (Gwei) before broadcasting to ensure transactions do not fail out of gas.
 
 ### 📊 Market Intelligence & Prioritization (Rule 7)
-*   **Prioritized Execution:** According to **Critical Rule 7** in the AI's reasoning engine, whenever a user asks for crypto prices, token contract security, or market analysis, the AI **must** prioritize using dedicated Web3 APIs (e.g., CoinGecko, DexScreener) rather than falling back to a generic web search.
+*   **Dual-Routing API Waterfall:** Whenever a user asks for crypto prices, market analysis, or deep dives, the AI **must** prioritize using dedicated Web3 APIs. It uses a dual-routing system: Symbol queries (e.g., $ETH) are routed to CoinGecko and CEX APIs for highly accurate global FDV and liquidity metrics. Contract Address queries (e.g., 0x...) are routed to DexScreener for live on-chain pool data.
 *   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
+
+### ⏱️ Asynchronous Watchdog Automation
+*   **Background Sub-Agents:** Nyxora can spawn detached background agents (`createMarketWatchAgent`) to continuously monitor market conditions, prices, or liquidity pools.
+*   **Event-Driven Triggers:** When a user says *"Monitor $SOL and buy 1 SOL if it hits $120"*, the main session immediately delegates this to a Watchdog. The Watchdog loops in the background until the condition is met, seamlessly executing the trade and notifying the user.
 
 ### 🏦 Advanced DeFi Optimization
 *   **DeFi Lending Engine (Aave V3):** The AI can autonomously fetch dynamic `Pool` addresses and securely draft `supply` payloads to earn yield on idle assets.

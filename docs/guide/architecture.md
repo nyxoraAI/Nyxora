@@ -17,6 +17,7 @@ The Core is the front-facing gateway. It serves the Dashboard UI, connects to th
 *   **Role:** Analyzes user intent, reads memory, and builds transaction payloads (unsigned drafts).
 *   **Web3 Component Isolation:** The codebase enforce a strict Separation of Concerns. The `aggregator/` directory acts as the traffic controller for all multi-chain routing logic (interacting with 1inch, 0x, KyberSwap, etc), while the `skills/` directory contains pure AI-facing tools. This prevents prompt-injection from contaminating routing rules.
 *   **NLP Intelligence ("Context Overrides Defaults"):** The Core is designed to prioritize your explicit natural language commands over the static Dashboard configurations. If your Dashboard is locked to `Base` and `Uniswap V2`, but you chat via Telegram asking to *"Swap on Arbitrum using Li.Fi"*, the Brain dynamically overrides the default fallback variables in real-time, executing the specific intent without permanently altering your Dashboard settings.
+*   **Asynchronous Watchdog Agents (Sub-Agents):** Nyxora supports spawning detached background instances for long-running monitoring tasks. When requested (e.g., *"Monitor $ETH and notify me if it drops below $2500"*), the Core invokes a lightweight Sub-Agent that loops asynchronously, leaving your primary session free for other tasks.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
 ### 2. Policy Engine (The Guard) - Port 3001
