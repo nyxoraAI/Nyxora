@@ -18,6 +18,27 @@ async function fetchCexData(symbol: string) {
     return null;
 }
 
+async function fetchCoinGeckoData(symbol: string) {
+    try {
+        const searchData = await safeFetchJson<any>(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
+        const foundCoin = searchData.coins?.find((c: any) => c.symbol.toLowerCase() === symbol.toLowerCase() || c.id === symbol.toLowerCase());
+        if (foundCoin) {
+            const coinData = await safeFetchJson<any>(`https://api.coingecko.com/api/v3/coins/${foundCoin.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`);
+            if (coinData && coinData.market_data) {
+                return {
+                    price: coinData.market_data.current_price?.usd || 0,
+                    mcap: coinData.market_data.market_cap?.usd || 0,
+                    fdv: coinData.market_data.fully_diluted_valuation?.usd || coinData.market_data.market_cap?.usd || 0,
+                    vol: coinData.market_data.total_volume?.usd || 0,
+                    change: coinData.market_data.price_change_percentage_24h || 0,
+                    name: "CoinGecko"
+                };
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
 async function fetchDexData(query: string, isCa: boolean, chainName?: ChainName) {
     let data;
     if (isCa) data = await safeFetchJson<any>(`https://api.dexscreener.com/latest/dex/tokens/${query}`);
@@ -103,18 +124,21 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
         rsi = momentum.rsi;
 
     } else {
-        // Jika input adalah Symbol -> Hit CEX Pertama
+        // Jika input adalah Symbol -> Hit CEX & CoinGecko
+        const cgData = await fetchCoinGeckoData(officialSymbol);
         const cex = await fetchCexData(officialSymbol);
-        if (cex) {
+        
+        if (cgData || cex) {
             isCexAsset = true;
-            network = `CEX (${cex.name})`;
-            currentPrice = cex.price;
-            volume24h = cex.vol;
-            priceChange24h = cex.change;
+            network = `Global CEX/Market`;
+            currentPrice = cex ? cex.price : (cgData?.price || 0);
+            volume24h = cgData ? cgData.vol : (cex?.vol || 0);
+            priceChange24h = cex ? cex.change : (cgData?.change || 0);
             
-            // Proxy proxy agar skor likuiditas tidak 0 (CEX asset memiliki likuiditas melimpah)
-            mcapUsd = volume24h * 10; 
-            liquidityUsd = volume24h * 2; 
+            // Gunakan FDV CoinGecko asli jika ada, jika tidak proxy dari volume CEX
+            mcapUsd = cgData ? cgData.fdv : (volume24h * 10); 
+            // Estimasi likuiditas institusional (CoinGecko tidak mengembalikan market liquidity kedalaman pool, jadi gunakan 10% dari mcap)
+            liquidityUsd = cgData ? cgData.fdv * 0.1 : (volume24h * 2); 
 
             const momentum = await fetchCexMomentum(officialSymbol, currentPrice);
             ma50 = momentum.ma50;
