@@ -21,6 +21,7 @@ import { getPath } from '../config/paths';
 import { validateToken, getSessionToken } from '../utils/state';
 
 import fs from 'fs';
+import yaml from 'yaml';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig, loadRpcConfig, saveRpcConfig } from '../config/parser';
 import { loadDefiKeys, saveDefiKeys } from '../config/defiConfigManager';
@@ -849,6 +850,45 @@ app.delete('/api/memory/:id', (req, res) => {
   }
 });
 
+// --- Policy Engine Endpoints ---
+app.get('/api/policy', (req, res) => {
+  try {
+    const policyPath = getPath('policy.yaml');
+    if (!fs.existsSync(policyPath)) {
+      return res.json({
+        max_usd_per_tx: 999999999,
+        whitelist_only: false,
+        require_approval: true,
+        custom_llm_rules: []
+      });
+    }
+    const file = fs.readFileSync(policyPath, 'utf8');
+    const parsed = yaml.parse(file) || {};
+    res.json({
+      max_usd_per_tx: parsed.max_usd_per_tx ?? 999999999,
+      whitelist_only: parsed.whitelist_only ?? false,
+      require_approval: parsed.require_approval ?? true,
+      custom_llm_rules: parsed.custom_llm_rules || []
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/policy', (req, res) => {
+  try {
+    const policyPath = getPath('policy.yaml');
+    let current = {};
+    if (fs.existsSync(policyPath)) {
+      current = yaml.parse(fs.readFileSync(policyPath, 'utf8')) || {};
+    }
+    const updated = { ...current, ...req.body };
+    fs.writeFileSync(policyPath, yaml.stringify(updated), 'utf8');
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- User Persona / Risk Profile Endpoints (V3) ---
 app.get('/api/profile', (req, res) => {

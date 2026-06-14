@@ -85,17 +85,6 @@ export interface NyxoraConfig {
   channels?: {
     active: string[];
   };
-  permissions?: {
-    web3?: {
-      allow_transfer?: boolean;
-      allow_swap?: boolean;
-      max_usd_per_tx?: number;
-    };
-    system?: {
-      allow_shell_execution?: boolean;
-      allow_file_write?: boolean;
-    };
-  };
 }
 
 export function loadConfig(): NyxoraConfig {
@@ -134,6 +123,18 @@ export function loadConfig(): NyxoraConfig {
       needsSave = true;
     }
 
+    // Auto-migration logic: move permissions to policy.yaml
+    const policyPath = getPath('policy.yaml');
+    if (!fs.existsSync(policyPath)) {
+      const defaultPolicy = `max_usd_per_tx: ${(parsed as any).permissions?.web3?.max_usd_per_tx || 999999999}\nwhitelist_only: false\nrequire_approval: true\n`;
+      fs.writeFileSync(policyPath, defaultPolicy, 'utf8');
+      console.log('[Config] Created default policy.yaml.');
+    }
+    if ((parsed as any).permissions) {
+      delete (parsed as any).permissions;
+      needsSave = true;
+    }
+
     if (needsSave) {
       try {
         const yamlStr = yaml.stringify(parsed);
@@ -163,10 +164,6 @@ export function loadConfig(): NyxoraConfig {
       web3: { ...parsed.web3, rpc_urls: rpcUrls },
       integrations: parsed.integrations || {
         telegram: { enabled: false }
-      },
-      permissions: parsed.permissions || {
-        web3: { allow_transfer: true, allow_swap: true, max_usd_per_tx: 999999999 },
-        system: { allow_shell_execution: true, allow_file_write: true }
       }
     } as NyxoraConfig;
   } catch (error: any) {
@@ -198,10 +195,6 @@ export function loadConfig(): NyxoraConfig {
       web3: { rpc_urls: rpcUrls },
       integrations: {
         telegram: { enabled: false }
-      },
-      permissions: {
-        web3: { allow_transfer: true, allow_swap: true, max_usd_per_tx: 999999999 },
-        system: { allow_shell_execution: true, allow_file_write: true }
       }
     };
   }

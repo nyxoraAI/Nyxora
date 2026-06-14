@@ -1,27 +1,34 @@
 import fs from 'fs';
+import yaml from 'yaml';
 import { getPath } from '../../config/paths';
 
 export function updateSecurityPolicy(rule: string, action: 'add' | 'remove' | 'clear'): string {
   try {
-    const policyPath = getPath('security_policy.md');
-    let existingContent = "";
+    const policyPath = getPath('policy.yaml');
+    let policyRules: any = { max_usd_per_tx: 999999999, whitelist_only: false, require_approval: true, custom_llm_rules: [] };
     
     if (fs.existsSync(policyPath)) {
-      existingContent = fs.readFileSync(policyPath, 'utf8');
+      const file = fs.readFileSync(policyPath, 'utf8');
+      policyRules = { ...policyRules, ...(yaml.parse(file) || {}) };
+    }
+
+    if (!Array.isArray(policyRules.custom_llm_rules)) {
+      policyRules.custom_llm_rules = [];
     }
     
     if (action === 'clear') {
-      fs.writeFileSync(policyPath, '', 'utf8');
+      policyRules.custom_llm_rules = [];
+      fs.writeFileSync(policyPath, yaml.stringify(policyRules), 'utf8');
       return "Security policy cleared.";
     } else if (action === 'add') {
-      const newContent = existingContent + (existingContent.endsWith('\n') || existingContent === '' ? '' : '\n') + `* ${rule}`;
-      fs.writeFileSync(policyPath, newContent, 'utf8');
+      if (!policyRules.custom_llm_rules.includes(rule)) {
+        policyRules.custom_llm_rules.push(rule);
+      }
+      fs.writeFileSync(policyPath, yaml.stringify(policyRules), 'utf8');
       return `Rule added to security policy: ${rule}`;
     } else if (action === 'remove') {
-      // Very basic line removal
-      const lines = existingContent.split('\n');
-      const filtered = lines.filter(l => !l.includes(rule));
-      fs.writeFileSync(policyPath, filtered.join('\n'), 'utf8');
+      policyRules.custom_llm_rules = policyRules.custom_llm_rules.filter((r: string) => !r.includes(rule));
+      fs.writeFileSync(policyPath, yaml.stringify(policyRules), 'utf8');
       return `Rule removed (if it existed).`;
     }
     
@@ -35,7 +42,7 @@ export const updateSecurityPolicyToolDefinition = {
   type: "function",
   function: {
     name: "update_security_policy",
-    description: "Updates the security_policy.md file to restrict your own autonomous behavior. Use this when the user explicitly forbids you from doing something (e.g. 'do not touch drive E').",
+    description: "Updates the custom_llm_rules array in policy.yaml to restrict your own autonomous behavior. Use this when the user explicitly forbids you from doing something.",
     parameters: {
       type: "object",
       properties: {

@@ -304,7 +304,7 @@ Provider: ${config.llm.provider}`;
       { value: 'run_terminal', label: 'Run Terminal Command', hint: '⚠️ UNSAFE' },
       { value: 'installSkill', label: 'Install External Skills (Plugins)' },
       { value: 'gitManager', label: 'Git Operations (Commit/Push/Pull)' },
-      { value: 'updateSecurityPolicy', label: 'Update security_policy.md', hint: 'safeguard' },
+      { value: 'updateSecurityPolicy', label: 'Update policy.yaml rules', hint: 'safeguard' },
       { value: 'browseWeb', label: 'Browse & Scrape Webpages' },
       { value: 'searchWeb', label: 'Smart Web Search (Tavily/Brave)', hint: 'Requires API Key' },
       { value: 'googleWorkspace', label: 'Google Workspace (Gmail, Docs, Sheets, Forms)', hint: 'Requires OAuth' },

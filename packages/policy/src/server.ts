@@ -161,13 +161,50 @@ app.post('/request-tx', (req, res) => {
         return;
     }
     
-    // Simulate policy evaluation
-    if (policyRules.max_usd_per_tx < 1000) {
+    // 1. Whitelist Check
+    if (policyRules.whitelist_only === true) {
+      const toAddress = payload.details?.to || payload.details?.contractAddress;
+      const whitelist: string[] = policyRules.whitelist || [];
+      if (toAddress && !whitelist.some(addr => addr.toLowerCase() === toAddress.toLowerCase())) {
+        return res.status(403).json({ error: 'Transaction rejected: Destination address not in whitelist' });
+      }
+    }
+
+    // 2. Limit Check (Basic simulation)
+    const estimatedUsd = payload.details?.estimatedUsdValue || 0;
+    if (estimatedUsd > (policyRules.max_usd_per_tx || 999999999)) {
+      return res.status(403).json({ error: 'Transaction rejected: Exceeds max USD per transaction limit' });
+    }
+
+    // 3. Approval Routing
+    if (policyRules.require_approval === true) {
       pendingTransactions[txId] = { ...payload, status: 'pending', id: txId };
       return res.json({ success: true, status: 'pending', txId });
+    } else {
+      // Auto-Sign Transaction if global require_approval is false
+      const requestPayload = JSON.stringify({ txPayload: payload });
+      const options = {
+          socketPath: SIGNER_SOCKET,
+          path: '/sign-transaction',
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
+              'Content-Length': Buffer.byteLength(requestPayload)
+          }
+      };
+
+      const signerReq = http.request(options, (signerRes) => {
+          let data = '';
+          signerRes.on('data', chunk => data += chunk);
+          signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
+      });
+
+      signerReq.on('error', (e) => res.status(500).json({ error: 'Auto-Sign failed: ' + e.message }));
+      signerReq.write(requestPayload);
+      signerReq.end();
+      return;
     }
-    
-    return res.status(403).json({ error: 'Transaction rejected by policy' });
   } catch (error) {
     res.status(400).json({ error: 'Invalid transaction payload' });
   }
