@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.14-1]
+### Security & Architecture
+- **Policy Engine Hard-coded Firewall**: Extracted security constraints (`whitelist_only`, `max_usd_per_tx`, `require_approval`) from `config.yaml` and implemented a fully decoupled backend `policy.yaml` evaluation engine running on a secure local port (3001). This solidifies the Zero-Trust Architecture by guaranteeing rules are enforced prior to cryptographic signing.
+- **Unified NLP Semantic Rules**: Migrated `security_policy.md` directly into the `policy.yaml` state (`custom_llm_rules`). AI native skills (`updateSecurityPolicy`) now dynamically append human-language constraints to the centralized policy module, providing a single source of truth for both hard-coded and semantic safeguards.
+
+### UI/UX Enhancements
+- **Policy Engine Configuration Panel**: Added a dedicated "Policy Engine (Hard-coded Firewall)" module to the Dashboard Settings page. Users can now easily toggle transaction approvals, strict whitelists, and input custom semantic NLP rules directly from the GUI.
+- **Pristine Local Development Logs**: Injected `NODE_NO_WARNINGS=1` environment variables into the core `launcher.ts` monorepo runner. This entirely suppresses noisy `MODULE_TYPELESS_PACKAGE_JSON` CommonJS/ESM reparsing warnings during `npm run dev`, providing a flawless, 100% clean boot log for presentation and development purposes.
+- **Internal Version Synchronization**: Synced all sub-packages (`core`, `signer`, `policy`, `mcp-server`) explicitly to `v26.6.14-1` for consistent NPM publishing.
+
 ## [26.6.14]
 ### Security & Privacy
 - **Isolated Private RPC Vault**: Extracted `web3.rpc_urls` from the main `config.yaml` and moved them into a highly isolated `~/.nyxora/config/rpc_key.yaml` file. This guarantees zero risk of leaking Premium Node Endpoints (Alchemy, Infura) when sharing config files or prompts.
