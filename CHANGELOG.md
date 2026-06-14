@@ -5,12 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.17] - 2026-06-14 (Hotfix Patch)
+## [26.6.18]
+### Bug Fixes & Build Pipeline
+- **NPM Publish Recompilation Fix:** Fixed a critical bug in the NPM `prepare` hook where `npm publish` would skip compiling the core backend TypeScript files. This caused versions `v26.6.16` and `v26.6.17` to inadvertently ship with stale, uncompiled JavaScript `dist/` artifacts. The root `tsc` build step is now explicitly injected into the pre-publish hook to ensure the CLI uses the latest codebase.
+
+## [26.6.17]
 ### Bug Fixes
 - **CLI Setup API Key Overwrite Bug:** Fixed a race condition during `nyxora setup` where newly entered LLM API keys were successfully written to the config file but instantly overwritten by a stale in-memory config save sequence.
 - **Removed Zombie `installSkill` CLI Option:** Removed the legacy `installSkill` selection option from the CLI setup wizard to correctly align with the new fully-native, sandbox-free architecture (introduced in v26.6.15).
 
-## [26.6.16] - 2026-06-14 (Hotfix Patch)
+## [26.6.16]
 ### Bug Fixes & Stability
 - **Global `nyxora start` `ENOENT` Crash Fix:** Resolved a critical bug where launching the daemon on a completely fresh install (or after deleting `~/.nyxora`) would instantly crash due to missing nested log and auth directories. The CLI now gracefully auto-creates all deeply nested required structures before attempting to access them.
 - **Node.js ESM Compilation Crash (`launcher.ts`):** Stripped out legacy `import.meta.url` syntax in favor of bulletproof CommonJS `__filename` globals. This permanently eliminates the fatal `exports is not defined` parsing crash on newer Node.js versions running compiled production builds.
