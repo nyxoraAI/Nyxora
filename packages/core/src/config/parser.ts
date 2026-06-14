@@ -112,11 +112,8 @@ export function loadConfig(): NyxoraConfig {
       needsSave = true;
     }
 
-    // Auto-migration logic: move web3.rpc_urls to rpc_key.yaml
-    if (parsed.web3 && parsed.web3.rpc_urls && Object.keys(parsed.web3.rpc_urls).length > 0) {
-      rpcUrls = { ...rpcUrls, ...parsed.web3.rpc_urls };
-      saveRpcConfig(rpcUrls);
-      console.log('[Config] Auto-migrated web3.rpc_urls to rpc_key.yaml.');
+    // Ensure we don't accidentally overwrite rpc_key.yaml with old config.yaml data.
+    if (parsed.web3 && parsed.web3.rpc_urls) {
       delete parsed.web3.rpc_urls;
       needsSave = true;
     }
