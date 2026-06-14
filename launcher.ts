@@ -1,4 +1,5 @@
-import { initSafeLogger } from './packages/core/src/utils/safeLogger';
+// @ts-ignore
+import { initSafeLogger } from './packages/core/src/utils/safeLogger.ts';
 initSafeLogger();
 
 import { spawn } from 'child_process';
