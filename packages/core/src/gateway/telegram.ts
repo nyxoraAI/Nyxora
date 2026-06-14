@@ -69,13 +69,13 @@ export function startTelegramBot() {
       pinExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes TTL
       
       console.log(pc.yellow('\n==================================================='));
-      console.log(pc.yellow('🔐 OTORISASI BOT TELEGRAM DIBUTUHKAN'));
+      console.log(pc.yellow('🔐 TELEGRAM BOT AUTHORIZATION REQUIRED'));
       console.log(pc.yellow('==================================================='));
-      console.log('Bot Telegram Anda saat ini terkunci demi keamanan.');
-      console.log('Buka Telegram Anda, dan kirimkan perintah berikut ke bot Anda:\n');
+      console.log('Your Telegram Bot is currently locked for security.');
+      console.log('Open your Telegram app, and send the following command to your bot:\n');
       console.log(pc.cyan(`  /auth ${generatedPin}\n`));
-      console.log(pc.gray('(Kode OTP ini akan kedaluwarsa dalam 5 menit)\n'));
-      console.log('⏳ Menunggu pesan masuk...');
+      console.log(pc.gray('(This OTP code will expire in 5 minutes)\n'));
+      console.log('⏳ Waiting for incoming message...');
     }
 
     // Security Middleware (OTP & Authorization)
@@ -108,11 +108,11 @@ export function startTelegramBot() {
             currentConfig.integrations.telegram.authorized_chat_id = ctx.chat?.id;
             saveConfig(currentConfig);
             
-            await ctx.reply('✅ Otorisasi Berhasil! Agen Nyxora kini hanya akan mematuhi perintah Anda. Koneksi diamankan.');
+            await ctx.reply('✅ Authorization Successful! Nyxora Agent will now only obey your commands. Connection secured.');
             console.log(pc.green(`\n[Telegram] Successfully paired with Chat ID: ${ctx.chat?.id}`));
             return; // Done parsing auth, ignore this specific message for further logic
           } else {
-            await ctx.reply('❌ PIN salah.');
+            await ctx.reply('❌ Incorrect PIN.');
             return;
           }
         }
@@ -124,7 +124,7 @@ export function startTelegramBot() {
 
     bot.command('clear', async (ctx) => {
       logger.clear(ctx.chat?.id.toString());
-      await ctx.reply('✅ Memori AI telah dihapus. Mari kita mulai obrolan baru!');
+      await ctx.reply('✅ AI memory has been cleared. Let\\'s start a new chat!');
     });
 
     bot.on('text', async (ctx) => {
@@ -227,17 +227,7 @@ export function startTelegramBot() {
         
         txManager.updateStatus(txId, 'executed', result);
         
-        // Pass session history to formatTransactionSuccess to detect language
-        const sessionId = ctx.chat?.id.toString() || 'default';
-        const history = logger.getHistory(sessionId);
-        let isIndonesian = false;
-        if (history.length > 0) {
-           const lastMsg = history[history.length - 1].content.toLowerCase();
-           const idWords = ['saya', 'kamu', 'aku', 'apa', 'bagaimana', 'kenapa', 'bisa', 'tolong', 'ke', 'di', 'dari', 'yang', 'ini', 'itu', 'buat', 'cek', 'saldo'];
-           if (idWords.some(w => lastMsg.includes(w))) isIndonesian = true;
-        }
-
-        const prettyMsg = formatTransactionSuccess(tx, result, isIndonesian);
+        const prettyMsg = formatTransactionSuccess(tx, result);
         await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed: Success**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
         
         processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
