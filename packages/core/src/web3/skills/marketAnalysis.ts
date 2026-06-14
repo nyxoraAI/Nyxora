@@ -216,7 +216,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     report += `**4. Momentum (CEX):** ${healthResult.momentumScore !== null ? healthResult.momentumScore + '/10' : '[ N/A - DEX Only Coin ]'}\n`;
     report += `- Price: $${currentPrice} | MA50: ${ma50 ? '$'+ma50.toFixed(4) : 'N/A'} | RSI: ${rsi || 'N/A'}\n\n`;
 
-    report += `*System Note for LLM: Use this exact data to provide a "Market Summary" and "Suggested Autonomous Actions" in the user's native language. If CEX momentum is N/A, explicitly warn about high risk Degen/Memecoin status.*`;
+    report += `*System Note for LLM: Use this exact data to provide a "Market Summary" and "Suggested Autonomous Actions" in the user's native language. If CEX momentum is N/A, explicitly warn about high risk Degen/Memecoin status. IMPORTANT: Always include a clear disclaimer at the end stating that this analysis is NOT financial advice (NFA).*`;
 
     return report;
 
