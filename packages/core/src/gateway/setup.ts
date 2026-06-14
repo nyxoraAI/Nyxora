@@ -429,7 +429,8 @@ Provider: ${config.llm.provider}`;
   }
 
   if (Object.keys(newApiKeys).length > 0) {
-    await saveApiKeys(newApiKeys);
+    if (!config.credentials) config.credentials = {};
+    config.credentials = { ...config.credentials, ...newApiKeys };
   }
 
   if (!config.integrations) config.integrations = {};
