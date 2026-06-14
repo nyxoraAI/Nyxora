@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, DownloadCloud, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, Twitter, Layout, Mic, AlignLeft, Scissors } from 'lucide-react';
+import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, Twitter, Layout, Mic, AlignLeft, Scissors } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -42,7 +42,7 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'write local file': return <FileEdit size={size} color={color} />;
     case 'browse website': return <Globe size={size} color={color} />;
     case 'update security policy': return <ShieldAlert size={size} color={color} />;
-    case 'install external skill': return <DownloadCloud size={size} color={color} />;
+
     case 'analyze document': return <FileSearch size={size} color={color} />;
     case 'search web': return <SearchIcon size={size} color={color} />;
     case 'read gmail inbox': return <Mail size={size} color={color} />;
