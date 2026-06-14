@@ -15,7 +15,8 @@ import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
 import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
 
 import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/checkSecurity';
-import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
+import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
+import { analyzeMarketEngine } from '../web3/utils/marketEngine';
 import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
 import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
 import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
@@ -408,7 +409,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'analyze_market': {
-              result = await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
+              result = await analyzeMarketEngine(args.chainName, args.tokenAddressOrSymbol);
               break;
             }
             case 'check_portfolio': {
