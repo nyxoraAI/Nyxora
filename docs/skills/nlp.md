@@ -12,8 +12,7 @@ When the AI receives a prompt from you (e.g., *"Swap 10 ETH to USDC"*), it evalu
 
 ## Configuring Your Policy
 
-To set up your security rules, simply edit the `security_policy.md` file in your workspace. You can write constraints as simple bullet points, and the LLM's reasoning engine will rigorously adhere to them.
-
+To set up your security rules, simply configure them directly from your Nyxora Dashboard under the **Settings -> Policy Engine (Hard-coded Firewall)** section, or manually edit the `policy.yaml` file in your `~/.nyxora/config/` directory by modifying the `custom_llm_rules` array. You can write constraints as simple human language sentences, and the LLM's reasoning engine will rigorously adhere to them.
 ### Examples of NLP Security Rules
 
 *   **File System Protection:**

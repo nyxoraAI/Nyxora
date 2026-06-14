@@ -77,7 +77,7 @@ These skills allow the AI to interact directly with your local machine, file sys
 
 ### 🛡️ Security & Expansion
 *   **`updateSecurityPolicy`**
-    *   **Description:** Allows the AI to programmatically append or modify its own security constraints in `security_policy.md`.
+    *   **Description:** Allows the AI to programmatically append or modify its own security constraints in `policy.yaml` (under the `custom_llm_rules` configuration).
     *   **Capabilities:** If you instruct the agent *"From now on, never touch the src/core directory,"* it will use this skill to permanently remember the rule.
 *   **`installSkill`**
     *   **Description:** Dynamically installs external Nyxora community plugins via NPM at runtime.

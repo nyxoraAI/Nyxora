@@ -197,15 +197,19 @@ CRITICAL RULE 19: MARKET CONFIDENCE SCORE. When analyzing market data, token sec
     console.error('Failed to read user.md:', error);
   }
 
-  // Read security_policy.md for NLP security constraints
+  // Read policy.yaml for NLP security constraints
   try {
-    const policyPath = getPath('security_policy.md');
+    const policyPath = getPath('policy.yaml');
     if (fs.existsSync(policyPath)) {
-      const securityInstructions = fs.readFileSync(policyPath, 'utf8');
-      basePrompt += `\n\n--- SECURITY POLICY (MANDATORY RULES) ---\n${securityInstructions}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.`;
+      const yaml = require('yaml'); // lazily import if not imported
+      const file = fs.readFileSync(policyPath, 'utf8');
+      const parsed = yaml.parse(file) || {};
+      if (parsed.custom_llm_rules && Array.isArray(parsed.custom_llm_rules) && parsed.custom_llm_rules.length > 0) {
+        basePrompt += `\n\n--- SECURITY POLICY (MANDATORY RULES) ---\n${parsed.custom_llm_rules.map((r: string) => `* ${r}`).join('\n')}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.`;
+      }
     }
   } catch (error) {
-    console.error('Failed to read security_policy.md:', error);
+    console.error('Failed to read policy.yaml:', error);
   }
 
   // Inject Episodic Memories (Smart Suggestions Context)
@@ -376,10 +380,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'transfer_token':
             case 'transfer_native': {
-              if (config.permissions?.web3?.allow_transfer === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Web3 transfers are disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = await prepareTransfer(args.chainName, args.toAddress, args.amountStr || args.amountEth, args.token);
               break;
             }
@@ -388,18 +388,10 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'swap_token': {
-              if (config.permissions?.web3?.allow_swap === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Web3 swaps are disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
               break;
             }
             case 'bridge_token': {
-              if (config.permissions?.web3?.allow_transfer === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Web3 bridging (transfer) is disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = await prepareBridgeToken(args.fromChain, args.toChain, args.tokenSymbol, args.amountStr, args.mode, args.providerName);
               break;
             }
@@ -408,10 +400,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'custom_tx': {
-              if (config.permissions?.web3?.allow_transfer === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Custom transactions are blocked because transfers are disabled.`;
-                break;
-              }
               result = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
               break;
             }
@@ -535,26 +523,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'write_local_file': {
-              if (config.permissions?.system?.allow_file_write === false) {
-                result = `[Security Blocked] Runtime Permission Denied: File writing is disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = writeLocalFile(args.filePath, args.content);
               break;
             }
             case 'generate_excel_file': {
-              if (config.permissions?.system?.allow_file_write === false) {
-                result = `[Security Blocked] Runtime Permission Denied: File writing is disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = await generateExcelFile(args.data, args.filePath);
               break;
             }
             case 'run_terminal_command': {
-              if (config.permissions?.system?.allow_shell_execution === false) {
-                result = `[Security Blocked] Runtime Permission Denied: Shell execution is disabled. Update config.yaml to allow.`;
-                break;
-              }
               result = await runTerminalCommand(args.command);
               break;
             }

@@ -26,7 +26,13 @@ interface UserProfile {
   risk_level: string;
   max_slippage: number;
   avoid_memecoins: boolean;
-  custom_rules: string;
+}
+
+interface PolicyConfig {
+  max_usd_per_tx: number;
+  whitelist_only: boolean;
+  require_approval: boolean;
+  custom_llm_rules: string[];
 }
 
 interface SettingsProps {
@@ -41,8 +47,13 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   const [userProfile, setUserProfile] = useState<UserProfile>({
     risk_level: 'Moderate',
     max_slippage: 1.0,
-    avoid_memecoins: false,
-    custom_rules: ''
+    avoid_memecoins: false
+  });
+  const [policyConfig, setPolicyConfig] = useState<PolicyConfig>({
+    max_usd_per_tx: 999999999,
+    whitelist_only: false,
+    require_approval: true,
+    custom_llm_rules: []
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
@@ -56,12 +67,26 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           setUserProfile({
             risk_level: data.risk_level || 'Moderate',
             max_slippage: data.max_slippage || 1.0,
-            avoid_memecoins: Boolean(data.avoid_memecoins),
-            custom_rules: data.custom_rules || ''
+            avoid_memecoins: Boolean(data.avoid_memecoins)
           });
         }
       })
       .catch(err => console.error('Failed to load profile', err));
+
+    // Fetch Policy Config
+    apiFetch('/api/policy')
+      .then(res => res.json())
+      .then(data => {
+        if (data && !data.error) {
+          setPolicyConfig({
+            max_usd_per_tx: data.max_usd_per_tx ?? 999999999,
+            whitelist_only: data.whitelist_only ?? false,
+            require_approval: data.require_approval ?? true,
+            custom_llm_rules: data.custom_llm_rules || []
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load policy', err));
 
     if (config) {
       setFormData({
@@ -136,6 +161,14 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userProfile)
+        });
+      }
+
+      if (policyConfig) {
+        await apiFetch('/api/policy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(policyConfig)
         });
       }
 
@@ -313,17 +346,69 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             />
             <label htmlFor="avoid_memecoins" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>Strictly Avoid Memecoins / Unknown Contracts</label>
           </div>
-          <div className="form-group" style={{ marginTop: '15px' }}>
-            <label className="nord-label">Custom Rules (Natural Language)</label>
+        </div>
+
+      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+        <div className="nord-panel-header">
+          <Shield size={18} color="#ebcb8b" />
+          <h3>Policy Engine (Hard-coded Firewall)</h3>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
+          Critical limits enforced at the signer level. The LLM cannot override these boundaries.
+        </p>
+        <div className="form-row">
+          <div className="form-group flex-1">
+            <label className="nord-label">Max USD per Transaction</label>
             <input 
-              className="nord-input"
-              type="text" 
-              placeholder="e.g. Never buy a token if liquidity is below $10,000" 
-              value={userProfile.custom_rules}
-              onChange={e => setUserProfile({ ...userProfile, custom_rules: e.target.value })}
+              className="nord-pill-input"
+              type="number" 
+              step="1"
+              value={policyConfig.max_usd_per_tx} 
+              onChange={e => setPolicyConfig({ ...policyConfig, max_usd_per_tx: parseFloat(e.target.value) || 0 })} 
             />
           </div>
+          <div className="form-group flex-1">
+            <label className="nord-label" style={{ marginBottom: '12px', display: 'block' }}>Approval & Restrictions</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input 
+                  type="checkbox" 
+                  id="require_approval"
+                  checked={policyConfig.require_approval}
+                  onChange={e => setPolicyConfig({ ...policyConfig, require_approval: e.target.checked })}
+                  style={{ cursor: 'pointer', accentColor: '#ebcb8b', width: '16px', height: '16px', margin: 0 }}
+                />
+                <label htmlFor="require_approval" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
+                  Require Manual Approval for every transaction
+                </label>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input 
+                  type="checkbox" 
+                  id="whitelist_only"
+                  checked={policyConfig.whitelist_only}
+                  onChange={e => setPolicyConfig({ ...policyConfig, whitelist_only: e.target.checked })}
+                  style={{ cursor: 'pointer', accentColor: '#ebcb8b', width: '16px', height: '16px', margin: 0 }}
+                />
+                <label htmlFor="whitelist_only" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
+                  Strict Whitelist Only (Block unknown addresses)
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
+        <div className="form-group" style={{ marginTop: '15px' }}>
+          <label className="nord-label">Custom LLM Rules (Natural Language)</label>
+          <textarea 
+            className="nord-input"
+            rows={3}
+            style={{ width: '100%', resize: 'vertical' }}
+            placeholder="e.g. Never buy a token if liquidity is below $10,000&#10;Do not touch drive E" 
+            value={policyConfig.custom_llm_rules.join('\n')}
+            onChange={e => setPolicyConfig({ ...policyConfig, custom_llm_rules: e.target.value.split('\n') })}
+          />
+        </div>
+      </div>
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">

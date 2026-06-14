@@ -1,4 +1,4 @@
-import { initSafeLogger } from './packages/core/src/utils/safeLogger';
+import { initSafeLogger } from './packages/core/src/utils/safeLogger.ts';
 initSafeLogger();
 
 import { spawn } from 'child_process';
@@ -116,22 +116,26 @@ if (fs.existsSync(socketPath)) {
 
 const children: { kill: () => void }[] = [];
 
-const isCompiled = __filename.endsWith('.js');
+import { fileURLToPath } from 'url';
+const __filenameResolved = fileURLToPath(import.meta.url);
+const __dirnameResolved = path.dirname(__filenameResolved);
+
+const isCompiled = __filenameResolved.endsWith('.js');
 const ext = isCompiled ? '.js' : '.ts';
-const cmd = isCompiled ? 'node' : path.join(__dirname, 'node_modules', '.bin', 'ts-node');
+const cmd = isCompiled ? 'node' : path.join(__dirnameResolved, 'node_modules', '.bin', 'ts-node');
 const baseArgs = isCompiled ? [] : ['-T'];
 
-const signerPath = path.join(__dirname, `packages/signer/src/server${ext}`);
+const signerPath = path.join(__dirnameResolved, `packages/signer/src/server${ext}`);
 const signer = spawnService('Signer', cmd, [...baseArgs, signerPath], env);
 children.push(signer);
 
 setTimeout(() => {
-  const policyPath = path.join(__dirname, `packages/policy/src/server${ext}`);
+  const policyPath = path.join(__dirnameResolved, `packages/policy/src/server${ext}`);
   const policy = spawnService('Policy', cmd, [...baseArgs, policyPath], env);
   children.push(policy);
   
   setTimeout(() => {
-    const corePath = path.join(__dirname, `packages/core/src/gateway/cli${ext}`);
+    const corePath = path.join(__dirnameResolved, `packages/core/src/gateway/cli${ext}`);
     const args = process.argv.slice(2);
     const core = spawnService('Core', cmd, [...baseArgs, corePath, ...args], env, true);
     children.push(core);
