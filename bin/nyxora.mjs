@@ -291,7 +291,6 @@ async function unlock() {
       } catch (e) {}
     }
     try {
-      const fetch = (await import('node-fetch')).default;
       const res = await fetch('http://localhost:3000/api/status/unlock', {
         method: 'POST',
         headers: {

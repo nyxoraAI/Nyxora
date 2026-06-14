@@ -27,6 +27,7 @@
     "packages/signer/src",
     "packages/signer/package.json",
     "packages/mcp-server/src",
+    "packages/mcp-server/dist",
     "packages/mcp-server/package.json",
     "packages/dashboard/dist",
     "packages/dashboard/package.json"
@@ -44,7 +45,7 @@
     "setup": "node ./bin/nyxora.mjs setup",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
-    "build": "tsc && npm run build --workspace=nyxora-dashboard",
+    "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core"
   },
   "dependencies": {
