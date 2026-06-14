@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.16] - 2026-06-14 (Hotfix Patch)
+### Bug Fixes & Stability
+- **Global `nyxora start` `ENOENT` Crash Fix:** Resolved a critical bug where launching the daemon on a completely fresh install (or after deleting `~/.nyxora`) would instantly crash due to missing nested log and auth directories. The CLI now gracefully auto-creates all deeply nested required structures before attempting to access them.
+- **Node.js ESM Compilation Crash (`launcher.ts`):** Stripped out legacy `import.meta.url` syntax in favor of bulletproof CommonJS `__filename` globals. This permanently eliminates the fatal `exports is not defined` parsing crash on newer Node.js versions running compiled production builds.
+- **`nyxora unlock` Missing Dependency Panic:** Refactored the dashboard unlock CLI command to utilize native Node.js 18+ `fetch()` APIs, completely removing the hazardous dynamic import to `node-fetch` (which was missing from NPM `dependencies`).
+- **NPM Monorepo Resolution Fix:** Stripped the hardcoded `.ts` extension from `safeLogger` imports to prevent `MODULE_NOT_FOUND` errors on compiled production artifacts.
+- **`mcp-server` Publishing:** Wired the `mcp-server` into the root compilation step and included its `dist/` artifacts in the `files` array, ensuring the Universal Bridge is fully operational out-of-the-box for NPM installations.
+
 ## [26.6.15]
 ### Security & Architecture
 - **Policy Engine Hard-coded Firewall**: Extracted security constraints (`whitelist_only`, `max_usd_per_tx`, `require_approval`) from `config.yaml` and implemented a fully decoupled backend `policy.yaml` evaluation engine running on a secure local port (3001). This solidifies the Zero-Trust Architecture by guaranteeing rules are enforced prior to cryptographic signing.
