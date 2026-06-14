@@ -58,7 +58,7 @@ export default defineConfig({
           { text: '⛓️ Arbitrum Smart Contract', link: '/security/smart-contract' },
           { text: '🛡️ Wallet Import Guide', link: '/security/wallet_import' },
           { text: '🔐 OS-Native Keyring Vault', link: '/security/vault' },
-          { text: '📦 Plugin Sandbox VM', link: '/security/sandbox' },
+          { text: '🛡️ Policy Engine & Sandbox', link: '/security/sandbox' },
           { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
           { text: '🛟 Troubleshooting', link: '/security/troubleshooting' }
         ]

@@ -147,7 +147,7 @@ app.post('/sign-transaction', async (req, res) => {
            
            const txRequest = txPayload.details?.txRequest || txPayload.details?.txData || txPayload;
            
-           // Phase 2: Transaction Simulation (Dry-Run / Anti-Gagal)
+           // Phase 2: Transaction Simulation (Dry-Run / Anti-Fail)
            try {
               await client.estimateGas({
                 account,
@@ -203,7 +203,7 @@ app.listen(SOCKET_PATH, () => {
   }
 });
 
-// Phase 3: Graceful Shutdown (Keamanan Keyring Lokal)
+// Phase 3: Graceful Shutdown (Local Keyring Security)
 const gracefulShutdown = () => {
   console.log('[Signer Vault] Received shutdown signal. Locking vault...');
   // @ts-ignore
