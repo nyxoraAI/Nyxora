@@ -981,19 +981,27 @@ export function startServer() {
     }
   });
 
+  let isShuttingDown = false;
   const gracefulShutdown = () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     console.log('[Nyxora Gateway] Received shutdown signal. Closing server...');
+    
+    if (server.closeAllConnections) {
+      server.closeAllConnections();
+    }
+
     server.close(() => {
       console.log('[Nyxora Gateway] HTTP server closed.');
       logger.close();
       process.exit(0);
     });
     
-    // Force exit after 10s if stuck
+    // Force exit after 3s if stuck
     setTimeout(() => {
-      console.error('[Nyxora Gateway] Forced shutdown after 10s.');
+      console.error('[Nyxora Gateway] Forced shutdown.');
       process.exit(1);
-    }, 10000);
+    }, 3000).unref();
   };
 
   process.on('SIGTERM', gracefulShutdown);
