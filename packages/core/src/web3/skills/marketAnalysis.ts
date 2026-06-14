@@ -22,8 +22,9 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     }
 
     if (dexData && dexData.pairs && dexData.pairs.length > 0) {
-        // Ticker Spoofing Protection: Sort by Liquidity
-        const sortedPairs = dexData.pairs.sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+        // Ticker Spoofing Protection: Sort by 24h Volume instead of Liquidity
+        // Fake tokens can artificially inflate liquidity, but faking millions in volume is expensive.
+        const sortedPairs = dexData.pairs.sort((a: any, b: any) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
         targetPair = sortedPairs[0];
         officialSymbol = targetPair.baseToken.symbol;
         contractAddress = targetPair.baseToken.address;
@@ -151,7 +152,7 @@ export const marketAnalysisToolDefinition = {
   type: "function",
   function: {
     name: "analyze_market",
-    description: "Fetches live, expert-level Web3 market intelligence including Liquidity Risk, Smart Money Flow (TVL), Holder Concentration, and Momentum across DEX and CEX.",
+    description: "MUST be used whenever the user asks for 'analisis', 'analysis', 'market intelligence', or a deep dive into a token. Fetches live, expert-level Web3 market data including Liquidity Risk, Smart Money Flow (TVL), Holder Concentration, and Momentum.",
     parameters: {
       type: "object",
       properties: {
@@ -165,7 +166,7 @@ export const marketAnalysisToolDefinition = {
           description: "The token symbol (e.g. USDC, PEPE) or exact Contract Address (e.g. 0x...) to analyze.",
         }
       },
-      required: ["chainName", "tokenAddressOrSymbol"],
+      required: ["tokenAddressOrSymbol"],
     },
   },
 };
