@@ -27,7 +27,7 @@ Nyxora offers two ways to configure your RPC URLs: via the intuitive Web Dashboa
 
 ### Method A: Via Web Dashboard (Recommended)
 
-1. Open your Nyxora Web Dashboard (`nyxora dashboard` for global installation, or `npm run dashboard` for local source).
+1. Open your Nyxora Web Dashboard (`nyxora dashboard` for global installation, or `npm run dev` for local source).
 2. Navigate to the **Settings** or **Networks** tab in the sidebar.
 3. Select the specific blockchain (e.g., Ethereum).
 4. Paste your newly acquired RPC URL into the **Custom RPC** field and hit Save. The daemon will automatically update the configuration without needing a restart.

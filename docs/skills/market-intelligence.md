@@ -30,3 +30,7 @@ Nyxora synthesizes the aggregated data into a 0-10 Market Health Score, heavily 
 ::: tip Why Deterministic Risk Scoring?
 LLMs are prone to hallucinating financial advice or misinterpreting raw numbers. By injecting a deterministic 0-10 health score calculated purely by code *before* it reaches the LLM context window, Nyxora acts as a highly disciplined and objective financial analyst.
 :::
+
+::: warning Not Financial Advice (NFA)
+To ensure compliance and user safety, the Market Intelligence engine automatically instructs the LLM to append a **"Not Financial Advice"** disclaimer at the end of every analysis. This disclaimer is dynamically translated to match the user's native language.
+:::

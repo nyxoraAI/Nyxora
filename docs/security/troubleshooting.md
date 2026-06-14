@@ -45,7 +45,7 @@ Port 3000 serves the **production build** (`dist/` folder) of the dashboard. It 
 - If you are a developer, access the live hot-reload server at `http://localhost:5173`.
 - To update the production dashboard on port 3000, you must rebuild the frontend by running:
   ```bash
-  npm run build --workspace=dashboard
+  npm run build --workspace=nyxora-dashboard
   ```
 
 ---
