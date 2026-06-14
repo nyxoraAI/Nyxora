@@ -37,7 +37,7 @@
   },
   "scripts": {
     "prepare": "npm run build --workspace=nyxora-dashboard || echo '⚠️ Build failed – dashboard UI may be missing'",
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"./node_modules/.bin/ts-node -T launcher.ts\" \"npm run dev --workspace=nyxora-dashboard\"",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"NODE_NO_WARNINGS=1 ./node_modules/.bin/ts-node -T launcher.ts\" \"npm run dev --workspace=nyxora-dashboard\"",
     "start": "node ./bin/nyxora.mjs start",
     "stop": "node ./bin/nyxora.mjs stop",
     "restart": "node ./bin/nyxora.mjs restart",
