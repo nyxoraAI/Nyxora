@@ -4,7 +4,7 @@ export const getPriceToolDefinition = {
   type: "function",
   function: {
     name: "get_price",
-    description: "Fetches the current price of a cryptocurrency in USD along with its 24h change percentage.",
+    description: "Fetches the current price of a cryptocurrency. Use ONLY when the user explicitly asks for a simple price check (e.g. 'harga', 'price'). Do NOT use this for 'analysis', 'market analysis', or 'analisis pasar'.",
     parameters: {
       type: "object",
       properties: {
