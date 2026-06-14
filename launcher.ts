@@ -1,4 +1,4 @@
-import { initSafeLogger } from './packages/core/src/utils/safeLogger.ts';
+import { initSafeLogger } from './packages/core/src/utils/safeLogger';
 initSafeLogger();
 
 import { spawn } from 'child_process';
@@ -117,6 +117,7 @@ if (fs.existsSync(socketPath)) {
 const children: { kill: () => void }[] = [];
 
 import { fileURLToPath } from 'url';
+// @ts-ignore: TS1343
 const __filenameResolved = fileURLToPath(import.meta.url);
 const __dirnameResolved = path.dirname(__filenameResolved);
 
