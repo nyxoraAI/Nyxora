@@ -47,5 +47,5 @@ Nyxora excels beyond the blockchain, capable of automating your daily Web2 workf
 
 ---
 
-## 🔌 Extensibility (MCP & Plugins)
-The ecosystem is exponentially expanding. With active **Model Context Protocol (MCP)** native support and the **vm2 Plugin Sandbox**, developers can securely inject thousands of standardized third-party tools (like Postgres databases, Slack integration, or Notion APIs) directly into the agent's memory.
+## 🔌 Extensibility (MCP)
+The ecosystem is exponentially expanding. With active **Model Context Protocol (MCP)** native support, developers can securely inject thousands of standardized third-party tools (like Postgres databases, Slack integration, or Notion APIs) directly into the agent's memory.

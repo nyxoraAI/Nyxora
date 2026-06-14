@@ -12,10 +12,8 @@ This directory contains all the main engines that power Nyxora:
 *   **`packages/mcp-server`:** The module for Model Context Protocol (MCP) integration. This allows Nyxora to be safely utilized as a server by external agent clients such as Claude Desktop or Cursor IDE.
 *   **`packages/dashboard`:** The React/Vite-based Frontend module. This is the local web interface (featuring a dark-themed, glassmorphism UI) that securely obscures API Keys and allows you to approve pending transactions and monitor your portfolio.
 
-## 2. `src/external_skills/`
-The designated directory for placing additional custom skills or plugins (OS & Web2 automation). Code here runs within a secure Sandbox VM to ensure safety when executed autonomously by the AI.
 
-## 3. Core Root Files
+## 2. Core Root Files
 *   **`launcher.ts` & `bin/nyxora.mjs`:** The entry points for the CLI. These files launch the background daemon, handle the interactive setup process (`nyxora setup`), and serve the Terminal integration.
 *   **`memory.db`:** The local SQLite database where Nyxora securely stores profiles, chat history (short-term/long-term memory), and contract address whitelists.
 *   **`user.md` & `IDENTITY.md`:** The configuration files where you define the AI's persona/identity and set specific custom rules for how the AI should conduct transactions.

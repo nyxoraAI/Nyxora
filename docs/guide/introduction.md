@@ -39,8 +39,7 @@ Nyxora goes beyond simple token transfers. It is equipped with pro-trader tools:
 - **"Lean Degen" Auto-Whitelist:** Automatically intercepts Contract Addresses (CAs) when you check balances or execute swaps, permanently saving them to a personal tracking list.
 - **Dynamic Portfolio Engine:** Merges standard tokens, custom CAs, and daily CoinGecko trending tokens into a hyper-fast, spam-free Multicall scan for instant Net Worth estimations.
 
-### 5. Plugin Sandboxing Architecture
-Nyxora natively enforces a robust **Plugin Sandboxing** architecture. If third-party developers create custom skills or extensions for Nyxora, they are executed inside an isolated `vm2` sandbox. They are strictly denied unrestricted System Access (File System/Shell/Network), thereby completely neutralizing Supply Chain Attacks.
+
 
 ---
 
@@ -67,7 +66,7 @@ This architecture is designed to enforce maximum security while maintaining seam
      - If *Rejected*: The transaction is safely cancelled.
 
 4. **System Execution Branch:**
-   - The LLM forwards the intent to the **OS & Plugin Modules**.
+   - The LLM forwards the intent to the **OS Modules**.
    - Before any shell command or file operation runs, it must pass the **Security Policy Check**.
    - **Safe:** If the action complies with your NLP security rules, the shell/file ops are executed directly.
    - **Violates Policy:** If the agent tries to do something forbidden (e.g., touching restricted folders), it halts and asks for explicit permission.
