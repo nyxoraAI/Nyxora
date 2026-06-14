@@ -29,7 +29,7 @@ import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/conf
 import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
-import { pluginManager } from '../system/pluginManager';
+
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
 import { getBalanceToolDefinition } from '../web3/skills/getBalance';
@@ -57,7 +57,7 @@ import { createLimitOrderToolDefinition } from '../web3/skills/createLimitOrder'
 // System Skills
 import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
 import { runTerminalCommandToolDefinition } from '../system/skills/executeShell';
-import { installExternalSkillToolDefinition } from '../system/skills/installSkill';
+
 import { readLocalFileToolDefinition } from '../system/skills/readFile';
 import { editLocalFileToolDefinition } from '../system/skills/editFile';
 import { gitManagerToolDefinition } from '../system/skills/gitManager';
@@ -377,7 +377,7 @@ app.get('/api/skills/system', (req, res) => {
     generateExcelToolDefinition,
     browseWebsiteToolDefinition,
     updateSecurityPolicyToolDefinition,
-    installExternalSkillToolDefinition,
+
     analyzeDocumentToolDefinition,
     searchWebToolDefinition,
     readGmailInboxToolDefinition,
@@ -953,9 +953,7 @@ export async function autoMigrateKeys() {
 export function startServer() {
   autoMigrateKeys().catch(e => console.error('[Auto-Migrate] Error:', e));
 
-  pluginManager.loadPlugins().then(() => {
-    console.log(`[PluginManager] Finished loading external skills.`);
-  });
+
 
   const PORT = Number(process.env.PORT || 3000);
   const server = app.listen(PORT, '127.0.0.1', () => {
