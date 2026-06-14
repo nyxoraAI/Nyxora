@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.17] - 2026-06-14 (Hotfix Patch)
+### Bug Fixes
+- **CLI Setup API Key Overwrite Bug:** Fixed a race condition during `nyxora setup` where newly entered LLM API keys were successfully written to the config file but instantly overwritten by a stale in-memory config save sequence.
+- **Removed Zombie `installSkill` CLI Option:** Removed the legacy `installSkill` selection option from the CLI setup wizard to correctly align with the new fully-native, sandbox-free architecture (introduced in v26.6.15).
+
 ## [26.6.16] - 2026-06-14 (Hotfix Patch)
 ### Bug Fixes & Stability
 - **Global `nyxora start` `ENOENT` Crash Fix:** Resolved a critical bug where launching the daemon on a completely fresh install (or after deleting `~/.nyxora`) would instantly crash due to missing nested log and auth directories. The CLI now gracefully auto-creates all deeply nested required structures before attempting to access them.
