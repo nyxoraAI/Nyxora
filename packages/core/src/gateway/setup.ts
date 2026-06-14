@@ -302,7 +302,6 @@ Provider: ${config.llm.provider}`;
       { value: 'generateExcel', label: 'Generate Excel Reports' },
       { value: 'analyzeDocument', label: 'Analyze Docs (PDF/Word)' },
       { value: 'run_terminal', label: 'Run Terminal Command', hint: '⚠️ UNSAFE' },
-      { value: 'installSkill', label: 'Install External Skills (Plugins)' },
       { value: 'gitManager', label: 'Git Operations (Commit/Push/Pull)' },
       { value: 'updateSecurityPolicy', label: 'Update policy.yaml rules', hint: 'safeguard' },
       { value: 'browseWeb', label: 'Browse & Scrape Webpages' },
@@ -458,7 +457,7 @@ Provider: ${config.llm.provider}`;
   
   const allOsSkills = [
     'readFile', 'writeFile', 'editFile', 'generateExcel', 'analyzeDocument',
-    'run_terminal', 'installSkill', 'gitManager', 'updateSecurityPolicy',
+    'run_terminal', 'gitManager', 'updateSecurityPolicy',
     'browseWeb', 'searchWeb', 'googleWorkspace', 'notionWorkspace', 'xManager',
     'audioTranscribe', 'summarizeText'
   ];
