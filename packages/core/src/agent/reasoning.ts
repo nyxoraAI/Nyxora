@@ -382,7 +382,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               break;
             }
             case 'get_price': {
-              result = await getPrice(args.coinId);
+              result = await getPrice(args.coinId, args.currency);
               break;
             }
             case 'swap_token': {

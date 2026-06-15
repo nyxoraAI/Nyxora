@@ -11,6 +11,10 @@ export const getPriceToolDefinition = {
         coinId: {
           type: "string",
           description: "The CoinGecko ID of the coin (e.g., 'ethereum', 'bitcoin', 'solana')."
+        },
+        currency: {
+          type: "string",
+          description: "The fiat currency to convert to (e.g., 'usd', 'idr', 'eur', 'jpy'). Defaults to 'usd'."
         }
       },
       required: ["coinId"]
@@ -18,25 +22,26 @@ export const getPriceToolDefinition = {
   }
 };
 
-export async function getPrice(coinId: string): Promise<string> {
+export async function getPrice(coinId: string, currency: string = 'usd'): Promise<string> {
   try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`;
+    const cur = currency.toLowerCase();
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${cur}&include_24hr_change=true`;
     const data = await safeFetchJson<any>(url);
     
     if (!data[coinId]) {
       return `❌ Could not find price data for **${coinId.toUpperCase()}**. Please verify the coin name.`;
     }
 
-    const price = data[coinId].usd;
-    const change24h = data[coinId].usd_24h_change;
+    const price = data[coinId][cur];
+    const change24h = data[coinId][`${cur}_24h_change`];
     
     const isPositive = change24h >= 0;
     const arrow = isPositive ? '📈 🟩 +' : '📉 🟥 ';
-    const priceFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+    const priceFormatted = new Intl.NumberFormat(cur === 'idr' ? 'id-ID' : 'en-US', { style: 'currency', currency: cur.toUpperCase() }).format(price);
     const changeFormatted = change24h ? change24h.toFixed(2) : '0.00';
 
     return `💰 **Price Update for ${coinId.toUpperCase()}**\n\n` +
-           `- **Price (USD)**: \`${priceFormatted}\`\n` +
+           `- **Price (${cur.toUpperCase()})**: \`${priceFormatted}\`\n` +
            `- **24h Change**: ${arrow}${changeFormatted}%`;
   } catch (error: any) {
     return `❌ **Failed to fetch price:** ${error.message}`;

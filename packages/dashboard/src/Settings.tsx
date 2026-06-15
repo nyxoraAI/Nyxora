@@ -185,7 +185,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   };
 
   return (
-    <div className="overview-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div className="overview-container">
       <div className="overview-header" style={{ marginBottom: '32px' }}>
         <h1 style={{ color: '#eceff4' }}>Configuration</h1>
         <p style={{ color: '#d8dee9' }}>Modify the core behaviors and parameters of the Nyxora Agent.</p>

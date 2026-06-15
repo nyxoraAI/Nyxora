@@ -57,7 +57,7 @@ export const RpcConfig: React.FC = () => {
   };
 
   return (
-    <div className="overview-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div className="overview-container">
       <div className="nord-panel-header">
         <Server size={28} color="#88c0d0" />
         <h2 className="settings-title" style={{ margin: 0, color: '#eceff4' }}>RPC Configuration</h2>

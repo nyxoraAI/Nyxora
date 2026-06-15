@@ -53,7 +53,7 @@ export const DefiKeys: React.FC = () => {
   };
 
   return (
-    <div className="overview-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div className="overview-container">
       <div className="nord-panel-header">
         <KeyRound size={28} color="#88c0d0" />
         <h2 className="settings-title" style={{ margin: 0, color: '#eceff4' }}>DeFi Configuration</h2>

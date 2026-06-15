@@ -4,8 +4,6 @@
   height: calc(100vh - 64px);
   color: #fff;
   font-family: 'Inter', sans-serif;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .overview-container::-webkit-scrollbar {

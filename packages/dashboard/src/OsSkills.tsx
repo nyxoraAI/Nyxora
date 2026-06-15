@@ -132,7 +132,7 @@ const OsSkills: React.FC = () => {
   );
 
   return (
-    <div className="overview-container" style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+    <div className="overview-container">
       <div className="overview-header" style={{ marginBottom: '24px' }}>
         <h1 style={{ color: '#eceff4' }}>OS Skills</h1>
         <p style={{ color: '#d8dee9' }}>System-level capabilities for the agent OS.</p>
