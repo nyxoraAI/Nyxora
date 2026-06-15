@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.19]
+### Bug Fixes
+- **Dashboard Skill Toggle Sync:** Fixed a bug where disabling skills in the `setup` wizard (CLI) did not reflect on the web Dashboard UI. The wizard stored skill names in `camelCase`, but the core AI engine checked for `snake_case` definitions, bypassing the blacklist. A dictionary mapping was added to `setup.ts` to translate names correctly before saving to `disabled_skills.json`.
+- **Third-Party LLM Provider Unblocking:** Removed a legacy, hardcoded restriction block in `reasoning.ts` that artificially rejected LLM providers other than OpenAI, Gemini, Ollama, and OpenRouter. Users can now seamlessly connect Groq, xAI (Grok), Mistral, and DeepSeek via the setup wizard, utilizing their native OpenAI SDK compatibility.
+- **Google Workspace OAuth Callback Routing:** Fixed a critical bug in the core `server.ts` global authentication middleware where Express.js path mounting behavior implicitly stripped the `/api` prefix from `req.path`. This caused the Google OAuth callback whitelist exception to fail, resulting in an `Unauthorized: Invalid or missing token` error during dashboard login. The middleware now correctly utilizes `req.originalUrl` for accurate bypass verification.
+
+
 ## [26.6.18]
 ### Bug Fixes & Build Pipeline
 - **NPM Publish Recompilation Fix:** Fixed a critical bug in the NPM `prepare` hook where `npm publish` would skip compiling the core backend TypeScript files. This caused versions `v26.6.16` and `v26.6.17` to inadvertently ship with stale, uncompiled JavaScript `dist/` artifacts. The root `tsc` build step is now explicitly injected into the pre-publish hook to ensure the CLI uses the latest codebase.

@@ -463,16 +463,70 @@ Provider: ${config.llm.provider}`;
   ];
 
   const disabledSkills: string[] = [];
+  
+  const skillMapping: Record<string, string | string[]> = {
+    // OS Skills
+    readFile: 'read_local_file',
+    writeFile: 'write_local_file',
+    editFile: 'edit_local_file',
+    generateExcel: 'generate_excel_file',
+    analyzeDocument: 'analyze_document',
+    run_terminal: 'run_terminal_command',
+    gitManager: 'execute_git_command',
+    updateSecurityPolicy: 'update_security_policy',
+    browseWeb: 'browse_website',
+    searchWeb: 'search_web',
+    googleWorkspace: [
+      'read_gmail_inbox', 
+      'list_calendar_events', 
+      'append_row_to_sheets', 
+      'read_google_docs', 
+      'read_google_form_responses'
+    ],
+    notionWorkspace: 'manage_notion',
+    xManager: 'manage_twitter',
+    audioTranscribe: 'transcribe_audio',
+    summarizeText: 'summarize_text',
+
+    // Web3 Skills
+    transfer: 'transfer_token',
+    swapToken: 'swap_token',
+    bridgeToken: 'bridge_token',
+    customTx: 'custom_tx',
+    mintNft: 'mint_nft',
+    defiLending: 'supply_aave',
+    provideLiquidity: 'provide_liquidity_v3',
+    yieldVault: 'deposit_yield_vault',
+    revokeApprovals: 'revoke_approval',
+    getBalance: 'get_balance',
+    getMyAddress: 'get_my_address',
+    checkPortfolio: 'check_portfolio',
+    getPrice: 'get_price',
+    marketAnalysis: 'analyze_market',
+    getTxHistory: 'get_tx_history',
+    checkSecurity: 'check_token_security',
+    checkAddress: 'check_address',
+    checkRegistryStatus: 'check_registry_status',
+    manageCustomTokens: 'manage_custom_tokens'
+  };
+
+  const processDisabledSkill = (skill: string) => {
+    const mapped = skillMapping[skill];
+    if (Array.isArray(mapped)) {
+      disabledSkills.push(...mapped);
+    } else if (mapped) {
+      disabledSkills.push(mapped);
+    } else {
+      disabledSkills.push(skill);
+    }
+  };
+
   allWeb3Skills.forEach(skill => {
-    if (!activeWeb3Skills.includes(skill)) disabledSkills.push(skill);
+    if (!activeWeb3Skills.includes(skill)) processDisabledSkill(skill);
   });
   allOsSkills.forEach(skill => {
-    if (!activeOsSkills.includes(skill)) disabledSkills.push(skill);
+    if (!activeOsSkills.includes(skill)) processDisabledSkill(skill);
   });
-
-  // Note: the backend uses 'run_terminal_command', but the UI/wizard used 'run_terminal'
-  // I need to map it just in case:
-  if (!activeOsSkills.includes('run_terminal')) disabledSkills.push('run_terminal_command');
 
   fs.writeFileSync(getPath('disabled_skills.json'), JSON.stringify(disabledSkills, null, 2));
 

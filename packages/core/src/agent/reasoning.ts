@@ -270,10 +270,6 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   ];
 
   try {
-    if (config.llm.provider !== 'openai' && config.llm.provider !== 'ollama' && config.llm.provider !== 'gemini' && config.llm.provider !== 'openrouter') {
-      return `Provider ${config.llm.provider} is configured, but currently only OpenAI, OpenRouter, Ollama, and Gemini adapters are implemented.`;
-    }
-
     const lowerInput = input.toLowerCase();
     const hasWeb3Keyword = /swap|transfer|price|token|crypto|bridge|wallet|balance|portfolio|buy|sell|send|receive|address|market|limit|mint|nft/i.test(lowerInput);
     const hasGoogleKeyword = /email|gmail|calendar|sheet|doc|form|event/i.test(lowerInput);
