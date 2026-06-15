@@ -142,35 +142,6 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         </div>
       </div>
 
-      <div className="panel gateway-access" style={{ marginTop: '24px' }}>
-        <div className="panel-header">
-          <h3>Memory Log</h3>
-          <p>AI's episodic memory and extracted habits. You can delete incorrect observations.</p>
-        </div>
-        <div className="form-row memory-log-container" style={{ flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
-          {memories.length === 0 ? (
-            <div style={{ color: '#88C0D0', fontStyle: 'italic', padding: '10px' }}>No episodic memories recorded yet. Start chatting to teach the AI your habits!</div>
-          ) : (
-            memories.map(mem => (
-              <div key={mem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#3B4252', padding: '10px 15px', borderRadius: '6px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ color: '#ECEFF4', fontWeight: '500' }}>{mem.fact}</div>
-                  <div style={{ color: '#81A1C1', fontSize: '0.85rem', marginTop: '4px' }}>
-                    Category: {mem.category} | Type: {mem.rule_type} | Confidence: {(mem.confidence * 100).toFixed(0)}% | Occurrences: {mem.occurrences}
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleDeleteMemory(mem.id)}
-                  style={{ background: '#BF616A', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  Delete
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       <div className="logs-grid">
         <div className="log-panel">
           <div className="log-header">
@@ -207,6 +178,35 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
             })}
             <div ref={gatewayLogsEndRef} />
           </div>
+        </div>
+      </div>
+
+      <div className="panel gateway-access" style={{ marginTop: '24px' }}>
+        <div className="panel-header">
+          <h3>Memory Log</h3>
+          <p>AI's episodic memory and extracted habits. You can delete incorrect observations.</p>
+        </div>
+        <div className="form-row memory-log-container" style={{ flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+          {memories.length === 0 ? (
+            <div style={{ color: '#88C0D0', fontStyle: 'italic', padding: '10px' }}>No episodic memories recorded yet. Start chatting to teach the AI your habits!</div>
+          ) : (
+            memories.map(mem => (
+              <div key={mem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#3B4252', padding: '10px 15px', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ color: '#ECEFF4', fontWeight: '500' }}>{mem.fact}</div>
+                  <div style={{ color: '#81A1C1', fontSize: '0.85rem', marginTop: '4px' }}>
+                    Category: {mem.category} | Type: {mem.rule_type} | Confidence: {(mem.confidence * 100).toFixed(0)}% | Occurrences: {mem.occurrences}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleDeleteMemory(mem.id)}
+                  style={{ background: '#BF616A', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

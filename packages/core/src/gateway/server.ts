@@ -603,6 +603,7 @@ let cachedTrending: string[] | null = null;
 let lastTrendingFetch = 0;
 
 let cachedPrices: Record<string, number> = {};
+let cachedPriceChanges: Record<string, number> = {};
 let lastPricesFetch = 0;
 
 app.get('/api/trending', async (req, res) => {
@@ -626,6 +627,15 @@ app.get('/api/trending', async (req, res) => {
   } catch (err: any) {
     if (cachedTrending) return res.json(cachedTrending);
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/wallet', async (req, res) => {
+  try {
+    const userAddress = await getAddress();
+    res.json({ address: userAddress });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -722,10 +732,12 @@ app.get('/api/portfolio', async (req, res) => {
     const uniqueAddrs = Array.from(addressesToFetch);
     const now = Date.now();
     let priceMap = cachedPrices;
+    let changeMap = cachedPriceChanges;
 
     if (uniqueAddrs.length > 0 && now - lastPricesFetch > 2 * 60 * 1000) {
       try {
         const newPrices: Record<string, number> = {};
+        const newChanges: Record<string, number> = {};
         
         await Promise.all(uniqueAddrs.map(async (addr) => {
           try {
@@ -751,8 +763,10 @@ app.get('/api/portfolio', async (req, res) => {
                    
                    if (baseAddr === addr) {
                      newPrices[addr] = parseFloat(bestPair.priceUsd);
+                     newChanges[addr] = bestPair.priceChange?.h24 || 0;
                    } else if (quoteAddr === addr && bestPair.priceNative && parseFloat(bestPair.priceNative) > 0) {
                      newPrices[addr] = parseFloat(bestPair.priceUsd) / parseFloat(bestPair.priceNative);
+                     newChanges[addr] = bestPair.priceChange?.h24 || 0;
                    }
                  }
               }
@@ -765,7 +779,9 @@ app.get('/api/portfolio', async (req, res) => {
         console.log('DexScreener Fetched Prices:', newPrices);
         
         cachedPrices = { ...cachedPrices, ...newPrices };
+        cachedPriceChanges = { ...cachedPriceChanges, ...newChanges };
         priceMap = cachedPrices;
+        changeMap = cachedPriceChanges;
         lastPricesFetch = now;
       } catch (e) {
         console.error('DexScreener fetch error:', e);
@@ -780,6 +796,7 @@ app.get('/api/portfolio', async (req, res) => {
            lookupAddr = (((TOKEN_MAP as any)[chain]?.[wToken]) || '').toLowerCase();
         }
         t.priceUsd = priceMap[lookupAddr] || 0;
+        t.priceChange24h = changeMap[lookupAddr] || 0;
       }
     }
 

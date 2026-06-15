@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.20]
+### Features & Enhancements
+- **Unified Portfolio Scanner Redesign:** Completely overhauled the `Portfolio.tsx` Dashboard UI to provide a denser, more data-rich aesthetic. Token balances across all chains are now aggregated, flattened, and sorted globally by total USD value, replacing the old tabbed per-chain layout.
+- **Dynamic 24h Percentage Change:** Upgraded the core backend (`server.ts`) to actively fetch and cache 24-hour percentage price changes (`h24`) via the DexScreener API. The frontend now dynamically calculates and displays a live, weighted average portfolio change instead of a hardcoded placeholder.
+- **Unified Global Chain Filtering:** Integrated a new custom `<NetworkSelector>` into the Portfolio page that syncs seamlessly with the global top-bar. It natively supports an "All Chains" wildcard option, allowing users to instantly filter the aggregated token list by a specific network without losing the unified cross-chain view.
+- **Wallet Address Exposure API:** Deployed a new `/api/wallet` core endpoint, allowing the Dashboard frontend to securely fetch and display the user's primary connected wallet address directly inside the Portfolio scanner header.
+- **Dynamic Fiat Currency Support:** Upgraded the AI's `get_price` semantic skill to recognize and accept a dynamic `currency` parameter. The system can now instantly translate and format cryptocurrency prices into any global fiat currency (such as IDR, EUR, JPY) based on the user's natural language request.
+
+### UI/UX & Layout Fixes
+- **Full-Width Fluid Dashboard Containers:** Stripped legacy `max-width` hard-limiters (1200px) from the root `overview.css` and all primary sidebar panels (`Overview`, `Portfolio`, `Web3 Skills`, `OS Skills`, `Settings`, `RPC`, `DeFi`). The dashboard now natively spans the full horizontal resolution of any monitor edge-to-edge.
+- **Flexbox Overlap Patch:** Patched a responsive layout bug in the Portfolio header where long network names (e.g., "Base Sepolia (Testnet)") would physically overlap and bleed into the "Portfolio Scanner" title. Added proper `flexWrap: 'wrap'` and flexible gap spacing to guarantee clean degradation on smaller viewports.
+
 ## [26.6.19]
 ### Bug Fixes
 - **Dashboard Skill Toggle Sync:** Fixed a bug where disabling skills in the `setup` wizard (CLI) did not reflect on the web Dashboard UI. The wizard stored skill names in `camelCase`, but the core AI engine checked for `snake_case` definitions, bypassing the blacklist. A dictionary mapping was added to `setup.ts` to translate names correctly before saving to `disabled_skills.json`.

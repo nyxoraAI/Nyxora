@@ -18,9 +18,10 @@ const NETWORKS = [
 interface NetworkSelectorProps {
   value: string;
   onChange: (network: string) => void;
+  showAllOption?: boolean;
 }
 
-export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChange }) => {
+export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChange, showAllOption }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +35,11 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentNetwork = NETWORKS.find(n => n.id === value) || NETWORKS[0];
+  const options = showAllOption 
+    ? [{ id: 'all', label: 'All Chains' }, ...NETWORKS] 
+    : NETWORKS;
+  
+  const currentNetwork = options.find(n => n.id === value) || options[0];
 
   return (
     <div className="custom-network-selector" ref={dropdownRef}>
@@ -44,12 +49,16 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
         aria-expanded={isOpen}
       >
         <div style={{ width: '16px', height: '16px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <img 
-            src={getChainLogoUrl(currentNetwork.id)} 
-            alt={currentNetwork.id} 
-            style={{ width: '16px', height: '16px', objectFit: 'cover', borderRadius: '50%' }} 
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
+          {currentNetwork.id === 'all' ? (
+            <Network size={16} />
+          ) : (
+            <img 
+              src={getChainLogoUrl(currentNetwork.id)} 
+              alt={currentNetwork.id} 
+              style={{ width: '16px', height: '16px', objectFit: 'cover', borderRadius: '50%' }} 
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
         </div>
         <span className="network-label">{currentNetwork.label}</span>
         <ChevronDown size={14} className="network-chevron" />
@@ -57,7 +66,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
 
       {isOpen && (
         <ul className="network-dropdown-menu">
-          {NETWORKS.map(net => (
+          {options.map(net => (
             <li 
               key={net.id}
               className={`network-dropdown-item ${net.id === value ? 'active' : ''}`}
@@ -68,12 +77,16 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
               style={{ display: 'flex', alignItems: 'center' }}
             >
               <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '8px', flexShrink: 0 }}>
-                <img 
-                  src={getChainLogoUrl(net.id)} 
-                  alt={net.id} 
-                  style={{ width: '14px', height: '14px', objectFit: 'cover', borderRadius: '50%' }} 
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
+                {net.id === 'all' ? (
+                  <Network size={14} />
+                ) : (
+                  <img 
+                    src={getChainLogoUrl(net.id)} 
+                    alt={net.id} 
+                    style={{ width: '14px', height: '14px', objectFit: 'cover', borderRadius: '50%' }} 
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
               </div>
               {net.label}
             </li>

@@ -529,6 +529,7 @@ function App() {
                 <NetworkSelector 
                   value={config.agent.default_chain} 
                   onChange={(chain) => updateConfig({ ...config, agent: { ...config.agent, default_chain: chain }})} 
+                  showAllOption={true}
                 />
                 <RouterSelector 
                   value={config.agent.default_router || 'auto'} 
