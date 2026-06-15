@@ -137,7 +137,8 @@ app.use('/api/', apiLimiter);
 app.use('/api', (req, res, next) => {
   // Bypass auth for Google OAuth callback and URLs since they are handled externally or by the browser
   const allowedPaths = ['/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google'];
-  if (allowedPaths.includes(req.path) || allowedPaths.includes(req.path.replace(/\/$/, ''))) {
+  const currentPath = req.originalUrl.split('?')[0];
+  if (allowedPaths.includes(currentPath) || allowedPaths.includes(currentPath.replace(/\/$/, ''))) {
     return next();
   }
 
