@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Policy Engine (DoS Mitigation):** Hardened IPC communication sockets against Denial of Service (Crash) risks. All unvalidated payloads received from `Signer Socket` are now safely wrapped in `try...catch` blocks during `JSON.parse()`, preventing fatal Uncaught Exceptions if the signer returns malformed HTML/text errors.
 - **Clean Code (Obsolete Routing):** Obliterated dead code in `server.ts`. Removed `pendingTransactions` memory state, `GET /pending-tx`, and `POST /approve-tx/:id` endpoints as these are now exclusively and securely handled upstream by the Core Engine via Cryptographic Handshakes.
 
-### olicy Engine (Phase 2)Dynamics
+### Policy Engine Dynamics
 - **Tiered Approval System:** Completely overhauled the Policy Engine from a rigid "Hard-Block" firewall to a fluid Tiered Approval System. Introduced the `Auto-Approve Threshold (USD)`, replacing legacy limiters (`max_usd_per_tx` and `whitelist_only`). Transactions under the threshold execute autonomously (Green Path), while transactions over the threshold elegantly pause as `PENDING_APPROVAL` for manual UI authorization (Yellow Path).
 - **On-Chain Event Listener Upgrade:** Integrated the Tiered Approval limit directly into the background `eventListener.ts`. Triggered Limit Orders are now evaluated against the threshold in real-time, executing autonomously if permitted.
 
