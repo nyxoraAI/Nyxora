@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.6.21] - Under Development and Improvement
 
+
+
 ### Security Hotfix (Audit Mitigation)
 - **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
 - **Memory Subsystem:** Mitigated a Persistent Memory Poisoning vector. The `MemoryValidator` now strictly blocks EVM addresses, Solana addresses, and shell commands via Regex.
@@ -40,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Audit & Compliance
 - **LLM Reasoning Audit Logs:** The SQLite database now permanently records the internal AI "Chain of Thought" (`<think>` blocks). This ensures complete transparency for every autonomous action, allowing users to audit exactly *why* a transaction was drafted, approved, or rejected by the Policy Engine.
+- **Data Architecture (Overview.tsx):** Hardcoded UI metrics have been replaced with a dynamic API fetching system utilizing `.db` extensions for `episodic_memory`. Session counts and active AI skills are now aggregated flawlessly via real-time `/api/sessions` and `/api/skills` calls.
+- **Precision Mathematics (Portfolio):** Resolved a minor float precision loss when converting big integers in `portfolioNormalizer.ts`. Balances are now accurately resolved using `viem`'s native `formatUnits` rather than unsafe `Number(BigInt())` typecasting.
+- **Memory Leaks (Speech Recognition):** Fixed an uncontrolled hook in `App.tsx` where SpeechRecognition would persist in the background. Added a strict cleanup `abort()` call on component unmount.
+- **Type Safety (Compiler):** Hardened the `tsconfig.json` compiler options by enforcing `"noImplicitAny": true`. The codebase now strictly requires proper type definitions, fortifying static safety without breaking existing integrations.
+- **Accessibility (ARIA):** Enhanced the dashboard sidebar navigation by injecting standard `aria-label` tags into all 8 navigational sub-items, improving compatibility with screen readers.
+- **React Rendering (useCallback):** Wrapped remaining raw event handlers in `App.tsx` (such as `handleSubmit`, `renderMessageContent`, and internal markdown parsers) with `useCallback` to prevent unnecessary re-renders and drastically improve frontend responsiveness.
+- **Localization (TTS Engine):** Removed the hardcoded `'id-ID'` language configuration in the Text-to-Speech `SpeechSynthesisUtterance`. The system now dynamically falls back to the user's OS native `navigator.language || 'en-US'`.
+- **Report Cleansing (Market Analysis):** Removed the placeholder "Holder Concentration" data block entirely from the `marketAnalysis.ts` prompt injection module to avoid hallucination loops on 'null' values.
+- **System Standardization:** Swept `marketAnalysis.ts` and translated all Indonesian internal process comments and phase descriptions into English to maintain consistent international coding standards.
 
 ### Policy Engine & Gas Dynamics
 - **Short-Circuit Green Path:** Integrated Oracle-based `estimateUsdValue()` (via DexScreener API) into all Web3 skills (Native DeFi, Transfer, LPs). Transactions falling under the `autoApproveLimit` threshold will now bypass the queue and be executed instantaneously.
