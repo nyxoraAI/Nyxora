@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.6.21] - In Development
+## [26.6.21] - Under Development and Improvement
 
 ### Security Hotfix (Audit Mitigation)
 - **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
