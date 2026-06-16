@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 - **Rapid Graceful Shutdown**: Refactored the core gateway server shutdown sequence to aggressively call `server.closeAllConnections()`. This eliminates the 10-second hang caused by persistent UI polling / SSE connections when stopping the daemon via `CTRL+C`.
-- **Market Analysis Cascade Architecture**: Rewired the AI `analyzeMarket` capability in `reasoning.ts` to correctly route through the advanced `analyzeMarketEngine`. This strictly enforces the 3-Tier Cascading Fallback logic (CoinMarketCap ➔ CoinGecko ➔ DexScreener), maximizing market data resilience against API rate-limits.
+- **Market Analysis Cascade Architecture**: Rewired the AI `analyzeMarket` capability in `reasoning.ts` to correctly route through the advanced `analyzeMarketEngine`. This strictly enforces the 3-Tier Cascading Fallback logic (CoinMarketCap  CoinGecko  DexScreener), maximizing market data resilience against API rate-limits.
 
 ## [26.6.14]
 ### Security & Privacy
