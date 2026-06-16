@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
 - **Memory Subsystem:** Mitigated a Persistent Memory Poisoning vector. The `MemoryValidator` now strictly blocks EVM addresses, Solana addresses, and shell commands via Regex.
 - **Memory Subsystem (Human-in-the-Loop):** Upgraded `ReflectionEngine` to route all newly proposed `permanent` rules to a `pending` state in SQLite. These rules will not be attached to the agent until explicitly approved by the user via the newly added `[Approve]` button in the Dashboard's Memory Log UI.
+- **On-Chain Kill-Switch (Decentralized Governance):** Patched a severe vulnerability where the Arbitrum Smart Contract Kill-Switch (`checkRegistryStatus()`) could be bypassed by `Auto-Approve` AI micro-transactions. The contract validation has now been elevated and injected directly into the `submitTransaction` bottleneck inside `vaultClient.ts`. This guarantees that *all* Web3 transactions (Manual or Auto-Approve) are strictly gated by the user's Decentralized On-Chain status.
 - **RCE Mitigation:** Deferred. (User explicitly requested to keep OS Access directly accessible by the LLM without a zero-trust sandbox UI interceptor).
 
 ### Bug Fixes (Logic & Runtime)
