@@ -7,23 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.6.21] - In Development
 
-### 🛡️ Security Hotfix (Audit Mitigation)
+### Security Hotfix (Audit Mitigation)
 - **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
 - **Memory Subsystem:** Mitigated a Persistent Memory Poisoning vector. The `MemoryValidator` now strictly blocks EVM addresses, Solana addresses, and shell commands via Regex.
 - **Memory Subsystem (Human-in-the-Loop):** Upgraded `ReflectionEngine` to route all newly proposed `permanent` rules to a `pending` state in SQLite. These rules will not be attached to the agent until explicitly approved by the user via the newly added `[Approve]` button in the Dashboard's Memory Log UI.
 - **RCE Mitigation:** Deferred. (User explicitly requested to keep OS Access directly accessible by the LLM without a zero-trust sandbox UI interceptor).
 
-### 🐛 Bug Fixes (Logic & Runtime)
+### Bug Fixes (Logic & Runtime)
 - **Defi Engine:** Fixed a parameter mismatch crash (`TypeError: Cannot read properties of undefined`) when executing Uniswap V3 LP provisions. `txDetails` now correctly aligns with `executeUniv3Mint`'s nested `mintParams` schema.
 - **Aggregator:** Fixed a catastrophic decimal formatting bug in `swapToken.ts` and `bridgeToken.ts`. The algorithm no longer assumes 18 decimals and dynamically resolves token decimals via on-chain `getTokenMetadata` to prevent multi-trillion amount bloat (e.g., USDC, USDT).
 - **Transaction Manager:** Fixed a Phantom Data Loss issue where withdrawal histories would vanish depending on terminal directory. `.nyxora_withdrawals.json` is now absolutely resolved to `~/.nyxora/data/` via `getPath()`.
 - **Token Utils:** Fixed the `getTokenMetadata` memory cache algorithm. It now correctly implements Least-Recently-Used (LRU) evictions instead of First-In-First-Out (FIFO) by refreshing the key's position on cache hits.
 
-### ⚙️ Stability & Technical Debt
+### Stability & Technical Debt
 - **Policy Engine (DoS Mitigation):** Hardened IPC communication sockets against Denial of Service (Crash) risks. All unvalidated payloads received from `Signer Socket` are now safely wrapped in `try...catch` blocks during `JSON.parse()`, preventing fatal Uncaught Exceptions if the signer returns malformed HTML/text errors.
 - **Clean Code (Obsolete Routing):** Obliterated dead code in `server.ts`. Removed `pendingTransactions` memory state, `GET /pending-tx`, and `POST /approve-tx/:id` endpoints as these are now exclusively and securely handled upstream by the Core Engine via Cryptographic Handshakes.
 
-### 🚀 Policy Engine (Phase 2)Dynamics
+### olicy Engine (Phase 2)Dynamics
 - **Tiered Approval System:** Completely overhauled the Policy Engine from a rigid "Hard-Block" firewall to a fluid Tiered Approval System. Introduced the `Auto-Approve Threshold (USD)`, replacing legacy limiters (`max_usd_per_tx` and `whitelist_only`). Transactions under the threshold execute autonomously (Green Path), while transactions over the threshold elegantly pause as `PENDING_APPROVAL` for manual UI authorization (Yellow Path).
 - **On-Chain Event Listener Upgrade:** Integrated the Tiered Approval limit directly into the background `eventListener.ts`. Triggered Limit Orders are now evaluated against the threshold in real-time, executing autonomously if permitted.
 
