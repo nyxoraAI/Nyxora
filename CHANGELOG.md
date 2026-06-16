@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Security Hotfix (Audit Mitigation)
+- **WebSocket Security (CORS & Auth):** Patched a Critical Vulnerability where Socket.IO endpoints accepted connections from any origin (`*`) without token authentication, exposing real-time transaction data. The WebSocket handshake is now strictly gated by `SameSite=strict` cookie validation and CORS is aggressively locked to local domains.
+- **Timing Oracle Mitigation:** Hardened the `/api/auth/session` API with a dedicated, ultra-strict Rate Limiter (10 requests / 15 minutes) to neutralize any theoretical brute-force timing attacks against the 256-bit runtime token.
+- **Cross-Origin Development Fix:** Implemented a native Vite Proxy configuration for `/api` and `/socket.io` to ensure frontend developers running on port 5173 can securely transmit `SameSite=strict` cookies to the backend without triggering false `401 Unauthorized` errors. The frontend Socket.IO client has also been explicitly configured with `withCredentials: true` to guarantee seamless cookie handshakes.
 - **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
 - **Memory Subsystem:** Mitigated a Persistent Memory Poisoning vector. The `MemoryValidator` now strictly blocks EVM addresses, Solana addresses, and shell commands via Regex.
 - **Memory Subsystem (Human-in-the-Loop):** Upgraded `ReflectionEngine` to route all newly proposed `permanent` rules to a `pending` state in SQLite. These rules will not be attached to the agent until explicitly approved by the user via the newly added `[Approve]` button in the Dashboard's Memory Log UI.
