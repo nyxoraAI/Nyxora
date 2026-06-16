@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.21] - In Development
+
+### 🛡️ Security Hotfix (Audit Mitigation)
+- **Policy Engine:** Patched a Critical Vulnerability (Parameter Tampering). HMAC `internalSignature` generation and verification now strictly includes `toAddress`, `valueWei`, and raw `txData`, permanently securing the `autoApprove` API against destination and native asset manipulation via Indirect Prompt Injections.
+- **Memory Subsystem:** Mitigated a Persistent Memory Poisoning vector. The `MemoryValidator` now strictly blocks EVM addresses, Solana addresses, and shell commands via Regex.
+- **Memory Subsystem (Human-in-the-Loop):** Upgraded `ReflectionEngine` to route all newly proposed `permanent` rules to a `pending` state in SQLite. These rules will not be attached to the agent until explicitly approved by the user via the newly added `[Approve]` button in the Dashboard's Memory Log UI.
+- **RCE Mitigation:** Deferred. (User explicitly requested to keep OS Access directly accessible by the LLM without a zero-trust sandbox UI interceptor).
+
+### 🐛 Bug Fixes (Logic & Runtime)
+- **Defi Engine:** Fixed a parameter mismatch crash (`TypeError: Cannot read properties of undefined`) when executing Uniswap V3 LP provisions. `txDetails` now correctly aligns with `executeUniv3Mint`'s nested `mintParams` schema.
+- **Aggregator:** Fixed a catastrophic decimal formatting bug in `swapToken.ts` and `bridgeToken.ts`. The algorithm no longer assumes 18 decimals and dynamically resolves token decimals via on-chain `getTokenMetadata` to prevent multi-trillion amount bloat (e.g., USDC, USDT).
+- **Transaction Manager:** Fixed a Phantom Data Loss issue where withdrawal histories would vanish depending on terminal directory. `.nyxora_withdrawals.json` is now absolutely resolved to `~/.nyxora/data/` via `getPath()`.
+- **Token Utils:** Fixed the `getTokenMetadata` memory cache algorithm. It now correctly implements Least-Recently-Used (LRU) evictions instead of First-In-First-Out (FIFO) by refreshing the key's position on cache hits.
+
+### ⚙️ Stability & Technical Debt
+- **Policy Engine (DoS Mitigation):** Hardened IPC communication sockets against Denial of Service (Crash) risks. All unvalidated payloads received from `Signer Socket` are now safely wrapped in `try...catch` blocks during `JSON.parse()`, preventing fatal Uncaught Exceptions if the signer returns malformed HTML/text errors.
+- **Clean Code (Obsolete Routing):** Obliterated dead code in `server.ts`. Removed `pendingTransactions` memory state, `GET /pending-tx`, and `POST /approve-tx/:id` endpoints as these are now exclusively and securely handled upstream by the Core Engine via Cryptographic Handshakes.
+
+### 🚀 Policy Engine (Phase 2)Dynamics
+- **Tiered Approval System:** Completely overhauled the Policy Engine from a rigid "Hard-Block" firewall to a fluid Tiered Approval System. Introduced the `Auto-Approve Threshold (USD)`, replacing legacy limiters (`max_usd_per_tx` and `whitelist_only`). Transactions under the threshold execute autonomously (Green Path), while transactions over the threshold elegantly pause as `PENDING_APPROVAL` for manual UI authorization (Yellow Path).
+- **On-Chain Event Listener Upgrade:** Integrated the Tiered Approval limit directly into the background `eventListener.ts`. Triggered Limit Orders are now evaluated against the threshold in real-time, executing autonomously if permitted.
+
+### Audit & Compliance
+- **LLM Reasoning Audit Logs:** The SQLite database now permanently records the internal AI "Chain of Thought" (`<think>` blocks). This ensures complete transparency for every autonomous action, allowing users to audit exactly *why* a transaction was drafted, approved, or rejected by the Policy Engine.
+
+### Policy Engine & Gas Dynamics
+- **Short-Circuit Green Path:** Integrated Oracle-based `estimateUsdValue()` (via DexScreener API) into all Web3 skills (Native DeFi, Transfer, LPs). Transactions falling under the `autoApproveLimit` threshold will now bypass the queue and be executed instantaneously.
+- **Strict Web3 Routing Rules:** Updated AI Core System Prompt (`reasoning.ts`) with CRITICAL RULE 20 to firmly enforce explicit routing between Same-Chain Swaps and Cross-Chain Intents.
+- **Centralized Gas Limit Awareness:** Hardcoded the extraction of `max_gas_fee_usd` directly from the user's Risk Profile in SQLite to allow the frontend to safely manipulate Gas guardrails without LLM hallucination risks.
+- **Absolute Slippage Override:** Stripped `slippagePercent` control from all LLM JSON schemas (`swap_token`, `bridge_token`, `execute_intent`). The `defiRouter.ts` now centrally enforces the user's explicit `max_slippage` from their SQLite profile, guaranteeing 100% immunity against LLM slippage hallucinations.
+
 ## [26.6.20]
 ### Features & Enhancements
 - **Unified Portfolio Scanner Redesign:** Completely overhauled the `Portfolio.tsx` Dashboard UI to provide a denser, more data-rich aesthetic. Token balances across all chains are now aggregated, flattened, and sorted globally by total USD value, replacing the old tabbed per-chain layout.
