@@ -1,7 +1,72 @@
 import fs from 'fs';
 import yaml from 'yaml';
 import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 import { getPath } from './paths';
+import { validateConfig } from './validator';
+
+let cachedEncryptionKey: Buffer | null = null;
+function getEncryptionKeySync(): Buffer {
+    if (cachedEncryptionKey) return cachedEncryptionKey;
+    let masterKeyRaw = process.env.NYXORA_MASTER_KEY;
+    if (!masterKeyRaw) {
+        try {
+            const { execSync } = require('child_process');
+            const output = execSync(`node -e "require('@napi-rs/keyring').Entry.prototype.getPassword.call(new (require('@napi-rs/keyring').Entry)('nyxora', 'config_master')).then(console.log).catch(()=>console.log(''))"`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+            const pk = output?.trim();
+            if (pk) masterKeyRaw = pk;
+        } catch (e) {
+            // Ignore
+        }
+    }
+    if (!masterKeyRaw) {
+        try {
+            const masterKeyPath = path.join(os.homedir(), '.nyxora', 'auth', 'master.key');
+            if (fs.existsSync(masterKeyPath)) {
+                masterKeyRaw = fs.readFileSync(masterKeyPath, 'utf8').trim();
+            } else {
+                masterKeyRaw = crypto.randomBytes(32).toString('hex');
+                try { fs.writeFileSync(masterKeyPath, masterKeyRaw, { mode: 0o600 }); } catch (e) {}
+            }
+        } catch (e) {
+            masterKeyRaw = 'default_fallback_nyxora_key';
+        }
+    }
+    cachedEncryptionKey = crypto.createHash('sha256').update(masterKeyRaw).digest();
+    return cachedEncryptionKey;
+}
+
+export function encryptDataSync(text: string): string {
+    if (!text || text.startsWith('ENC:')) return text;
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', getEncryptionKeySync(), iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `ENC:${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+export function decryptDataSync(encryptedText: string): string {
+    if (!encryptedText) return encryptedText;
+    if (!encryptedText.startsWith('ENC:')) {
+        return encryptedText;
+    }
+    try {
+        const parts = encryptedText.split(':');
+        if (parts.length < 4) return encryptedText;
+        const iv = Buffer.from(parts[1], 'hex');
+        const authTag = Buffer.from(parts[2], 'hex');
+        const encrypted = parts.slice(3).join(':');
+        const decipher = crypto.createDecipheriv('aes-256-gcm', getEncryptionKeySync(), iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    } catch (e) {
+        return encryptedText; // return raw if decryption fails
+    }
+}
 
 export function loadRpcConfig(): Record<string, string | string[]> {
   const rpcPath = getPath('rpc_key.yaml');
@@ -26,7 +91,7 @@ export function saveRpcConfig(rpcUrls: Record<string, string | string[]>): void 
 
 export async function loadApiKeys(): Promise<Record<string, string>> {
   const config = loadConfig();
-  return config.credentials || {};
+  return (config.credentials as Record<string, string>) || {};
 }
 
 export async function saveApiKeys(newKeys: Record<string, string>): Promise<void> {
@@ -96,8 +161,27 @@ export function loadConfig(): NyxoraConfig {
     const file = fs.readFileSync(configPath, 'utf8');
     const parsed = yaml.parse(file) as Partial<NyxoraConfig>;
     
-    // Auto-migration logic: move llm.credentials to root credentials
     let needsSave = false;
+    
+    // Decrypt credentials
+    if (parsed.credentials) {
+      for (const key in parsed.credentials) {
+        if (parsed.credentials[key]) {
+            if (!parsed.credentials[key]!.startsWith('ENC:')) needsSave = true;
+            parsed.credentials[key] = decryptDataSync(parsed.credentials[key]!);
+        }
+      }
+    }
+    if (parsed.integrations?.telegram?.bot_token) {
+      if (!parsed.integrations.telegram.bot_token.startsWith('ENC:')) needsSave = true;
+      parsed.integrations.telegram.bot_token = decryptDataSync(parsed.integrations.telegram.bot_token);
+    }
+    if (parsed.web3?.explorer_api_key) {
+      if (!parsed.web3.explorer_api_key.startsWith('ENC:')) needsSave = true;
+      parsed.web3.explorer_api_key = decryptDataSync(parsed.web3.explorer_api_key);
+    }
+    
+    // Auto-migration logic: move llm.credentials to root credentials
     if (parsed.llm && (parsed.llm as any).credentials) {
       if (!parsed.credentials) {
         parsed.credentials = {};
@@ -121,7 +205,7 @@ export function loadConfig(): NyxoraConfig {
     // Auto-migration logic: move permissions to policy.yaml
     const policyPath = getPath('policy.yaml');
     if (!fs.existsSync(policyPath)) {
-      const defaultPolicy = `max_usd_per_tx: ${(parsed as any).permissions?.web3?.max_usd_per_tx || 999999999}\nwhitelist_only: false\nrequire_approval: true\n`;
+      const defaultPolicy = `auto_approve_limit_usd: 0\ncustom_llm_rules: []\n`;
       fs.writeFileSync(policyPath, defaultPolicy, 'utf8');
       console.log('[Config] Created default policy.yaml.');
     }
@@ -132,9 +216,8 @@ export function loadConfig(): NyxoraConfig {
 
     if (needsSave) {
       try {
-        const yamlStr = yaml.stringify(parsed);
-        fs.writeFileSync(configPath, yamlStr, 'utf8');
-        console.log('[Config] Auto-migrated llm.credentials to root credentials.');
+        saveConfig(parsed as NyxoraConfig);
+        console.log('[Config] Auto-migrated config file safely.');
       } catch (e) {
         console.error('[Config] Failed to auto-migrate config file', e);
       }
@@ -142,7 +225,8 @@ export function loadConfig(): NyxoraConfig {
     
 
     
-    return {
+    
+    const validatedConfig = validateConfig({
       agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 'auto' },
       llm: parsed.llm || { 
         provider: 'openai', 
@@ -160,10 +244,14 @@ export function loadConfig(): NyxoraConfig {
       integrations: parsed.integrations || {
         telegram: { enabled: false }
       }
-    } as NyxoraConfig;
+    });
+
+    return validatedConfig;
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       console.log('[Config] No config.yaml found. Using default configuration.');
+    } else if (error.name === 'YAMLError' || error.message?.includes('YAML')) {
+      console.warn('[Parser] YAML Parse Error:', error.message);
     } else {
       console.error('[Config] Failed to load config.yaml. Using default configuration.', error);
     }
@@ -202,9 +290,45 @@ export function saveConfig(newConfig: NyxoraConfig): void {
     if (configToSave.web3 && configToSave.web3.rpc_urls) {
       delete configToSave.web3.rpc_urls;
     }
+
+    // Encrypt credentials before saving
+    if (configToSave.credentials) {
+      for (const key in configToSave.credentials) {
+        if (configToSave.credentials[key]) {
+            configToSave.credentials[key] = encryptDataSync(configToSave.credentials[key]);
+        }
+      }
+    }
+    if (configToSave.integrations?.telegram?.bot_token) {
+      configToSave.integrations.telegram.bot_token = encryptDataSync(configToSave.integrations.telegram.bot_token);
+    }
+    if (configToSave.web3?.explorer_api_key) {
+      configToSave.web3.explorer_api_key = encryptDataSync(configToSave.web3.explorer_api_key);
+    }
+
     const yamlStr = yaml.stringify(configToSave);
     fs.writeFileSync(configPath, yamlStr, 'utf8');
   } catch (error) {
     console.error('Failed to save config.yaml', error);
   }
+}
+
+export interface PolicyConfig {
+  max_usd_per_tx?: number;
+  whitelist_only?: boolean;
+  require_approval?: boolean;
+  auto_approve_limit_usd?: number;
+  custom_llm_rules?: string[];
+}
+
+export function loadPolicyConfig(): PolicyConfig {
+  const policyPath = getPath('policy.yaml');
+  if (fs.existsSync(policyPath)) {
+    try {
+      return yaml.parse(fs.readFileSync(policyPath, 'utf8')) || {};
+    } catch (e) {
+      console.error('[Config] Failed to parse policy.yaml', e);
+    }
+  }
+  return {};
 }
