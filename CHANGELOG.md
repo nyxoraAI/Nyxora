@@ -9,12 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 - **Portfolio Management:** Added a visual "Add Custom Token" interface to the Dashboard's Portfolio tab to mimic conventional Web3 wallets. The backend now exposes `/api/custom-tokens` CRUD endpoints and implements automatic on-chain token symbol detection via ERC-20 `symbol()` calls. Users can also delete custom tokens securely from the UI.
+- **Native Terminal CLI Chat:** Built a robust, sandbox-free Terminal Interface (`npm run chat`) powered by `@clack/prompts` to cater to headless server environments and power users. Nyxora now natively supports executing AI tasks and authorizing on-chain transactions directly from the terminal via interactive prompts (Y/n), while gracefully silencing internal `<think>` blocks for a clean CLI experience. The heavy Web Dashboard has been decoupled and is now an opt-in component accessible via `nyxora dashboard`.
 
 ### Bug Fixes & Optimizations
 - **Dashboard UI/UX:** Fixed an infinite recursive loop bug caused by `fetchConfig` and `useEffect` dependencies in `App.tsx`. 
 - **Code Quality:** Performed a massive deep-cleaning of linting warnings across 11 core Dashboard components (`App.tsx`, `Settings.tsx`, `Skills.tsx`, `Overview.tsx`, etc.), removing unused variables, dead code, and unreferenced UI imports to drastically improve memory efficiency and production bundle sizes in preparation for the v26.6.21 release.
 
 ### Security Update
+- **Comprehensive Audit Remediation:** Successfully patched 12 critical vulnerabilities across the core engine, web3 execution pipeline, and policy sandbox:
+  - **Core Security:** Fortified `parser.ts` to strictly re-encrypt autosave credentials to disk. Sealed an authentication bypass zero-day in `state.ts` handling empty tokens. Stopped infinite DoS loops and brute-force PIN attacks in the Telegram `setup.ts` module. Hardened `episodic.ts` with strict parameterized SQL injection protections.
+  - **Gateway & Policy Engine:** Eliminated a severe race condition in `server.ts` allowing double transaction approvals by enforcing synchronous nonce invalidation. Added explicit `limit_order` support to Dashboard UI approvals. Fixed an MCP Server critical token parsing mismatch in `auth.token`.
+  - **DeFi Guardrails:** Engineered a strict `validateProviderPayload` helper inside `aggregatorMainnet.ts` to actively block malicious API payloads targeting the native `value` overrides. Eradicated double-execution limit order race conditions in `eventListener.ts`. Transitioned Honeypot checks to be dynamically chain-aware rather than hardcoded to Base.
+  - **Smart Contract Security:** Shifted the ERC-20 `approve` logic to a strictly *Hardcoded Whitelist* inside `executeDefi.ts`, mathematically guaranteeing the AI agent can never auto-approve malicious smart contracts unless officially recognized (1inch, 0x, LI.FI, Kyberswap, Relay).
 - **Config Parser Anti-Spam:** Fixed a credential encryption loop bug in `parser.ts` where plaintext API keys would trigger endless terminal warnings. The engine now silently auto-encrypts credentials in-place upon the first load.
 - **Frontend UI/UX:** Fixed dynamic native token symbol fallback in `BalanceWidget.tsx` to support non-ETH chains. Fixed a UI crash during hash truncation for strings under 60 characters in `SwapWidget.tsx`.
 - **Docker Environment:** Optimized `Dockerfile` instructions by merging `chown` permissions and explicitly preventing `.ts` source files from leaking into production builds.
