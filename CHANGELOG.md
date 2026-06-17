@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 - **Portfolio Management:** Added a visual "Add Custom Token" interface to the Dashboard's Portfolio tab to mimic conventional Web3 wallets. The backend now exposes `/api/custom-tokens` CRUD endpoints and implements automatic on-chain token symbol detection via ERC-20 `symbol()` calls. Users can also delete custom tokens securely from the UI.
 
+### Bug Fixes & Optimizations
+- **Dashboard UI/UX:** Fixed an infinite recursive loop bug caused by `fetchConfig` and `useEffect` dependencies in `App.tsx`. 
+- **Code Quality:** Performed a massive deep-cleaning of linting warnings across 11 core Dashboard components (`App.tsx`, `Settings.tsx`, `Skills.tsx`, `Overview.tsx`, etc.), removing unused variables, dead code, and unreferenced UI imports to drastically improve memory efficiency and production bundle sizes in preparation for the v26.6.21 release.
+
 ### Security Update
 - **Config Parser Anti-Spam:** Fixed a credential encryption loop bug in `parser.ts` where plaintext API keys would trigger endless terminal warnings. The engine now silently auto-encrypts credentials in-place upon the first load.
 - **Frontend UI/UX:** Fixed dynamic native token symbol fallback in `BalanceWidget.tsx` to support non-ETH chains. Fixed a UI crash during hash truncation for strings under 60 characters in `SwapWidget.tsx`.
