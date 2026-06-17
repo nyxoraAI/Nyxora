@@ -7,24 +7,7 @@ import { getAppDir, getPath } from '../config/paths';
 import { loadConfig, saveConfig, saveApiKeys, saveRpcConfig } from '../config/parser';
 import crypto from 'crypto';
 
-function encryptKey(privateKey: string, password: string) {
-    const salt = crypto.randomBytes(16);
-    const key = crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
-    const iv = crypto.randomBytes(12);
-    
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    let encrypted = cipher.update(privateKey, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    
-    const authTag = cipher.getAuthTag().toString('hex');
-    
-    return {
-        salt: salt.toString('hex'),
-        iv: iv.toString('hex'),
-        authTag,
-        encryptedData: encrypted
-    };
-}
+
 import { generatePrivateKey, privateKeyToAccount, generateMnemonic, mnemonicToAccount, english } from 'viem/accounts';
 
 export async function runSetupWizard() {
@@ -286,9 +269,9 @@ Provider: ${config.llm.provider}`;
       privateKey = '0x' + Buffer.from(account.getHdKey().privateKey!).toString('hex');
       log.success('New Wallet Generated!');
       log.info(`Address: ${account.address}`);
-      log.info(`Private Key: ${privateKey}`);
+      log.info(`Private Key: [REDACTED - Saved securely to vault]`);
       log.info(`Seed Phrase (Mnemonic): ${seedPhrase}`);
-      log.warn('IMPORTANT: Write down these 12 words (or the Private Key) NOW! This is your ONLY backup. The credentials have been securely injected into your local OS vault.');
+      log.warn('IMPORTANT: Write down these 12 words NOW! This is your ONLY backup. The credentials have been securely injected into your local OS vault.');
     }
   }
 
@@ -356,19 +339,32 @@ Provider: ${config.llm.provider}`;
     })) as string;
     if (isCancel(telegramToken)) return process.exit(0);
 
-    if (telegramToken && !authorizedChatId) {
+    if (telegramToken && telegramToken.trim() !== '') {
+      authorizedChatId = undefined;
+    }
+
+    const activeToken = telegramToken || config.integrations?.telegram?.bot_token;
+
+    if (activeToken && !authorizedChatId) {
       const s = spinner();
       const pin = Math.floor(100000 + Math.random() * 900000).toString();
       
       note(pc.cyan(`1. Open Telegram and search for your Bot.\n2. Send this exact message to your bot:\n\n   /auth ${pin}\n\nWaiting for your message...`), 'Telegram Pairing Required');
       s.start(`Waiting for /auth ${pin} on Telegram...`);
 
+      let bot: any = null;
       try {
         const { Telegraf } = require('telegraf');
-        const bot = new Telegraf(telegramToken);
+        bot = new Telegraf(activeToken);
         let paired = false;
 
+        let failedAttempts: Record<string, number> = {};
         bot.command('auth', (ctx: any) => {
+          const chatId = ctx.chat.id.toString();
+          if (failedAttempts[chatId] >= 5) {
+             return ctx.reply('❌ Too many failed attempts. You are locked out.');
+          }
+
           const text = ctx.message.text.split(' ');
           if (text[1] === pin) {
             authorizedChatId = ctx.chat.id;
@@ -376,6 +372,7 @@ Provider: ${config.llm.provider}`;
             ctx.reply('✅ Bot successfully paired with Nyxora!');
             bot.stop();
           } else {
+            failedAttempts[chatId] = (failedAttempts[chatId] || 0) + 1;
             ctx.reply('❌ Invalid PIN.');
           }
         });
@@ -383,12 +380,25 @@ Provider: ${config.llm.provider}`;
         bot.launch();
 
         // Wait until paired
-        while (!paired) {
+        let attempts = 0;
+        while (!paired && attempts < 120) {
           await new Promise(r => setTimeout(r, 1000));
+          attempts++;
         }
-        s.stop(`Bot successfully paired with Chat ID: ${authorizedChatId}`);
+        if (!paired) {
+            s.stop('Timeout waiting for Telegram pairing. Setup will continue, but Telegram integration is disabled.');
+            try { bot.stop(); } catch(e) {}
+            authorizedChatId = undefined;
+            telegramToken = '';
+        } else {
+            s.stop(`Bot successfully paired with Chat ID: ${authorizedChatId}`);
+        }
       } catch (err: any) {
         s.stop(`Failed to start bot listener: ${err.message}. You can pair it later.`);
+        // Try to stop the bot if it was initialized before the error (L17)
+        try { 
+          if (bot) bot.stop(); 
+        } catch(e) {}
       }
     }
   }
@@ -403,11 +413,11 @@ Provider: ${config.llm.provider}`;
   config.agent.default_chain = defaultChain as string;
   
   if (!config.skills) config.skills = { web3: [], os: [] } as any;
-  config.skills.web3 = activeWeb3Skills;
-  config.skills.os = activeOsSkills;
+  config.skills!.web3 = activeWeb3Skills;
+  config.skills!.os = activeOsSkills;
 
   if (!config.channels) config.channels = { active: [] } as any;
-  config.channels.active = activeChannels;
+  config.channels!.active = activeChannels;
 
   const newApiKeys: Record<string, string> = {};
   if (apiKey) {
@@ -442,6 +452,8 @@ Provider: ${config.llm.provider}`;
   
   if (authorizedChatId) {
     config.integrations.telegram.authorized_chat_id = authorizedChatId;
+  } else if (config.integrations.telegram) {
+    delete config.integrations.telegram.authorized_chat_id;
   }
 
   saveConfig(config);
