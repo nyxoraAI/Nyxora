@@ -281,6 +281,20 @@ async function uninstall(cliArgs) {
   await new Promise(resolve => child.on('close', resolve));
 }
 
+async function chat(cliArgs) {
+  const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
+  const useCompiled = fs.existsSync(compiledCli);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledCli, 'chat', ...cliArgs] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'chat', ...cliArgs];
+  const child = spawn(cmd, args, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
 async function runDoctor() {
   const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/doctor.js');
   const useCompiled = fs.existsSync(compiledCli);
@@ -331,6 +345,7 @@ async function main() {
     case 'clear': await clearMemory(process.argv.slice(3)); break;
     case 'set-key': await setKey(process.argv.slice(3)); break;
     case 'wallet': await wallet(process.argv.slice(3)); break;
+    case 'chat': await chat(process.argv.slice(3)); break;
     case 'uninstall': await uninstall(process.argv.slice(3)); break;
     case 'start': await start(); break;
     case 'stop': await stop(); break;
@@ -356,6 +371,7 @@ Commands:
   start          Start the Nyxora background daemon
   stop           Stop the running daemon
   restart        Restart the daemon
+  chat           Chat interactively with the AI in terminal
   setup          Run the interactive Setup Wizard
   dashboard      Open the dashboard in your browser
   unlock         Unlock an inactive dashboard session

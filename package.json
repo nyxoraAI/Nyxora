@@ -42,6 +42,7 @@
     "stop": "node ./bin/nyxora.mjs stop",
     "restart": "node ./bin/nyxora.mjs restart",
     "dashboard": "node ./bin/nyxora.mjs dashboard",
+    "chat": "node ./bin/nyxora.mjs chat",
     "setup": "node ./bin/nyxora.mjs setup",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",

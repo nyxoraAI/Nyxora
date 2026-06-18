@@ -128,6 +128,13 @@ console.log(`================================`);
     }
   }
 
+  // Check for chat command
+  if (process.argv.includes('chat')) {
+    const { chatInteractive } = await import('./chat');
+    await chatInteractive();
+    process.exit(0);
+  }
+
   // Check for uninstall command
   if (process.argv.includes('uninstall')) {
     console.log(pc.cyan('\n🗑️  Nyxora Uninstallation Wizard'));

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.21]
+### Features & Enhancements
+- **Clean Uninstallation Wizard:** Added the `nyxora uninstall` command. Users can now safely and cleanly remove all traces of Nyxora from their system. This wizard securely clears the AI's SQLite memory database, purges stored credentials from the OS Native Keyring, and completely deletes the `~/.nyxora` configuration directory.
+- **Interactive CLI Chat (`nyxora chat`):** Introduced a new terminal-based interactive chat interface. Users who prefer the command line can now converse directly with the Nyxora background daemon using `@clack/prompts` without needing to open the web dashboard. Features graceful background-safe exits.
+
 ## [26.6.20]
 ### Features & Enhancements
 - **Unified Portfolio Scanner Redesign:** Completely overhauled the `Portfolio.tsx` Dashboard UI to provide a denser, more data-rich aesthetic. Token balances across all chains are now aggregated, flattened, and sorted globally by total USD value, replacing the old tabbed per-chain layout.
