@@ -24,6 +24,9 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **DeFi Configuration BYOK & UI Masking**: All aggregator and provider API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into a heavily guarded `~/.nyxora/defi_keys.yaml` file. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
+*   **Native Asset Parameter Tampering Protection**: The internal cryptographic HMAC signature rigorously binds `toAddress`, `txData`, and `valueWei`, rendering the system mathematically immune to Native Token (ETH/BNB) destination or amount hijacking via Indirect Prompt Injections.
+*   **Human-in-the-Loop Memory Approval**: AI-extracted permanent behavioral rules are strictly quarantined in a `pending` state until explicitly authorized by the user via the Dashboard, neutralizing Persistent Memory Poisoning vectors.
+*   **Stateless Policy Engine & DoS Resilience**: The Policy Engine operates as a 100% stateless cryptographic HMAC gatekeeper, hardened with resilient `try...catch` IPC interceptors to withstand Signer-level Denial of Service (Crash) attacks.
 *   **Immutable Policy Guardrails**: Transaction limits (e.g. `max_usd_per_tx`) are strictly enforced by the Policy Engine. The LLM has zero write-access to bypass these rules.
 
 *   **Graceful SQLite WAL Shutdown**: Integrated `SIGTERM`/`SIGINT` interceptors ensure that when the daemon stops, active requests are safely terminated and SQLite Write-Ahead Logs (WAL) are securely flushed, preventing database corruption.
@@ -133,6 +136,12 @@ nyxora dashboard
 ```bash
 nyxora clear --force
 ```
+
+### Utility: Clean Uninstallation
+To completely remove Nyxora, wipe the AI's local memory, and securely delete your Private Key from the OS Keyring before uninstalling the NPM package:
+```bash
+nyxora uninstall
+```
 > **⚠️ IMPORTANT:** Whenever you re-run `nyxora setup` or manually edit the config files, you **must restart the daemon** by running `nyxora restart` for the changes to take effect.
 
 ### Local Development (From Source)
@@ -159,6 +168,14 @@ npm start
 
 ---
 
+## ⚖️ Terms of Service
+
+By downloading, installing, or using the Nyxora AI Agent, you agree to our assumption of risk and liability limitations. Please ensure you review our legal policies before deploying the agent.
+
+> **🔗 [Read the Full Terms of Service Here](https://nyxoraai.github.io/Nyxora/terms)**
+
+---
+
 ## 📖 Official Documentation
 
 For complete technical deep-dives into our Cryptographic Architecture, please visit our official VitePress Documentation Site!
@@ -172,7 +189,7 @@ For complete technical deep-dives into our Cryptographic Architecture, please vi
 **❤️ Support the Project**
 
 Building and maintaining a highly secure, zero-trust architecture takes significant time and resources. If you love what we are building, you can help us keep Nyxora open, secure, and constantly evolving by sending a coffee our way:
-- **EVM (Multi-Sig Safe):** `0x490717E50D6434C348AA0D2bD5fe682392823708`
+- **EVM :** `0x490717E50D6434C348AA0D2bD5fe682392823708`
 
 ---
 **License:** MIT License
