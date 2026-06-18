@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": [
+    "launcher.ts",
+    "packages/core/src/**/*",
+    "packages/policy/src/**/*",
+    "packages/signer/src/**/*"
+  ],
+  "exclude": ["node_modules", "packages/dashboard", "**/__tests__"]
+}

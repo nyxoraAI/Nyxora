@@ -1,0 +1,57 @@
+node_modules/
+packages/dashboard/node_modules/
+packages/dashboard/src/
+packages/dashboard/public/
+.env
+.env.*
+!.env.example
+memory.json
+*.log
+# dist/ ignored in repo, but included in npm package
+.git/
+.gitignore
+scratch/
+
+# Nyxora CLI Specifics
+.github/
+/docs/
+/assets/
+config.yaml
+rpc_key.yaml
+packages/policy/policy.yaml
+keystore.json
+memory.db*
+*.bak
+
+# Workspace Secrets
+credentials.json
+google-tokens.json
+google-credentials.json
+auth.token
+runtime.token
+daemon.pid
+user.md
+IDENTITY.md
+security_policy.md
+.npmrc
+*.tgz
+
+# Build Caches & Test Files
+**/*.tsbuildinfo
+**/*.d.ts.map
+**/test-*.ts
+**/test_*.ts
+**/test.ts
+**/*.test.ts
+packages/core/src/utils/safeLogger.js
+/launcher.ts
+migrate_keys.*
+Dockerfile
+DOCKER.md
+
+# Secret Private Tests
+**/__tests__/
+vitest.config.*
+
+# Unreleased Strategy Documents
+GOVERNANCE.md
