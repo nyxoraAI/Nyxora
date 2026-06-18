@@ -4,7 +4,6 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { getPath } from './paths';
-import { validateConfig } from './validator';
 
 let cachedEncryptionKey: Buffer | null = null;
 function getEncryptionKeySync(): Buffer {
