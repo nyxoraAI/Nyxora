@@ -128,6 +128,62 @@ console.log(`================================`);
     }
   }
 
+  // Check for uninstall command
+  if (process.argv.includes('uninstall')) {
+    console.log(pc.cyan('\n🗑️  Nyxora Uninstallation Wizard'));
+    
+    let shouldProceed = process.argv.includes('--force') || process.argv.includes('-y');
+    
+    if (!shouldProceed) {
+      const proceed = await confirm({
+        message: pc.bgRed(pc.white(' ⚠️ WARNING ')) + pc.yellow(' This will PERMANENTLY WIPE the AI\'s local memory, securely delete your Private Key and Master Key from the OS Keyring, and remove all configuration.\n\nAre you absolutely sure you want to proceed?'),
+      });
+      if (isCancel(proceed) || !proceed) process.exit(0);
+    }
+    
+    console.log(pc.gray('\nStarting cleanup process...'));
+    
+    // 1. Wipe AI Memory
+    try {
+      const { Logger } = require('../memory/logger');
+      const logger = new Logger();
+      logger.clear();
+      console.log(pc.green('✅ AI memory wiped successfully.'));
+    } catch (e: any) {
+      console.log(pc.gray('⚠️  Could not clear AI memory (may not exist).'));
+    }
+    
+    // 2. Delete OS Keyring entries
+    try {
+      const { Entry } = await import('@napi-rs/keyring');
+      const walletEntry = new Entry('nyxora', 'wallet');
+      try { await walletEntry.deletePassword(); } catch(e) {}
+      console.log(pc.green('✅ Wallet key removed from OS Keyring.'));
+      
+      const masterEntry = new Entry('nyxora', 'config_master');
+      try { await masterEntry.deletePassword(); } catch(e) {}
+      console.log(pc.green('✅ Master key removed from OS Keyring.'));
+    } catch (e: any) {
+      console.log(pc.gray('⚠️  Could not access OS Keyring.'));
+    }
+    
+    // 3. Delete ~/.nyxora directory
+    try {
+      const targetDir = path.join(os.homedir(), '.nyxora');
+      if (fs.existsSync(targetDir)) {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+        console.log(pc.green('✅ Configuration directory (~/.nyxora) deleted.'));
+      }
+    } catch (e: any) {
+      console.log(pc.red(`❌ Failed to delete ~/.nyxora: ${e.message}`));
+    }
+    
+    console.log(pc.cyan('\n✨ Nyxora data has been completely removed.'));
+    console.log(pc.white('To complete the uninstallation, run:'));
+    console.log(pc.green('  npm uninstall -g nyxora\n'));
+    process.exit(0);
+  }
+
   // 2. Setup boilerplate files if in global mode and they don't exist
   let isFirstBoot = false;
   if (isGlobalMode) {

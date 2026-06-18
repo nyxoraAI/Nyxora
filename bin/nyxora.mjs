@@ -267,6 +267,20 @@ async function wallet(cliArgs) {
   await new Promise(resolve => child.on('close', resolve));
 }
 
+async function uninstall(cliArgs) {
+  const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
+  const useCompiled = fs.existsSync(compiledCli);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledCli, 'uninstall', ...cliArgs] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'uninstall', ...cliArgs];
+  const child = spawn(cmd, args, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
 async function runDoctor() {
   const compiledCli = path.join(projectRoot, 'dist', 'packages/core/src/gateway/doctor.js');
   const useCompiled = fs.existsSync(compiledCli);
@@ -317,6 +331,7 @@ async function main() {
     case 'clear': await clearMemory(process.argv.slice(3)); break;
     case 'set-key': await setKey(process.argv.slice(3)); break;
     case 'wallet': await wallet(process.argv.slice(3)); break;
+    case 'uninstall': await uninstall(process.argv.slice(3)); break;
     case 'start': await start(); break;
     case 'stop': await stop(); break;
     case 'restart': await restart(); break;
@@ -350,6 +365,7 @@ Commands:
   autostart      Enable/disable autostart on boot (usage: nyxora autostart enable)
   set-key        Securely save API Key (usage: nyxora set-key <provider> <key>)
   wallet         Manage your Web3 Wallet (usage: nyxora wallet update)
+  uninstall      Wipe AI memory, securely delete keys, and remove configuration
 
 Options:
   -v, --version  Show current version
