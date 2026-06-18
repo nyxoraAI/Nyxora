@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [26.6.21] - Under Development and Improvement
 
 ### Features
+- **Model Context Protocol (MCP):** Added the native CLI command `nyxora mcp` to `bin/nyxora.mjs`. This command automatically initializes and locates the MCP Server directory, whether installed globally or locally, eliminating the need for absolute path configurations.
 - **Portfolio Management:** Added a visual "Add Custom Token" interface to the Dashboard's Portfolio tab to mimic conventional Web3 wallets. The backend now exposes `/api/custom-tokens` CRUD endpoints and implements automatic on-chain token symbol detection via ERC-20 `symbol()` calls. Users can also delete custom tokens securely from the UI.
 - **Native Terminal CLI Chat:** Built a robust, sandbox-free Terminal Interface (`npm run chat`) powered by `@clack/prompts` to cater to headless server environments and power users. Nyxora now natively supports executing AI tasks and authorizing on-chain transactions directly from the terminal via interactive prompts (Y/n), while gracefully silencing internal `<think>` blocks for a clean CLI experience. The heavy Web Dashboard has been decoupled and is now an opt-in component accessible via `nyxora dashboard`.
 
 ### Bug Fixes & Optimizations
 - **Dashboard UI/UX:** Fixed an infinite recursive loop bug caused by `fetchConfig` and `useEffect` dependencies in `App.tsx`. 
+- **Dashboard API Masking Illusion:** Fixed a visual bug on the Settings page where masked API keys (Etherscan, DeFi, LLM) appeared as only 6 asterisks (`******`) due to the backend `"IS_SET"` masking payload. The payload has been replaced with a 31-character string to accurately simulate real API key lengths and prevent user confusion.
 - **Code Quality:** Performed a massive deep-cleaning of linting warnings across 11 core Dashboard components (`App.tsx`, `Settings.tsx`, `Skills.tsx`, `Overview.tsx`, etc.), removing unused variables, dead code, and unreferenced UI imports to drastically improve memory efficiency and production bundle sizes in preparation for the v26.6.21 release.
 
 ### Security Update
@@ -21,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Gateway & Policy Engine:** Eliminated a severe race condition in `server.ts` allowing double transaction approvals by enforcing synchronous nonce invalidation. Added explicit `limit_order` support to Dashboard UI approvals. Fixed an MCP Server critical token parsing mismatch in `auth.token`.
   - **DeFi Guardrails:** Engineered a strict `validateProviderPayload` helper inside `aggregatorMainnet.ts` to actively block malicious API payloads targeting the native `value` overrides. Eradicated double-execution limit order race conditions in `eventListener.ts`. Transitioned Honeypot checks to be dynamically chain-aware rather than hardcoded to Base.
   - **Smart Contract Security:** Shifted the ERC-20 `approve` logic to a strictly *Hardcoded Whitelist* inside `executeDefi.ts`, mathematically guaranteeing the AI agent can never auto-approve malicious smart contracts unless officially recognized (1inch, 0x, LI.FI, Kyberswap, Relay).
-- **Config Parser Anti-Spam:** Fixed a credential encryption loop bug in `parser.ts` where plaintext API keys would trigger endless terminal warnings. The engine now silently auto-encrypts credentials in-place upon the first load.
+- **Plain Text Configuration:** Removed forced auto-encryption (`ENC:`) for `config.yaml` and `defi_keys.yaml`. Based on user feedback, configuration files are now stored purely in Plain Text to remain human-readable and easily editable via standard text editors without locking out the user.
 - **Frontend UI/UX:** Fixed dynamic native token symbol fallback in `BalanceWidget.tsx` to support non-ETH chains. Fixed a UI crash during hash truncation for strings under 60 characters in `SwapWidget.tsx`.
 - **Docker Environment:** Optimized `Dockerfile` instructions by merging `chown` permissions and explicitly preventing `.ts` source files from leaking into production builds.
 - **System Stability:** Upgraded `launcher.ts` health checks to use dynamic polling rather than fixed 1s timeouts. Synchronized token rotation into atomic writes in `state.ts`. Fixed legacy `memory.json` absolute migration paths. Ensured SQLite graceful shutdown via `process.on('exit')` to prevent WAL index corruption. Fixed duplicate profile bugs via `UPSERT` validation in `logger.ts`.
@@ -81,6 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Strict Web3 Routing Rules:** Updated AI Core System Prompt (`reasoning.ts`) with CRITICAL RULE 20 to firmly enforce explicit routing between Same-Chain Swaps and Cross-Chain Intents.
 - **Centralized Gas Limit Awareness:** Hardcoded the extraction of `max_gas_fee_usd` directly from the user's Risk Profile in SQLite to allow the frontend to safely manipulate Gas guardrails without LLM hallucination risks.
 - **Absolute Slippage Override:** Stripped `slippagePercent` control from all LLM JSON schemas (`swap_token`, `bridge_token`, `execute_intent`). The `defiRouter.ts` now centrally enforces the user's explicit `max_slippage` from their SQLite profile, guaranteeing 100% immunity against LLM slippage hallucinations.
+
+### Documentation & Legal
+- **Terms of Service & Liability:** Added a comprehensive `terms.md` legal document covering direct and indirect liability waivers. An elegant shortcut link has been embedded directly into the main `README.md` above the Official Documentation section.
+- **MCP Integration Docs:** Simplified the `mcp-integration.md` guide so users only need to define `command: "nyxora", args: ["mcp"]` without worrying about absolute paths.
 
 ## [26.6.20]
 ### Features & Enhancements
