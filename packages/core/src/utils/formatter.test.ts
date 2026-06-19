@@ -8,6 +8,8 @@ describe('Formatter Utilities', () => {
       id: 'test-1',
       type: 'swap',
       chainName: 'ethereum',
+      status: 'pending',
+      nonce: "0",
       details: {
         fromToken: 'eth',
         toToken: 'usdc',
@@ -27,6 +29,8 @@ describe('Formatter Utilities', () => {
       id: 'test-2',
       type: 'bridge',
       chainName: 'base_sepolia',
+      status: 'failed',
+      nonce: "0",
       details: {},
       createdAt: Date.now()
     };
