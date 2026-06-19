@@ -10,6 +10,7 @@ export async function prepareMintNft(
   valueEth: string = "0"
 ): Promise<string> {
   try {
+    if (!chainName || !contractAddress || !functionSignature) throw new Error("Missing required parameters to mint NFT.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;

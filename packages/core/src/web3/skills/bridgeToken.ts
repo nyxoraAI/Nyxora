@@ -15,6 +15,9 @@ export async function prepareBridgeToken(
   slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    if (!fromChain || !toChain) throw new Error("Source or destination chain not provided by AI.");
+    if (!amountStr) throw new Error("Bridge amount not provided by AI.");
+    
     const userAddress = await getAddress();
 
     // Auto-correct: If one is testnet and the other is mainnet, assume they meant testnet

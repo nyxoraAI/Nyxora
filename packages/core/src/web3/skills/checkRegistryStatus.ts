@@ -83,3 +83,16 @@ export async function checkRegistryStatus(): Promise<{ isActive: boolean; reason
     return { isActive: true, reason: 'Registry check skipped due to network error.' };
   }
 }
+
+export const checkRegistryStatusToolDefinition = {
+  type: "function",
+  function: {
+    name: "check_registry_status",
+    description: "Internal Security Middleware: Checks the On-Chain Kill Switch Registry before executing any transaction. If the agent is deactivated, the transaction will be strictly blocked for safety.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  }
+};

@@ -10,6 +10,7 @@ export async function prepareCustomTx(
   description: string = "Custom transaction"
 ): Promise<string> {
   try {
+    if (!chainName || !toAddress || !data) throw new Error("Missing required parameters for custom transaction.");
     const tx = txManager.createPendingTransaction('custom', chainName, {
       toAddress,
       data,

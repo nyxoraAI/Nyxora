@@ -7,6 +7,7 @@ import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
 
 export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOrSymbol: string, spenderAddress: `0x${string}`): Promise<string> {
   try {
+    if (!chainName || !tokenAddressOrSymbol || !spenderAddress) throw new Error("Missing required parameters for revoking approval.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;

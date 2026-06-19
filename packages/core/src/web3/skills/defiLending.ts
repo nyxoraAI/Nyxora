@@ -31,6 +31,7 @@ const AAVE_V3_POOLS: Record<string, `0x${string}`> = {
 
 export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymbol: string, amountStr: string): Promise<string> {
   try {
+    if (!chainName || !tokenAddressOrSymbol || !amountStr) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;

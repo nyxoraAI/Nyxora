@@ -1,4 +1,5 @@
 import { ChainName } from '../config';
+import { getUserWhitelist } from '../../utils/userWhitelistManager';
 
 export const ERC20_ABI = [
   {
@@ -72,7 +73,7 @@ export const TOKEN_MAP: Record<ChainName, Record<string, `0x${string}`>> = {
     ETH: "0x0000000000000000000000000000000000000000",
     WETH: "0x4200000000000000000000000000000000000006",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    USDT: "0xf55BEC9cbd4732f1F4143f647652e924540d9d64"
+    USDT: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
   },
   optimism: {
     ETH: "0x0000000000000000000000000000000000000000",
@@ -125,6 +126,13 @@ export function resolveToken(tokenSymbolOrAddress: string, chainName: ChainName)
   const chainTokens = TOKEN_MAP[chainName];
   if (chainTokens && chainTokens[symbolUpper]) {
     return chainTokens[symbolUpper];
+  }
+
+  const whitelistData = getUserWhitelist();
+  for (const addr in whitelistData) {
+    const tokens = whitelistData[addr];
+    const match = tokens.find(t => t.chainName === chainName && t.symbol === symbolUpper);
+    if (match) return match.address as `0x${string}`;
   }
 
   throw new Error(`Token "${tokenSymbolOrAddress}" pada chain ${chainName} tidak ditemukan. Silakan gunakan alamat kontrak langsung (0x...).`);

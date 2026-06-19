@@ -42,7 +42,7 @@ import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
 import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
 import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
-import { isSkillActive, toggleSkill } from '../utils/skillManager';
+import { isSkillActive, toggleSkill, syncAllSkillsToConfig } from '../utils/skillManager';
 import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
 import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
 import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
@@ -51,8 +51,11 @@ import { revokeApprovalToolDefinition } from '../web3/skills/revokeApprovals';
 import { vaultDepositToolDefinition } from '../web3/skills/yieldVault';
 import { provideLiquidityToolDefinition } from '../web3/skills/provideLiquidity';
 import { getTxHistoryToolDefinition } from '../web3/skills/getTxHistory';
-import { checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
+import { checkRegistryStatus, checkRegistryStatusToolDefinition } from '../web3/skills/checkRegistryStatus';
 import { createLimitOrderToolDefinition } from '../web3/skills/createLimitOrder';
+import { getUserWhitelist, saveTokenToWhitelist, removeTokenFromWhitelist } from '../utils/userWhitelistManager';
+import { getTokenMetadata } from '../web3/utils/tokens';
+import { ChainName } from '../web3/config';
 
 // System Skills
 import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
@@ -83,6 +86,9 @@ import { ReflectionEngine } from '../memory/reflection';
 
 // Initialize Google Auth
 initGoogleAuth();
+
+// Synchronize all active skills to config.yaml on startup
+syncAllSkillsToConfig();
 
 import util from 'util';
 
@@ -331,8 +337,63 @@ app.post('/api/defi-keys', (req, res) => {
   }
 });
 
+const allSkills = [
+  getBalanceToolDefinition,
+  transferToolDefinition,
+  getPriceToolDefinition,
+  swapTokenToolDefinition,
+  bridgeTokenToolDefinition,
+  mintNftToolDefinition,
+  customTxToolDefinition,
+  checkAddressToolDefinition,
+  getMyAddressToolDefinition,
+  checkSecurityToolDefinition,
+  checkPortfolioToolDefinition,
+  marketAnalysisToolDefinition,
+  manageCustomTokensDefinition,
+  aaveSupplyToolDefinition,
+  revokeApprovalToolDefinition,
+  vaultDepositToolDefinition,
+  provideLiquidityToolDefinition,
+  getTxHistoryToolDefinition,
+  createLimitOrderToolDefinition,
+  checkRegistryStatusToolDefinition
+];
+
+const systemSkills = [
+  runTerminalCommandToolDefinition,
+  readLocalFileToolDefinition,
+  writeLocalFileToolDefinition,
+  generateExcelToolDefinition,
+  browseWebsiteToolDefinition,
+  updateSecurityPolicyToolDefinition,
+
+  analyzeDocumentToolDefinition,
+  searchWebToolDefinition,
+  readGmailInboxToolDefinition,
+  listCalendarEventsToolDefinition,
+  appendRowToSheetsToolDefinition,
+  readGoogleDocsToolDefinition,
+  readGoogleFormResponsesToolDefinition,
+  editLocalFileToolDefinition,
+  gitManagerToolDefinition,
+  xManagerToolDefinition,
+  notionWorkspaceToolDefinition,
+  audioTranscribeToolDefinition,
+  summarizeTextToolDefinition
+];
+
 app.get('/api/stats', (req, res) => {
-  res.json(Tracker.getStats());
+  const stats = Tracker.getStats();
+  const dbPath = getPath('memory.db');
+  
+  const activeWeb3 = allSkills.filter(s => isSkillActive(s.function.name)).length;
+  const activeSystem = systemSkills.filter(s => isSkillActive(s.function.name)).length;
+  
+  const totalSkills = allSkills.length + systemSkills.length;
+  const activeSkills = activeWeb3 + activeSystem;
+
+  res.json({ ...stats, memoryPath: dbPath, totalSkills, activeSkills });
 });
 
 app.get('/api/logs', (req, res) => {
@@ -340,28 +401,6 @@ app.get('/api/logs', (req, res) => {
 });
 
 app.get('/api/skills', (req, res) => {
-  const allSkills = [
-    getBalanceToolDefinition,
-    transferToolDefinition,
-    getPriceToolDefinition,
-    swapTokenToolDefinition,
-    bridgeTokenToolDefinition,
-    mintNftToolDefinition,
-    customTxToolDefinition,
-    checkAddressToolDefinition,
-    getMyAddressToolDefinition,
-    checkSecurityToolDefinition,
-    checkPortfolioToolDefinition,
-    marketAnalysisToolDefinition,
-    manageCustomTokensDefinition,
-    aaveSupplyToolDefinition,
-    revokeApprovalToolDefinition,
-    vaultDepositToolDefinition,
-    provideLiquidityToolDefinition,
-    getTxHistoryToolDefinition,
-    createLimitOrderToolDefinition
-  ];
-  
   const skillsWithStatus = allSkills.map(skill => ({
     ...skill,
     isActive: isSkillActive(skill.function.name)
@@ -371,29 +410,6 @@ app.get('/api/skills', (req, res) => {
 });
 
 app.get('/api/skills/system', (req, res) => {
-  const systemSkills = [
-    runTerminalCommandToolDefinition,
-    readLocalFileToolDefinition,
-    writeLocalFileToolDefinition,
-    generateExcelToolDefinition,
-    browseWebsiteToolDefinition,
-    updateSecurityPolicyToolDefinition,
-
-    analyzeDocumentToolDefinition,
-    searchWebToolDefinition,
-    readGmailInboxToolDefinition,
-    listCalendarEventsToolDefinition,
-    appendRowToSheetsToolDefinition,
-    readGoogleDocsToolDefinition,
-    readGoogleFormResponsesToolDefinition,
-    editLocalFileToolDefinition,
-    gitManagerToolDefinition,
-    xManagerToolDefinition,
-    notionWorkspaceToolDefinition,
-    audioTranscribeToolDefinition,
-    summarizeTextToolDefinition
-  ];
-  
   const skillsWithStatus = systemSkills.map(skill => ({
     ...skill,
     isActive: isSkillActive(skill.function.name)
@@ -409,6 +425,44 @@ app.post('/api/skills/toggle', (req, res) => {
   }
   toggleSkill(skillName, active);
   res.json({ success: true, skillName, active });
+});
+
+// Portfolio Whitelist Routes
+app.get('/api/portfolio/whitelist', async (req, res) => {
+  const whitelist = getUserWhitelist();
+  res.json(whitelist);
+});
+
+app.post('/api/portfolio/whitelist', async (req, res) => {
+  const { walletAddress, chainName, tokenAddress, symbol, decimals } = req.body;
+  if (!walletAddress || !chainName || !tokenAddress) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  await saveTokenToWhitelist(walletAddress, chainName, tokenAddress, 'manual', symbol, decimals);
+  res.json({ success: true });
+});
+
+app.delete('/api/portfolio/whitelist', (req, res) => {
+  const { walletAddress, chainName, tokenAddress } = req.body;
+  if (!walletAddress || !chainName || !tokenAddress) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  removeTokenFromWhitelist(walletAddress, chainName, tokenAddress);
+  res.json({ success: true });
+});
+
+app.get('/api/portfolio/token-metadata', async (req, res) => {
+  const { chain, address } = req.query;
+  if (!chain || !address || typeof address !== 'string') {
+    return res.status(400).json({ error: 'Missing chain or address' });
+  }
+  try {
+    const client = getPublicClient(chain as ChainName);
+    const metadata = await getTokenMetadata(client, address as `0x${string}`);
+    res.json(metadata);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Google Workspace Auth Routes
@@ -642,13 +696,8 @@ app.get('/api/wallet', async (req, res) => {
 app.get('/api/portfolio', async (req, res) => {
   try {
     const userAddress = await getAddress();
-    const customTokensPath = path.join(getPath('custom_tokens.json'));
-    let customTokens: Record<string, any> = {};
-    if (fs.existsSync(customTokensPath)) {
-      try {
-        customTokens = JSON.parse(fs.readFileSync(customTokensPath, 'utf8'));
-      } catch (e) {}
-    }
+    const whitelist = getUserWhitelist();
+    const userCustomTokens = whitelist[userAddress.toLowerCase()] || [];
 
     const portfolio: Record<string, any[]> = {};
     
@@ -669,11 +718,15 @@ app.get('/api/portfolio', async (req, res) => {
           });
         }
 
-        // 2. Combine TOKEN_MAP and customTokens for this chain
+        // 2. Combine TOKEN_MAP and YAML whitelist for this chain
         const tokensToQuery = { ...((TOKEN_MAP as any)[chainName] || {}) };
-        if (customTokens[chainName]) {
-          Object.assign(tokensToQuery, customTokens[chainName]);
-        }
+        
+        // Inject whitelisted tokens
+        userCustomTokens.forEach(t => {
+          if (t.chainName === chainName && t.symbol && t.address) {
+            tokensToQuery[t.symbol.toUpperCase()] = t.address;
+          }
+        });
 
         // 3. Query all ERC-20 balances in parallel
         await Promise.all(Object.entries(tokensToQuery).map(async ([symbol, address]) => {
@@ -692,7 +745,9 @@ app.get('/api/portfolio', async (req, res) => {
             } as any);
 
             const [bal, decimals] = await Promise.all([balPromise, decPromise]) as [bigint, number];
-            if (bal > 0n) {
+            const isCustom = userCustomTokens.some(t => t.chainName === chainName && t.address === address);
+            
+            if (bal > 0n || isCustom) {
               portfolio[chainName].push({
                 symbol,
                 address,

@@ -6,9 +6,17 @@ The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [26.6.21]
+### Security Fixes
+- **Disabled Skill Execution Blocker:** Patched a critical vulnerability where the AI agent (e.g. Gemini) could hallucinate and illegally execute Web3 skills that were explicitly toggled off by the user. The `reasoning.ts` engine now actively intercepts and blocks unauthorized skill calls before execution.
+- **On-Chain Parameter Safeguards:** Implemented strict `undefined` parameter validation across all 10 On-Chain skills (Transfer, Swap, Bridge, Mint NFT, Custom Tx, DeFi Yield/Supply, etc.). This prevents the Node.js process from crashing with `TypeError` when the AI provides incomplete or hallucinated JSON tool payloads.
+- **Config State Synchronization:** The skill toggle state in the UI is now fully synchronized with `config.yaml`. Disabling a skill securely removes it from the configuration, preventing the LLM from accessing its schema.
+- **Cross-Chain Routing Breakdown Prevention:** Patched a severe routing logic flaw in the Mainnet Meta-Aggregator where the KyberSwap provider API (which only supports same-chain swaps) was inadvertently exposed to cross-chain bridging requests. Injected a strict `!isCrossChain` constraint to prevent user funds from being mistakenly swapped into spoofed destination-chain token addresses on the origin network.
+
 ### Features & Enhancements
+- **Custom Token Whitelist & Auto-Fetch:** Unified the custom token storage architecture by migrating legacy JSON formats into a centralized `user_whitelist.yaml`. Introduced an elegant "Add Custom Crypto" Modal UI in the Dashboard Portfolio with an auto-fetch mechanism that instantly retrieves token symbols and decimals from the blockchain upon pasting a contract address. The AI (LLM) parser now intrinsically reads this YAML whitelist, enabling natural language swaps for manually added memecoins by symbol.
 - **Clean Uninstallation Wizard:** Added the `nyxora uninstall` command. Users can now safely and cleanly remove all traces of Nyxora from their system. This wizard securely clears the AI's SQLite memory database, purges stored credentials from the OS Native Keyring, and completely deletes the `~/.nyxora` configuration directory.
 - **Interactive CLI Chat (`nyxora chat`):** Introduced a new terminal-based interactive chat interface. Users who prefer the command line can now converse directly with the Nyxora background daemon using `@clack/prompts` without needing to open the web dashboard. Features graceful background-safe exits.
+- **Dynamic Dashboard Status Metrics:** Obliterated hardcoded mock values from the Dashboard's Overview page. The Gateway API (`/api/stats`) has been redesigned to actively calculate the total number of loaded Web3 and OS skills in real-time. Additionally, the Memory Storage directory indicator is now dynamically injected based on the user's OS architecture (e.g., `~/.nyxora/data/memory.db`).
 
 ## [26.6.20]
 ### Features & Enhancements

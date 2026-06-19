@@ -12,6 +12,10 @@ export async function routeTransaction(
   slippageTolerance: number | "auto" = "auto"
 ): Promise<RouteQuote> {
 
+  if (!fromChain || !toChain) {
+    throw new Error("Missing source or destination chain in routing.");
+  }
+
   // Auto-correct: If one is testnet and the other is mainnet, assume they meant testnet
   if (fromChain.includes('sepolia') && !toChain.includes('sepolia')) {
     if (toChain === 'base') toChain = 'base_sepolia';

@@ -165,17 +165,17 @@ export function loadConfig(): NyxoraConfig {
     if (parsed.credentials) {
       for (const key in parsed.credentials) {
         if (parsed.credentials[key]) {
-            if (!parsed.credentials[key]!.startsWith('ENC:')) needsSave = true;
+            if (parsed.credentials[key]!.startsWith('ENC:')) needsSave = true;
             parsed.credentials[key] = decryptDataSync(parsed.credentials[key]!);
         }
       }
     }
     if (parsed.integrations?.telegram?.bot_token) {
-      if (!parsed.integrations.telegram.bot_token.startsWith('ENC:')) needsSave = true;
+      if (parsed.integrations.telegram.bot_token.startsWith('ENC:')) needsSave = true;
       parsed.integrations.telegram.bot_token = decryptDataSync(parsed.integrations.telegram.bot_token);
     }
     if (parsed.web3?.explorer_api_key) {
-      if (!parsed.web3.explorer_api_key.startsWith('ENC:')) needsSave = true;
+      if (parsed.web3.explorer_api_key.startsWith('ENC:')) needsSave = true;
       parsed.web3.explorer_api_key = decryptDataSync(parsed.web3.explorer_api_key);
     }
     
@@ -241,7 +241,8 @@ export function loadConfig(): NyxoraConfig {
       web3: { ...parsed.web3, rpc_urls: rpcUrls },
       integrations: parsed.integrations || {
         telegram: { enabled: false }
-      }
+      },
+      skills: parsed.skills
     };
 
     return validatedConfig;
@@ -289,20 +290,7 @@ export function saveConfig(newConfig: NyxoraConfig): void {
       delete configToSave.web3.rpc_urls;
     }
 
-    // Encrypt credentials before saving
-    if (configToSave.credentials) {
-      for (const key in configToSave.credentials) {
-        if (configToSave.credentials[key]) {
-            configToSave.credentials[key] = encryptDataSync(configToSave.credentials[key]);
-        }
-      }
-    }
-    if (configToSave.integrations?.telegram?.bot_token) {
-      configToSave.integrations.telegram.bot_token = encryptDataSync(configToSave.integrations.telegram.bot_token);
-    }
-    if (configToSave.web3?.explorer_api_key) {
-      configToSave.web3.explorer_api_key = encryptDataSync(configToSave.web3.explorer_api_key);
-    }
+    // Keys are no longer encrypted before saving. They are stored in plain text.
 
     const yamlStr = yaml.stringify(configToSave);
     fs.writeFileSync(configPath, yamlStr, 'utf8');

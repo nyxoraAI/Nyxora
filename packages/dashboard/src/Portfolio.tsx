@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from './utils/api';
-import { Wallet, RefreshCw, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Wallet, RefreshCw, AlertTriangle, Copy, Check, Plus, X, Trash2 } from 'lucide-react';
 import { formatUnits } from 'viem';
 import { getChainLogoUrl, getTokenLogoUrl } from './utils/logos';
 import { NetworkSelector } from './NetworkSelector';
@@ -19,6 +19,14 @@ interface PortfolioData {
   [chainName: string]: TokenBalance[];
 }
 
+interface WhitelistedToken {
+  chainName: string;
+  address: string;
+  symbol?: string;
+  decimals?: number;
+  source: string;
+}
+
 export const Portfolio: React.FC = () => {
   const [data, setData] = useState<PortfolioData | null>(null);
   const [walletAddress, setWalletAddress] = useState<string>('');
@@ -27,13 +35,24 @@ export const Portfolio: React.FC = () => {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Whitelist State
+  const [whitelist, setWhitelist] = useState<WhitelistedToken[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [customCa, setCustomCa] = useState('');
+  const [customChain, setCustomChain] = useState('ethereum');
+  const [customSymbol, setCustomSymbol] = useState('');
+  const [customDecimals, setCustomDecimals] = useState('');
+  const [fetchingMetadata, setFetchingMetadata] = useState(false);
+  const [addingCustom, setAddingCustom] = useState(false);
+
   const fetchPortfolio = async () => {
     setLoading(true);
     setError('');
     try {
-      const [resPortfolio, resWallet] = await Promise.all([
+      const [resPortfolio, resWallet, resWhitelist] = await Promise.all([
         apiFetch('/api/portfolio'),
-        apiFetch('/api/wallet')
+        apiFetch('/api/wallet'),
+        apiFetch('/api/portfolio/whitelist')
       ]);
       
       if (resPortfolio.ok) {
@@ -42,9 +61,18 @@ export const Portfolio: React.FC = () => {
         setError('Failed to fetch portfolio data from gateway.');
       }
 
+      let addr = '';
       if (resWallet.ok) {
         const wJson = await resWallet.json();
-        setWalletAddress(wJson.address);
+        addr = wJson.address;
+        setWalletAddress(addr);
+      }
+
+      if (resWhitelist.ok && addr) {
+        const wlData = await resWhitelist.json();
+        if (wlData[addr.toLowerCase()]) {
+          setWhitelist(wlData[addr.toLowerCase()]);
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -56,6 +84,69 @@ export const Portfolio: React.FC = () => {
   useEffect(() => {
     fetchPortfolio();
   }, []);
+
+  const handleCaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomCa(val);
+    setCustomSymbol('');
+    setCustomDecimals('');
+
+    if (val.startsWith('0x') && val.length === 42) {
+      setFetchingMetadata(true);
+      try {
+        const res = await apiFetch(`/api/portfolio/token-metadata?chain=${customChain}&address=${val}`);
+        if (res.ok) {
+          const meta = await res.json();
+          setCustomSymbol(meta.symbol);
+          setCustomDecimals(meta.decimals.toString());
+        }
+      } catch (err) {
+        console.error('Failed to fetch metadata', err);
+      } finally {
+        setFetchingMetadata(false);
+      }
+    }
+  };
+
+  const handleAddCustomToken = async () => {
+    if (!customCa || !customSymbol) return;
+    setAddingCustom(true);
+    try {
+      await apiFetch('/api/portfolio/whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          chainName: customChain,
+          tokenAddress: customCa,
+          symbol: customSymbol,
+          decimals: parseInt(customDecimals) || 18
+        })
+      });
+      setShowModal(false);
+      setCustomCa('');
+      setCustomSymbol('');
+      setCustomDecimals('');
+      fetchPortfolio(); // Refresh lists
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
+  const handleRemoveToken = async (chainName: string, tokenAddress: string) => {
+    try {
+      await apiFetch('/api/portfolio/whitelist', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, chainName, tokenAddress })
+      });
+      fetchPortfolio();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const getChainColor = (chain: string) => {
     const map: any = {
@@ -168,6 +259,27 @@ export const Portfolio: React.FC = () => {
         </div>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button 
+            onClick={() => setShowModal(true)}
+            style={{
+              background: 'transparent',
+              color: '#ECEFF4',
+              border: '1px solid #4C566A',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: 'bold',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#3B4252'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <Plus size={16} /> Add Custom Crypto
+          </button>
+
           <NetworkSelector 
             value={selectedChain}
             onChange={(val) => setSelectedChain(val)}
@@ -217,7 +329,8 @@ export const Portfolio: React.FC = () => {
           borderRadius: '12px', 
           border: '1px solid #3B4252', 
           overflow: 'hidden',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+          marginBottom: '32px'
         }}>
           <div style={{ 
             display: 'grid', 
@@ -272,27 +385,14 @@ export const Portfolio: React.FC = () => {
                         />
                       </div>
                       
-                      {/* Chain Badge (Rabby Style) */}
                       <div style={{
-                        position: 'absolute',
-                        bottom: '-2px',
-                        right: '-2px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: '#2E3440',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 3,
-                        padding: '2px'
+                        position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px',
+                        borderRadius: '50%', background: '#2E3440', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', zIndex: 3, padding: '2px'
                       }}>
                         <div style={{
-                          width: '100%',
-                          height: '100%',
-                          borderRadius: '50%',
-                          background: getChainColor(t.chain),
-                          overflow: 'hidden'
+                          width: '100%', height: '100%', borderRadius: '50%',
+                          background: getChainColor(t.chain), overflow: 'hidden'
                         }}>
                           <img 
                             src={getChainLogoUrl(t.chain)} 
@@ -324,9 +424,133 @@ export const Portfolio: React.FC = () => {
         </div>
       )}
 
-      {data && flatTokens.length === 0 && !loading && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#4C566A', border: '1px dashed #4C566A', borderRadius: '12px' }}>
-          No assets found in this wallet for the selected network.
+      {whitelist.length > 0 && (
+        <div style={{ marginTop: '24px' }}>
+          <h2 style={{ color: '#ECEFF4', fontSize: '1.2rem', marginBottom: '16px' }}>Whitelisted Tokens</h2>
+          <div style={{ 
+            background: '#2E3440', 
+            borderRadius: '12px', 
+            border: '1px solid #3B4252', 
+            overflow: 'hidden'
+          }}>
+            {whitelist.map((t, idx) => (
+              <div key={`${t.chainName}-${t.address}`} style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                padding: '16px 24px',
+                borderBottom: idx === whitelist.length - 1 ? 'none' : '1px solid #3B4252'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: getChainColor(t.chainName), overflow: 'hidden'
+                  }}>
+                    <img src={getChainLogoUrl(t.chainName)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div>
+                    <div style={{ color: '#ECEFF4', fontWeight: 'bold' }}>{t.symbol || 'Unknown'}</div>
+                    <div style={{ color: '#81A1C1', fontSize: '0.85rem', fontFamily: 'monospace' }}>{t.address}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleRemoveToken(t.chainName, t.address)}
+                  style={{ background: 'rgba(191, 97, 106, 0.1)', color: '#BF616A', border: '1px solid rgba(191, 97, 106, 0.2)', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#2E3440', width: '100%', maxWidth: '400px',
+            borderRadius: '16px', padding: '24px', border: '1px solid #4C566A',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.4)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: '#D8DEE9', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+              <h2 style={{ color: '#ECEFF4', margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Custom crypto</h2>
+              <div style={{ width: '20px' }}></div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Network</label>
+              <NetworkSelector value={customChain} onChange={setCustomChain} showAllOption={false} />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Contract address</label>
+              <input 
+                type="text" 
+                value={customCa}
+                onChange={handleCaChange}
+                placeholder="Enter contract information"
+                style={{
+                  width: '100%', background: '#3B4252', border: '1px solid #4C566A',
+                  color: '#ECEFF4', padding: '12px 16px', borderRadius: '8px', outline: 'none'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Symbol</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  value={customSymbol}
+                  readOnly
+                  placeholder={fetchingMetadata ? "Fetching..." : ""}
+                  style={{
+                    width: '100%', background: '#2E3440', border: '1px solid #3B4252',
+                    color: '#D8DEE9', padding: '12px 16px', borderRadius: '8px', outline: 'none',
+                    opacity: 0.7
+                  }}
+                />
+                {fetchingMetadata && <div className="dot spin" style={{ position: 'absolute', right: '16px', top: '16px', width: '12px', height: '12px', border: '2px solid #88C0D0', borderTopColor: 'transparent', borderRadius: '50%' }}></div>}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Decimal</label>
+              <input 
+                type="text" 
+                value={customDecimals}
+                readOnly
+                placeholder={fetchingMetadata ? "Fetching..." : ""}
+                style={{
+                  width: '100%', background: '#2E3440', border: '1px solid #3B4252',
+                  color: '#D8DEE9', padding: '12px 16px', borderRadius: '8px', outline: 'none',
+                  opacity: 0.7
+                }}
+              />
+            </div>
+
+            <button 
+              onClick={handleAddCustomToken}
+              disabled={!customSymbol || addingCustom}
+              style={{
+                width: '100%', background: (!customSymbol || addingCustom) ? '#4C566A' : '#ECEFF4',
+                color: (!customSymbol || addingCustom) ? '#D8DEE9' : '#2E3440',
+                border: 'none', padding: '14px', borderRadius: '24px',
+                fontWeight: 'bold', fontSize: '1rem', cursor: (!customSymbol || addingCustom) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {addingCustom ? 'Confirming...' : 'Confirm'}
+            </button>
+          </div>
         </div>
       )}
     </div>

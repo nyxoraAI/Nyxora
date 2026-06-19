@@ -23,6 +23,7 @@ const VAULT_ABI = [
 
 export async function prepareVaultDeposit(chainName: ChainName, protocol: string, vaultAddress: `0x${string}`, tokenAddressOrSymbol: string, amountStr: string): Promise<string> {
   try {
+    if (!chainName || !vaultAddress || !tokenAddressOrSymbol || !amountStr) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;

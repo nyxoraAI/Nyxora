@@ -74,8 +74,8 @@ export async function fetchMainnetBestRoute(
     promises.push(fetchOpenOcean(fromChain, toChain, fromToken, toToken, amountInWei, userAddress, slippageTolerance, keys.openocean_key));
   }
 
-  // Provider 6: KyberSwap (Cross-chain & Same-chain)
-  if (isProviderHealthy('kyberswap')) {
+  // Provider 6: KyberSwap (Same-chain ONLY)
+  if (!isCrossChain && isProviderHealthy('kyberswap')) {
     promises.push(fetchKyberSwap(fromChain, fromToken, toToken, amountInWei, userAddress, slippageTolerance));
   }
 

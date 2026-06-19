@@ -6,6 +6,7 @@ import { submitTransaction } from '../utils/vaultClient';
 
 export async function prepareTransfer(chainName: ChainName, toAddress: `0x${string}`, amountStr: string, token?: string): Promise<string> {
   try {
+    if (!chainName || !toAddress || !amountStr) throw new Error("Missing required parameters for transfer (chain, recipient, or amount).");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
     const account = userAddress as `0x${string}`;

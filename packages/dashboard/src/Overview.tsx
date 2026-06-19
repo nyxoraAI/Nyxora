@@ -11,6 +11,9 @@ interface Stats {
   cost: number;
   tokens: number;
   messages: number;
+  memoryPath?: string;
+  totalSkills?: number;
+  activeSkills?: number;
 }
 
 interface EventLog {
@@ -109,7 +112,7 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           </div>
           <div className="form-group flex-1">
             <label>Memory Storage</label>
-            <input type="text" value="./memory.json" readOnly />
+            <input type="text" value={stats.memoryPath || "./memory.json"} readOnly />
           </div>
         </div>
       </div>
@@ -127,8 +130,8 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         </div>
         <div className="metric-card">
           <label>SKILLS</label>
-          <div className="metric-val">2/2</div>
-          <div className="metric-sub">2 Web3 skills loaded</div>
+          <div className="metric-val">{stats.activeSkills !== undefined ? stats.activeSkills : 2}/{stats.totalSkills !== undefined ? stats.totalSkills : 2}</div>
+          <div className="metric-sub">{stats.totalSkills !== undefined ? stats.totalSkills : 2} Web3 & OS skills loaded</div>
         </div>
         <div className="metric-card">
           <label>CRON</label>

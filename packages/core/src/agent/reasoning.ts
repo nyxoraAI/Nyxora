@@ -370,6 +370,17 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
           continue;
         }
 
+        if (!isSkillActive(toolName)) {
+          console.warn(pc.red(`[Security] Blocked illegal execution of disabled skill: ${toolName}`));
+          result = `[System Error] Access denied: Skill '${toolName}' is currently disabled by the user.`;
+          logger.addEntry({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: result
+          }, sessionId);
+          continue;
+        }
+
         try {
           switch (toolName) {
             case 'get_balance': {

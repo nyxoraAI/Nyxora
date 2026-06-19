@@ -16,6 +16,7 @@ export async function prepareSwapToken(
   slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    if (!chainName || !fromToken || !toToken || !amountStr) throw new Error("Missing required parameters for swap (chain, tokens, or amount).");
     const userAddress = await getAddress();
     
     const fromTokenAddress = resolveToken(fromToken, chainName);
@@ -23,9 +24,9 @@ export async function prepareSwapToken(
     const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000";
 
     // Auto-save to Degen Whitelist
-    if (!isNativeIn) saveTokenToWhitelist(userAddress, chainName, fromTokenAddress, 'swap');
+    if (!isNativeIn) await saveTokenToWhitelist(userAddress, chainName, fromTokenAddress, 'swap');
     if (toTokenAddress !== "0x0000000000000000000000000000000000000000") {
-      saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
+      await saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
     }
 
     // Default to 18 decimals for formatting input, though Aggregator handles this if we pass raw

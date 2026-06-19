@@ -47,7 +47,7 @@ async function fetchDexData(query: string, isCa: boolean, chainName?: ChainName)
     if (data && data.pairs && data.pairs.length > 0) {
         let pairs = data.pairs;
         if (chainName) {
-            pairs = pairs.filter((p: any) => p.chainId.toLowerCase() === chainName.toLowerCase());
+            pairs = pairs.filter((p: any) => p.chainId?.toLowerCase() === chainName?.toLowerCase());
             if (pairs.length === 0) pairs = data.pairs;
         }
         return pairs.sort((a: any, b: any) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0))[0];
@@ -82,6 +82,7 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
+    if (!tokenAddressOrSymbol) throw new Error("Token symbol is invalid.");
     const cleanInput = tokenAddressOrSymbol.replace('$', '').toLowerCase();
     const isAddress = cleanInput.startsWith('0x') && cleanInput.length === 42;
     

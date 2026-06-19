@@ -62,6 +62,7 @@ export async function prepareProvideLiquidity(
     slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    if (!chainName || !token0AddressOrSymbol || !token1AddressOrSymbol || !amount0Str || !amount1Str) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
     let actualSlippage = slippagePercent;
     if (actualSlippage === undefined || actualSlippage === null || actualSlippage === "auto") {
       try {
