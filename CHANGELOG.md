@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.22-1]
+### Bug Fixes
+- **Hotfix: Missing Core Dependency:** Patched a severe global installation crash by explicitly injecting the missing `node-cron` module into the root `package.json` dependency tree. The AI Scheduler background daemon now correctly resolves its dependencies in global NPM environments, fully restoring the `nyxora dashboard` routing capability that was collateral damage from the crash.
+
 ## [26.6.22]
 ### Features & Enhancements
 - **Intelligent First-Time Onboarding:** Introduced a dynamic AI onboarding flow. When a user installs Nyxora for the first time, the `reasoning.ts` engine automatically detects the absence of identity files and enforces an Onboarding Mode. The AI will warmly welcome the user and refuse to execute any commands until it collects 4 essential variables: User's Name, AI's Name, User's Hobbies/Job, and AI's Persona.
