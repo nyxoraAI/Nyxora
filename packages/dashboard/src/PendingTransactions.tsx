@@ -66,7 +66,7 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
         <div key={tx.id} style={{ background: '#1e293b', padding: 20, borderRadius: 16, border: '1px solid #eab308', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 15 }}>
             <ShieldAlert color="#eab308" />
-            <strong style={{ color: 'white' }}>Action Required</strong>
+            <strong style={{ color: 'var(--text-primary)' }}>Action Required</strong>
           </div>
           <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginBottom: 15 }}>
             Type: {tx.type.toUpperCase()}<br/>
@@ -83,13 +83,13 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
             <button 
               onClick={() => handleAction(tx, 'approve')} 
               disabled={loadingId === tx.id}
-              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#15803d' : '#22c55e', color: 'white', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#15803d' : '#22c55e', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
               <Check size={16} /> {loadingId === tx.id ? 'Processing...' : 'Approve'}
             </button>
             <button 
               onClick={() => handleAction(tx, 'reject')} 
               disabled={loadingId === tx.id}
-              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#b91c1c' : '#ef4444', color: 'white', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#b91c1c' : '#ef4444', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
               <X size={16} /> Reject
             </button>
           </div>

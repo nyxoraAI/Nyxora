@@ -12,6 +12,9 @@ import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Min
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 let globalBotInstance: Telegraf | null = null;
 
@@ -175,6 +178,52 @@ export function startTelegramBot() {
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
         await ctx.reply('❌ Sorry, I encountered an error while processing your message.');
+      }
+    });
+
+    bot.on('document', async (ctx) => {
+      const doc = ctx.message.document;
+      const caption = ctx.message.caption || '';
+      console.log(`[Telegram] Received document from ${ctx.from?.first_name || 'User'}: ${doc.file_name}`);
+      
+      await ctx.sendChatAction('typing');
+      
+      try {
+        const fileLink = await ctx.telegram.getFileLink(doc.file_id);
+        const docsDir = path.join(os.homedir(), '.nyxora', 'docs');
+        if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
+        
+        const safeName = (doc.file_name || 'telegram_doc').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const localFilePath = path.join(docsDir, `${Date.now()}-${safeName}`);
+        
+        const res = await fetch(fileLink.toString());
+        const buffer = await res.arrayBuffer();
+        fs.writeFileSync(localFilePath, Buffer.from(buffer));
+        
+        const prompt = `Tolong analisis dokumen ini: ${localFilePath}\n\n${caption}`;
+        
+        let progressMsgId: number | null = null;
+        const onProgress = async (progressText: string) => {
+          try {
+            if (!progressMsgId) {
+              const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
+              progressMsgId = sent.message_id;
+            } else {
+              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
+            }
+          } catch (e) {}
+        };
+
+        const response = await processUserInput(prompt, 'user', onProgress, ctx.chat?.id.toString());
+
+        if (progressMsgId) {
+          await ctx.telegram.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
+        }
+
+        await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
+      } catch (error: any) {
+        console.error('[Telegram] Error processing document:', error);
+        await ctx.reply('❌ Sorry, I failed to download or analyze the document.');
       }
     });
 

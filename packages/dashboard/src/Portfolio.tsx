@@ -157,7 +157,7 @@ export const Portfolio: React.FC = () => {
       bsc: '#F0B90B',
       polygon: '#8247E5',
     };
-    return map[chain.toLowerCase()] || '#88C0D0';
+    return map[chain.toLowerCase()] || 'var(--accent)';
   };
 
   const getParsedBalance = (raw: string, decimals: number) => {
@@ -223,14 +223,14 @@ export const Portfolio: React.FC = () => {
       <div className="overview-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <Wallet color="#88C0D0" /> Portfolio Scanner
+            <Wallet color="var(--accent)" /> Portfolio Scanner
           </h1>
           
           {walletAddress && (
             <div 
               onClick={copyAddress}
               style={{ 
-                color: '#D8DEE9', 
+                color: 'var(--text-secondary)', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 gap: '8px', 
@@ -250,7 +250,7 @@ export const Portfolio: React.FC = () => {
             </div>
           )}
 
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#ECEFF4', marginTop: '24px', display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '24px', display: 'flex', alignItems: 'baseline', gap: '12px' }}>
             $ {totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span style={{ fontSize: '1rem', color: totalChange >= 0 ? '#A3BE8C' : '#BF616A', fontWeight: '500' }}>
               {totalChange >= 0 ? '+' : ''}{totalChange.toFixed(2)}%
@@ -263,8 +263,8 @@ export const Portfolio: React.FC = () => {
             onClick={() => setShowModal(true)}
             style={{
               background: 'transparent',
-              color: '#ECEFF4',
-              border: '1px solid #4C566A',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--glass-border)',
               padding: '10px 16px',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -274,7 +274,7 @@ export const Portfolio: React.FC = () => {
               fontWeight: 'bold',
               transition: 'all 0.2s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#3B4252'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-sidebar)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <Plus size={16} /> Add Custom Crypto
@@ -290,8 +290,8 @@ export const Portfolio: React.FC = () => {
             onClick={fetchPortfolio} 
             disabled={loading}
             style={{
-              background: '#88C0D0',
-              color: '#2E3440',
+              background: 'var(--accent)',
+              color: 'var(--bg-secondary)',
               border: 'none',
               padding: '10px 16px',
               borderRadius: '8px',
@@ -303,7 +303,7 @@ export const Portfolio: React.FC = () => {
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#8FBCBB')}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#88C0D0')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--accent)')}
           >
             <RefreshCw size={16} className={loading ? 'spin' : ''} /> {loading ? 'Scanning...' : 'Refresh'}
           </button>
@@ -317,17 +317,17 @@ export const Portfolio: React.FC = () => {
       )}
 
       {!data && loading && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#88C0D0' }}>
-          <div className="dot" style={{ background: '#88C0D0', animation: 'pulse 1s infinite', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', marginRight: '8px' }}></div>
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--accent)' }}>
+          <div className="dot" style={{ background: 'var(--accent)', animation: 'pulse 1s infinite', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', marginRight: '8px' }}></div>
           Scanning blockchains...
         </div>
       )}
 
       {data && flatTokens.length > 0 && (
         <div style={{ 
-          background: '#2E3440', 
+          background: 'var(--bg-secondary)', 
           borderRadius: '12px', 
-          border: '1px solid #3B4252', 
+          border: '1px solid var(--glass-border)', 
           overflow: 'hidden',
           boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
           marginBottom: '32px'
@@ -337,9 +337,9 @@ export const Portfolio: React.FC = () => {
             gridTemplateColumns: '2fr 1fr 1fr 1fr', 
             gap: '16px', 
             padding: '16px 24px', 
-            background: '#3B4252', 
-            borderBottom: '1px solid #4C566A', 
-            color: '#D8DEE9', 
+            background: 'var(--bg-sidebar)', 
+            borderBottom: '1px solid var(--glass-border)', 
+            color: 'var(--text-secondary)', 
             fontWeight: '600', 
             fontSize: '0.85rem',
             letterSpacing: '1px'
@@ -359,7 +359,7 @@ export const Portfolio: React.FC = () => {
                   gridTemplateColumns: '2fr 1fr 1fr 1fr', 
                   gap: '16px',
                   padding: '16px 24px',
-                  borderBottom: idx === flatTokens.length - 1 ? 'none' : '1px solid #3B4252',
+                  borderBottom: idx === flatTokens.length - 1 ? 'none' : '1px solid var(--glass-border)',
                   alignItems: 'center',
                   transition: 'background 0.2s'
                 }}
@@ -372,7 +372,7 @@ export const Portfolio: React.FC = () => {
                         width: '100%', height: '100%', 
                         borderRadius: '50%', 
                         background: t.isNative ? 'rgba(136, 192, 208, 0.1)' : 'rgba(163, 190, 140, 0.1)',
-                        color: t.isNative ? '#88C0D0' : '#A3BE8C',
+                        color: t.isNative ? 'var(--accent)' : '#A3BE8C',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 'bold', fontSize: '0.9rem', overflow: 'hidden'
                       }}>
@@ -380,14 +380,14 @@ export const Portfolio: React.FC = () => {
                         <img 
                           src={getTokenLogoUrl(t.chain, t.address, t.isNative)} 
                           alt={t.symbol} 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 2, background: '#2E3440' }} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 2, background: 'var(--bg-secondary)' }} 
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
                       
                       <div style={{
                         position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px',
-                        borderRadius: '50%', background: '#2E3440', display: 'flex', alignItems: 'center',
+                        borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center',
                         justifyContent: 'center', zIndex: 3, padding: '2px'
                       }}>
                         <div style={{
@@ -403,15 +403,15 @@ export const Portfolio: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <span style={{ color: '#ECEFF4', fontWeight: '600', fontSize: '1.1rem' }}>{t.symbol}</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '1.1rem' }}>{t.symbol}</span>
                   </div>
                   
-                  <div style={{ textAlign: 'right', color: '#D8DEE9', fontWeight: '500' }}>
+                  <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500' }}>
                     {t.priceUsd ? `$${t.priceUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : '-'}
                   </div>
                   
-                  <div style={{ textAlign: 'right', color: '#ECEFF4', fontWeight: '600' }}>
-                    {formatBalance(t.balanceRaw, t.decimals)} <span style={{ fontSize: '0.85rem', color: '#81A1C1', fontWeight: 'normal' }}>{t.symbol}</span>
+                  <div style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: '600' }}>
+                    {formatBalance(t.balanceRaw, t.decimals)} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{t.symbol}</span>
                   </div>
                   
                   <div style={{ textAlign: 'right', color: '#A3BE8C', fontWeight: '600', fontSize: '1.1rem' }}>
@@ -426,11 +426,11 @@ export const Portfolio: React.FC = () => {
 
       {whitelist.length > 0 && (
         <div style={{ marginTop: '24px' }}>
-          <h2 style={{ color: '#ECEFF4', fontSize: '1.2rem', marginBottom: '16px' }}>Whitelisted Tokens</h2>
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', marginBottom: '16px' }}>Whitelisted Tokens</h2>
           <div style={{ 
-            background: '#2E3440', 
+            background: 'var(--bg-secondary)', 
             borderRadius: '12px', 
-            border: '1px solid #3B4252', 
+            border: '1px solid var(--glass-border)', 
             overflow: 'hidden'
           }}>
             {whitelist.map((t, idx) => (
@@ -439,7 +439,7 @@ export const Portfolio: React.FC = () => {
                 alignItems: 'center', 
                 justifyContent: 'space-between',
                 padding: '16px 24px',
-                borderBottom: idx === whitelist.length - 1 ? 'none' : '1px solid #3B4252'
+                borderBottom: idx === whitelist.length - 1 ? 'none' : '1px solid var(--glass-border)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{
@@ -449,8 +449,8 @@ export const Portfolio: React.FC = () => {
                     <img src={getChainLogoUrl(t.chainName)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div>
-                    <div style={{ color: '#ECEFF4', fontWeight: 'bold' }}>{t.symbol || 'Unknown'}</div>
-                    <div style={{ color: '#81A1C1', fontSize: '0.85rem', fontFamily: 'monospace' }}>{t.address}</div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>{t.symbol || 'Unknown'}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontFamily: 'monospace' }}>{t.address}</div>
                   </div>
                 </div>
                 <button 
@@ -473,39 +473,39 @@ export const Portfolio: React.FC = () => {
           zIndex: 1000
         }}>
           <div style={{
-            background: '#2E3440', width: '100%', maxWidth: '400px',
-            borderRadius: '16px', padding: '24px', border: '1px solid #4C566A',
+            background: 'var(--bg-secondary)', width: '100%', maxWidth: '400px',
+            borderRadius: '16px', padding: '24px', border: '1px solid var(--glass-border)',
             boxShadow: '0 24px 48px rgba(0,0,0,0.4)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: '#D8DEE9', cursor: 'pointer' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
-              <h2 style={{ color: '#ECEFF4', margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Custom crypto</h2>
+              <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Custom crypto</h2>
               <div style={{ width: '20px' }}></div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Network</label>
+              <label style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Network</label>
               <NetworkSelector value={customChain} onChange={setCustomChain} showAllOption={false} />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Contract address</label>
+              <label style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Contract address</label>
               <input 
                 type="text" 
                 value={customCa}
                 onChange={handleCaChange}
                 placeholder="Enter contract information"
                 style={{
-                  width: '100%', background: '#3B4252', border: '1px solid #4C566A',
-                  color: '#ECEFF4', padding: '12px 16px', borderRadius: '8px', outline: 'none'
+                  width: '100%', background: 'var(--bg-sidebar)', border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)', padding: '12px 16px', borderRadius: '8px', outline: 'none'
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Symbol</label>
+              <label style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Symbol</label>
               <div style={{ position: 'relative' }}>
                 <input 
                   type="text" 
@@ -513,8 +513,8 @@ export const Portfolio: React.FC = () => {
                   readOnly
                   placeholder={fetchingMetadata ? "Fetching..." : ""}
                   style={{
-                    width: '100%', background: '#2E3440', border: '1px solid #3B4252',
-                    color: '#D8DEE9', padding: '12px 16px', borderRadius: '8px', outline: 'none',
+                    width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
+                    color: 'var(--text-secondary)', padding: '12px 16px', borderRadius: '8px', outline: 'none',
                     opacity: 0.7
                   }}
                 />
@@ -523,15 +523,15 @@ export const Portfolio: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', color: '#ECEFF4', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Decimal</label>
+              <label style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>Decimal</label>
               <input 
                 type="text" 
                 value={customDecimals}
                 readOnly
                 placeholder={fetchingMetadata ? "Fetching..." : ""}
                 style={{
-                  width: '100%', background: '#2E3440', border: '1px solid #3B4252',
-                  color: '#D8DEE9', padding: '12px 16px', borderRadius: '8px', outline: 'none',
+                  width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)', padding: '12px 16px', borderRadius: '8px', outline: 'none',
                   opacity: 0.7
                 }}
               />
@@ -541,8 +541,8 @@ export const Portfolio: React.FC = () => {
               onClick={handleAddCustomToken}
               disabled={!customSymbol || addingCustom}
               style={{
-                width: '100%', background: (!customSymbol || addingCustom) ? '#4C566A' : '#ECEFF4',
-                color: (!customSymbol || addingCustom) ? '#D8DEE9' : '#2E3440',
+                width: '100%', background: (!customSymbol || addingCustom) ? 'var(--tool-bg)' : 'var(--text-primary)',
+                color: (!customSymbol || addingCustom) ? 'var(--text-secondary)' : 'var(--bg-secondary)',
                 border: 'none', padding: '14px', borderRadius: '24px',
                 fontWeight: 'bold', fontSize: '1rem', cursor: (!customSymbol || addingCustom) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s'

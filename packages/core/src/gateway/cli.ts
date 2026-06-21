@@ -18,7 +18,6 @@ import { saveApiKeys } from '../config/parser';
 async function main() {
   // 1. Determine configuration directory
   const appDir = getAppDir();
-  const isGlobalMode = appDir !== process.cwd();
 
 console.log(`================================`);
 console.log(`🤖 Nyxora CLI Agent Booting Up...`);
@@ -191,9 +190,8 @@ console.log(`================================`);
     process.exit(0);
   }
 
-  // 2. Setup boilerplate files if in global mode and they don't exist
+  // 2. Setup boilerplate files since we enforce global mode
   let isFirstBoot = false;
-  if (isGlobalMode) {
     const globalConfigPath = getPath('config.yaml');
     const globalUserMdPath = getPath('user.md');
     const globalIdentityMdPath = getPath('IDENTITY.md');
@@ -201,7 +199,10 @@ console.log(`================================`);
     // Copy default config.yaml
     if (!fs.existsSync(globalConfigPath)) {
       isFirstBoot = true;
-      const exampleConfigPath = path.resolve(__dirname, '../../../config.yaml');
+      let exampleConfigPath = path.resolve(__dirname, '../../../config.yaml'); // Dev
+    if (!fs.existsSync(exampleConfigPath)) {
+      exampleConfigPath = path.resolve(__dirname, '../../../../../config.yaml'); // Compiled
+    }
       if (fs.existsSync(exampleConfigPath)) {
         fs.copyFileSync(exampleConfigPath, globalConfigPath);
       } else {
@@ -209,13 +210,12 @@ console.log(`================================`);
       }
     }
 
-    if (!fs.existsSync(globalUserMdPath)) {
-      fs.writeFileSync(globalUserMdPath, 'Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n');
-    }
+  if (!fs.existsSync(globalUserMdPath)) {
+    fs.writeFileSync(globalUserMdPath, 'Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n');
+  }
 
-    if (!fs.existsSync(globalIdentityMdPath)) {
-      fs.writeFileSync(globalIdentityMdPath, 'You are a Web3 AI assistant named Nyxora.\n');
-    }
+  if (!fs.existsSync(globalIdentityMdPath)) {
+    fs.writeFileSync(globalIdentityMdPath, 'You are a Web3 AI assistant named Nyxora.\n');
   }
 
   if (isFirstBoot) {

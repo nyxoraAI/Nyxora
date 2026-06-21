@@ -1,11 +1,12 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server } from 'lucide-react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
 import { DefiKeys } from './DefiKeys';
+import SearchChat from './SearchChat';
 import RpcConfig from './RpcConfig';
 import { Portfolio } from './Portfolio';
 import { NetworkSelector } from './NetworkSelector';
@@ -31,11 +32,13 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'rpcconfig'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'rpcconfig' | 'search'>(() => {
+    return (localStorage.getItem('nyxora_current_view') as any) || 'chat';
+  });
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => localStorage.getItem('nyxora_active_session_id') || null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editSessionTitle, setEditSessionTitle] = useState<string>('');
   const [input, setInput] = useState('');
@@ -49,12 +52,60 @@ function App() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-Lock State
   const [isLocked, setIsLocked] = useState(false);
   const [lockedAt, setLockedAt] = useState<number>(0);
   const lastActivityRef = useRef<number>(0);
   const [autoLockTime, setAutoLockTime] = useState<number>(() => parseInt(localStorage.getItem('nyxora_auto_lock') || '0'));
+
+  // Theme State
+  const [theme, setTheme] = useState<'dark' | 'light' | 'auto'>(() => (localStorage.getItem('nyxora_theme') as 'dark' | 'light' | 'auto') || 'auto');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => localStorage.getItem('nyxora_sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('nyxora_current_view', currentView);
+  }, [currentView]);
+
+  useEffect(() => {
+    if (activeSessionId) {
+      localStorage.setItem('nyxora_active_session_id', activeSessionId);
+    } else {
+      localStorage.removeItem('nyxora_active_session_id');
+    }
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    const applyTheme = (currentTheme: 'dark' | 'light' | 'auto') => {
+      if (currentTheme === 'auto') {
+        const isSystemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (isSystemLight) {
+          document.body.classList.add('light-theme');
+        } else {
+          document.body.classList.remove('light-theme');
+        }
+      } else if (currentTheme === 'light') {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+    };
+
+    applyTheme(theme);
+    localStorage.setItem('nyxora_theme', theme);
+
+    if (theme === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+      const handler = () => applyTheme('auto');
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('nyxora_sidebar_collapsed', isSidebarCollapsed.toString());
+  }, [isSidebarCollapsed]);
 
   useEffect(() => {
     lastActivityRef.current = Date.now();
@@ -159,6 +210,38 @@ function App() {
       setIsListening(false);
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await apiFetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const prompt = `Tolong analisis dokumen ini: ${data.filePath}`;
+        handleSend(null as any, prompt);
+      } else {
+        console.error('File upload failed');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error('Error uploading file', err);
+      setIsLoading(false);
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -291,11 +374,11 @@ function App() {
     }, 10);
   }, [messages.length, isLoading, currentView]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (e: React.FormEvent, customMsg?: string) => {
+    e?.preventDefault();
+    const userMsg = customMsg || input;
+    if (!userMsg.trim() || isLoading) return;
 
-    const userMsg = input.trim();
     setInput('');
     setIsLoading(true);
 
@@ -371,7 +454,7 @@ function App() {
     const parseBold = (text: string) => {
       return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>;
+          return <strong key={i} style={{ color: 'var(--text-primary)' }}>{part.slice(2, -2)}</strong>;
         }
         return part;
       });
@@ -403,18 +486,18 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
+          color: 'var(--text-primary)',
           fontFamily: 'sans-serif'
         }}>
-          <Shield size={64} color="#88c0d0" style={{ marginBottom: '20px' }} />
+          <Shield size={64} color="var(--accent)" style={{ marginBottom: '20px' }} />
           <h1 style={{ fontSize: '2rem', marginBottom: '10px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Session Locked</h1>
           <p style={{ color: '#e2e8f0', fontSize: '1.2rem', textShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>
             Please open your terminal and run <code>nyxora unlock</code> to authorize unlock.
           </p>
         </div>
       )}
-      <aside className="sidebar">
-        <div className="agent-identity-card">
+      <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="agent-identity-card" style={{ position: 'relative' }}>
           <div className="agent-avatar">
             <NyxoraLogo size={48} />
           </div>
@@ -422,8 +505,20 @@ function App() {
             <div className="agent-name">Nyxora AI</div>
             <div className="agent-status">
               <span className="status-dot"></span> ONLINE
-            </div>
+                </div>
           </div>
+          <button 
+            className="sidebar-toggle-btn"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            style={isSidebarCollapsed ? {
+              position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px'
+            } : { 
+              position: 'absolute', top: '24px', right: '12px', background: 'transparent', 
+              border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' 
+            }}
+          >
+            {isSidebarCollapsed ? <NyxoraLogo size={32} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
 
         <div className="sidebar-scroll-area">
@@ -431,50 +526,65 @@ function App() {
             <div 
               className="nav-item"
               onClick={createNewSession}
+              title={isSidebarCollapsed ? "New Chat" : undefined}
             >
-              <Plus size={15} className="nav-icon" /> New Chat
+              <Plus size={15} className="nav-icon" /> <span className="nav-label">New Chat</span>
+            </div>
+            <div 
+              className={`nav-item ${currentView === 'search' ? 'active' : ''}`}
+              onClick={() => setCurrentView('search')}
+              title={isSidebarCollapsed ? "Search Chat" : undefined}
+            >
+              <Search size={15} className="nav-icon" /> <span className="nav-label">Search Chat</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'overview' ? 'active' : ''}`}
               onClick={() => setCurrentView('overview')}
+              title={isSidebarCollapsed ? "Overview" : undefined}
             >
-              <LayoutDashboard size={15} className="nav-icon" /> Overview
+              <LayoutDashboard size={15} className="nav-icon" /> <span className="nav-label">Overview</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'portfolio' ? 'active' : ''}`}
               onClick={() => setCurrentView('portfolio')}
+              title={isSidebarCollapsed ? "Portfolio" : undefined}
             >
-              <Wallet size={15} className="nav-icon" /> Portfolio
+              <Wallet size={15} className="nav-icon" /> <span className="nav-label">Portfolio</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'skills' ? 'active' : ''}`}
               onClick={() => setCurrentView('skills')}
+              title={isSidebarCollapsed ? "Web3 Skills" : undefined}
             >
-              <Zap size={15} className="nav-icon" /> Web3 Skills
+              <Zap size={15} className="nav-icon" /> <span className="nav-label">Web3 Skills</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'osskills' ? 'active' : ''}`}
               onClick={() => setCurrentView('osskills')}
+              title={isSidebarCollapsed ? "OS Skills" : undefined}
             >
-              <Terminal size={15} className="nav-icon" /> OS Skills
+              <Terminal size={15} className="nav-icon" /> <span className="nav-label">OS Skills</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`}
               onClick={() => setCurrentView('rpcconfig')}
+              title={isSidebarCollapsed ? "RPC Configuration" : undefined}
             >
-              <Server size={15} className="nav-icon" /> RPC Configuration
+              <Server size={15} className="nav-icon" /> <span className="nav-label">RPC Configuration</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'defikeys' ? 'active' : ''}`}
               onClick={() => setCurrentView('defikeys')}
+              title={isSidebarCollapsed ? "DeFi Configuration" : undefined}
             >
-              <Key size={15} className="nav-icon" /> DeFi Configuration
+              <Key size={15} className="nav-icon" /> <span className="nav-label">DeFi Configuration</span>
             </div>
             <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
+              title={isSidebarCollapsed ? "Settings" : undefined}
             >
-              <SettingsIcon size={15} className="nav-icon" /> Settings
+              <SettingsIcon size={15} className="nav-icon" /> <span className="nav-label">Settings</span>
             </div>
           </nav>
           
@@ -493,9 +603,7 @@ function App() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
                   <MessageSquare size={14} className="nav-icon" />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>
-                    {session.title}
-                  </span>
+                  <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>{session.title}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
@@ -516,10 +624,32 @@ function App() {
           <div className="topbar-left">
             <span>Nyxora</span>
             <span style={{color: '#3b82f6'}}>•</span>
-            <span style={{color: '#fff'}}>Chat</span>
+            <span style={{color: 'var(--text-primary)', textTransform: 'capitalize'}}>
+              {currentView === 'search' ? 'Search Chat' :
+               currentView === 'osskills' ? 'OS Skills' : 
+               currentView === 'defikeys' ? 'DeFi Configuration' : 
+               currentView === 'rpcconfig' ? 'RPC Configuration' : 
+               currentView === 'skills' ? 'Web3 Skills' : 
+               currentView}
+            </span>
           </div>
           
           <div className="topbar-right">
+              <button 
+                className="network-selector-pill" 
+                style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                onClick={() => {
+                  if (theme === 'dark') setTheme('light');
+                  else if (theme === 'light') setTheme('auto');
+                  else setTheme('dark');
+                }}
+                title={`Toggle Theme (Current: ${theme})`}
+              >
+                {theme === 'dark' && <Moon size={18} />}
+                {theme === 'light' && <Sun size={18} />}
+                {theme === 'auto' && <Monitor size={18} />}
+              </button>
+
             {!config ? (
               <span style={{ color: '#f59e0b', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span className="dot" style={{ background: '#f59e0b', animation: 'pulse 1s infinite' }}></span> Waiting for API Gateway...
@@ -540,8 +670,10 @@ function App() {
           </div>
         </header>
 
-        {currentView === 'overview' ? (
-          <Overview config={config} />
+        {currentView === 'search' ? (
+          <SearchChat chatSessions={chatSessions} onSelectSession={(id) => { setActiveSessionId(id); setCurrentView('chat'); }} />
+        ) : currentView === 'overview' ? (
+          <Overview config={config} sessionsCount={chatSessions.length} />
         ) : currentView === 'portfolio' ? (
           <Portfolio />
         ) : currentView === 'skills' ? (
@@ -614,19 +746,25 @@ function App() {
             </div>
 
             <div className="input-area">
-              <form className="input-form" onSubmit={handleSubmit}>
-                <button 
-                  type="button" 
-                  className={`voice-button ${isListening ? 'listening' : ''} ${isSpeaking ? 'speaking' : ''} ${isVoiceMode && !isListening && !isSpeaking ? 'active-mode' : ''}`}
-                  onClick={toggleVoiceMode}
-                  title={isVoiceMode ? "Disable Voice Mode" : "Enable Hands-Free Voice Mode"}
-                >
-                  <Mic size={20} />
-                </button>
+              <form className="input-form" onSubmit={handleSend}>
+                <div className="action-menu-container">
+                  <button type="button" className="voice-button plus-button" disabled={isLoading} title="More Actions">
+                    <Plus size={20} />
+                  </button>
+                  <div className="action-menu-items">
+                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+                    <button type="button" className="voice-button" onClick={() => fileInputRef.current?.click()} disabled={isLoading} title="Upload Document" style={{ color: 'var(--text-secondary)' }}>
+                      <Paperclip size={18} />
+                    </button>
+                    <button type="button" className={`voice-button ${isVoiceMode ? 'active pulse' : ''}`} onClick={toggleVoiceMode} title={isVoiceMode ? "Disable Voice Mode" : "Enable Voice Mode"}>
+                      <Mic size={18} color={isVoiceMode ? 'var(--accent)' : 'currentColor'} />
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="text"
                   className="chat-input"
-                  placeholder="Message Nyxora Agent (Enter to send)..."
+                  placeholder={isVoiceMode ? "Listening..." : "Message Nyxora Agent (Enter to send)..."}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={isLoading}
@@ -669,8 +807,8 @@ function App() {
                 if (e.key === 'Escape') setEditingSessionId(null);
               }}
               autoFocus
-              style={{ width: '100%', background: 'transparent', color: '#fff', border: '1px solid #3f4451', borderRadius: '8px', padding: '14px 16px', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={(e) => e.target.style.borderColor = '#88c0d0'}
+              style={{ width: '100%', background: 'transparent', color: 'var(--text-primary)', border: '1px solid #3f4451', borderRadius: '8px', padding: '14px 16px', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
               onBlur={(e) => e.target.style.borderColor = '#3f4451'}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
@@ -684,7 +822,7 @@ function App() {
               </button>
               <button 
                 onClick={() => renameSession(editingSessionId, editSessionTitle)}
-                style={{ background: '#88c0d0', border: 'none', color: '#13131a', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 600, fontSize: '0.9rem' }}
+                style={{ background: 'var(--accent)', border: 'none', color: '#13131a', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 600, fontSize: '0.9rem' }}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
               >

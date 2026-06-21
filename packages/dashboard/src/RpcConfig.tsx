@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Server, ShieldAlert, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
 import { apiFetch } from './utils/api';
+import { getChainLogoUrl } from './utils/logos';
 
 const SUPPORTED_CHAINS = [
   { id: 'ethereum', name: 'Ethereum Mainnet' },
@@ -59,14 +60,14 @@ export const RpcConfig: React.FC = () => {
   return (
     <div className="overview-container">
       <div className="nord-panel-header">
-        <Server size={28} color="#88c0d0" />
-        <h2 className="settings-title" style={{ margin: 0, color: '#eceff4' }}>RPC Configuration</h2>
+        <Server size={28} color="var(--accent)" />
+        <h2 className="settings-title" style={{ margin: 0, color: 'var(--text-primary)' }}>RPC Configuration</h2>
       </div>
 
       <div style={{ background: 'rgba(235, 203, 139, 0.1)', border: '1px solid rgba(235, 203, 139, 0.3)', padding: '16px', borderRadius: '8px', marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
         <ShieldAlert size={24} color="#ebcb8b" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <div style={{ fontSize: '0.9rem', color: '#d8dee9', lineHeight: 1.6 }}>
-          <strong style={{ color: '#ebcb8b' }}>Privacy & Security:</strong> Your RPC keys are saved in a highly isolated <code style={{ background: '#2e3440', padding: '2px 6px', borderRadius: '4px', color: '#88c0d0' }}>~/.nyxora/config/rpc_key.yaml</code> file. 
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <strong style={{ color: '#ebcb8b' }}>Privacy & Security:</strong> Your RPC keys are saved in a highly isolated <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--accent)' }}>~/.nyxora/config/rpc_key.yaml</code> file. 
           This guarantees that sharing your agent's config or prompts won't accidentally leak your premium node endpoints.
         </div>
       </div>
@@ -78,8 +79,8 @@ export const RpcConfig: React.FC = () => {
       )}
 
       <div className="settings-section">
-        <h3 className="section-title" style={{ color: '#88c0d0', marginBottom: '8px', fontSize: '1.2rem' }}>Network Endpoints</h3>
-        <p className="section-description" style={{ marginBottom: '16px', color: '#d8dee9', fontSize: '0.95rem' }}>
+        <h3 className="section-title" style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '1.2rem' }}>Network Endpoints</h3>
+        <p className="section-description" style={{ marginBottom: '16px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
           Configure your private RPC URLs (Alchemy, Infura, etc.) for High-Frequency execution.
         </p>
         <div style={{ background: 'rgba(191, 97, 106, 0.1)', color: '#bf616a', padding: '10px 14px', borderRadius: '6px', marginBottom: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
@@ -90,10 +91,13 @@ export const RpcConfig: React.FC = () => {
           {SUPPORTED_CHAINS.map(chain => {
             const currentVal = getDisplayValue(rpcUrls[chain.id]);
             return (
-              <div key={chain.id} style={{ background: '#2e3440', padding: '20px', borderRadius: '12px', border: '1px solid #434c5e', display: 'flex', gap: '24px', alignItems: 'center' }}>
-                <div style={{ width: '200px', flexShrink: 0 }}>
-                  <strong style={{ color: '#eceff4', fontSize: '1rem', display: 'block' }}>{chain.name}</strong>
-                  <span style={{ color: '#81a1c1', fontSize: '0.8rem', fontFamily: 'monospace' }}>{chain.id}</span>
+              <div key={chain.id} style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)', display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '240px', flexShrink: 0 }}>
+                  <img src={getChainLogoUrl(chain.id)} alt={chain.id} style={{ width: 32, height: 32, borderRadius: '50%' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '1rem', display: 'block' }}>{chain.name}</strong>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontFamily: 'monospace' }}>{chain.id}</span>
+                  </div>
                 </div>
                 
                 <div style={{ flex: 1, display: 'flex', gap: '12px' }}>

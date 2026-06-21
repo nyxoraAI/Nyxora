@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { getPath } from '../config/paths';
 
 export type TransactionType = 'transfer' | 'swap' | 'bridge' | 'mint' | 'custom' | 'approve' | 'revokeApproval' | 'aaveSupply' | 'vaultDeposit' | 'univ3Mint' | 'limit_order';
 
@@ -35,7 +36,7 @@ class TransactionManager {
   private dbPath: string;
 
   constructor() {
-    this.dbPath = path.join(process.cwd(), '.nyxora_withdrawals.json');
+    this.dbPath = getPath('.nyxora_withdrawals.json');
     this.loadWithdrawals();
   }
 

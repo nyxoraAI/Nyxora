@@ -2,7 +2,7 @@
   padding: 24px;
   overflow-y: auto;
   height: calc(100vh - 64px);
-  color: #fff;
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
 }
 
@@ -27,8 +27,8 @@
 }
 
 .panel {
-  background: rgba(20, 24, 32, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -70,11 +70,11 @@ label {
 
 input, select {
   width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-color);
+  border: 1px solid var(--glass-border);
   padding: 10px 12px;
   border-radius: 8px;
-  color: white;
+  color: var(--text-primary);
   font-size: 0.9rem;
   font-family: monospace;
 }
@@ -105,7 +105,7 @@ input:read-only {
 
 .btn-primary {
   background: #3b82f6;
-  color: white;
+  color: var(--text-primary);
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -115,7 +115,7 @@ input:read-only {
 
 .btn-secondary {
   background: transparent;
-  color: white;
+  color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 8px 16px;
   border-radius: 6px;
@@ -160,8 +160,8 @@ input:read-only {
 }
 
 .metric-card {
-  background: rgba(20, 24, 32, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 16px;
 }
@@ -235,8 +235,8 @@ input:read-only {
 }
 
 .log-panel {
-  background: rgba(10, 12, 16, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--terminal-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -246,8 +246,8 @@ input:read-only {
 
 .log-header {
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -274,11 +274,11 @@ input:read-only {
   height: 6px;
 }
 .log-content::-webkit-scrollbar-thumb {
-  background: #434c5e;
+  background: var(--glass-border);
   border-radius: 4px;
 }
 .log-content::-webkit-scrollbar-thumb:hover {
-  background: #4c566a;
+  background: var(--glass-border);
 }
 .log-content::-webkit-scrollbar-corner {
   background: transparent;
@@ -289,11 +289,11 @@ input:read-only {
   height: 6px;
 }
 .memory-log-container::-webkit-scrollbar-thumb {
-  background: #434c5e;
+  background: var(--glass-border);
   border-radius: 4px;
 }
 .memory-log-container::-webkit-scrollbar-thumb:hover {
-  background: #4c566a;
+  background: var(--glass-border);
 }
 .memory-log-container::-webkit-scrollbar-corner {
   background: transparent;

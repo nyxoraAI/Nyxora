@@ -47,7 +47,7 @@ export default function ReconnectOverlay() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      color: 'white',
+      color: 'var(--text-primary)',
       fontFamily: 'sans-serif'
     }}>
       <WifiOff size={64} color="#ef4444" style={{ marginBottom: '20px', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />

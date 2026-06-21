@@ -2,6 +2,7 @@ import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
 import { Save, User, Cpu, Key, Network, Globe, Shield } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
+import { LlmIcon } from './components/LlmIcons';
 import { getChainLogoUrl } from './utils/logos';
 import { GoogleAuthWizard } from './components/GoogleAuthWizard';
 
@@ -187,13 +188,13 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   return (
     <div className="overview-container">
       <div className="overview-header" style={{ marginBottom: '32px' }}>
-        <h1 style={{ color: '#eceff4' }}>Configuration</h1>
-        <p style={{ color: '#d8dee9' }}>Modify the core behaviors and parameters of the Nyxora Agent.</p>
+        <h1 style={{ color: 'var(--text-primary)' }}>Configuration</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Modify the core behaviors and parameters of the Nyxora Agent.</p>
       </div>
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
         <div className="nord-panel-header">
-          <User size={18} color="#81a1c1" />
+          <User size={18} color="var(--text-secondary)" />
           <h3>Agent Profile</h3>
         </div>
         <div className="form-row">
@@ -211,7 +212,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <PillSelect 
               value={formData.agent.default_chain}
               onChange={(val) => handleChange('agent', 'default_chain', val)}
-              pillColor="#88c0d0"
+              pillColor="var(--accent)"
               textColor="#000000"
               options={[
                 { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
@@ -259,7 +260,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '32px' }}>
         <div className="nord-panel-header">
-          <Cpu size={18} color="#81a1c1" />
+          <Cpu size={18} color="var(--text-secondary)" />
           <h3>LLM Engine</h3>
         </div>
         <div className="form-row">
@@ -268,17 +269,17 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <PillSelect 
               value={formData.llm.provider}
               onChange={(val) => handleChange('llm', 'provider', val)}
-              pillColor="#81a1c1"
+              pillColor="var(--text-secondary)"
               textColor="#000000"
               options={[
-                { id: 'gemini', label: 'Google Gemini', icon: <Cpu size={14} /> },
-                { id: 'openai', label: 'OpenAI', icon: <Cpu size={14} /> },
-                { id: 'openrouter', label: 'OpenRouter', icon: <Cpu size={14} /> },
-                { id: 'ollama', label: 'Ollama (Local)', icon: <Cpu size={14} /> },
-                { id: 'groq', label: 'Groq', icon: <Cpu size={14} /> },
-                { id: 'mistral', label: 'Mistral AI', icon: <Cpu size={14} /> },
-                { id: 'xai', label: 'xAI (Grok)', icon: <Cpu size={14} /> },
-                { id: 'deepseek', label: 'DeepSeek', icon: <Cpu size={14} /> }
+                { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
+                { id: 'openai', label: 'OpenAI', icon: <LlmIcon provider="openai" size={14} /> },
+                { id: 'openrouter', label: 'OpenRouter', icon: <LlmIcon provider="openrouter" size={14} /> },
+                { id: 'ollama', label: 'Ollama (Local)', icon: <LlmIcon provider="ollama" size={14} /> },
+                { id: 'groq', label: 'Groq', icon: <LlmIcon provider="groq" size={14} /> },
+                { id: 'mistral', label: 'Mistral AI', icon: <LlmIcon provider="mistral" size={14} /> },
+                { id: 'xai', label: 'xAI (Grok)', icon: <LlmIcon provider="xai" size={14} /> },
+                { id: 'deepseek', label: 'DeepSeek', icon: <LlmIcon provider="deepseek" size={14} /> }
               ]}
             />
           </div>
@@ -286,7 +287,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <label className="nord-label">Model Name</label>
             <input 
               className="nord-pill-input"
-              style={{ color: '#81a1c1' }}
+              style={{ color: 'var(--text-secondary)' }}
               type="text" 
               value={formData.llm.model} 
               onChange={e => handleChange('llm', 'model', e.target.value)} 
@@ -307,7 +308,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
           <div className="nord-panel-header">
-            <Shield size={18} color="#bf616a" />
+            <Shield size={18} color="var(--danger)" />
             <h3>Personalized Risk Profile</h3>
           </div>
           <div className="form-row">
@@ -316,8 +317,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               <PillSelect 
                 value={userProfile.risk_level}
                 onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
-                pillColor="#bf616a"
-                textColor="#eceff4"
+                pillColor="var(--danger)"
+                textColor="var(--text-primary)"
                 options={[
                   { id: 'Conservative', label: 'Conservative (Safe)' },
                   { id: 'Moderate', label: 'Moderate' },
@@ -342,7 +343,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               id="avoid_memecoins"
               checked={userProfile.avoid_memecoins}
               onChange={e => setUserProfile({ ...userProfile, avoid_memecoins: e.target.checked })}
-              style={{ cursor: 'pointer', accentColor: '#bf616a', width: '16px', height: '16px', margin: 0, flexShrink: 0 }}
+              style={{ cursor: 'pointer', accentColor: 'var(--danger)', width: '16px', height: '16px', margin: 0, flexShrink: 0 }}
             />
             <label htmlFor="avoid_memecoins" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>Strictly Avoid Memecoins / Unknown Contracts</label>
           </div>
@@ -350,10 +351,10 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
-          <Shield size={18} color="#ebcb8b" />
+          <Shield size={18} color="var(--accent)" />
           <h3>Policy Engine (Hard-coded Firewall)</h3>
         </div>
-        <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
           Critical limits enforced at the signer level. The LLM cannot override these boundaries.
         </p>
         <div className="form-row">
@@ -376,7 +377,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   id="require_approval"
                   checked={policyConfig.require_approval}
                   onChange={e => setPolicyConfig({ ...policyConfig, require_approval: e.target.checked })}
-                  style={{ cursor: 'pointer', accentColor: '#ebcb8b', width: '16px', height: '16px', margin: 0 }}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
                 />
                 <label htmlFor="require_approval" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
                   Require Manual Approval for every transaction
@@ -388,7 +389,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   id="whitelist_only"
                   checked={policyConfig.whitelist_only}
                   onChange={e => setPolicyConfig({ ...policyConfig, whitelist_only: e.target.checked })}
-                  style={{ cursor: 'pointer', accentColor: '#ebcb8b', width: '16px', height: '16px', margin: 0 }}
+                  style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
                 />
                 <label htmlFor="whitelist_only" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
                   Strict Whitelist Only (Block unknown addresses)
@@ -412,7 +413,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
-          <Shield size={18} color="#ebcb8b" />
+          <Shield size={18} color="var(--accent)" />
           <h3>Security & Privacy</h3>
         </div>
         <div className="form-row">
@@ -421,8 +422,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <PillSelect 
               value={autoLockTime.toString()}
               onChange={(val) => setAutoLockTime(parseInt(val))}
-              pillColor="#ebcb8b"
-              textColor="#2e3440"
+              pillColor="var(--accent)"
+              textColor="var(--bg-secondary)"
               options={[
                 { id: '0', label: 'Off' },
                 { id: '15', label: '15 Minutes' },
@@ -437,20 +438,20 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
-          <Key size={18} color="#a3be8c" />
+          <Key size={18} color="var(--success)" />
           <h3>Integrations</h3>
         </div>
-        <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
           Connect Nyxora to external services to expand its capabilities.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
           <div>
-            <h4 style={{ color: '#eceff4', margin: '0 0 4px 0' }}>Google Workspace</h4>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#d8dee9' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
+            <h4 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Google Workspace</h4>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
           </div>
           <button 
             className="nord-btn-primary" 
-            style={{ background: '#a3be8c', color: '#2e3440', fontWeight: 600 }}
+            style={{ background: 'var(--success)', color: 'var(--bg-secondary)', fontWeight: 600 }}
             onClick={() => setShowGoogleWizard(true)}
           >
             Setup OAuth
@@ -460,12 +461,12 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
         <div className="nord-panel-header">
-          <Network size={18} color="#81a1c1" />
+          <Network size={18} color="var(--text-secondary)" />
           <h3>Web3 Explorer Settings</h3>
         </div>
-        <p style={{ fontSize: '0.85rem', color: '#d8dee9', marginBottom: '20px' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
           Configure blockchain explorer API keys to enable agent verification of smart contracts.
-          <br/><span style={{ color: '#ebcb8b', fontWeight: 'bold' }}>Note: RPC Endpoint configurations have been moved to the dedicated "RPC Configuration" tab in the sidebar.</span>
+          <br/><span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Note: RPC Endpoint configurations have been moved to the dedicated "RPC Configuration" tab in the sidebar.</span>
         </p>
         <div style={{ marginBottom: '24px' }} className="form-group">
           <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>

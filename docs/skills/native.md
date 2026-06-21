@@ -33,7 +33,8 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 *   **Dual-Routing API Waterfall:** Whenever a user asks for crypto prices, market analysis, or deep dives, the AI **must** prioritize using dedicated Web3 APIs. It uses a dual-routing system: Symbol queries (e.g., $ETH) are routed to CoinGecko and CEX APIs for highly accurate global FDV and liquidity metrics. Contract Address queries (e.g., 0x...) are routed to DexScreener for live on-chain pool data.
 *   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
 
-### ⏱️ Asynchronous Watchdog Automation
+### ⏱️ Asynchronous Watchdog & AI Scheduler
+*   **Time-Based AI Scheduler (CRON):** Nyxora features a robust internal Cron Engine (`scheduleTask` and `cancelTask`). The AI can autonomously schedule recurring prompts or tasks in the background (e.g., *"Check BTC price every hour and notify me"*). The engine runs detached from the main chat session and pushes clean, formatted analysis reports directly to your Telegram bot.
 *   **Background Sub-Agents:** Nyxora can spawn detached background agents (`createMarketWatchAgent`) to continuously monitor market conditions, prices, or liquidity pools.
 *   **Event-Driven Triggers:** When a user says *"Monitor $SOL and buy 1 SOL if it hits $120"*, the main session immediately delegates this to a Watchdog. The Watchdog loops in the background until the condition is met, seamlessly executing the trade and notifying the user.
 
@@ -78,7 +79,10 @@ These skills allow the AI to interact directly with your local machine, file sys
     *   **Description:** Navigates to a specific URL and scrapes the raw text content of the webpage.
     *   **Capabilities:** Used when the AI finds an interesting link via `searchWeb` and needs to dive deeper into the documentation or article content.
 
-### 🛡️ Security & Expansion
+### 🛡️ Security, Identity & Expansion
 *   **`updateSecurityPolicy`**
     *   **Description:** Allows the AI to programmatically append or modify its own security constraints in `policy.yaml` (under the `custom_llm_rules` configuration).
     *   **Capabilities:** If you instruct the agent *"From now on, never touch the src/core directory,"* it will use this skill to permanently remember the rule.
+*   **`update_identity` & `update_profile`**
+    *   **Description:** Nyxora features strict identity isolation. The AI manages its own core persona (`IDENTITY.md`) using `update_identity`, and stores user preferences (`user.md`) using `update_profile`.
+    *   **Capabilities:** The AI synchronizes these states not only in its local reasoning memory but also globally updates the UI Dashboard (e.g. updating the Agent Name).

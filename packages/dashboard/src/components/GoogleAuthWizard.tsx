@@ -62,7 +62,7 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
       <div className="panel" style={{ width: '600px', maxWidth: '90%', position: 'relative', overflow: 'hidden' }}>
         <button onClick={onClose} style={{
           position: 'absolute', top: '16px', right: '16px',
-          background: 'none', border: 'none', color: '#d8dee9', cursor: 'pointer'
+          background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer'
         }}>
           <X size={20} />
         </button>
@@ -76,8 +76,8 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
           }}>
             <Shield size={24} />
           </div>
-          <h2 style={{ color: '#eceff4', margin: 0 }}>Google Workspace Setup</h2>
-          <p style={{ color: '#d8dee9', fontSize: '0.9rem', marginTop: '8px' }}>
+          <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>Google Workspace Setup</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>
             Configure Nyxora to access your personal Gmail and Google Drive locally.
           </p>
         </div>
@@ -86,7 +86,7 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
           {[1, 2, 3].map(s => (
             <div key={s} style={{
               flex: 1, height: '4px', margin: '0 4px', borderRadius: '2px',
-              backgroundColor: s <= step ? '#88c0d0' : '#4c566a',
+              backgroundColor: s <= step ? 'var(--accent)' : 'var(--tool-bg)',
               transition: 'background-color 0.3s'
             }} />
           ))}
@@ -94,9 +94,9 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
 
         {step === 1 && (
           <div className="wizard-step">
-            <h3 style={{ color: '#eceff4', marginBottom: '16px' }}>Step 1: Create a Google Cloud Project</h3>
-            <ol style={{ color: '#d8dee9', lineHeight: '1.6', paddingLeft: '20px' }}>
-              <li>Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" style={{ color: '#88c0d0' }}>Google Cloud Console</a>.</li>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>Step 1: Create a Google Cloud Project</h3>
+            <ol style={{ color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px' }}>
+              <li>Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Google Cloud Console</a>.</li>
               <li>Create a new project (e.g., "Nyxora Local Agent").</li>
               <li>Navigate to <strong>APIs & Services {'>'} Library</strong>.</li>
               <li>Search for and enable the following APIs:
@@ -115,30 +115,30 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
 
         {step === 2 && (
           <div className="wizard-step">
-            <h3 style={{ color: '#eceff4', marginBottom: '16px' }}>Step 2: Configure OAuth Consent</h3>
-            <ol style={{ color: '#d8dee9', lineHeight: '1.6', paddingLeft: '20px' }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>Step 2: Configure OAuth Consent</h3>
+            <ol style={{ color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px' }}>
               <li>Go to <strong>APIs & Services {'>'} OAuth consent screen</strong>.</li>
               <li>Choose <strong>External</strong> User Type.</li>
               <li>Fill in the App Information. Use the URLs provided below for the App Domain:</li>
             </ol>
             
-            <div style={{ background: '#2e3440', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '16px' }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#81a1c1', fontSize: '0.85rem' }}>Privacy Policy URL:</span>
-                <span style={{ color: '#eceff4', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/privacy</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Privacy Policy URL:</span>
+                <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/privacy</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#81a1c1', fontSize: '0.85rem' }}>Terms of Service URL:</span>
-                <span style={{ color: '#eceff4', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/tos</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Terms of Service URL:</span>
+                <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/tos</span>
               </div>
             </div>
 
-            <ol start={4} style={{ color: '#d8dee9', lineHeight: '1.6', paddingLeft: '20px' }}>
+            <ol start={4} style={{ color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px' }}>
               <li>Add your personal email to the <strong>Test Users</strong> list so you can bypass app verification.</li>
             </ol>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-              <button className="nord-btn" style={{ background: 'transparent', border: '1px solid #4c566a', color: '#d8dee9' }} onClick={() => setStep(1)}>Back</button>
+              <button className="nord-btn" style={{ background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }} onClick={() => setStep(1)}>Back</button>
               <button className="nord-btn-primary" onClick={() => setStep(3)}>Next Step</button>
             </div>
           </div>
@@ -146,12 +146,12 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
 
         {step === 3 && (
           <div className="wizard-step">
-            <h3 style={{ color: '#eceff4', marginBottom: '16px' }}>Step 3: Upload Credentials</h3>
-            <ol style={{ color: '#d8dee9', lineHeight: '1.6', paddingLeft: '20px', marginBottom: '24px' }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>Step 3: Upload Credentials</h3>
+            <ol style={{ color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px', marginBottom: '24px' }}>
               <li>Go to <strong>APIs & Services {'>'} Credentials</strong>.</li>
               <li>Click <strong>Create Credentials {'>'} OAuth client ID</strong>.</li>
               <li>Choose <strong>Web application</strong> as the application type.</li>
-              <li>Under <strong>Authorized redirect URIs</strong>, add: <code style={{color: '#88c0d0', padding: '2px 4px', background: '#3b4252', borderRadius: '4px'}}>http://localhost:3000/api/auth/google/callback</code></li>
+              <li>Under <strong>Authorized redirect URIs</strong>, add: <code style={{color: 'var(--accent)', padding: '2px 4px', background: 'var(--bg-sidebar)', borderRadius: '4px'}}>http://localhost:3000/api/auth/google/callback</code></li>
               <li>Click Download JSON and upload the file here:</li>
             </ol>
 
@@ -159,7 +159,7 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
               <div style={{ textAlign: 'center', padding: '32px', border: '1px dashed #a3be8c', borderRadius: '8px', backgroundColor: 'rgba(163, 190, 140, 0.05)' }}>
                 <CheckCircle size={32} color="#a3be8c" style={{ marginBottom: '16px' }} />
                 <h4 style={{ color: '#a3be8c', margin: 0 }}>Credentials Saved!</h4>
-                <p style={{ color: '#d8dee9', fontSize: '0.9rem', marginTop: '8px' }}>You can now use Google Workspace skills.</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>You can now use Google Workspace skills.</p>
               </div>
             ) : (
               <div style={{ position: 'relative' }}>
@@ -175,13 +175,13 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
                 />
                 <div style={{ 
                   textAlign: 'center', padding: '32px', 
-                  border: '1px dashed #4c566a', borderRadius: '8px',
+                  border: '1px dashed var(--glass-border)', borderRadius: '8px',
                   backgroundColor: 'rgba(46, 52, 64, 0.5)',
                   transition: 'border-color 0.3s'
                 }}>
-                  <Upload size={24} color="#81a1c1" style={{ marginBottom: '16px' }} />
-                  <h4 style={{ color: '#eceff4', margin: 0 }}>{isUploading ? 'Uploading...' : 'Click or Drag JSON File'}</h4>
-                  <p style={{ color: '#d8dee9', fontSize: '0.85rem', marginTop: '8px' }}>
+                  <Upload size={24} color="var(--text-secondary)" style={{ marginBottom: '16px' }} />
+                  <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>{isUploading ? 'Uploading...' : 'Click or Drag JSON File'}</h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px' }}>
                     Requires <code>client_id</code> and <code>client_secret</code>
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-              <button className="nord-btn" style={{ background: 'transparent', border: '1px solid #4c566a', color: '#d8dee9' }} onClick={() => setStep(2)}>Back</button>
+              <button className="nord-btn" style={{ background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }} onClick={() => setStep(2)}>Back</button>
             </div>
           </div>
         )}

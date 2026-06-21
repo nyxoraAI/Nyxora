@@ -1,3 +1,7 @@
+import fs from 'fs';
+import path from 'path';
+import { getPath } from '../config/paths';
+
 interface Stats {
   cost: number;
   tokens: number;
@@ -26,6 +30,53 @@ const eventLogs: EventLog[] = [];
 const gatewayLogs: GatewayLog[] = [];
 const MAX_LOGS = 100;
 
+let trackerFile = '';
+try {
+  trackerFile = getPath('tracker.json');
+} catch (e) {
+  // Fallback
+}
+
+function loadState() {
+  if (!trackerFile) return;
+  try {
+    if (fs.existsSync(trackerFile)) {
+      const data = JSON.parse(fs.readFileSync(trackerFile, 'utf8'));
+      if (data.stats) Object.assign(stats, data.stats);
+      if (data.eventLogs && Array.isArray(data.eventLogs)) {
+        eventLogs.splice(0, eventLogs.length, ...data.eventLogs);
+      }
+      if (data.gatewayLogs && Array.isArray(data.gatewayLogs)) {
+        gatewayLogs.splice(0, gatewayLogs.length, ...data.gatewayLogs);
+      }
+    }
+  } catch (e) {}
+}
+
+let savePending = false;
+function saveState() {
+  if (!trackerFile) return;
+  if (savePending) return;
+  savePending = true;
+  setTimeout(() => {
+    flushState();
+    savePending = false;
+  }, 1000);
+}
+
+function flushState() {
+  if (!trackerFile) return;
+  try {
+    fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+  } catch (e) {}
+}
+
+process.on('exit', flushState);
+process.on('SIGTERM', () => { flushState(); process.exit(0); });
+process.on('SIGINT', () => { flushState(); process.exit(0); });
+
+loadState();
+
 function formatTime(): string {
   const now = new Date();
   return now.toTimeString().split(' ')[0]; // Returns HH:MM:SS
@@ -41,10 +92,12 @@ export const Tracker = {
     else if (provider === 'gemini') rate = 0.00001;
     
     stats.cost += (amount * rate);
+    saveState();
   },
   
   addMessage: () => {
     stats.messages += 1;
+    saveState();
   },
 
   getStats: () => {
@@ -54,11 +107,13 @@ export const Tracker = {
   addEvent: (event: string, meta: any = {}) => {
     eventLogs.unshift({ timestamp: formatTime(), event, meta });
     if (eventLogs.length > MAX_LOGS) eventLogs.pop();
+    saveState();
   },
 
   addGatewayLog: (message: string, meta?: any) => {
     gatewayLogs.unshift({ timestamp: formatTime(), message, meta });
     if (gatewayLogs.length > MAX_LOGS) gatewayLogs.pop();
+    saveState();
   },
 
   getLogs: () => {

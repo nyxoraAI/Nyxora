@@ -40,3 +40,23 @@ export const getTokenLogoUrl = (chain: string, address: string, isNative: boolea
   const chainId = getChainId(chain);
   return `https://logos.covalenthq.com/tokens/${chainId}/${address.toLowerCase()}.png`;
 };
+
+export const getRouterLogoUrl = (router: string) => {
+  switch (router.toLowerCase()) {
+    case '1inch':
+    case 'inch_key': return '/routers/1inch.png';
+    case '0x':
+    case 'zero_x_key': return '/routers/0x.png';
+    case 'kyberswap': return '/routers/kyberswap.png';
+    case 'openocean':
+    case 'openocean_key': return '/routers/openocean.png';
+    case 'lifi':
+    case 'lifi_key': return '/routers/lifi.png';
+    case 'relay':
+    case 'relay_key': return '/routers/relay.png';
+    case 'cmc_key': return '/routers/cmc.png';
+    case 'zerion_key': return '/routers/zerion.png';
+    case 'auto': return ''; // Handled by NyxoraLogo
+    default: return '';
+  }
+};

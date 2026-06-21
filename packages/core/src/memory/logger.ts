@@ -204,7 +204,7 @@ export class Logger {
         SELECT * FROM (
           SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
-          WHERE session_id IS NULL 
+          WHERE session_id IS NULL
           ORDER BY id DESC LIMIT 40
         ) ORDER BY id ASC
       `).all();

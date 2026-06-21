@@ -41,7 +41,7 @@ const MarketWidget: React.FC<MarketWidgetProps> = ({ data }) => {
             <Activity size={24} color="#3b82f6" />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white', textTransform: 'capitalize' }}>{coin}</h3>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{coin}</h3>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Live Price (USD)</span>
           </div>
         </div>
@@ -62,7 +62,7 @@ const MarketWidget: React.FC<MarketWidgetProps> = ({ data }) => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', overflow: 'hidden' }}>
-        <span style={{ fontSize: '3rem', fontWeight: 800, color: 'white', letterSpacing: '-1px', wordBreak: 'break-all' }}>
+        <span style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-1px', wordBreak: 'break-all' }}>
           ${priceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
         </span>
       </div>

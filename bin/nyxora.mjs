@@ -86,18 +86,30 @@ async function start() {
   }
 }
 
-async function stop() {
+async function stop(preserveTracker = false) {
   const pid = await getDaemonPid();
   if (pid) {
     console.log(`Stopping Nyxora daemon (PID: ${pid})...`);
     try {
       process.kill(-pid, 'SIGTERM');
+      
+      // Wait for process to exit to avoid race condition with flushState
+      let attempts = 0;
+      while (isDaemonRunning(pid.toString()) && attempts < 20) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+      
       console.log('Nyxora stopped gracefully.');
     } catch (e) {
       console.error('Failed to kill process:', e.message);
     }
     try {
       fs.unlinkSync(pidFile);
+      if (!preserveTracker) {
+        const trackerFile = path.join(appDir, 'run', 'tracker.json');
+        if (fs.existsSync(trackerFile)) fs.unlinkSync(trackerFile);
+      }
     } catch(e) {}
   } else {
     console.log('Nyxora is not running.');
@@ -105,7 +117,7 @@ async function stop() {
 }
 
 async function restart() {
-  await stop();
+  await stop(true);
   setTimeout(start, 1000);
 }
 

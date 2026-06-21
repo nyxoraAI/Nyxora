@@ -50,7 +50,7 @@ const BalanceWidget: React.FC<BalanceWidgetProps> = ({ data }) => {
       </div>
 
       <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', overflow: 'hidden' }}>
-        <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white', letterSpacing: '-1px', wordBreak: 'break-all' }}>{amount}</span>
+        <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-1px', wordBreak: 'break-all' }}>{amount}</span>
         <span style={{ fontSize: '1.2rem', color: '#94a3b8', marginLeft: '8px', fontWeight: 500 }}>ETH</span>
       </div>
 

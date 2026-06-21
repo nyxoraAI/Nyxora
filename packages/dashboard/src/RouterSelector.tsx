@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Route, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import { getRouterLogoUrl } from './utils/logos';
+import NyxoraLogo from './NyxoraLogo';
 
 const ROUTERS = [
   { id: 'auto', label: 'Meta-Aggregator (Auto)' },
@@ -10,6 +12,24 @@ const ROUTERS = [
   { id: 'openocean', label: 'OpenOcean' },
   { id: 'kyberswap', label: 'KyberSwap' }
 ];
+
+const RouterImage = ({ id, size = 16, color }: { id: string, size?: number, color?: string }) => {
+  if (id === 'auto') {
+    return <NyxoraLogo size={size} className="network-icon" color={color} />;
+  }
+  const url = getRouterLogoUrl(id);
+  if (!url) return <NyxoraLogo size={size} className="network-icon" color={color} />;
+  
+  return (
+    <img 
+      src={url} 
+      alt={id} 
+      style={{ width: size, height: size, objectFit: 'cover', borderRadius: '50%', flexShrink: 0 }} 
+      onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+      className="network-icon"
+    />
+  );
+};
 
 interface RouterSelectorProps {
   value: string;
@@ -40,7 +60,7 @@ export const RouterSelector: React.FC<RouterSelectorProps> = ({ value, onChange 
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
-        <Route size={16} className="network-icon" />
+        <RouterImage id={currentRouter.id} size={16} color="#000000" />
         <span className="network-label">{currentRouter.label}</span>
         <ChevronDown size={14} className="network-chevron" />
       </button>
@@ -56,7 +76,10 @@ export const RouterSelector: React.FC<RouterSelectorProps> = ({ value, onChange 
                 setIsOpen(false);
               }}
             >
-              {router.label}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RouterImage id={router.id} size={14} />
+                <span>{router.label}</span>
+              </div>
             </li>
           ))}
         </ul>

@@ -29,6 +29,7 @@ import { getTxHistoryToolDefinition, getTxHistory } from '../web3/skills/getTxHi
 import { createLimitOrderToolDefinition, createLimitOrder } from '../web3/skills/createLimitOrder';
 
 import { updateProfileToolDefinition, updateProfile } from './updateProfile';
+import { updateIdentityToolDefinition, updateIdentity } from './updateIdentity';
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
 import { analyzeDocumentToolDefinition, analyzeDocument } from '../system/skills/analyzeDocument';
 import { readLocalFileToolDefinition, readLocalFile } from '../system/skills/readFile';
@@ -44,6 +45,8 @@ import { xManagerToolDefinition, manageTwitter } from '../system/skills/xManager
 import { notionWorkspaceToolDefinition, manageNotion } from '../system/skills/notionWorkspace';
 import { audioTranscribeToolDefinition, transcribeAudio } from '../system/skills/audioTranscribe';
 import { summarizeTextToolDefinition, summarizeText } from '../system/skills/summarizeText';
+import { scheduleTaskDefinition, executeScheduleTask } from '../system/skills/scheduleTask';
+import { cancelTaskDefinition, executeCancelTask } from '../system/skills/cancelTask';
 import { 
   readGmailInbox, 
   listCalendarEvents, 
@@ -167,35 +170,64 @@ CRITICAL RULE 11: ADAPTIVE RESPONSE RULE. You must process Web3 data (portfolio,
 CRITICAL RULE 13: WALLET CONTEXT CACHING. Portfolio data in chat history is potentially stale. Do not use cached data for transactional planning; refresh the balance via tools first.
 CRITICAL RULE 14: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer, stake), do NOT ask for verbal confirmation. Execute the tool IMMEDIATELY. The tool itself will trigger a secure popup in the user's dashboard UI for final approval.
 CRITICAL RULE 17: MINIMIZE UNNECESSARY TOOL CALLS. Do not call tools if the answer exists in recent verified context and freshness is not strictly required. Use history to save latency.
+CRITICAL RULE 19: GET_PRICE USAGE. Use get_price ONLY when the user explicitly asks for a simple price check (e.g. 'harga', 'price'). Do NOT use this for 'analysis', 'market analysis', or 'analisis pasar'.
 
 [ANTI-HALLUCINATION PROTOCOL]
 CRITICAL RULE 6: NETWORK SAFETY VALIDATION. If a request implies cross-chain or mainnet/testnet mixing, or the token symbol is ambiguous (USDC vs USDC.e), YOU MUST NOT GUESS. Ask for confirmation.
 CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data. If a tool fails or data is missing, state it explicitly. Do not estimate balances, prices, APY, or gas.
+CRITICAL RULE 18: AMOUNT PRECISION. When displaying crypto amounts, use exactly 6 decimal places for precision, or round to 2 decimals only if the value is significantly large (>$10,000). Never abbreviate unless the number is >$1,000,000.
 CRITICAL RULE 9: DEFI CONFIGURATION FALLBACK. If a tool fails due to Rate Limits, Unauthorized, or Missing API Keys, instruct the user to visit the "DeFi Configuration 🔑" menu in the dashboard.
 CRITICAL RULE 12: SMART SLIPPAGE AWARENESS. For low-liquidity assets, warn the user that default slippage might not be enough. NEVER invent specific slippage percentage numbers.
 CRITICAL RULE 16: CAPABILITY HONESTY. NEVER claim a capability not available through installed tools. If asked for an unsupported action, state honestly that the skill is missing.
-CRITICAL RULE 19: MARKET CONFIDENCE SCORE. When analyzing market data, token security, or preparing trades, you MUST explicitly declare a 'Confidence Score (0-100%)' INSIDE your <think> block. If your score is below 40%, you must firmly WARN the user and advise against the trade in your final response.`;
+CRITICAL RULE 19: MARKET CONFIDENCE SCORE. When analyzing market data, token security, or preparing trades, you MUST explicitly declare a 'Confidence Score (0-100%)' INSIDE your <think> block. If your score is below 40%, you must firmly WARN the user and advise against the trade in your final response.
+CRITICAL RULE 20: CRON JOBS VS LIMIT ORDERS. STRICT RULE: Do NOT use schedule_task for price-based trading triggers or buying/selling at a specific price level. Use create_limit_order. STRICT RULE: Do NOT use create_limit_order for time-based recurring tasks (e.g. 'every 5 minutes', 'every Monday'). Use schedule_task.
+CRITICAL RULE 21: CONFIGURATION SECURITY. You are STRICTLY FORBIDDEN from modifying config.yaml, rpc_key.yaml, or policy.yaml using OS skills or terminal commands (like sed, echo, nano). If you need to change your name, use the update_identity tool.`;
 
-  // Read IDENTITY.md for core AI persona
+  const identityMdPath = getPath('IDENTITY.md');
+  const userMdPath = getPath('user.md');
+  
+  let isFirstTime = false;
   try {
-    const identityMdPath = getPath('IDENTITY.md');
-    if (fs.existsSync(identityMdPath)) {
-      const identityInstructions = fs.readFileSync(identityMdPath, 'utf8');
-      basePrompt += `\n\n--- CORE IDENTITY & PERSONA ---\n${identityInstructions}`;
-    }
-  } catch (error) {
-    console.error('Failed to read IDENTITY.md:', error);
+    const identityContent = fs.existsSync(identityMdPath) ? fs.readFileSync(identityMdPath, 'utf8').trim() : '';
+    const userContent = fs.existsSync(userMdPath) ? fs.readFileSync(userMdPath, 'utf8').trim() : '';
+    
+    // Check if files are empty or contain the default installation text
+    const isIdentityDefault = !identityContent || identityContent.includes('You are a Web3 AI assistant named Nyxora.');
+    const isUserDefault = !userContent || userContent.includes('Write custom instructions, special rules, user profiles');
+    
+    isFirstTime = isIdentityDefault && isUserDefault;
+  } catch (e) {
+    isFirstTime = true;
   }
 
-  // Read user.md for custom instructions
-  try {
-    const userMdPath = getPath('user.md');
-    if (fs.existsSync(userMdPath)) {
-      const customInstructions = fs.readFileSync(userMdPath, 'utf8');
-      basePrompt += `\n\n--- CUSTOM USER INSTRUCTIONS ---\n${customInstructions}`;
+  if (isFirstTime) {
+    basePrompt += `\n\n[ONBOARDING MODE]
+This is your VERY FIRST interaction with the user. You MUST warmly welcome them to Nyxora and ask for 4 things to initialize your setup:
+1. Their Name
+2. What they want to name YOU (the AI Agent)
+3. Their Hobbies or Job (so you can tailor your conversation context)
+4. Your Persona/Character (e.g., professional, sarcastic, JARVIS, anime waifu)
+Do NOT perform any web3 tasks or generic answers until they provide all 4 details. Once they answer, use 'update_profile' to save their name and hobbies/job to user.md, and use 'update_identity' (making sure to provide the 'agentName' parameter!) to save your new name and persona to IDENTITY.md.`;
+  } else {
+    // Read IDENTITY.md for core AI persona
+    try {
+      if (fs.existsSync(identityMdPath)) {
+        const identityInstructions = fs.readFileSync(identityMdPath, 'utf8');
+        basePrompt += `\n\n--- CORE IDENTITY & PERSONA ---\n${identityInstructions}`;
+      }
+    } catch (error) {
+      console.error('Failed to read IDENTITY.md:', error);
     }
-  } catch (error) {
-    console.error('Failed to read user.md:', error);
+
+    // Read user.md for custom instructions
+    try {
+      if (fs.existsSync(userMdPath)) {
+        const customInstructions = fs.readFileSync(userMdPath, 'utf8');
+        basePrompt += `\n\n--- CUSTOM USER INSTRUCTIONS ---\n${customInstructions}`;
+      }
+    } catch (error) {
+      console.error('Failed to read user.md:', error);
+    }
   }
 
   // Read policy.yaml for NLP security constraints
@@ -254,7 +286,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   const history = logger.getHistory(sessionId);
   
   // Format messages for OpenAI
-  const messages: any[] = [
+  let messages: any[] = [
     { role: 'system', content: getSystemPrompt() },
     ...history
       .filter(m => !(m.role === 'tool' && !m.tool_call_id))
@@ -268,6 +300,11 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         return msg;
       })
   ];
+
+  // Remove orphaned tool responses (truncated by the 40-message limit) at the start of the history window
+  while (messages.length > 1 && messages[1].role === 'tool') {
+    messages.splice(1, 1);
+  }
 
   try {
     const lowerInput = input.toLowerCase();
@@ -299,7 +336,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
         createLimitOrderToolDefinition
       );
     }
-    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition];
+    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateIdentityToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition, scheduleTaskDefinition, cancelTaskDefinition];
     const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
 
     let activeTools: any[] = [];
@@ -499,6 +536,10 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
               result = updateProfile(args.content, args.mode);
               break;
             }
+            case 'update_identity': {
+              result = updateIdentity(args.content, args.mode);
+              break;
+            }
             case 'update_security_policy': {
               result = await updateSecurityPolicy(args.policy, args.action || 'add');
               break;
@@ -553,6 +594,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
             }
             case 'search_web': {
               result = await searchWeb(args.query, args.depth);
+              break;
+            }
+            case 'schedule_task': {
+              result = await executeScheduleTask(args);
+              break;
+            }
+            case 'cancel_task': {
+              result = await executeCancelTask(args);
               break;
             }
 
@@ -642,12 +691,33 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
       }
       Tracker.addEvent('llm.final_response', { provider: config.llm.provider });
 
-      const finalContent = secondResponse.choices[0].message.content || "";
+      let finalContent = secondResponse.choices[0].message.content || "";
+      
+      // Clean up orphaned <think> blocks that forgot to output </think>
+      finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
+      finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
+      if (finalContent.includes('<think>')) {
+        finalContent = finalContent.replace(/<think>[\s\S]*?\n\n/i, '');
+        finalContent = finalContent.replace(/<think>[\s\S]*$/i, '');
+      }
+      finalContent = finalContent.trim();
+
       logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
       return finalContent;
     }
 
-    return responseMessage.content || "No response generated.";
+    let finalContent = responseMessage.content || "No response generated.";
+    
+    // Clean up orphaned <think> blocks that forgot to output </think>
+    finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
+    finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
+    if (finalContent.includes('<think>')) {
+      finalContent = finalContent.replace(/<think>[\s\S]*?\n\n/i, '');
+      finalContent = finalContent.replace(/<think>[\s\S]*$/i, '');
+    }
+    finalContent = finalContent.trim();
+    
+    return finalContent;
   } catch (error: any) {
     console.error("LLM Error:", error);
     const errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';

@@ -4,6 +4,13 @@ import path from 'path';
 export function editLocalFile(filePath: string, searchString: string, replacementString: string): string {
   try {
     const absolutePath = path.resolve(filePath);
+    
+    // Security Firewall: Block modification of core configuration files
+    const basename = path.basename(absolutePath);
+    if (['config.yaml', 'rpc_key.yaml', 'policy.yaml'].includes(basename)) {
+      return `Error: Access Denied. You are strictly forbidden from modifying core configuration files directly. If you need to update your agent name, use the update_identity tool instead.`;
+    }
+
     if (!fs.existsSync(absolutePath)) {
       return `Error: File not found at ${absolutePath}`;
     }

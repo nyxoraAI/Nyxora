@@ -2,30 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-let isGlobalModeCache: boolean | null = null;
-
 export function getAppDir(): string {
-  // Check if .env or config.yaml exists in current working directory
-  if (isGlobalModeCache === null) {
-    const localEnv = path.join(process.cwd(), '.env');
-    const localConfig = path.join(process.cwd(), 'config.yaml');
-    
-    if (fs.existsSync(localEnv) || fs.existsSync(localConfig)) {
-      isGlobalModeCache = false; // Local manual mode
-    } else {
-      isGlobalModeCache = true; // Global CLI mode
-    }
+  const globalDir = path.join(os.homedir(), '.nyxora');
+  if (!fs.existsSync(globalDir)) {
+    fs.mkdirSync(globalDir, { recursive: true });
   }
-
-  if (isGlobalModeCache) {
-    const globalDir = path.join(os.homedir(), '.nyxora');
-    if (!fs.existsSync(globalDir)) {
-      fs.mkdirSync(globalDir, { recursive: true });
-    }
-    return globalDir;
-  }
-
-  return process.cwd();
+  return globalDir;
 }
 
 function ensureDir(dir: string) {
@@ -47,7 +29,7 @@ export function getPath(filename: string): string {
     subDir = 'config';
   } else if (lowerFile.endsWith('.token') || lowerFile.includes('vault') || lowerFile.includes('credentials')) {
     subDir = 'auth';
-  } else if (lowerFile.endsWith('.log') || lowerFile.includes('pid')) {
+  } else if (lowerFile.endsWith('.log') || lowerFile.includes('pid') || lowerFile.includes('tracker')) {
     subDir = 'run';
   }
 

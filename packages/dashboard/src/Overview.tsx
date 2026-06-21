@@ -40,13 +40,15 @@ interface EpisodicMemory {
 
 interface OverviewProps {
   config: Config | null;
+  sessionsCount: number;
 }
 
-const Overview: React.FC<OverviewProps> = ({ config }) => {
+const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
   const [stats, setStats] = useState<Stats>({ cost: 0, tokens: 0, messages: 0 });
   const [events, setEvents] = useState<EventLog[]>([]);
   const [gatewayLogs, setGatewayLogs] = useState<GatewayLog[]>([]);
   const [memories, setMemories] = useState<EpisodicMemory[]>([]);
+  const [cronJobs, setCronJobs] = useState<number>(0);
   const eventLogsEndRef = useRef<HTMLDivElement>(null);
   const gatewayLogsEndRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +63,12 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           const logs = await logsRes.json();
           setEvents(logs.events);
           setGatewayLogs(logs.gateway);
+        }
+
+        const cronRes = await apiFetch('/api/cron');
+        if (cronRes.ok) {
+          const cronData = await cronRes.json();
+          setCronJobs(cronData.activeJobs);
         }
 
         const memRes = await apiFetch('/api/memory');
@@ -125,8 +133,8 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         </div>
         <div className="metric-card">
           <label>SESSIONS</label>
-          <div className="metric-val">1</div>
-          <div className="metric-sub">Local chat session active</div>
+          <div className="metric-val">{sessionsCount}</div>
+          <div className="metric-sub">{sessionsCount} Local chat session{sessionsCount !== 1 ? 's' : ''} active</div>
         </div>
         <div className="metric-card">
           <label>SKILLS</label>
@@ -135,8 +143,8 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         </div>
         <div className="metric-card">
           <label>CRON</label>
-          <div className="metric-val">0 jobs</div>
-          <div className="metric-sub">No scheduled tasks</div>
+          <div className="metric-val">{cronJobs} jobs</div>
+          <div className="metric-sub">{cronJobs === 0 ? 'No scheduled tasks' : `${cronJobs} active schedule(s)`}</div>
         </div>
         <div className="metric-card">
           <label>MODEL AUTH</label>
@@ -153,9 +161,9 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
           <div className="log-content">
             {events.map((log, i) => (
               <div key={i} className="log-row" style={{ fontFamily: 'monospace' }}>
-                <span className="log-time" style={{ color: '#88C0D0' }}>[{log.timestamp}]</span>
-                <span className="log-msg" style={{ color: '#D8DEE9', marginLeft: '8px' }}>
-                  {log.event} {log.meta && Object.keys(log.meta).length > 0 ? <span className="log-meta" style={{ color: '#81A1C1' }}>{JSON.stringify(log.meta)}</span> : null}
+                <span className="log-time" style={{ color: 'var(--accent)' }}>[{log.timestamp}]</span>
+                <span className="log-msg" style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                  {log.event} {log.meta && Object.keys(log.meta).length > 0 ? <span className="log-meta" style={{ color: 'var(--text-secondary)' }}>{JSON.stringify(log.meta)}</span> : null}
                 </span>
               </div>
             ))}
@@ -172,8 +180,8 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
               cleanMessage = cleanMessage.replace(/token=[a-fA-F0-9]+/g, 'token=••••••••[REDACTED]••••••••');
               return (
                 <div key={i} className="log-row gateway-row" style={{ fontFamily: 'monospace' }}>
-                  <span className="log-time" style={{ color: '#88C0D0' }}>[{log.timestamp}]</span>
-                  <span className="log-msg" style={{ color: '#D8DEE9', marginLeft: '8px' }}>
+                  <span className="log-time" style={{ color: 'var(--accent)' }}>[{log.timestamp}]</span>
+                  <span className="log-msg" style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                     {cleanMessage} {log.meta ? JSON.stringify(log.meta) : ''}
                   </span>
                 </div>
@@ -191,19 +199,19 @@ const Overview: React.FC<OverviewProps> = ({ config }) => {
         </div>
         <div className="form-row memory-log-container" style={{ flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
           {memories.length === 0 ? (
-            <div style={{ color: '#88C0D0', fontStyle: 'italic', padding: '10px' }}>No episodic memories recorded yet. Start chatting to teach the AI your habits!</div>
+            <div style={{ color: 'var(--accent)', fontStyle: 'italic', padding: '10px' }}>No episodic memories recorded yet. Start chatting to teach the AI your habits!</div>
           ) : (
             memories.map(mem => (
-              <div key={mem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#3B4252', padding: '10px 15px', borderRadius: '6px' }}>
+              <div key={mem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-sidebar)', padding: '10px 15px', borderRadius: '6px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ color: '#ECEFF4', fontWeight: '500' }}>{mem.fact}</div>
-                  <div style={{ color: '#81A1C1', fontSize: '0.85rem', marginTop: '4px' }}>
+                  <div style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{mem.fact}</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
                     Category: {mem.category} | Type: {mem.rule_type} | Confidence: {(mem.confidence * 100).toFixed(0)}% | Occurrences: {mem.occurrences}
                   </div>
                 </div>
                 <button 
                   onClick={() => handleDeleteMemory(mem.id)}
-                  style={{ background: '#BF616A', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                  style={{ background: 'var(--danger)', color: '#eceff4', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   Delete
                 </button>

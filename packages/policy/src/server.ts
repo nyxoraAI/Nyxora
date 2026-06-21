@@ -261,7 +261,7 @@ app.post('/approve-tx/:id', (req, res) => {
   signerReq.end();
 });
 
-const server = app.listen(PORT, '127.0.0.1', () => {
+const server = app.listen(Number(PORT), '127.0.0.1', () => {
   console.log(`[Policy Engine] Listening on 127.0.0.1:${PORT} (Secured Local Loopback)`);
 });
 

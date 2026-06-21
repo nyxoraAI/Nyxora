@@ -30,6 +30,12 @@ Once the daemon revives, the overlay automatically lifts, seamlessly resuming yo
 Nyxora supports overriding public endpoints with your own private API keys (e.g., Alchemy, 1inch, KyberSwap, Etherscan). To protect these secrets from malicious browser extensions or accidental screen-sharing leaks, the Dashboard employs **UI Masking**:
 
 1. **Defi Config Isolation:** Keys entered in the DeFi Configuration tab are saved to a separate, isolated YAML file (`defi_keys.yaml`). When the Dashboard requests this configuration, the backend actively censors the actual keys, transmitting only the string `"IS_SET"` to the frontend browser.
-2. **Settings Masking:** Keys within the general Web3 settings (like Etherscan and RPC URLs) are rendered using native password masking (`••••••••`). 
+3. **Settings Masking:** Keys within the general Web3 settings (like Etherscan and RPC URLs) are rendered using native password masking (`••••••••`). 
 
 This architecture guarantees that once a secret is injected into the backend, it never travels back to the frontend in plain text.
+
+## Dynamic Status Metrics (Real-Time Sync)
+
+The Dashboard is designed to be a transparent window into the background daemon's current state. Hardcoded placeholders have been completely eliminated:
+*   **Active CRON Jobs:** The Overview page actively polls the `/api/cron` endpoint to display the exact number of recurring background tasks currently registered by the AI Scheduler.
+*   **Agent Identity Sync:** If you instruct the AI to change its name via a chat command (e.g., "Change your name to Jarvis"), the backend instantly updates the global `nyxora.config.json` file. This guarantees that your Dashboard UI and Telegram Bot always reflect the AI's latest personality and naming configurations.

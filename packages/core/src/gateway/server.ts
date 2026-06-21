@@ -17,6 +17,7 @@ import rateLimit from 'express-rate-limit';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import os from 'os';
 import { getPath } from '../config/paths';
 import { validateToken, getSessionToken } from '../utils/state';
 
@@ -29,6 +30,7 @@ import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/conf
 import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
+import multer from 'multer';
 
 import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
 import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
@@ -68,6 +70,9 @@ import { xManagerToolDefinition } from '../system/skills/xManager';
 import { notionWorkspaceToolDefinition } from '../system/skills/notionWorkspace';
 import { audioTranscribeToolDefinition } from '../system/skills/audioTranscribe';
 import { summarizeTextToolDefinition } from '../system/skills/summarizeText';
+import { scheduleTaskDefinition } from '../system/skills/scheduleTask';
+import { cancelTaskDefinition } from '../system/skills/cancelTask';
+import { cronManager } from '../agent/cronManager';
 import { updateSecurityPolicyToolDefinition } from '../system/skills/updateSecurityPolicy';
 import { writeLocalFileToolDefinition } from '../system/skills/writeFile';
 import { generateExcelToolDefinition } from '../system/skills/generateExcel';
@@ -160,13 +165,11 @@ app.use('/api', (req, res, next) => {
 });
 
 // Serve Static Dashboard
-let rootDir = __dirname;
-while (!fs.existsSync(path.join(rootDir, 'packages', 'dashboard'))) {
-  const nextDir = path.dirname(rootDir);
-  if (nextDir === rootDir || rootDir === '/' || rootDir === 'C:\\') break;
-  rootDir = nextDir;
+// __dirname is packages/core/dist/gateway (compiled) OR packages/core/src/gateway (dev)
+let dashboardPath = path.join(__dirname, '..', '..', '..', 'dashboard', 'dist'); // Dev
+if (!fs.existsSync(dashboardPath)) {
+  dashboardPath = path.join(__dirname, '..', '..', '..', '..', '..', 'packages', 'dashboard', 'dist'); // Compiled
 }
-const dashboardPath = path.join(rootDir, 'packages', 'dashboard', 'dist');
 app.use(express.static(dashboardPath));
 
 app.get('/', (req, res) => {
@@ -179,6 +182,31 @@ app.get('/privacy', (req, res) => {
 
 app.get('/tos', (req, res) => {
   res.send(generateTosHtml());
+});
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const docsDir = path.join(os.homedir(), '.nyxora', 'docs');
+    if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
+    cb(null, docsDir);
+  },
+  filename: function (req, file, cb) {
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    cb(null, `${Date.now()}-${safeName}`);
+  }
+});
+const upload = multer({ storage });
+
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    return res.json({ filePath: req.file.path });
+  } catch (err) {
+    console.error('[Upload] Error:', err);
+    return res.status(500).json({ error: 'Failed to save file' });
+  }
 });
 
 app.post('/api/upload-google-credentials', (req, res) => {
@@ -380,7 +408,9 @@ const systemSkills = [
   xManagerToolDefinition,
   notionWorkspaceToolDefinition,
   audioTranscribeToolDefinition,
-  summarizeTextToolDefinition
+  summarizeTextToolDefinition,
+  scheduleTaskDefinition,
+  cancelTaskDefinition
 ];
 
 app.get('/api/stats', (req, res) => {
@@ -398,6 +428,13 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/logs', (req, res) => {
   res.json(Tracker.getLogs());
+});
+
+app.get('/api/cron', (req, res) => {
+  res.json({
+    activeJobs: cronManager.getActiveJobsCount(),
+    jobs: cronManager.getJobs()
+  });
 });
 
 app.get('/api/skills', (req, res) => {

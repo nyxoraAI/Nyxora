@@ -1,4 +1,4 @@
-import { intro, text, spinner, isCancel, cancel } from '@clack/prompts';
+import { intro, text, spinner, isCancel, cancel, confirm } from '@clack/prompts';
 import pc from 'picocolors';
 import fs from 'fs';
 import { getPath } from '../config/paths';
@@ -77,6 +77,45 @@ export async function chatInteractive() {
       finalReply = finalReply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       
       console.log(finalReply + '\n');
+
+      // Check for pending transactions
+      try {
+        const txRes = await fetch('http://localhost:3000/api/transactions', {
+          headers: { 'x-nyxora-token': token }
+        });
+        if (txRes.ok) {
+          const txs = await txRes.json();
+          for (const tx of txs) {
+            const isApproved = await confirm({
+              message: pc.yellow(`Approve Transaction [${tx.type.toUpperCase()}] on ${tx.chainName.toUpperCase()}?`),
+            });
+            
+            if (isCancel(isApproved) || !isApproved) {
+               await fetch(`http://localhost:3000/api/transactions/${tx.id}/reject`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json', 'x-nyxora-token': token },
+                 body: JSON.stringify({ nonce: tx.nonce, sessionId: 'cli-chat' })
+               });
+               console.log(pc.red(`Transaction rejected.\n`));
+               continue;
+            }
+
+            const appRes = await fetch(`http://localhost:3000/api/transactions/${tx.id}/approve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-nyxora-token': token },
+              body: JSON.stringify({ nonce: tx.nonce, sessionId: 'cli-chat' })
+            });
+            const appData = await appRes.json();
+            if (appData.success) {
+              console.log(pc.green(`Transaction approved! Processing in background...\n`));
+            } else {
+              console.log(pc.red(`Failed to approve: ${appData.error}\n`));
+            }
+          }
+        }
+      } catch (e) {
+        // silently ignore fetch errors for tx polling
+      }
     } catch (error) {
       s.stop(pc.red('Connection failed.'));
       console.log(pc.red(`Is the daemon running? (http://localhost:3000)`));

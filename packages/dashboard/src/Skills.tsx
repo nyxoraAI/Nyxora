@@ -30,7 +30,7 @@ const formatSkillName = (name: string) => {
 };
 
 const getSkillIcon = (skillName: string, isActive: boolean) => {
-  const color = isActive !== false ? "#88c0d0" : "#4c566a";
+  const color = isActive !== false ? "var(--accent)" : "var(--tool-bg)";
   const size = 20;
   switch (formatSkillName(skillName).toLowerCase()) {
     case 'get balance': return <Wallet size={size} color={color} />;
@@ -107,8 +107,8 @@ const Skills: React.FC = () => {
   return (
     <div className="overview-container">
       <div className="overview-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ color: '#eceff4' }}>Skills</h1>
-        <p style={{ color: '#d8dee9' }}>Installed skills and their status.</p>
+        <h1 style={{ color: 'var(--text-primary)' }}>Skills</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Installed skills and their status.</p>
       </div>
 
       <div style={{ 
@@ -130,7 +130,7 @@ const Skills: React.FC = () => {
             background: 'transparent', 
             border: 'none', 
             outline: 'none', 
-            color: '#eceff4', 
+            color: 'var(--text-primary)', 
             padding: '16px', 
             width: '100%',
             fontSize: '0.95rem'
@@ -145,7 +145,7 @@ const Skills: React.FC = () => {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between',
-            background: '#3b4252',
+            background: 'var(--bg-sidebar)',
             padding: '20px 24px',
             borderRadius: '8px',
             border: '1px solid rgba(216, 222, 233, 0.05)'
@@ -155,7 +155,7 @@ const Skills: React.FC = () => {
                 {getSkillIcon(skill.function.name, skill.isActive !== false)}
               </div>
               <div>
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: skill.isActive !== false ? '#eceff4' : '#d8dee9', fontWeight: 600 }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: skill.isActive !== false ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600 }}>
                   {formatSkillName(skill.function.name)}
                 </h3>
                 <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem', lineHeight: '1.5', maxWidth: '800px' }}>
@@ -172,7 +172,7 @@ const Skills: React.FC = () => {
                   width: '40px',
                   height: '22px',
                   borderRadius: '11px',
-                  background: skill.isActive !== false ? '#88c0d0' : '#4c566a',
+                  background: skill.isActive !== false ? 'var(--accent)' : 'var(--tool-bg)',
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'background 0.3s ease',

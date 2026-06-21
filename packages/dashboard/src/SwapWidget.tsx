@@ -38,7 +38,7 @@ const SwapWidget: React.FC<SwapWidgetProps> = ({ data }) => {
       border: '1px solid rgba(255, 255, 255, 0.1)',
       borderRadius: '24px',
       padding: '28px',
-      color: 'white',
+      color: 'var(--text-primary)',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
       width: '100%',
       maxWidth: '420px',
@@ -103,11 +103,11 @@ const SwapWidget: React.FC<SwapWidgetProps> = ({ data }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: '#94a3b8' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Exchange Rate</span>
-          <span style={{ color: 'white' }}>1 {parsedData.fromToken} = {parsedData.exchangeRate} {parsedData.toToken}</span>
+          <span style={{ color: 'var(--text-primary)' }}>1 {parsedData.fromToken} = {parsedData.exchangeRate} {parsedData.toToken}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Network</span>
-          <span style={{ color: 'white', textTransform: 'capitalize' }}>{parsedData.chain}</span>
+          <span style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{parsedData.chain}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Network Fee (Gas)</span>

@@ -9,7 +9,7 @@ interface PillSelectProps {
   textColor?: string;
 }
 
-export const PillSelect: React.FC<PillSelectProps> = ({ value, options, onChange, pillColor = '#88c0d0', textColor = '#000000' }) => {
+export const PillSelect: React.FC<PillSelectProps> = ({ value, options, onChange, pillColor = 'var(--accent)', textColor = '#000000' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

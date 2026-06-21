@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-core",
-  "version": "26.6.21",
+  "version": "26.6.22",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -14,6 +14,8 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "mammoth": "^1.12.0",
+    "multer": "^2.2.0",
+    "node-cron": "^4.4.1",
     "open": "^11.0.0",
     "openai": "^6.39.0",
     "pdf-parse": "^2.4.5",
@@ -26,7 +28,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/multer": "^2.1.0",
     "@types/node": "^25.9.2",
+    "@types/node-cron": "^3.0.11",
     "@types/pdf-parse": "^1.1.5",
     "vitest": "^4.1.8"
   },

@@ -34,7 +34,7 @@ const formatSkillName = (name: string) => {
 };
 
 const getSkillIcon = (skillName: string, isActive: boolean) => {
-  const color = isActive !== false ? "#88c0d0" : "#4c566a";
+  const color = isActive !== false ? "var(--accent)" : "var(--tool-bg)";
   const size = 20;
   switch (formatSkillName(skillName).toLowerCase()) {
     case 'run terminal command (unsafe)': return <Terminal size={size} color={color} />;
@@ -134,13 +134,13 @@ const OsSkills: React.FC = () => {
   return (
     <div className="overview-container">
       <div className="overview-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ color: '#eceff4' }}>OS Skills</h1>
-        <p style={{ color: '#d8dee9' }}>System-level capabilities for the agent OS.</p>
+        <h1 style={{ color: 'var(--text-primary)' }}>OS Skills</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>System-level capabilities for the agent OS.</p>
       </div>
 
       {/* Account Linking Panel */}
       <div style={{
-        background: '#3b4252',
+        background: 'var(--bg-sidebar)',
         border: '1px solid rgba(216, 222, 233, 0.1)',
         borderRadius: '8px',
         padding: '24px',
@@ -150,8 +150,8 @@ const OsSkills: React.FC = () => {
         justifyContent: 'space-between'
       }}>
         <div>
-          <h3 style={{ margin: '0 0 8px 0', color: '#eceff4', fontSize: '1.1rem' }}>Account Linking</h3>
-          <p style={{ margin: 0, color: '#d8dee9', fontSize: '0.9rem' }}>
+          <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Account Linking</h3>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             Connect your Google Workspace to unlock Gmail and Calendar skills.
           </p>
         </div>
@@ -205,8 +205,8 @@ const OsSkills: React.FC = () => {
                 }
               }}
               style={{
-                background: '#eceff4',
-                color: '#2e3440',
+                background: 'var(--text-primary)',
+                color: 'var(--bg-secondary)',
                 border: 'none',
                 padding: '10px 20px',
                 borderRadius: '6px',
@@ -248,7 +248,7 @@ const OsSkills: React.FC = () => {
             background: 'transparent', 
             border: 'none', 
             outline: 'none', 
-            color: '#eceff4', 
+            color: 'var(--text-primary)', 
             padding: '16px', 
             width: '100%',
             fontSize: '0.95rem'
@@ -263,7 +263,7 @@ const OsSkills: React.FC = () => {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between',
-            background: '#3b4252',
+            background: 'var(--bg-sidebar)',
             padding: '20px 24px',
             borderRadius: '8px',
             border: '1px solid rgba(216, 222, 233, 0.05)'
@@ -273,7 +273,7 @@ const OsSkills: React.FC = () => {
                 {getSkillIcon(skill.function.name, skill.isActive !== false)}
               </div>
               <div>
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: skill.isActive !== false ? '#eceff4' : '#d8dee9', fontWeight: 600 }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: skill.isActive !== false ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600 }}>
                   {formatSkillName(skill.function.name)}
                 </h3>
                 <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem', lineHeight: '1.5', maxWidth: '800px' }}>
@@ -290,7 +290,7 @@ const OsSkills: React.FC = () => {
                   width: '40px',
                   height: '22px',
                   borderRadius: '11px',
-                  background: skill.isActive !== false ? '#88c0d0' : '#4c566a',
+                  background: skill.isActive !== false ? 'var(--accent)' : 'var(--tool-bg)',
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'background 0.3s ease',
@@ -327,7 +327,7 @@ const OsSkills: React.FC = () => {
           zIndex: 1000
         }}>
           <div style={{
-            background: '#2e3440',
+            background: 'var(--bg-secondary)',
             border: '1px solid rgba(191, 97, 106, 0.4)',
             borderRadius: '12px',
             padding: '32px',
@@ -339,10 +339,10 @@ const OsSkills: React.FC = () => {
               <div style={{ background: 'rgba(191, 97, 106, 0.1)', padding: '12px', borderRadius: '50%' }}>
                 <AlertTriangle size={32} color="#bf616a" />
               </div>
-              <h2 style={{ margin: 0, color: '#eceff4', fontSize: '1.25rem' }}>DANGER ZONE: System Access</h2>
+              <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem' }}>DANGER ZONE: System Access</h2>
             </div>
             
-            <p style={{ color: '#d8dee9', lineHeight: '1.6', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
               You are about to enable <strong>Terminal Execution</strong>. This grants the AI agent 
               <strong> full, unrestrained access</strong> to execute arbitrary shell scripts on your host operating system.
             </p>
@@ -355,8 +355,8 @@ const OsSkills: React.FC = () => {
                 onClick={() => setPendingToggle(null)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #4c566a',
-                  color: '#d8dee9',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
                   padding: '10px 20px',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -373,7 +373,7 @@ const OsSkills: React.FC = () => {
                 style={{
                   background: '#bf616a',
                   border: 'none',
-                  color: '#eceff4',
+                  color: 'var(--text-primary)',
                   padding: '10px 20px',
                   borderRadius: '6px',
                   cursor: 'pointer',
