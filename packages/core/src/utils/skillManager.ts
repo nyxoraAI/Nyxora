@@ -104,9 +104,18 @@ export function toggleSkill(skillName: string, active: boolean): void {
   }
 }
 
-export function isSkillActive(skillName: string): boolean {
+export function isSkillActive(functionName: string): boolean {
   const disabled = getDisabledSkills();
-  return !disabled.includes(skillName);
+  if (disabled.includes(functionName)) return false;
+
+  for (const [key, mapping] of Object.entries(reverseSkillMapping)) {
+    if (mapping.name === functionName) {
+      if (disabled.includes(key)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 export function syncAllSkillsToConfig(): void {

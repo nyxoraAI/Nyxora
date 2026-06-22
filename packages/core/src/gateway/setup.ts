@@ -83,6 +83,7 @@ Provider: ${config.llm.provider}`;
     initialValue: config.llm.provider,
     options: [
       { value: 'openai', label: 'OpenAI (Recommended)' },
+      { value: 'anthropic', label: 'Anthropic (Claude)' },
       { value: 'gemini', label: 'Google Gemini' },
       { value: 'openrouter', label: 'OpenRouter (Many Models)' },
       { value: 'ollama', label: 'Ollama (Local)' },
@@ -113,6 +114,12 @@ Provider: ${config.llm.provider}`;
       { value: 'gpt-5.4-nano', name: 'gpt-5.4-nano' },
       { value: 'gpt-4o', name: 'gpt-4o' },
       { value: 'o3-mini', name: 'o3-mini' },
+    ];
+  } else if (provider === 'anthropic') {
+    modelOptions = [
+      { value: 'claude-4.6-sonnet-latest', name: 'Claude 4.6 Sonnet' },
+      { value: 'claude-4.6-opus-latest', name: 'Claude 4.6 Opus' },
+      { value: 'claude-3.5-haiku-latest', name: 'Claude 3.5 Haiku' },
     ];
   } else if (provider === 'openrouter') {
     modelOptions = [
@@ -357,30 +364,34 @@ Provider: ${config.llm.provider}`;
 
       let bot: any = null;
       try {
-        const { Telegraf } = require('telegraf');
-        bot = new Telegraf(activeToken);
+        const { Bot } = require('grammy');
+        bot = new Bot(activeToken);
         let paired = false;
 
         let failedAttempts: Record<string, number> = {};
-        bot.command('auth', (ctx: any) => {
+        bot.command('auth', async (ctx: any) => {
           const chatId = ctx.chat.id.toString();
           if (failedAttempts[chatId] >= 5) {
              return ctx.reply('❌ Too many failed attempts. You are locked out.');
           }
 
-          const text = ctx.message.text.split(' ');
+          const text = ctx.message?.text?.split(' ') || [];
           if (text[1] === pin) {
             authorizedChatId = ctx.chat.id;
             paired = true;
-            ctx.reply('✅ Bot successfully paired with Nyxora!');
+            await ctx.reply('✅ Bot successfully paired with Nyxora!');
             bot.stop();
           } else {
             failedAttempts[chatId] = (failedAttempts[chatId] || 0) + 1;
-            ctx.reply('❌ Invalid PIN.');
+            await ctx.reply('❌ Invalid PIN.');
           }
         });
 
-        bot.launch();
+        bot.start().catch((err: any) => {
+          if (!err.message.includes('socket hang up') && !err.message.includes('fetch')) {
+             console.error('[Telegram] Polling error:', err.message);
+          }
+        });
 
         // Wait until paired
         let attempts = 0;

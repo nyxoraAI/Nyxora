@@ -1,9 +1,9 @@
-import { getOpenAI } from '../../agent/reasoning';
+import { getLLMClient } from '../../agent/reasoning';
 import { loadConfig } from '../../config/parser';
 
 export async function summarizeText(text: string, focus?: string): Promise<string> {
   try {
-    const openai = await getOpenAI();
+    const client = await getLLMClient();
     const config = loadConfig();
     const model = config.llm.model || 'gpt-4o-mini';
     
@@ -16,7 +16,7 @@ export async function summarizeText(text: string, focus?: string): Promise<strin
       systemPrompt += ` Focus the summary specifically on: ${focus}`;
     }
 
-    const response = await openai.chat.completions.create({
+    const response = await client.chat({
       model: model,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -25,7 +25,7 @@ export async function summarizeText(text: string, focus?: string): Promise<strin
       temperature: 0.3,
     });
 
-    return `Summary:\n${response.choices[0]?.message?.content || "No summary generated."}`;
+    return `Summary:\n${response.message.content || "No summary generated."}`;
   } catch (error: any) {
     return `Failed to summarize text: ${error.message}`;
   }

@@ -100,16 +100,44 @@ export async function runDoctor() {
   }
 
   if (isDaemonRunning && !port3000Free) {
-    console.log(`${pc.green('✓')} Port 3000 (Dashboard) ${pc.cyan('[In Use by Nyxora]')}`);
+    console.log(`${pc.green('✓')} Port 3000 (Core/Gateway API) ${pc.cyan('[In Use by Nyxora]')}`);
   } else {
-    printStatus(`Port 3000 (Dashboard)`, port3000Free, `Port is already in use by another application.`);
+    printStatus(`Port 3000 (Core/Gateway API)`, port3000Free, `Port is already in use by another application.`);
   }
 
   if (isDaemonRunning && !port3001Free) {
-    console.log(`${pc.green('✓')} Port 3001 (Gateway API) ${pc.cyan('[In Use by Nyxora]')}`);
+    console.log(`${pc.green('✓')} Port 3001 (Policy Engine Fallback) ${pc.cyan('[In Use by Nyxora]')}`);
   } else {
-    printStatus(`Port 3001 (Gateway API)`, port3001Free, `Port is already in use by another application.`);
+    printStatus(`Port 3001 (Policy Engine Fallback)`, port3001Free, `Port is already in use by another application.`);
   }
+
+  // 6. Check Unix Sockets (UDS)
+  const policySockPath = '/tmp/nyxora-policy.sock';
+  const signerSockPath = '/tmp/nyxora-signer.sock';
+  
+  const checkSocket = (sockPath: string, name: string) => {
+    let sockExists = false;
+    try {
+      sockExists = fs.existsSync(sockPath);
+    } catch(e) {}
+
+    if (sockExists) {
+      if (isDaemonRunning) {
+        console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.cyan('[In Use by Nyxora]')}`);
+      } else {
+        printStatus(`${name} UDS (${sockPath})`, false, `Stale/Zombie socket found! Run 'rm -f ${sockPath}' to fix EADDRINUSE lockups.`);
+      }
+    } else {
+      if (isDaemonRunning) {
+         printStatus(`${name} UDS (${sockPath})`, false, `Missing active socket! Nyxora is running but IPC might be broken.`);
+      } else {
+         console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.gray('[Clean]')}`);
+      }
+    }
+  };
+
+  checkSocket(policySockPath, 'Policy Engine');
+  checkSocket(signerSockPath, 'Signer Vault');
 
   console.log('\n================================');
   if (allGood) {

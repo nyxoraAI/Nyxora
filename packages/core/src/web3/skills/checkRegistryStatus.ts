@@ -1,8 +1,7 @@
 import { getPublicClient } from '../config';
 import { getAddress } from '../config';
 import { loadConfig } from '../../config/parser';
-
-const REGISTRY_ADDRESS = '0x6C811587ce9A50f1CF1fE5a42bF2b18a9787318F';
+const REGISTRY_ADDRESS = '0x19F00Ac093B6b0a6Ae2f669dF698384ba79E37Be';
 
 const REGISTRY_ABI = [
   {
@@ -42,7 +41,7 @@ const REGISTRY_ABI = [
 ] as const;
 
 /**
- * Checks the on-chain registry status of the AI agent on Arbitrum Sepolia.
+ * Checks the on-chain registry status of the AI agent on Base Sepolia.
  * Returns true if the agent is active or if the registry check is gracefully skipped.
  * Returns false if the agent is explicitly deactivated (Kill Switch triggered).
  */
@@ -51,8 +50,8 @@ export async function checkRegistryStatus(): Promise<{ isActive: boolean; reason
     const config = loadConfig();
     const userAddress = await getAddress();
     
-    // Always use arbitrum_sepolia for the registry check
-    const publicClient = getPublicClient('arbitrum_sepolia');
+    // Always use base_sepolia for the registry check
+    const publicClient = getPublicClient('base_sepolia');
     
     const result = await publicClient.readContract({
       address: REGISTRY_ADDRESS,
@@ -71,7 +70,7 @@ export async function checkRegistryStatus(): Promise<{ isActive: boolean; reason
     }
 
     if (!isActive) {
-      return { isActive: false, reason: 'Agent is deactivated on Arbitrum Sepolia Registry.' };
+      return { isActive: false, reason: 'Agent is deactivated on Base Sepolia Registry.' };
     }
 
     return { isActive: true, reason: 'Agent is active and verified.' };

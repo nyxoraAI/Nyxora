@@ -24,9 +24,10 @@ export async function fetchNativeOpBridgeTestnet(
   }
 
   // Ensure it's Native ETH for simplicity
-  const isNative = fromToken.toLowerCase() === 'eth' || 
-                   fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
-                   fromToken === '0x0000000000000000000000000000000000000000';
+  const safeFromToken = String(fromToken || "");
+  const isNative = safeFromToken.toLowerCase() === 'eth' || 
+                   safeFromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
+                   safeFromToken === '0x0000000000000000000000000000000000000000';
   
   if (!isNative) {
     throw new Error(`[Native OP Bridge] Only Native ETH bridging is supported natively in this version.`);

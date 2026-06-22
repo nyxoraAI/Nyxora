@@ -42,7 +42,7 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     if (nativeData.status === '1' && Array.isArray(nativeData.result)) {
       nativeData.result.forEach((tx: any) => {
         if (parseInt(tx.timeStamp) >= startTimestamp && tx.value !== '0') {
-          const isReceive = tx.to.toLowerCase() === targetAddress.toLowerCase();
+          const isReceive = String(tx.to || "").toLowerCase() === String(targetAddress || "").toLowerCase();
           history.push({
             Date: new Date(parseInt(tx.timeStamp) * 1000).toISOString().split('T')[0],
             Type: isReceive ? 'Receive' : 'Send',
@@ -61,7 +61,7 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     if (tokenData.status === '1' && Array.isArray(tokenData.result)) {
       tokenData.result.forEach((tx: any) => {
         if (parseInt(tx.timeStamp) >= startTimestamp) {
-          const isReceive = tx.to.toLowerCase() === targetAddress.toLowerCase();
+          const isReceive = String(tx.to || "").toLowerCase() === String(targetAddress || "").toLowerCase();
           history.push({
             Date: new Date(parseInt(tx.timeStamp) * 1000).toISOString().split('T')[0],
             Type: isReceive ? 'Receive' : 'Send',

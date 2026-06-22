@@ -11,7 +11,7 @@ import { z } from 'zod';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
-import { unpack } from 'msgpackr';
+import { decode } from '@msgpack/msgpack';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', () => {
       try {
-        req.body = unpack(Buffer.concat(chunks));
+        req.body = decode(Buffer.concat(chunks));
         next();
       } catch (e) {
         res.status(400).json({ error: 'Invalid MessagePack payload' });
@@ -62,18 +62,27 @@ const TxRequestSchema = z.object({
   autoApprove: z.boolean().optional()
 });
 
+import chokidar from 'chokidar';
+
 let policyRules: any = {};
-try {
-  const policyPath = getPath('policy.yaml');
-  const file = fs.readFileSync(policyPath, 'utf8');
-  policyRules = yaml.parse(file);
-} catch (e) {
-  console.log('[Policy Engine] No policy.yaml found, using defaults.');
-  policyRules = {
-    max_usd_per_tx: 999999999,
-    whitelist_only: false
-  };
-}
+const policyPath = getPath('policy.yaml');
+
+const loadPolicy = () => {
+  try {
+    const file = fs.readFileSync(policyPath, 'utf8');
+    policyRules = yaml.parse(file) || {};
+  } catch (e) {
+    console.log('[Policy Engine] No policy.yaml found or parse error, using defaults.');
+    policyRules = { max_usd_per_tx: 999999999, whitelist_only: false };
+  }
+};
+
+loadPolicy();
+
+chokidar.watch(policyPath, { persistent: true }).on('change', () => {
+  console.log('[Policy Engine] Detected change in policy.yaml. Hot-reloading rules...');
+  loadPolicy();
+});
 
 const pendingTransactions: Record<string, any> = {};
 
@@ -302,3 +311,14 @@ if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
 udsServer.listen(POLICY_SOCKET, () => {
   console.log(`[Policy Engine] Listening on UDS ${POLICY_SOCKET} (Hyper-Optimized IPC)`);
 });
+
+const gracefulShutdown = () => {
+  console.log('[Policy Engine] Received shutdown signal. Cleaning up IPC...');
+  try {
+    if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
+  } catch (e) {}
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);

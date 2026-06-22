@@ -24,7 +24,7 @@ export const getPriceToolDefinition = {
 
 export async function getPrice(coinId: string, currency: string = 'usd'): Promise<string> {
   try {
-    const cur = currency.toLowerCase();
+    const cur = String(currency || "").toLowerCase();
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${cur}&include_24hr_change=true`;
     const data = await safeFetchJson<any>(url);
     

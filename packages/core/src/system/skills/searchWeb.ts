@@ -1,5 +1,20 @@
 import { loadConfig, loadApiKeys } from '../../config/parser';
+import { DOMParser } from 'linkedom';
+import { Readability } from '@mozilla/readability';
 import { search, SafeSearchType } from 'duck-duck-scrape';
+
+async function scrapeUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NyxoraBot/1.0)' }, signal: AbortSignal.timeout(5000) });
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const reader = new Readability(doc as any);
+    const article = reader.parse();
+    return article ? article.textContent : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 interface SearchQueryResult {
   title: string;
@@ -115,7 +130,7 @@ const searchCache = new Map<string, {data: SearchQueryResult[], timestamp: numbe
 
 export async function searchWeb(query: string, depth: number = 1): Promise<string> {
   // Auto-inject current year for time-sensitive queries
-  const lowerQuery = query.toLowerCase();
+  const lowerQuery = String(query || "").toLowerCase();
   const currentYear = new Date().getFullYear().toString();
   let finalQuery = query;
   
@@ -228,11 +243,20 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
   }
   
   let responseText = `Search Results for "${query}":\n\n`;
-  results.forEach((r, index) => {
+  for (let index = 0; index < results.length; index++) {
+    const r = results[index];
     responseText += `${index + 1}. ${r.title}\n`;
     responseText += `URL: ${r.url}\n`;
+    
+    if (depth > 1 && index < 3) {
+      const fullText = await scrapeUrl(r.url);
+      if (fullText) {
+        responseText += `Extracted Content: ${fullText.replace(/\\s+/g, ' ').substring(0, 1500)}...\n\n`;
+        continue;
+      }
+    }
     responseText += `Snippet: ${r.content}\n\n`;
-  });
+  }
   
   return responseText.trim();
 }

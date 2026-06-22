@@ -1,4 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
+import './custom.css'
 import { h } from 'vue'
 import TerminalDemo from './TerminalDemo.vue'
 

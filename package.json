@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.23",
+  "version": "26.6.24",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -46,35 +46,44 @@
     "setup": "node ./bin/nyxora.mjs setup",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
+    "lint": "oxlint",
     "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@clack/prompts": "^1.4.0",
+    "@google/genai": "^2.9.0",
+    "@grammyjs/runner": "^2.0.3",
+    "@grammyjs/transformer-throttler": "^1.2.1",
     "@inquirer/search": "^4.2.1",
     "@modelcontextprotocol/sdk": "^1.5.0",
+    "@mozilla/readability": "^0.6.0",
+    "@msgpack/msgpack": "^3.1.3",
     "@napi-rs/keyring": "^1.3.0",
     "@notionhq/client": "^5.22.0",
+    "chokidar": "^5.0.0",
     "cors": "^2.8.6",
+    "croner": "^10.0.1",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
     "duck-duck-scrape": "^2.2.7",
     "express": "^5.2.1",
-    "msgpackr": "^2.0.4",
     "express-rate-limit": "^7.5.0",
+    "grammy": "^1.44.0",
     "helmet": "^8.0.0",
     "isolated-vm": "^6.1.2",
     "jsonwebtoken": "^9.0.2",
+    "linkedom": "^0.18.12",
     "mammoth": "^1.6.0",
     "multer": "^2.2.0",
-    "node-cron": "^4.4.1",
     "open": "^11.0.0",
     "openai": "^6.39.0",
     "pdf-parse": "^2.4.5",
     "picocolors": "^1.1.1",
     "playwright": "^1.60.0",
+    "proper-lockfile": "^4.1.2",
     "read-excel-file": "^9.2.0",
-    "telegraf": "^4.16.3",
     "ts-node": "^10.9.2",
     "twitter-api-v2": "^1.29.0",
     "typescript": "^6.0.3",
@@ -82,7 +91,7 @@
     "write-excel-file": "^4.1.1",
     "ws": "^8.21.0",
     "yaml": "^2.9.0",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "overrides": {
     "shell-quote": "^1.8.3",
@@ -100,11 +109,12 @@
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/ws": "^8.5.10",
     "@types/node": "^25.9.1",
-    "@types/node-cron": "^3.0.11",
+    "@types/ws": "^8.5.10",
     "concurrently": "^10.0.3",
     "oxc-minify": "^0.135.0",
-    "vitepress": "^2.0.0-alpha.17"
+    "oxlint": "^1.70.0",
+    "vitepress": "^2.0.0-alpha.17",
+    "vitest": "^4.1.9"
   }
 }

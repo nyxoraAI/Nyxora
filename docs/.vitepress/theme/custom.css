@@ -1,0 +1,29 @@
+/* Light Mode (Warm Cream / Vintage) */
+:root {
+  --vp-c-bg: #fdfbf6 !important;
+  --vp-c-bg-alt: #f4f1e1 !important;
+  --vp-c-bg-soft: #eef0e5 !important;
+  --vp-c-text-1: #1a2b2b !important;
+  --vp-c-text-2: #5c6b6b !important;
+  --vp-c-text-3: #8a9a86 !important;
+  --vp-c-brand-1: #8a9a86 !important;
+  --vp-c-brand-2: #72826e !important;
+  --vp-c-brand-3: #5b6956 !important;
+  --vp-c-divider: rgba(26, 43, 43, 0.08) !important;
+  --vp-sidebar-bg-color: #fdfbf6 !important;
+}
+
+/* Dark Mode (Nord Theme) */
+.dark {
+  --vp-c-bg: #2e3440 !important;
+  --vp-c-bg-alt: #3b4252 !important;
+  --vp-c-bg-soft: #434c5e !important;
+  --vp-c-text-1: #eceff4 !important;
+  --vp-c-text-2: #d8dee9 !important;
+  --vp-c-text-3: #81a1c1 !important;
+  --vp-c-brand-1: #88c0d0 !important;
+  --vp-c-brand-2: #81a1c1 !important;
+  --vp-c-brand-3: #5e81ac !important;
+  --vp-c-divider: rgba(216, 222, 233, 0.1) !important;
+  --vp-sidebar-bg-color: #2e3440 !important;
+}

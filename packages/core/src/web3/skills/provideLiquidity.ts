@@ -102,7 +102,7 @@ export async function prepareProvideLiquidity(
     let amount0: string;
     let amount1: string;
 
-    if (token0Addr.toLowerCase() < token1Addr.toLowerCase()) {
+    if (String(token0Addr || "").toLowerCase() < String(token1Addr || "").toLowerCase()) {
         token0 = token0Addr;
         token1 = token1Addr;
         amount0 = amount0Str;

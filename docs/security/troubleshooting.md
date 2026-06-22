@@ -79,16 +79,17 @@ PORT=8080 nyxora
 
 ---
 
-## 6. Web3 Transactions Failing (ECONNREFUSED on Port 3001)
+## 6. Web3 Transactions Failing (IPC or Port 3001 Errors)
 
 **Symptoms:**
-When you ask the AI to perform a Web3 action (e.g., Transfer, Swap, Bridge), the Gateway Logs output an `ECONNREFUSED` error pointing to `127.0.0.1:3001`, and the transaction is never sent to your Dashboard for approval.
+When you ask the AI to perform a Web3 action (e.g., Transfer, Swap, Bridge), the Gateway Logs output an IPC connection error or an `ECONNREFUSED` error pointing to `/tmp/nyxora-policy.sock` or `127.0.0.1:3001`, and the transaction is never sent to your Dashboard for approval.
 
 **Cause:**
-Nyxora's internal Zero-Trust Policy Server defaults to running on port `3001`. If another background application on your computer is already using port 3001, the Policy Server will fail to start, causing all Web3 mutation skills to lose connection with the approval engine.
+Nyxora's internal Zero-Trust Policy Server natively runs on a Unix Domain Socket (`/tmp/nyxora-policy.sock`) for hyper-optimized IPC, with a fallback to port `3001`. If the server crashed unexpectedly, it might leave behind a "zombie" socket file, or another application might be blocking the fallback TCP port.
 
 **Resolution:**
-Nyxora natively supports dynamic port allocation for its internal Policy Server. You can easily instruct the entire system (both the server and all Web3 AI skills) to migrate to a new, empty port by setting the `POLICY_PORT` environment variable.
+1. **Clear Stale Sockets:** Run `rm -f /tmp/nyxora-policy.sock` to clear any leftover IPC bindings from a previous crash.
+2. **Free Port 3001:** If you are relying on the fallback TCP port, ensure no other background application is using port 3001, or migrate the fallback port via the `POLICY_PORT` environment variable:
 
 You can do this by running Nyxora with the variable inline:
 ```bash
@@ -98,7 +99,7 @@ Or permanently by adding it to your `~/.nyxora/.env` file:
 ```env
 POLICY_PORT=4005
 ```
-*(All AI Web3 Skills will automatically detect this change and route your transactions to the new port without any code modification.)*
+*(All AI Web3 Skills will automatically detect this change and route your transactions to the new fallback port.)*
 
 ---
 

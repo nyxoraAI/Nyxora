@@ -83,7 +83,7 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
     if (!tokenAddressOrSymbol) throw new Error("Token symbol is invalid.");
-    const cleanInput = tokenAddressOrSymbol.replace('$', '').toLowerCase();
+    const cleanInput = String(tokenAddressOrSymbol || "").replace('$', '').toLowerCase();
     const isAddress = cleanInput.startsWith('0x') && cleanInput.length === 42;
     
     let officialSymbol = cleanInput.toUpperCase();

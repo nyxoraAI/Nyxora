@@ -28,7 +28,7 @@ export async function checkTokenSecurity(chainName: ChainName, contractAddress: 
       throw new Error(`API returned error: ${data.message || 'Unknown error'}`);
     }
 
-    const tokenData = data.result[contractAddress.toLowerCase()];
+    const tokenData = data.result[String(contractAddress || "").toLowerCase()];
     if (!tokenData) {
       return `Token security data not found for ${contractAddress} on ${chainName}.`;
     }

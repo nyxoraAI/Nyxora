@@ -14,6 +14,7 @@ Nyxora ensures that your Private Key is never transmitted to external AI models 
 ### 2. Multi-LLM Support & API Rotation
 Nyxora is an agnostic framework. You can seamlessly switch between models from various providers:
 - **Google Gemini** (`gemini-3.1-pro`, `gemini-2.5-flash`)
+- **Anthropic (Claude)** (`claude-4.6`, `claude-3.5-sonnet`)
 - **OpenAI** (`gpt-5.5`, `o3-mini`)
 - **Groq** (Ultra-fast LPU inference for Llama 3)
 - **Mistral AI** (`mistral-large-latest`)

@@ -39,3 +39,30 @@ This architecture guarantees that once a secret is injected into the backend, it
 The Dashboard is designed to be a transparent window into the background daemon's current state. Hardcoded placeholders have been completely eliminated:
 *   **Active CRON Jobs:** The Overview page actively polls the `/api/cron` endpoint to display the exact number of recurring background tasks currently registered by the AI Scheduler.
 *   **Agent Identity Sync:** If you instruct the AI to change its name via a chat command (e.g., "Change your name to Jarvis"), the backend instantly updates the global `nyxora.config.json` file. This guarantees that your Dashboard UI and Telegram Bot always reflect the AI's latest personality and naming configurations.
+
+## Policy Engine (Hard-coded Firewall)
+
+Within the Dashboard Settings interface, there is a strict security mechanism known as the **Policy Engine**. This acts as an impenetrable shield that cannot be overridden by the LLM agent under any circumstances.
+
+Two of its primary protections are:
+1. **Max USD per Transaction:** A hard limit on the maximum fiat value allowed per transaction.
+2. **Strict Whitelist Only:** Instantly blocks any transfer or smart contract interaction directed at an unlisted address.
+
+### Manual Whitelist Configuration
+To eliminate the risk of UI injection attacks or fatal typos, the Dashboard interface intentionally **does not provide** a text input field for wallet addresses.
+
+Advanced users who wish to utilize this feature must manually inject the approved addresses into the `~/.nyxora/policy.yaml` file (or the root `policy.yaml`) under the `whitelist:` array.
+
+**Example `policy.yaml` Format:**
+```yaml
+max_usd_per_tx: 999999999
+whitelist_only: true
+require_approval: true
+custom_llm_rules: []
+whitelist: 
+  - "0x1234567890abcdef1234567890abcdef12345678"
+  - "0xabcdef1234567890abcdef1234567890abcdef12"
+```
+
+> [!NOTE]
+> Make sure to halt the daemon (`Ctrl+C` or `nyxora stop`) before modifying this YAML file, then restart it to ensure the system ingests the latest configuration securely.

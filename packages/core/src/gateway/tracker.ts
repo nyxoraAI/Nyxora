@@ -65,11 +65,20 @@ function saveState() {
   }, 1000);
 }
 
+import * as lockfile from 'proper-lockfile';
+
 function flushState() {
   if (!trackerFile) return;
   try {
+    if (!fs.existsSync(trackerFile)) fs.writeFileSync(trackerFile, '{}');
+    const release = lockfile.lockSync(trackerFile, { retries: 5 });
     fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
-  } catch (e) {}
+    release();
+  } catch (e) {
+    try {
+      fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+    } catch(err) {}
+  }
 }
 
 process.on('exit', flushState);

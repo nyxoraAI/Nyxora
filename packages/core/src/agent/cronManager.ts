@@ -1,4 +1,4 @@
-import * as cron from 'node-cron';
+import { Cron } from 'croner';
 import { loadConfig } from '../config/parser';
 import { sendPushNotification } from '../gateway/telegram';
 import { randomUUID } from 'crypto';
@@ -8,7 +8,7 @@ export interface CronJob {
   id: string;
   expression: string;
   prompt: string;
-  task: cron.ScheduledTask;
+  task: Cron;
   createdAt: number;
 }
 
@@ -19,11 +19,13 @@ class CronManager {
     const id = randomUUID();
     
     // Validate expression
-    if (!cron.validate(expression)) {
+    try {
+      new Cron(expression);
+    } catch (e) {
       throw new Error(`Invalid cron expression: ${expression}`);
     }
 
-    const task = cron.schedule(expression, async () => {
+    const task = new Cron(expression, async () => {
       console.log(pc.cyan(`[Cron] Executing job ${id}: "${prompt}"`));
       try {
         // Dynamically import processUserInput to avoid circular dependencies

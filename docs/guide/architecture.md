@@ -21,8 +21,8 @@ The Core is the front-facing gateway. It serves the Dashboard UI, connects to th
 *   **Time-Based AI Scheduler (CronManager):** The Core Runtime operates an internal Cron engine (`node-cron`). It can schedule recurring AI tasks entirely decoupled from the active chat session. When a background task fires, the result is natively pushed directly to your smartphone via the Telegram Gateway API.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
-### 2. Policy Engine (The Guard) - Port 3001
-The Policy Engine acts as a strict middleware firewall between the Brain and the Vault.
+### 2. Policy Engine (The Guard) - Unix Socket
+The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It primarily communicates via Hyper-Optimized IPC (Unix Socket) to prevent local TCP network intervention, using Port 3001 strictly as a fallback.
 *   **Role:** Receives transaction drafts from the Core. It parses the payload and checks it against immutable rules defined in `policy.yaml` (e.g., maximum daily spend, whitelisted addresses).
 *   **Security:** If a transaction exceeds the allowed risk parameters, the Policy Engine drops it immediately.
 

@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import http from 'http';
-import { pack } from 'msgpackr';
+import { encode } from '@msgpack/msgpack';
 
 function getInternalToken(): string | undefined {
   try {
@@ -72,7 +72,7 @@ export async function submitTransaction(txPayload: any): Promise<string> {
   }
   return new Promise((resolve, reject) => {
     const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
-    const payloadBuffer = pack(txPayload);
+    const payloadBuffer = encode(txPayload);
 
     const options = {
       socketPath: fs.existsSync(POLICY_SOCKET) ? POLICY_SOCKET : undefined,

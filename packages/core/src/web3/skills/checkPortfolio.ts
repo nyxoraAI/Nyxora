@@ -20,7 +20,8 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       throw new Error('Address is required but could not be resolved from private key.');
     }
 
-    const cacheKey = `${chainName}:${targetAddress.toLowerCase()}`;
+    const safeTargetAddress = String(targetAddress || "");
+    const cacheKey = `${chainName}:${safeTargetAddress.toLowerCase()}`;
     const now = Date.now();
     if (portfolioCache[cacheKey] && now - portfolioCache[cacheKey].timestamp < CACHE_TTL) {
       return portfolioCache[cacheKey].data + `\n\n*(Cached from ${(now - portfolioCache[cacheKey].timestamp) / 1000}s ago)*`;
@@ -44,7 +45,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const userCustomTokens = getUserTokens(targetAddress, chainName);
     
     for (const tokenAddr of userCustomTokens) {
-      if (!tokensToScan.find(t => t.address.toLowerCase() === tokenAddr.toLowerCase())) {
+      if (!tokensToScan.find(t => String(t.address).toLowerCase() === String(tokenAddr).toLowerCase())) {
         tokensToScan.push({ symbol: 'Token', address: tokenAddr as `0x${string}`, isNative: false });
       }
     }
@@ -53,7 +54,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const { getDynamicTokensForChain } = await import('../../utils/dynamicTokenUpdater');
     const dynamicTokens = await getDynamicTokensForChain(chainName);
     for (const dToken of dynamicTokens) {
-      if (!tokensToScan.find(t => t.address.toLowerCase() === dToken.address.toLowerCase())) {
+      if (!tokensToScan.find(t => String(t.address).toLowerCase() === String(dToken.address).toLowerCase())) {
         tokensToScan.push({ symbol: dToken.symbol, address: dToken.address as `0x${string}`, isNative: false });
       }
     }
@@ -139,8 +140,8 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
         const data = await safeFetchJson<any>(url);
         if (data.pairs) {
           data.pairs.forEach((p: any) => {
-            if (!priceMap[p.baseToken.address.toLowerCase()]) {
-               priceMap[p.baseToken.address.toLowerCase()] = parseFloat(p.priceUsd);
+            if (!priceMap[String(p.baseToken.address).toLowerCase()]) {
+               priceMap[String(p.baseToken.address).toLowerCase()] = parseFloat(p.priceUsd);
             }
           });
         }
@@ -148,7 +149,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     }
 
     for (const b of nonZeroBalances) {
-      const lookupAddr = (b.isNative ? (chainTokens?.WETH || chainTokens?.WBNB) : b.address)?.toLowerCase() || "";
+      const lookupAddr = String((b.isNative ? (chainTokens?.WETH || chainTokens?.WBNB) : b.address) || "").toLowerCase();
       const price = priceMap[lookupAddr] || 0;
       const usdValue = b.balanceNum * price;
       totalUsdValue += usdValue;

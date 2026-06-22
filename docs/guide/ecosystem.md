@@ -29,6 +29,7 @@ To protect users from malicious contracts and provide the best trading routes, N
 ## 🧠 Supported AI & LLM Engines
 Nyxora is fundamentally **Model-Agnostic**. You are not locked into a single provider. The agent can switch its "Brain" on the fly:
 - **Google Gemini:** Optimized support for `gemini-1.5-pro` and `gemini-2.5-flash` for high-speed reasoning.
+- **Anthropic (Claude):** Natively supported through the Unified LLM Adapter for Claude 3.5 Sonnet and Claude 4.6.
 - **OpenAI:** Full support for `gpt-4o` and `o1-preview`.
 - **DeepSeek:** Native integration with DeepSeek's API for top-tier open-source coding and reasoning models.
 - **Groq & Mistral:** Ultra-fast LPU inference (Groq) and European open-weight models (Mistral).

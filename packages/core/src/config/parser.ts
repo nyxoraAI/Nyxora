@@ -121,6 +121,7 @@ export interface NyxoraConfig {
   credentials?: {
     openai_key?: string;
     gemini_key?: string;
+    anthropic_key?: string;
     openrouter_key?: string;
     tavily_key?: string;
     brave_key?: string;

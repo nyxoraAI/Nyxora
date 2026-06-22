@@ -15,6 +15,8 @@ export async function prepareBridgeToken(
   slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    fromChain = String(fromChain || "") as ChainName;
+    toChain = String(toChain || "") as ChainName;
     if (!fromChain || !toChain) throw new Error("Source or destination chain not provided by AI.");
     if (!amountStr) throw new Error("Bridge amount not provided by AI.");
     

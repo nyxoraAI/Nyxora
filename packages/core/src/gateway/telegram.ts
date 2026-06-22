@@ -1,4 +1,6 @@
-import { Telegraf, Markup } from 'telegraf';
+import { Bot, InlineKeyboard } from 'grammy';
+import { run } from '@grammyjs/runner';
+import { apiThrottler } from '@grammyjs/transformer-throttler';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
@@ -16,7 +18,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-let globalBotInstance: Telegraf | null = null;
+let globalBotInstance: Bot | null = null;
+let runnerInstance: any = null;
 
 export function formatToTelegramHTML(text: string): string {
   if (!text) return "";
@@ -26,21 +29,17 @@ export function formatToTelegramHTML(text: string): string {
     .replace(/>/g, '&gt;');
     
   html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-  // Match italic * avoiding bullet points at the start of a line
   html = html.replace(/(?<!^|\n)\*(?!\s)(.*?)(?<!\s)\*/g, '<i>$1</i>');
   html = html.replace(/_(.*?)_/g, '<i>$1</i>');
   
-  // Convert code blocks and inline code
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   
-  // Strip <thought> and <think> blocks completely for user-friendly output
   html = html.replace(/&lt;thought&gt;[\s\S]*?&lt;\/thought&gt;\n?/g, '');
   html = html.replace(/<thought>[\s\S]*?<\/thought>\n?/g, '');
   html = html.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;\n?/g, '');
   html = html.replace(/<think>[\s\S]*?<\/think>\n?/g, '');
   
-  // Transform Markdown Tables to <pre> monospaced blocks so they don't break on mobile
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
   html = html.replace(tableRegex, (match) => {
      return `<pre>${match.trim()}</pre>\n`;
@@ -59,17 +58,19 @@ export function startTelegramBot() {
   }
 
   try {
-    const bot = new Telegraf(token);
+    const bot = new Bot(token);
     globalBotInstance = bot;
     
-    // Pairing state variables
+    const throttler = apiThrottler();
+    bot.api.config.use(throttler);
+    
     const isPaired = !!config.integrations?.telegram?.authorized_chat_id;
     let generatedPin = '';
     let pinExpiry = 0;
 
     if (!isPaired) {
       generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
-      pinExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes TTL
+      pinExpiry = Date.now() + 5 * 60 * 1000;
       
       console.log(pc.yellow('\n==================================================='));
       console.log(pc.yellow('🔐 TELEGRAM BOT AUTHORIZATION REQUIRED'));
@@ -81,20 +82,17 @@ export function startTelegramBot() {
       console.log('⏳ Waiting for incoming message...');
     }
 
-    // Security Middleware (OTP & Authorization)
     bot.use(async (ctx, next) => {
       const currentConfig = loadConfig();
       const authId = currentConfig.integrations?.telegram?.authorized_chat_id;
       
       if (authId) {
-        // Paired mode: Reject unauthorized users silently
         if (ctx.chat?.id !== authId) {
           return;
         }
         return next();
       }
 
-      // Pairing mode: Listen for /auth command
       if (ctx.message && 'text' in ctx.message) {
         const text = ctx.message.text || '';
         if (text.startsWith('/auth ')) {
@@ -104,7 +102,6 @@ export function startTelegramBot() {
             return;
           }
           if (pin === generatedPin) {
-            // Success
             if (!currentConfig.integrations) currentConfig.integrations = {};
             if (!currentConfig.integrations.telegram) currentConfig.integrations.telegram = { enabled: true, bot_token: token };
             
@@ -113,15 +110,13 @@ export function startTelegramBot() {
             
             await ctx.reply('✅ Authorization Successful! Nyxora Agent will now only obey your commands. Connection secured.');
             console.log(pc.green(`\n[Telegram] Successfully paired with Chat ID: ${ctx.chat?.id}`));
-            return; // Done parsing auth, ignore this specific message for further logic
+            return;
           } else {
             await ctx.reply('❌ Incorrect PIN.');
             return;
           }
         }
       }
-      
-      // If not paired and not an auth command, silently drop
       return;
     });
 
@@ -130,14 +125,13 @@ export function startTelegramBot() {
       await ctx.reply("✅ AI memory has been cleared. Let's start a new chat!");
     });
 
-    bot.on('text', async (ctx) => {
+    bot.on('message:text', async (ctx) => {
       const text = ctx.message.text;
-      if (text.startsWith('/')) return; // Ignore other commands
+      if (text.startsWith('/')) return;
 
       console.log(`[Telegram] Received from ${ctx.from?.first_name || 'User'}: ${text}`);
       
-      // Send typing action
-      await ctx.sendChatAction('typing');
+      await ctx.replyWithChatAction('typing');
 
       try {
         let progressMsgId: number | null = null;
@@ -147,7 +141,7 @@ export function startTelegramBot() {
               const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
               progressMsgId = sent.message_id;
             } else {
-              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
+              await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
             }
           } catch (e) {}
         };
@@ -155,21 +149,21 @@ export function startTelegramBot() {
         const response = await processUserInput(text, 'user', onProgress, ctx.chat?.id.toString());
 
         if (progressMsgId) {
-          await ctx.telegram.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
+          await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
 
         const pendingTxs = txManager.getPending();
-        const recentPendingTxs = pendingTxs.filter(tx => Date.now() - tx.createdAt < 120000);
+        const recentPendingTxs = pendingTxs.filter((tx: any) => Date.now() - tx.createdAt < 120000);
         
         if (recentPendingTxs.length > 0) {
-          const keyboard = recentPendingTxs.map(tx => [
-            Markup.button.callback(`✅ Approve ${tx.type}`, `approve_${tx.id}`),
-            Markup.button.callback(`❌ Reject`, `reject_${tx.id}`)
-          ]);
+          const keyboard = new InlineKeyboard();
+          recentPendingTxs.forEach((tx: any) => {
+            keyboard.text(`✅ Approve ${tx.type}`, `approve_${tx.id}`).text(`❌ Reject`, `reject_${tx.id}`).row();
+          });
           
           await ctx.reply(formatToTelegramHTML(response), {
             parse_mode: 'HTML',
-            ...Markup.inlineKeyboard(keyboard)
+            reply_markup: keyboard
           });
           return;
         }
@@ -181,22 +175,24 @@ export function startTelegramBot() {
       }
     });
 
-    bot.on('document', async (ctx) => {
+    bot.on('message:document', async (ctx) => {
       const doc = ctx.message.document;
       const caption = ctx.message.caption || '';
       console.log(`[Telegram] Received document from ${ctx.from?.first_name || 'User'}: ${doc.file_name}`);
       
-      await ctx.sendChatAction('typing');
+      await ctx.replyWithChatAction('typing');
       
       try {
-        const fileLink = await ctx.telegram.getFileLink(doc.file_id);
+        const file = await ctx.api.getFile(doc.file_id);
+        const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+        
         const docsDir = path.join(os.homedir(), '.nyxora', 'docs');
         if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
         
         const safeName = (doc.file_name || 'telegram_doc').replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const localFilePath = path.join(docsDir, `${Date.now()}-${safeName}`);
         
-        const res = await fetch(fileLink.toString());
+        const res = await fetch(fileLink);
         const buffer = await res.arrayBuffer();
         fs.writeFileSync(localFilePath, Buffer.from(buffer));
         
@@ -209,7 +205,7 @@ export function startTelegramBot() {
               const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
               progressMsgId = sent.message_id;
             } else {
-              await ctx.telegram.editMessageText(ctx.chat.id, progressMsgId, undefined, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
+              await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
             }
           } catch (e) {}
         };
@@ -217,7 +213,7 @@ export function startTelegramBot() {
         const response = await processUserInput(prompt, 'user', onProgress, ctx.chat?.id.toString());
 
         if (progressMsgId) {
-          await ctx.telegram.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
+          await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
 
         await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
@@ -227,21 +223,19 @@ export function startTelegramBot() {
       }
     });
 
-    // Handle callbacks
-    bot.action(/^approve_(.+)$/, async (ctx) => {
+    bot.callbackQuery(/^approve_(.+)$/, async (ctx) => {
       const txId = ctx.match[1];
       const tx = txManager.getTransaction(txId);
 
       if (!tx || tx.status !== 'pending') {
-        await ctx.answerCbQuery('Transaction not found or already processed.', { show_alert: true });
+        await ctx.answerCallbackQuery({ text: 'Transaction not found or already processed.', show_alert: true });
         return;
       }
 
-      await ctx.answerCbQuery('Processing transaction...');
+      await ctx.answerCallbackQuery('Processing transaction...');
       await ctx.reply(`⏳ Processing transaction ${txId}...`);
       
-      // Remove inline keyboard immediately
-      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+      await ctx.api.editMessageReplyMarkup(ctx.chat!.id, ctx.msg!.message_id, { reply_markup: { inline_keyboard: [] } }).catch(() => {});
 
       try {
         let result = '';
@@ -288,31 +282,28 @@ export function startTelegramBot() {
       }
     });
 
-    bot.action(/^reject_(.+)$/, async (ctx) => {
+    bot.callbackQuery(/^reject_(.+)$/, async (ctx) => {
       const txId = ctx.match[1];
       txManager.updateStatus(txId, 'rejected');
       processUserInput(`Transaction ${txId} was REJECTED via Telegram. CRITICAL: DO NOT retry or recreate this transaction. Acknowledge this cancellation to the user and stop.`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
       
-      await ctx.answerCbQuery('Transaction cancelled.');
+      await ctx.answerCallbackQuery('Transaction cancelled.');
       await ctx.reply(`❌ Transaction cancelled.`);
-      await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+      await ctx.api.editMessageReplyMarkup(ctx.chat!.id, ctx.msg!.message_id, { reply_markup: { inline_keyboard: [] } }).catch(() => {});
     });
 
     bot.catch((err) => {
-      console.error('[Telegram] Telegraf error:', err);
+      console.error('[Telegram] Grammy error:', err);
     });
 
-    bot.launch().catch(err => {
-      console.error('[Telegram] Connection failed (likely blocked by ISP or timeout):', err.message);
-    });
+    runnerInstance = run(bot);
     
     if (isPaired) {
       console.log('🤖 Telegram Bot is running and securely listening for your messages...');
     }
     
-    // Enable graceful stop
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    process.once('SIGINT', () => { runnerInstance?.stop() });
+    process.once('SIGTERM', () => { runnerInstance?.stop() });
 
   } catch (error) {
     console.error('[Telegram] Failed to initialize bot:', error);
@@ -326,12 +317,10 @@ export async function sendPushNotification(chatId: string | number, message: str
     if (withdrawalId) {
       extraParams = {
         ...extraParams,
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback(`✅ Approve Claim`, `claim_${withdrawalId}`)]
-        ])
+        reply_markup: new InlineKeyboard().text(`✅ Approve Claim`, `claim_${withdrawalId}`)
       };
     }
-    await globalBotInstance.telegram.sendMessage(chatId, formatToTelegramHTML(message), extraParams);
+    await globalBotInstance.api.sendMessage(chatId, formatToTelegramHTML(message), extraParams);
   } catch (error) {
     console.error('[Telegram] Failed to send push notification:', error);
   }

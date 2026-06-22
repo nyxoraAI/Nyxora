@@ -3,14 +3,16 @@ import { fetchMainnetBestRoute, RouteQuote } from './aggregatorMainnet';
 import { fetchTestnetBestRoute } from './aggregatorTestnet';
 
 export async function routeTransaction(
-  fromChain: ChainName,
-  toChain: ChainName,
+  fromChain: string,
+  toChain: string,
   fromToken: string,
   toToken: string,
   amountInWei: string,
   userAddress: string,
   slippageTolerance: number | "auto" = "auto"
 ): Promise<RouteQuote> {
+  fromChain = String(fromChain || "");
+  toChain = String(toChain || "");
 
   if (!fromChain || !toChain) {
     throw new Error("Missing source or destination chain in routing.");
@@ -34,9 +36,9 @@ export async function routeTransaction(
 
   if (isTestnet) {
     console.log(`[DeFi Router] Testnet detected. Routing to Testnet Aggregator (Relay, LayerZero, Arbitrum).`);
-    return await fetchTestnetBestRoute(fromChain, toChain, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
+    return await fetchTestnetBestRoute(fromChain as ChainName, toChain as ChainName, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
   } else {
     console.log(`[DeFi Router] Mainnet detected. Routing to Meta-Aggregator.`);
-    return await fetchMainnetBestRoute(fromChain, toChain, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
+    return await fetchMainnetBestRoute(fromChain as ChainName, toChain as ChainName, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
   }
 }

@@ -29,7 +29,7 @@ export default defineConfig({
         text: 'Developer & Architecture',
         items: [
           { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
-          { text: '🌉 Cross-Chain Routing', link: '/architecture/bridge-routing' },
+          { text: '🌉 Cross-Chain Routing', link: '/guide/bridge-routing' },
           { text: '📁 Codebase Structure', link: '/guide/structure' },
           { text: '🔌 MCP Integration Guide', link: '/guide/mcp-integration' },
           { text: '🧠 Guarded Autonomy', link: '/guide/guarded_autonomy' },
@@ -56,7 +56,7 @@ export default defineConfig({
       {
         text: 'Operations & Security',
         items: [
-          { text: '⛓️ Arbitrum Smart Contract', link: '/security/smart-contract' },
+          { text: '⛓️ Base Smart Contract', link: '/security/smart-contract' },
           { text: '🛡️ Wallet Import Guide', link: '/security/wallet_import' },
           { text: '🔐 OS-Native Keyring Vault', link: '/security/vault' },
           { text: '🛡️ Policy Engine', link: '/security/sandbox' },
