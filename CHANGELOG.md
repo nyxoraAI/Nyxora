@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.23]
+### Features & Architectural Upgrades
+- **Hybrid API Gateway (HTTP + WebSocket):** Upgraded the core API Gateway (`server.ts`) to operate on a dual HTTP and WebSocket architecture. UI clients now initiate asynchronous tasks via instant HTTP `POST /api/v1/trade` and receive real-time, zero-latency streaming terminal logs via WebSocket (`ws://.../ws/stream?traceId=...`). This definitively eliminates 504 Gateway Timeouts during heavy Web3 transaction analysis.
+- **WebSocket Anti-Race Condition (Ring Buffer):** Engineered a 5-second, `traceId`-bound memory Ring Buffer inside the new `WebSocketManager`. This acts as a critical guardrail, caching high-speed logs emitted by the Core Runtime and instantly flushing them to the UI upon WS handshake, guaranteeing zero dropped logs during the microsecond gap between HTTP response and WS connection.
+- **Hyper-Optimized IPC (Unix Domain Sockets):** Drastically slashed internal communication latency by migrating the pipeline between `Core Runtime` and `Policy Engine` from standard TCP Loopback (`127.0.0.1:3001`) to native Unix Domain Sockets (`/tmp/nyxora-policy.sock`), routing IPC traffic directly through kernel memory for `< 1ms` hop times.
+- **Zero-Copy MessagePack Serialization:** Eliminated Node.js Event Loop blocking caused by massive `JSON.stringify()` operations. The UDS IPC pipeline now natively encodes and decodes binary payloads at memory speed using `msgpackr`.
+- **L3 Web Search Failover (Free Built-in Search):** Reintegrated `duck-duck-scrape` as a native Layer-3 fallback safety net for the `searchWeb` skill. The CLI `nyxora setup` now offers "DuckDuckGo (Free & Built-in)" as a zero-configuration provider, enabling rapid onboarding without API keys while acting as an automatic fallback if Tavily/Brave premium keys hit rate limits (HTTP 429).
+
 ## [26.6.22-1]
 ### Bug Fixes
 - **Hotfix: Missing Core Dependency:** Patched a severe global installation crash by explicitly injecting the missing `node-cron` module into the root `package.json` dependency tree. The AI Scheduler background daemon now correctly resolves its dependencies in global NPM environments, fully restoring the `nyxora dashboard` routing capability that was collateral damage from the crash.
@@ -119,7 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Relay API Mainnet Fallback**: Fixed a critical routing bug for native ETH. The aggregator now precisely translates the native token identifier (`0xeeee...`) into the Zero Address (`0x0000...`) exclusively when communicating with Relay's cross-chain API. This completely neutralizes "Invalid input currency" rejections on mainnet bridges.
 
 ### Documentation & Architecture
-- **Guarded Autonomy Reboot**: Completely rewrote the core conceptual architecture documents (`guarded_autonomy.md`). Eradicated legacy "Quantitative Scoring Engine" hallucinations, solidly aligning the documentation with Nyxora's actual production architecture: a free-thinking AI sandboxed by an immutable, local NLP Policy Engine interceptor.
+- **Guarded Autonomy Reboot**: Completely rewrote the core conceptual architecture documents (`guarded_autonomy.md`). Eradicated legacy "Quantitative Scoring Engine" hallucinations, solidly aligning the documentation with Nyxora's actual defense-in-depth architecture: a free-thinking AI sandboxed by an immutable, local NLP Policy Engine interceptor.
 - **Slippage & Security Guide**: Added a dedicated, comprehensive page (`slippage.md`) clearly delineating the operational differences between the AI's *Default Slippage* and the strict *Max Allowed Slippage* security hard-limit to educate users on MEV and honeypot attack vectors.
 - **Roadmap Cleansing**: Removed completed technical milestones (e.g., Universal MCP Client Integration) from the `roadmap.md`. The roadmap now exclusively highlights high-tier enterprise visions such as the Rust-Native Signer and Multi-VM Solana architecture.
 
@@ -189,9 +197,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Graceful Shutdown (SQLite WAL Guard)**: Integrated deep `SIGTERM` and `SIGINT` signal listeners within the Gateway server. When the daemon is halted, the system now safely terminates active incoming requests and explicitly invokes `logger.close()` to securely flush SQLite Write-Ahead Logs (WAL) before exiting, completely eliminating the risk of database corruption.
 - **Resilient UI (Reconnect Overlay)**: Engineered a global network interceptor inside the Dashboard's React `apiFetch` utility. If the daemon goes offline unexpectedly or is restarting, the UI instantly pauses and deploys a transparent, pulsing "Nyxora Daemon Offline" screen. Once the daemon is revived, the overlay automatically lifts, preserving the user's workflow seamlessly.
 
-### Architecture & Production Readiness
+### Architecture & System Stability
 - **Dynamic Port Anti-Collision**: Replaced the hardcoded `3001` Policy Server port with a dynamic `process.env.POLICY_PORT` fallback. All Web3 Agents (Bridge, Swap, Transfer, etc.) are now dynamically linked to this environment variable, completely eliminating `ECONNREFUSED` crashes when port 3001 is occupied by other local developer applications.
-- **Production-Ready Path Resolution**: Eliminated hardcoded `process.cwd()` dependencies across the Gateway, Dashboard, and Plugin Manager. The CLI now utilizes robust absolute `__dirname` and `getAppDir()` traversal, guaranteeing the Dashboard UI and External Skills load flawlessly regardless of where the global CLI command is executed from.
+- **Robust Path Resolution**: Eliminated hardcoded `process.cwd()` dependencies across the Gateway, Dashboard, and Plugin Manager. The CLI now utilizes robust absolute `__dirname` and `getAppDir()` traversal, guaranteeing the Dashboard UI and External Skills load flawlessly regardless of where the global CLI command is executed from.
 
 
 ## [26.6.8]

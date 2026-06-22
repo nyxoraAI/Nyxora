@@ -11,6 +11,7 @@ import { z } from 'zod';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
+import { unpack } from 'msgpackr';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -35,6 +36,24 @@ const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock
 
 const app = express();
 app.use(express.json());
+
+// MessagePack Parser Middleware for Hyper-Optimized IPC
+app.use((req, res, next) => {
+  if (req.headers['content-type'] === 'application/msgpack') {
+    let chunks: Buffer[] = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        req.body = unpack(Buffer.concat(chunks));
+        next();
+      } catch (e) {
+        res.status(400).json({ error: 'Invalid MessagePack payload' });
+      }
+    });
+  } else {
+    next();
+  }
+});
 
 const TxRequestSchema = z.object({
   type: z.enum(['transfer', 'swap', 'bridge', 'mint', 'custom']),
@@ -261,6 +280,8 @@ app.post('/approve-tx/:id', (req, res) => {
   signerReq.end();
 });
 
+const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
+
 const server = app.listen(Number(PORT), '127.0.0.1', () => {
   console.log(`[Policy Engine] Listening on 127.0.0.1:${PORT} (Secured Local Loopback)`);
 });
@@ -273,4 +294,11 @@ server.on('error', (e: any) => {
     console.error(`[Policy Engine] Server error:`, e);
     process.exit(1);
   }
+});
+
+// Start UDS Server for Hyper-Optimized IPC
+const udsServer = http.createServer(app);
+if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
+udsServer.listen(POLICY_SOCKET, () => {
+  console.log(`[Policy Engine] Listening on UDS ${POLICY_SOCKET} (Hyper-Optimized IPC)`);
 });

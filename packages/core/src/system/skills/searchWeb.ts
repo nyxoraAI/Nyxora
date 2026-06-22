@@ -1,4 +1,5 @@
 import { loadConfig, loadApiKeys } from '../../config/parser';
+import { search, SafeSearchType } from 'duck-duck-scrape';
 
 interface SearchQueryResult {
   title: string;
@@ -90,6 +91,26 @@ async function searchSearxng(query: string, depth: number = 1): Promise<SearchQu
   throw new Error('[SearXNG Error] All decentralized instances failed.');
 }
 
+async function searchDuckDuckGo(query: string, depth: number = 1): Promise<SearchQueryResult[]> {
+  try {
+    const searchResults = await search(query, {
+      safeSearch: SafeSearchType.MODERATE
+    });
+    
+    if (!searchResults.noResults && searchResults.results.length > 0) {
+      const maxResults = depth > 1 ? 15 : 8;
+      return searchResults.results.slice(0, maxResults).map(r => ({
+        title: r.title,
+        url: r.url,
+        content: r.description || r.title
+      }));
+    }
+    return [];
+  } catch (e: any) {
+    throw new Error(`[DuckDuckGo Error] Failed to scrape: ${e.message}`);
+  }
+}
+
 const searchCache = new Map<string, {data: SearchQueryResult[], timestamp: number}>();
 
 export async function searchWeb(query: string, depth: number = 1): Promise<string> {
@@ -134,12 +155,22 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
             try {
               results = await searchBrave(finalQuery, creds.brave_key, depth);
             } catch (e2: any) {
-              console.warn('[WebSearch] Backup provider (Brave) failed. Falling back to SearXNG Mesh...');
-              results = await searchSearxng(finalQuery, depth);
+              console.warn('[WebSearch] Backup provider (Brave) failed. Falling back to DuckDuckGo (L3)...');
+              try {
+                results = await searchDuckDuckGo(finalQuery, depth);
+              } catch (e3) {
+                console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
+                results = await searchSearxng(finalQuery, depth);
+              }
             }
           } else {
-            console.warn('[WebSearch] No backup provider found. Falling back to SearXNG Mesh...');
-            results = await searchSearxng(finalQuery, depth);
+            console.warn('[WebSearch] No backup premium provider found. Falling back to DuckDuckGo (L3)...');
+            try {
+              results = await searchDuckDuckGo(finalQuery, depth);
+            } catch (e3) {
+              console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
+              results = await searchSearxng(finalQuery, depth);
+            }
           }
         } else {
           throw e;
@@ -155,16 +186,33 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
             try {
               results = await searchTavily(finalQuery, creds.tavily_key, depth);
             } catch (e2: any) {
-              console.warn('[WebSearch] Backup provider (Tavily) failed. Falling back to SearXNG Mesh...');
-              results = await searchSearxng(finalQuery, depth);
+              console.warn('[WebSearch] Backup provider (Tavily) failed. Falling back to DuckDuckGo (L3)...');
+              try {
+                results = await searchDuckDuckGo(finalQuery, depth);
+              } catch (e3) {
+                console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
+                results = await searchSearxng(finalQuery, depth);
+              }
             }
           } else {
-            console.warn('[WebSearch] No backup provider found. Falling back to SearXNG Mesh...');
-            results = await searchSearxng(finalQuery, depth);
+            console.warn('[WebSearch] No backup premium provider found. Falling back to DuckDuckGo (L3)...');
+            try {
+              results = await searchDuckDuckGo(finalQuery, depth);
+            } catch (e3) {
+              console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
+              results = await searchSearxng(finalQuery, depth);
+            }
           }
         } else {
           throw e;
         }
+      }
+    } else if (provider === 'duckduckgo') {
+      try {
+        results = await searchDuckDuckGo(finalQuery, depth);
+      } catch (e: any) {
+        console.warn('[WebSearch] Primary provider (DuckDuckGo) failed. Falling back to SearXNG Mesh...');
+        results = await searchSearxng(finalQuery, depth);
       }
     } else {
       results = await searchSearxng(finalQuery, depth);

@@ -21,6 +21,7 @@ import os from 'os';
 import { getPath } from '../config/paths';
 import { validateToken, getSessionToken } from '../utils/state';
 
+import { initWebSocket } from './WebSocketManager';
 import fs from 'fs';
 import yaml from 'yaml';
 import { processUserInput, logger } from '../agent/reasoning';
@@ -910,6 +911,24 @@ function resetIdleTimer() {
   }, 3 * 60 * 1000); // 3 minutes idle
 }
 
+app.post('/api/v1/trade', async (req, res) => {
+  try {
+    const { message, session_id } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message is required' });
+    
+    const traceId = crypto.randomBytes(8).toString('hex');
+    
+    // Asynchronous background execution
+    processUserInput(message, session_id || traceId).catch(err => {
+      console.error(`[TradeAPI] Error:`, err);
+    });
+
+    res.status(200).json({ status: 'processing', traceId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, session_id } = req.body;
@@ -1068,6 +1087,9 @@ export function startServer() {
   const PORT = Number(process.env.PORT || 3000);
   const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
+    
+    // Initialize WebSocket Manager
+    initWebSocket(server);
     
     // Start the Telegram bot listener
     startTelegramBot();

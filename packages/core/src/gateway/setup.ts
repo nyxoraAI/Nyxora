@@ -288,7 +288,7 @@ Provider: ${config.llm.provider}`;
       { value: 'gitManager', label: 'Git Operations (Commit/Push/Pull)' },
       { value: 'updateSecurityPolicy', label: 'Update policy.yaml rules', hint: 'safeguard' },
       { value: 'browseWeb', label: 'Browse & Scrape Webpages' },
-      { value: 'searchWeb', label: 'Smart Web Search (Tavily/Brave)', hint: 'Requires API Key' },
+      { value: 'searchWeb', label: 'Smart Web Search (Tavily/Brave/DuckDuckGo)', hint: 'Optional API Key' },
       { value: 'googleWorkspace', label: 'Google Workspace (Gmail, Docs, Sheets, Forms)', hint: 'Requires OAuth' },
       { value: 'notionWorkspace', label: 'Notion Integration' },
       { value: 'xManager', label: 'X/Twitter Management' },
@@ -320,14 +320,17 @@ Provider: ${config.llm.provider}`;
       options: [
         { value: 'tavily', label: 'Tavily Search (Built for AI - 1000 free/mo)' },
         { value: 'brave', label: 'Brave Search (Privacy focused - 2000 free/mo)' },
+        { value: 'duckduckgo', label: 'DuckDuckGo (Free & Built-in)' },
       ],
     });
     if (isCancel(searchProvider)) return process.exit(0);
 
-    searchApiKey = (await password({
-      message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : 'search.brave.com'}):`,
-    })) as string;
-    if (isCancel(searchApiKey)) return process.exit(0);
+    if (searchProvider !== 'duckduckgo') {
+      searchApiKey = (await password({
+        message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : 'search.brave.com'}):`,
+      })) as string;
+      if (isCancel(searchApiKey)) return process.exit(0);
+    }
   }
 
   const setupTelegram = activeChannels.includes('telegram');

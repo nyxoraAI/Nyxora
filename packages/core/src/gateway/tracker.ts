@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { wsManager } from './WebSocketManager';
 import { getPath } from '../config/paths';
 
 interface Stats {
@@ -114,6 +115,11 @@ export const Tracker = {
     gatewayLogs.unshift({ timestamp: formatTime(), message, meta });
     if (gatewayLogs.length > MAX_LOGS) gatewayLogs.pop();
     saveState();
+    
+    // Broadcast terminal logs to Dashboard via WebSocket
+    if (wsManager) {
+      wsManager.broadcastAll(`[${formatTime()}] ${message}`, meta?.level || 'info');
+    }
   },
 
   getLogs: () => {

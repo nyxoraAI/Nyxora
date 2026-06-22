@@ -115,7 +115,7 @@ export interface NyxoraConfig {
     credentials?: any; // Deprecated, kept for parsing during migration
   };
   web_search?: {
-    provider: 'tavily' | 'brave' | 'mesh';
+    provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh';
     enabled: boolean;
   };
   credentials?: {

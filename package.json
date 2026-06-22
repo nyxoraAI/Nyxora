@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.22-1",
+  "version": "26.6.23",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -60,6 +60,7 @@
     "dotenv": "^17.4.2",
     "duck-duck-scrape": "^2.2.7",
     "express": "^5.2.1",
+    "msgpackr": "^2.0.4",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "isolated-vm": "^6.1.2",
@@ -79,6 +80,7 @@
     "typescript": "^6.0.3",
     "viem": "^2.51.0",
     "write-excel-file": "^4.1.1",
+    "ws": "^8.21.0",
     "yaml": "^2.9.0",
     "zod": "^3.23.8"
   },
@@ -98,6 +100,7 @@
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",
+    "@types/ws": "^8.5.10",
     "@types/node": "^25.9.1",
     "@types/node-cron": "^3.0.11",
     "concurrently": "^10.0.3",

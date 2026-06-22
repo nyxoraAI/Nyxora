@@ -1,12 +1,13 @@
 {
   "name": "nyxora-policy-engine",
-  "version": "26.6.22-1",
+  "version": "26.6.23",
   "private": true,
   "main": "src/server.ts",
   "dependencies": {
     "express": "^5.2.1",
-    "zod": "^3.23.8",
     "jsonwebtoken": "^9.0.2",
-    "yaml": "^2.9.0"
+    "msgpackr": "^2.0.4",
+    "yaml": "^2.9.0",
+    "zod": "^3.23.8"
   }
 }
