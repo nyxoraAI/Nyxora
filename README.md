@@ -188,7 +188,7 @@ For complete technical deep-dives into our Cryptographic Architecture, please vi
 **❤️ Support the Project**
 
 Building and maintaining a highly secure, zero-trust architecture takes significant time and resources. If you love what we are building, you can help us keep Nyxora open, secure, and constantly evolving by sending a coffee our way:
-- **EVM :** `0x490717E50D6434C348AA0D2bD5fe682392823708`
+- **EVM :** `0xF5726f0F185d6304f30c9BAE95c477471E29F14f`
 
 ---
 **License:** MIT License
