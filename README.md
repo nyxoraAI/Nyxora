@@ -91,7 +91,7 @@ Within the AI Brain, the Web3 codebase is strictly divided to prevent the LLM fr
 
 ## 🛡️ Advanced Security & Threat Model
 
-To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security Blueprint](https://nyxoraai.github.io/Nyxora/).
+To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security](https://nyxoraai.github.io/Nyxora/).
 
 ---
 
@@ -182,8 +182,6 @@ By downloading, installing, or using the Nyxora AI Agent, you agree to our assum
 For complete technical deep-dives into our Cryptographic Architecture, please visit our official VitePress Documentation Site!
 
 > **🔗 [Read the Full Nyxora Documentation Here](https://nyxoraai.github.io/Nyxora/)**
-
-*(Includes guides on Secure Wallet Imports, Architecture Blueprints, Troubleshooting, and Custom Skill Development).*
 
 ---
 
