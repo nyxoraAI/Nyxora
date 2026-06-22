@@ -13,7 +13,7 @@ Large Language Models (LLMs) are incredibly powerful reasoning engines, but they
 To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communication)** architecture:
 
 1. **Core Runtime (Port 3000):** Executes the LLM logic, handles the UI dashboard, processes NLP chat inputs, and utilizes OS/Web2 APIs.
-2. **Policy Engine (Port 3001):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`, `max_allowed_slippage`).
+2. **Policy Engine (Unix Socket):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`, `max_allowed_slippage`). It intercepts traffic via `/tmp/nyxora-policy.sock` to achieve zero-latency internal communication.
 3. **Signer Vault (Unix Socket):** A completely isolated Node.js process that holds the decrypted private keys in memory. It listens exclusively on `/tmp/nyxora-signer.sock`.
 
 ### The Security Flow
@@ -50,7 +50,7 @@ When the background daemon boots via `nyxora start`, the Signer Vault process re
 Every approval UI prompt utilizes a **Single-Use Challenge Nonce** (a randomized 16-byte cryptographic string). The `transactionManager` signs all pending payloads with this Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces matching and immediately marks the Nonce as `used_` upon first validation. This completely eliminates *XSS Token Leaks*, *Double-Spending*, and *Replay Attacks*.
 
 ### OS Automation Constraints
-By default, Nyxora is a Web3-focused agent. However, users can dynamically grant the AI **System Automation** privileges (e.g., executing shell commands, reading/writing local files) by modifying the `config.yaml` file (`allow_shell_execution: true`). This empowers users to build an advanced OS-level assistant while retaining the explicit power to revoke these privileges at any time.
+By default, Nyxora is a Web3-focused agent. However, users can dynamically grant the AI **System Automation** privileges (e.g., executing shell commands, reading/writing local files) by selecting specific OS capabilities via the `nyxora setup` CLI. Unselected capabilities are strictly blacklisted and quarantined into the `disabled_skills.json` file. This empowers users to build an advanced OS-level assistant while retaining the explicit power to revoke dangerous privileges (like `run_terminal_command`) at any time.
 
 ---
 
