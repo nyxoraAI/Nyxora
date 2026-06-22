@@ -2,10 +2,11 @@
 **Your Personal Web3 Assistant.**
 
 
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](#)
 [![Built on Arbitrum](https://img.shields.io/badge/Built_on-Arbitrum-28A0F0?style=flat&logo=arbitrum&logoColor=white)](https://arbitrum.io/)
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Security: Production-Grade](https://img.shields.io/badge/Security-Production--Grade-blue.svg)](#️-advanced-security-threat-model)
+[![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg)](#️-advanced-security-threat-model)
 [![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg)](#️-advanced-security-threat-model)
 [![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-advanced-security-threat-model)
 
