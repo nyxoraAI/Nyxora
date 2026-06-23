@@ -7,7 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import jwt from 'jsonwebtoken';
-import { decryptKey } from './crypto';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http, publicActions } from 'viem';
 import * as chains from 'viem/chains';

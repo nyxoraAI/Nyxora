@@ -72,7 +72,10 @@ export async function submitTransaction(txPayload: any): Promise<string> {
   }
   return new Promise((resolve, reject) => {
     const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
-    const payloadBuffer = encode(txPayload);
+    const sanitizedPayload = JSON.parse(JSON.stringify(txPayload, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    ));
+    const payloadBuffer = encode(sanitizedPayload);
 
     const options = {
       socketPath: fs.existsSync(POLICY_SOCKET) ? POLICY_SOCKET : undefined,

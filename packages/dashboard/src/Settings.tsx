@@ -18,7 +18,7 @@ const ChainIcon = ({ id }: { id: string }) => (
 );
 
 interface Config {
-  agent: { name: string; default_chain: string; default_slippage?: number };
+  agent: { name: string; default_chain: string; default_slippage?: number | 'auto' };
   llm: { provider: string; model: string; temperature: number };
   web3?: { rpc_urls?: Record<string, string | string[]>; explorer_api_key?: string };
 }

@@ -116,41 +116,23 @@ app.get('/address', (req, res) => {
   const signerReq = http.request(options, (signerRes) => {
     let data = '';
     signerRes.on('data', chunk => data += chunk);
-    signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
+    signerRes.on('end', () => {
+      try {
+        res.status(signerRes.statusCode || 200).json(JSON.parse(data));
+      } catch (e) {
+        res.status(500).json({ error: 'Invalid response from Signer' });
+      }
+    });
   });
 
   signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to contact Signer: ' + e.message }));
   signerReq.end();
 });
 
-app.post('/sign-typed-data', (req, res) => {
-  const requestPayload = JSON.stringify(req.body);
-  const options = {
-    socketPath: SIGNER_SOCKET,
-    path: '/sign-typed-data',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
-      'Content-Length': Buffer.byteLength(requestPayload)
-    }
-  };
-
-  const signerReq = http.request(options, (signerRes) => {
-    let data = '';
-    signerRes.on('data', chunk => data += chunk);
-    signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
-  });
-
-  signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to contact Signer for sign-typed-data: ' + e.message }));
-  signerReq.write(requestPayload);
-  signerReq.end();
-});
-
 app.post('/request-tx', (req, res) => {
   try {
     const payload = TxRequestSchema.parse(req.body);
-    const txId = Math.random().toString(36).substring(7);
+    const txId = crypto.randomUUID();
     
     // Auto-approve bypass for internal trusted features like CL/TP
     if (payload.autoApprove) {
@@ -180,7 +162,13 @@ app.post('/request-tx', (req, res) => {
         const signerReq = http.request(options, (signerRes) => {
             let data = '';
             signerRes.on('data', chunk => data += chunk);
-            signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
+            signerRes.on('end', () => {
+              try {
+                res.status(signerRes.statusCode || 200).json(JSON.parse(data));
+              } catch (e) {
+                res.status(500).json({ error: 'Invalid response from Signer' });
+              }
+            });
         });
 
         signerReq.on('error', (e) => res.status(500).json({ error: 'AutoApprove failed: ' + e.message }));
@@ -225,7 +213,13 @@ app.post('/request-tx', (req, res) => {
       const signerReq = http.request(options, (signerRes) => {
           let data = '';
           signerRes.on('data', chunk => data += chunk);
-          signerRes.on('end', () => res.status(signerRes.statusCode || 200).json(JSON.parse(data)));
+          signerRes.on('end', () => {
+            try {
+              res.status(signerRes.statusCode || 200).json(JSON.parse(data));
+            } catch (e) {
+              res.status(500).json({ error: 'Invalid response from Signer' });
+            }
+          });
       });
 
       signerReq.on('error', (e) => res.status(500).json({ error: 'Auto-Sign failed: ' + e.message }));
@@ -277,7 +271,11 @@ app.post('/approve-tx/:id', (req, res) => {
     signerRes.on('data', chunk => data += chunk);
     signerRes.on('end', () => {
       tx.status = 'executed';
-      res.json(JSON.parse(data));
+      try {
+        res.json(JSON.parse(data));
+      } catch (e) {
+        res.status(500).json({ error: 'Invalid response from Signer' });
+      }
     });
   });
 

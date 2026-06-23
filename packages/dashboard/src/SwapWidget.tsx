@@ -119,7 +119,7 @@ const SwapWidget: React.FC<SwapWidgetProps> = ({ data }) => {
             href={`#`}
             style={{ color: '#3b82f6', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
-            {parsedData.txHash.substring(0, 8)}...{parsedData.txHash.substring(60)}
+            {parsedData?.txHash?.substring(0, 8)}...{parsedData?.txHash?.substring(60)}
           </a>
         </div>
       </div>

@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import { safeFetch } from '../utils/httpClient';
 
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
 });
