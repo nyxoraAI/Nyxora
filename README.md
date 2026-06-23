@@ -97,6 +97,24 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 
 ## 🚀 Quick Start & Installation
 
+### Option 1: Global Installation (Recommended)
+Nyxora can be installed globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+
+```bash
+# Install globally
+npm install -g nyxora
+
+# Run the interactive setup wizard (API Keys, Wallet, Telegram)
+nyxora setup
+
+# Start the background daemon
+nyxora start
+
+# Open the interactive UI dashboard
+nyxora dashboard
+```
+
+### Option 2: Local Development (Source Code)
 Nyxora operates on a Monorepo architecture. To run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
 ```bash
@@ -109,7 +127,7 @@ npm install
 # 2. Build the Dashboard UI
 npm run build
 
-# 3. Interactive Setup Wizard (API Keys, Wallet, Telegram)
+# 3. Interactive Setup Wizard
 npm run setup
 
 # 4. Start the Application
@@ -118,7 +136,7 @@ npm start
 
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 
-> **⚠️ IMPORTANT:** Whenever you re-run `npm run setup` or manually edit the config files, you **must restart the dev server** for the changes to take effect.
+> **⚠️ IMPORTANT:** Whenever you re-run `nyxora setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
 
 ---
 
