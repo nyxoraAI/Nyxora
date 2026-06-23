@@ -13,84 +13,8 @@ import pc from 'picocolors';
 
 export const logger = new Logger();
 
-const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
-  ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
-  gemini: { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', requiresApiKey: true },
-  openrouter: { baseURL: 'https://openrouter.ai/api/v1', requiresApiKey: true },
-  groq: { baseURL: 'https://api.groq.com/openai/v1', requiresApiKey: true },
-  mistral: { baseURL: 'https://api.mistral.ai/v1', requiresApiKey: true },
-  xai: { baseURL: 'https://api.x.ai/v1', requiresApiKey: true },
-  deepseek: { baseURL: 'https://api.deepseek.com', requiresApiKey: true },
-  openai: { requiresApiKey: true }
-};
+import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
-export async function getOpenAI(): Promise<OpenAI> {
-  const config = loadConfig();
-  const vaultKeys = await loadApiKeys();
-  const providerName = config.llm.provider || 'openai';
-  const providerConf = PROVIDER_CONFIGS[providerName] || PROVIDER_CONFIGS['openai'];
-
-  let apiKey = 'local';
-  if (providerConf.requiresApiKey) {
-    apiKey = '';
-    const keyName = `${providerName}_key`;
-    apiKey = vaultKeys[keyName] || config.credentials?.[keyName] || '';
-      
-    if (!apiKey) {
-      throw new Error(`[Security] No API Key found for ${providerName} in OS Keyring. Please run 'nyxora set-key ${providerName} <key>' or 'nyxora setup'.`);
-    }
-    console.log(`[LLM] Using API Key securely unlocked from OS Keyring vault.`);
-  }
-
-  return new OpenAI({
-    baseURL: providerConf.baseURL,
-    apiKey: apiKey,
-    timeout: 120 * 1000,
-    maxRetries: 0
-  });
-}
-
-async function executeWithRetry(
-  requestBuilder: (client: OpenAI) => Promise<any>,
-  maxRetries = 3
-): Promise<any> {
-  let retries = 0;
-  
-  while (retries <= maxRetries) {
-    try {
-      const client = await getOpenAI();
-      return await requestBuilder(client);
-    } catch (error: any) {
-      const status = error?.status || error?.response?.status;
-      
-      // 401 Unauthorized or 400 Bad Request - don't retry, it's fatal
-      if (status === 401 || status === 400) {
-        console.error(`[LLM] Fatal Error ${status}: ${error.message}. Aborting.`);
-        throw error;
-      }
-      
-      // 429 Rate Limit - rotate provider/key immediately and retry
-      if (status === 429) {
-        console.warn(`[LLM] Rate Limit (429) hit. Rotating key...`);
-        // getOpenAI() automatically rotates to next key if available
-        retries++;
-        if (retries > maxRetries) throw error;
-        continue; // Try next key immediately
-      }
-      
-      // 500, 502, 503, Timeout, Network error - Exponential Backoff
-      retries++;
-      if (retries > maxRetries) {
-        console.error(`[LLM] Max retries reached.`);
-        throw error;
-      }
-      
-      const delayMs = Math.pow(2, retries) * 1000; // 2s, 4s, 8s
-      console.warn(`[LLM] API Error (${status || error.message}). Retrying in ${delayMs}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-}
 
 function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3'): string {
     const config = loadConfig();
@@ -144,7 +68,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
   const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
-  const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools);
+  const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools, config.llm.provider);
 
   let messages: any[] = [
     { role: 'system', content: getSystemPrompt('web3') },
@@ -157,18 +81,15 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     const response = await executeWithRetry(async (client) => {
       // Debug log to find out why Gemini 400 error happens
       console.log(`[LLM Debug] Sending ${messages.length} messages to LLM.`);
-      console.log(JSON.stringify(messages, null, 2));
-      
-      return await client.chat.completions.create({
+      return await client.chat({
           model: config.llm.model,
           temperature: config.llm.temperature,
           messages: messages,
-          tools: activeTools,
-          tool_choice: "auto",
+          tools: activeTools
       });
     });
 
-    const responseMessage = response.choices[0].message;
+    const responseMessage = response.message;
     
     Tracker.addMessage();
     if (response.usage?.total_tokens) {
@@ -269,14 +190,14 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       }
 
       // Second call to get the final answer after tool execution
-      const secondSanitized = sanitizeHistoryForLLM(logger.getHistory(sessionId), activeTools);
+      const secondSanitized = sanitizeHistoryForLLM(logger.getHistory(sessionId), activeTools, config.llm.provider);
       const secondMessages = [
         { role: 'system', content: getSystemPrompt('web3') },
         ...secondSanitized
       ];
 
       const secondResponse = await executeWithRetry(async (client) => {
-        return await client.chat.completions.create({
+        return await client.chat({
           model: config.llm.model,
           messages: secondMessages,
         });
@@ -287,7 +208,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       }
       Tracker.addEvent('llm.final_response', { provider: config.llm.provider });
 
-      let finalContent = secondResponse.choices[0].message.content || "";
+      let finalContent = secondResponse.message.content || "";
       
       // Clean up orphaned <think> blocks that forgot to output </think>
       finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
@@ -316,7 +237,13 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     return finalContent;
   } catch (error: any) {
     console.error("LLM Error:", error);
-    const errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';
+    const status = error?.status || error?.response?.status;
+    let errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';
+    
+    if (status === 400 || (error.message && error.message.toLowerCase().includes('invalid'))) {
+      errorMsg = '⚠️ Terjadi kesalahan pemahaman instruksi. LLM kesulitan menentukan format alat (skill) yang cocok. Silakan coba deskripsikan perintah Anda dengan lebih spesifik.';
+    }
+    
     logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
     return errorMsg;
   }

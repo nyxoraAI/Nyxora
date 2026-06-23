@@ -151,7 +151,14 @@ export interface NyxoraConfig {
   };
 }
 
+let cachedNyxoraConfig: NyxoraConfig | null = null;
+let lastConfigLoadTime = 0;
+
 export function loadConfig(): NyxoraConfig {
+  const now = Date.now();
+  if (cachedNyxoraConfig && now - lastConfigLoadTime < 5000) {
+    return cachedNyxoraConfig;
+  }
   const configPath = getPath('config.yaml');
   const rpcPath = getPath('rpc_key.yaml');
   let rpcUrls = loadRpcConfig();
@@ -246,6 +253,8 @@ export function loadConfig(): NyxoraConfig {
       skills: parsed.skills
     };
 
+    cachedNyxoraConfig = validatedConfig;
+    lastConfigLoadTime = Date.now();
     return validatedConfig;
   } catch (error: any) {
     if (error.code === 'ENOENT') {
@@ -255,14 +264,14 @@ export function loadConfig(): NyxoraConfig {
     } else {
       console.error('[Config] Failed to load config.yaml. Using default configuration.', error);
     }
-    return {
+    const defaultConfig: NyxoraConfig = {
       agent: {
-      name: "Nyxora-Default",
-      description: "Your Personal Web3 Assistant.",
-      default_chain: "ethereum",
-      default_router: "auto",
-      default_slippage: "auto"
-    },
+        name: "Nyxora-Default",
+        description: "Your Personal Web3 Assistant.",
+        default_chain: "ethereum",
+        default_router: "auto",
+        default_slippage: "auto"
+      },
       llm: { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
@@ -280,12 +289,18 @@ export function loadConfig(): NyxoraConfig {
         telegram: { enabled: false }
       }
     };
+    
+    cachedNyxoraConfig = defaultConfig;
+    lastConfigLoadTime = Date.now();
+    return defaultConfig;
   }
 }
 
 export function saveConfig(newConfig: NyxoraConfig): void {
   const configPath = getPath('config.yaml');
   try {
+    cachedNyxoraConfig = null;
+    lastConfigLoadTime = 0;
     const configToSave = JSON.parse(JSON.stringify(newConfig));
     if (configToSave.web3 && configToSave.web3.rpc_urls) {
       delete configToSave.web3.rpc_urls;

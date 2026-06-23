@@ -136,7 +136,17 @@ requiredApiKeys: [
 ]
 ```
 
-**Magic:** You do NOT need to write any React code. Nyxora's Dashboard reads the active manifests via `/api/defi-keys` and will dynamically render a new password input field titled **"Jupiter Premium API Key"** on the **DeFi Configuration** page!
+**Magic:** You do NOT need to write any React code for the form itself. Nyxora's Dashboard reads the active manifests via `/api/defi-keys` and will dynamically render a new password input field titled **"Jupiter Premium API Key"** on the **DeFi Configuration** page!
+
+### Adding Your Custom Logo
+By default, custom providers will render without a logo. To display a beautiful icon next to your custom DeFi configuration field:
+1. Place your transparent icon file (e.g., `jupiter.png`) inside `packages/dashboard/public/routers/`.
+2. Open `packages/dashboard/src/utils/logos.ts`.
+3. Add your provider's `id` (or the API key `id` from your manifest) to the `getRouterLogoUrl` mapping:
+   ```typescript
+   case 'jup_premium_key': return '/routers/jupiter.png';
+   ```
+4. Rebuild the dashboard: `npm run build --workspace=packages/dashboard`.
 
 ---
 

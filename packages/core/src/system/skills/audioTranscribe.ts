@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { getOpenAI } from '../../agent/reasoning';
+import { getOpenAI } from '../../utils/llmUtils';
 
 export async function transcribeAudio(filePath: string): Promise<string> {
   try {

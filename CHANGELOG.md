@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.26]
+### Bug Fixes & Improvements
+- **LLM Architecture Refactor (Bypass Prevention)**: Extracted and centralized LLM provider instantiation (`getLLMClient` & `getOpenAI`) and generic retry logic into `llmUtils.ts`. Eliminated dangerous anti-patterns in `osAgent.ts` and `web3Agent.ts` where the `LLMProvider` adapter was being bypassed by direct OpenAI client calls, which broke multi-provider support (Gemini/Anthropic).
+- **History Sanitizer Amnesia Fix**: Modified `historySanitizer.ts` to be provider-aware. Unconditionally stripping `tool_calls` is now correctly isolated only to the `gemini` provider (to prevent 400 Bad Request on empty payloads), whereas OpenAI and Anthropic will now properly retain tool call history and maintain deep conversational context.
+- **General Agent Identity Recovery**: Overhauled the orchestrator's *General Agent* fallback branch (`reasoning.ts`). Replaced the hardcoded, context-blind prompt with `getSystemPrompt('general')`, fully restoring the AI's episodic memories, persona (`user.md` & `IDENTITY.md`), and risk profiles. Fixed inconsistent memory synchronization that previously injected `contents: []` to Gemini on fresh sessions.
+- **Gemini Adapter Payload Hardening**: Hardened `GeminiAdapter` (`llmProvider.ts`) to intercept and drop empty `parts` arrays triggered by `content_len: 0` assistant messages, preventing catastrophic API rejections.
+- **Zero-Latency Config & Security Caching**: Implemented an aggressive 5-second TTL in-memory cache for `loadConfig()` inside `parser.ts`. This wholly eradicates the massive synchronous cryptographic overhead (AES-256-GCM decryption) and disk I/O bottlenecks that previously executed 10-20 times per user message, resulting in lightning-fast response times.
+- **LLM Client Singleton Optimization**: Introduced a client reuse architecture (`cachedLLMClient`) in `llmUtils.ts`. Eliminates redundant OpenAI/Gemini/Anthropic client instantiations during the multi-stage intent processing (Router → Execution → Synthesis), which completely solves the spammy duplication of `[LLM] Using API Key securely unlocked...` console logs.
+- **CoinGecko UI Integration**: Restored the missing official CoinGecko logo inside the Market Oracles configuration dashboard. Added explicit image mapping for both `coingecko_key` and `coingecko_pro_key` directly to the static CDN.
+- **NPM Package Optimization**: Fully sterilized the distribution pipeline by automatically purging unused development testing scripts (`test_security.ts`, `test.ts`) prior to publishing.
+
 ## [26.6.25]
 ### Architecture Updates
 - **Market Oracles & Smart Fallback Engine:** Decoupled Data Oracles (Market Intelligence) from Transaction Routers (DeFi Aggregators) into a dedicated `marketConfigManager.ts`. Upgraded the `analyzeMarket` and `getPrice` AI skills with an extreme dual-tier Smart Routing fallback architecture. Tier 1 dynamically intercepts and prioritizes premium endpoints (`pro-api.coingecko.com` & `pro-api.coinmarketcap.com`) if API keys are configured in the new Zero-Trust "Market Oracles" Dashboard. If unconfigured, Tier 2 gracefully cascades to CoinGecko Public, CoinMarketCap Public, and finally DexScreener, ensuring robust, error-free token intelligence discovery even for obscure unlisted memecoins.

@@ -181,7 +181,9 @@ export class GeminiAdapter implements LLMProvider {
             } catch(e) {}
           });
         }
-        contents.push({ role: 'model', parts: parts });
+        if (parts.length > 0) {
+          contents.push({ role: 'model', parts: parts });
+        }
       } else if (m.role === 'tool') {
         contents.push({
           role: 'user',

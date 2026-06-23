@@ -1,4 +1,4 @@
-import { getLLMClient } from '../../agent/reasoning';
+import { getLLMClient } from '../../utils/llmUtils';
 import { loadConfig } from '../../config/parser';
 
 export async function summarizeText(text: string, focus?: string): Promise<string> {

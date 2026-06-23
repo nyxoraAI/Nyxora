@@ -146,7 +146,7 @@ export function startTelegramBot() {
           } catch (e) {}
         };
 
-        const response = await processUserInput(text, 'user', onProgress, ctx.chat?.id.toString());
+        const response = await processUserInput(text, 'user', onProgress, `telegram_${ctx.chat?.id}`);
 
         if (progressMsgId) {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
@@ -210,7 +210,7 @@ export function startTelegramBot() {
           } catch (e) {}
         };
 
-        const response = await processUserInput(prompt, 'user', onProgress, ctx.chat?.id.toString());
+        const response = await processUserInput(prompt, 'user', onProgress, `telegram_${ctx.chat?.id}`);
 
         if (progressMsgId) {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
@@ -273,19 +273,19 @@ export function startTelegramBot() {
         const prettyMsg = formatTransactionSuccess(tx, result);
         await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed: Success**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
         
-        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
+        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
       } catch (err: any) {
         txManager.updateStatus(txId, 'failed', err.message);
         const prettyError = formatTransactionError(tx, err.message);
         await ctx.reply(prettyError);
-        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
+        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
       }
     });
 
     bot.callbackQuery(/^reject_(.+)$/, async (ctx) => {
       const txId = ctx.match[1];
       txManager.updateStatus(txId, 'rejected');
-      processUserInput(`Transaction ${txId} was REJECTED via Telegram. CRITICAL: DO NOT retry or recreate this transaction. Acknowledge this cancellation to the user and stop.`, 'system', undefined, ctx.chat?.id.toString()).catch(() => {});
+      processUserInput(`Transaction ${txId} was REJECTED via Telegram. CRITICAL: DO NOT retry or recreate this transaction. Acknowledge this cancellation to the user and stop.`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
       
       await ctx.answerCallbackQuery('Transaction cancelled.');
       await ctx.reply(`❌ Transaction cancelled.`);

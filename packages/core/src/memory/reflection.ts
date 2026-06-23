@@ -1,4 +1,4 @@
-import { getOpenAI } from '../agent/reasoning';
+import { getOpenAI } from '../utils/llmUtils';
 import { loadConfig } from '../config/parser';
 import { logger } from './logger';
 import { MemoryValidator } from './validator';

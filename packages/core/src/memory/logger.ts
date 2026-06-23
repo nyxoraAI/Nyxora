@@ -224,6 +224,17 @@ export class Logger {
   }
 
   public addEntry(entry: MemoryEntry, sessionId?: string) {
+    if (sessionId) {
+      // Auto-create session if it doesn't exist (e.g. for Telegram integration)
+      try {
+        const sessionExists = this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId);
+        if (!sessionExists) {
+          const title = sessionId.startsWith('telegram_') ? `Telegram Chat` : 'New Session';
+          this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(sessionId, title);
+        }
+      } catch (e) {}
+    }
+
     const insert = this.db.prepare(`
       INSERT INTO messages (session_id, role, content, name, tool_call_id, tool_calls)
       VALUES (@session_id, @role, @content, @name, @tool_call_id, @tool_calls)

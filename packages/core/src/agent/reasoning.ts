@@ -16,126 +16,8 @@ export const logger = new Logger();
 
 
 
-const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
-  ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
-  gemini: { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', requiresApiKey: true },
-  openrouter: { baseURL: 'https://openrouter.ai/api/v1', requiresApiKey: true },
-  groq: { baseURL: 'https://api.groq.com/openai/v1', requiresApiKey: true },
-  mistral: { baseURL: 'https://api.mistral.ai/v1', requiresApiKey: true },
-  xai: { baseURL: 'https://api.x.ai/v1', requiresApiKey: true },
-  deepseek: { baseURL: 'https://api.deepseek.com', requiresApiKey: true },
-  openai: { requiresApiKey: true }
-};
+import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
-export async function getOpenAI(): Promise<OpenAI> {
-  const config = loadConfig();
-  const vaultKeys = await loadApiKeys();
-  const providerName = config.llm.provider || 'openai';
-  
-  // Audio Transcription Fallback: Always try to use OpenAI/Groq if Anthropic/Gemini
-  let actualProvider = (providerName === 'anthropic' || providerName === 'gemini') ? 'openai' : providerName;
-  const providerConf = PROVIDER_CONFIGS[actualProvider] || PROVIDER_CONFIGS['openai'];
-
-  let apiKey = 'local';
-  if (providerConf.requiresApiKey) {
-    const keyName = `${actualProvider}_key`;
-    apiKey = vaultKeys[keyName] || config.credentials?.[keyName] || '';
-    if (!apiKey && actualProvider === 'openai') {
-        // Last resort fallback to groq for audio if openai key is missing
-        actualProvider = 'groq';
-        apiKey = vaultKeys['groq_key'] || config.credentials?.['groq_key'] || '';
-    }
-    if (!apiKey) {
-      throw new Error(`[Security] No Audio Transcription API Key found (OpenAI/Groq). Please run 'nyxora set-key openai <key>'.`);
-    }
-  }
-
-  return new OpenAI({
-    baseURL: (PROVIDER_CONFIGS[actualProvider] || PROVIDER_CONFIGS['openai']).baseURL,
-    apiKey: apiKey,
-    timeout: 120 * 1000,
-    maxRetries: 0
-  });
-}
-
-export async function getLLMClient(): Promise<LLMProvider> {
-  const config = loadConfig();
-  const vaultKeys = await loadApiKeys();
-  const providerName = config.llm.provider || 'openai';
-
-  let apiKey = '';
-  const keyName = `${providerName}_key`;
-  apiKey = vaultKeys[keyName] || config.credentials?.[keyName] || '';
-
-  if (!apiKey && providerName !== 'ollama') {
-    throw new Error(`[Security] No API Key found for ${providerName} in OS Keyring. Please run 'nyxora set-key ${providerName} <key>' or 'nyxora setup'.`);
-  }
-
-  if (providerName !== 'ollama') {
-    console.log(`[LLM] Using API Key securely unlocked from OS Keyring vault for ${providerName}.`);
-  }
-
-  if (providerName === 'anthropic') {
-    const client = new Anthropic({ apiKey });
-    return new AnthropicAdapter(client);
-  }
-
-  if (providerName === 'gemini') {
-    return new GeminiAdapter(apiKey);
-  }
-
-  // Default fallback (OpenAI, Groq, OpenRouter, xAI, Mistral, DeepSeek)
-  const providerConf = PROVIDER_CONFIGS[providerName] || PROVIDER_CONFIGS['openai'];
-  const client = new OpenAI({
-    baseURL: providerConf.baseURL,
-    apiKey: apiKey || 'local',
-    timeout: 120 * 1000,
-    maxRetries: 0
-  });
-  return new OpenAIAdapter(client);
-}
-
-async function executeWithRetry(
-  requestBuilder: (client: LLMProvider) => Promise<any>,
-  maxRetries = 3
-): Promise<any> {
-  let retries = 0;
-  
-  while (retries <= maxRetries) {
-    try {
-      const client = await getLLMClient();
-      return await requestBuilder(client);
-    } catch (error: any) {
-      const status = error?.status || error?.response?.status;
-      
-      // 401 Unauthorized or 400 Bad Request - don't retry, it's fatal
-      if (status === 401 || status === 400) {
-        console.error(`[LLM] Fatal Error ${status}: ${error.message}. Aborting.`);
-        throw error;
-      }
-      
-      // 429 Rate Limit - rotate provider/key immediately and retry
-      if (status === 429) {
-        console.warn(`[LLM] Rate Limit (429) hit. Rotating key...`);
-        // getOpenAI() automatically rotates to next key if available
-        retries++;
-        if (retries > maxRetries) throw error;
-        continue; // Try next key immediately
-      }
-      
-      // 500, 502, 503, Timeout, Network error - Exponential Backoff
-      retries++;
-      if (retries > maxRetries) {
-        console.error(`[LLM] Max retries reached.`);
-        throw error;
-      }
-      
-      const delayMs = Math.pow(2, retries) * 1000; // 2s, 4s, 8s
-      console.warn(`[LLM] API Error (${status || error.message}). Retrying in ${delayMs}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-}
 
 function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general'): string {
     const config = loadConfig();
@@ -341,13 +223,12 @@ Reply with EXACTLY ONE WORD.`;
       // General Agent: Use osAgent logic but without execution tools to save tokens.
       // Wait, osAgent has activeTools. We can just route to osAgent for now, but general agent shouldn't have tools.
       // Let's create a dummy general intent processing directly here.
-      const config = loadConfig();
       logger.addEntry({ role, content: input }, sessionId);
-      const history = logger.getHistory(sessionId);
       
       const messages = [
-        { role: 'system', content: `You are Nyxora's General Agent. Reason internally. Never reveal private reasoning. Provide only concise conclusions, assumptions, and actionable steps.\n\nCRITICAL RULE: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.` },
-        ...textOnlyHistory
+        { role: 'system', content: getSystemPrompt('general') },
+        ...textOnlyHistory,
+        { role: 'user', content: input }
       ];
       
       try {
@@ -358,7 +239,7 @@ Reply with EXACTLY ONE WORD.`;
               });
           });
           
-          let finalContent = response.message?.content || "Maaf, permintaan Anda diblokir oleh Safety Filter AI.";
+          let finalContent = response.message?.content || "";
           finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
           finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
           if (finalContent.includes('<think>')) {
@@ -367,11 +248,21 @@ Reply with EXACTLY ONE WORD.`;
           }
           finalContent = finalContent.trim();
           
+          if (!finalContent) {
+             finalContent = "⚠️ LLM mengembalikan respons kosong atau terputus. Hal ini biasanya terjadi karena fluktuasi koneksi API atau limitasi sesaat. Silakan coba lagi.";
+          }
+          
           logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
           return finalContent;
       } catch (error: any) {
           console.error("General LLM Error:", error);
-          const errorMsg = '⚠️ Sistem sedang mengalami limitasi koneksi LLM (Rate Limit). Harap tunggu beberapa detik dan coba lagi.';
+          const status = error?.status || error?.response?.status;
+          let errorMsg = '⚠️ Sistem sedang mengalami limitasi koneksi LLM (Rate Limit). Harap tunggu beberapa detik dan coba lagi.';
+          
+          if (status === 400 || (error.message && error.message.toLowerCase().includes('invalid'))) {
+              errorMsg = '⚠️ Terjadi kesalahan. Format pesan atau alat (skill) tidak dimengerti oleh LLM.';
+          }
+          
           logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
           return errorMsg;
       }

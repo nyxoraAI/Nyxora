@@ -1,29 +1,37 @@
-export function sanitizeHistoryForLLM(history: any[], activeTools: any[]): any[] {
+export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provider: string = 'openai'): any[] {
   const activeToolNames = activeTools.map(t => t.function?.name || t.name);
-  const strippedToolCallIds = new Set<string>();
+  const keptToolCallIds = new Set<string>();
   const processedHistory: any[] = [];
 
   for (const m of history) {
     let role = m.role === 'system' ? 'user' : m.role;
-    let msg: any = { role, content: m.content || "" };
+    let msg: any = { ...m, role, content: m.content || "" };
     
-    if (m.name) msg.name = m.name;
-
     if (m.tool_calls && m.tool_calls.length > 0) {
-      // Unconditionally strip tool calls from history to prevent Gemini 400 Bad Request bugs
-      // (Gemini crashes if content is empty or tool schemas mismatch)
-      msg.content = msg.content || `[Executed external tools: ${m.tool_calls.map((tc: any) => tc.function?.name).join(', ')}]`;
-      m.tool_calls.forEach((tc: any) => {
-        if (tc.id) strippedToolCallIds.add(tc.id);
-      });
+      if (provider === 'gemini') {
+        // Strip tool calls from history for Gemini to prevent 400 Bad Request bugs
+        msg.content = msg.content || `[Executed external tools: ${m.tool_calls.map((tc: any) => tc.function?.name).join(', ')}]`;
+        delete msg.tool_calls;
+      } else {
+        // Preserve tool calls for OpenAI/Anthropic, but filter inactive ones
+        msg.tool_calls = m.tool_calls.filter((tc: any) => activeToolNames.includes(tc.function?.name));
+        if (msg.tool_calls.length === 0) {
+            delete msg.tool_calls;
+            msg.content = msg.content || `[Executed external tools]`;
+        } else {
+            msg.tool_calls.forEach((tc: any) => { if (tc.id) keptToolCallIds.add(tc.id); });
+        }
+      }
     }
 
     if (m.role === 'tool' || m.tool_call_id) {
-      // Always convert past tool results to user messages to maintain a safe, text-only history
-      msg.role = 'user'; 
-      msg.content = `[Past Tool Result for ${m.name}]:\n${m.content || ""}`;
-      delete msg.tool_call_id;
-      delete msg.name;
+      if (provider === 'gemini' || !keptToolCallIds.has(m.tool_call_id)) {
+        // Convert orphaned or stripped tool results to user messages
+        msg.role = 'user'; 
+        msg.content = `[Past Tool Result for ${m.name}]:\n${m.content || ""}`;
+        delete msg.tool_call_id;
+        delete msg.name;
+      }
     }
 
     processedHistory.push(msg);
