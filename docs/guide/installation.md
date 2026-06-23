@@ -12,9 +12,35 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ---
 
-## 💻 Step 1: Installation & Build
+## 🚀 Option 1: Global Installation (Recommended)
 
-Nyxora operates on a Monorepo architecture using NPM Workspaces. Follow these steps to set up the environment:
+Nyxora can be installed globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+
+```bash
+# Install globally
+npm install -g nyxora
+
+# Run the interactive setup wizard
+nyxora setup
+
+# Start the background daemon
+nyxora start
+
+# Open the interactive UI dashboard
+nyxora dashboard
+```
+
+The interactive command-line wizard (`nyxora setup`) will guide you through:
+1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, DeepSeek, xAI, etc.) and your preferred Web Search provider (Tavily, Brave, DuckDuckGo, SearXNG). Input your API keys securely.
+2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
+3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).
+4. **Integration:** Configure optional integrations like the Telegram Bot.
+
+---
+
+## 💻 Option 2: Local Development (Source Code)
+
+Nyxora operates on a Monorepo architecture using NPM Workspaces. If you want to run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
 ### 1. Clone the Repository
 ```bash
@@ -34,59 +60,13 @@ Compile the core engine, MCP server, and the React Dashboard by running the buil
 npm run build
 ```
 
-### 4. Global Installation (Recommended)
-To make Nyxora accessible from anywhere in your terminal, link the compiled binaries globally:
+### 4. Setup and Launch
+Once built, run the setup wizard and start the application:
 ```bash
-npm install -g .
-# Or alternatively: npm link
+npm run setup
+npm start
 ```
-This unlocks the powerful `nyxora` CLI command.
+*(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 
----
+> **⚠️ IMPORTANT:** Whenever you re-run `setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
 
-## ⚙️ Step 2: Running the Setup Wizard
-
-Once the dependencies are installed and the project is globally linked, run the initialization command from anywhere:
-
-```bash
-nyxora setup
-```
-
-**Fast API Key Injection (CLI Shortcut):**
-If you already ran the setup and just want to quickly add or update an API key without going through the wizard, you can use the `set-key` command:
-```bash
-npm run set-key <provider> <your_api_key>
-# Example: npm run set-key openai sk-proj-...
-# Example: npm run set-key tavily tvly-...
-```
-
-The interactive command-line wizard will guide you through:
-1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, DeepSeek, xAI, etc.) and your preferred Web Search provider (Tavily, Brave, DuckDuckGo, SearXNG). Input your API keys securely.
-2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
-3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).
-4. **Integration:** Configure optional integrations like the Telegram Bot.
-
----
-
-## 🚀 Step 3: Launching the Agent
-
-Nyxora provides two ways to launch the system depending on your needs.
-
-### Option A: Standard Operation
-To run Nyxora normally as a background service, simply type the global command:
-```bash
-nyxora start
-```
-
-### Option B: Development Mode (Hot-Reloading)
-If you are developing plugins or modifying the dashboard, run the development server with hot-reloading enabled:
-```bash
-npm run dev
-```
-
-Both commands will automatically:
-1. Decrypt your keys using your OS Keyring.
-2. Boot up the local backend API and Policy Engine.
-3. Start the Web Dashboard and provide you with a secure localhost URL and authentication token in the terminal.
-
-Congratulations, your Nyxora Agent is now live and ready for duty!
