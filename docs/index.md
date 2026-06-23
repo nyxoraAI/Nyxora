@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Nyxora"
   text: "Local-First,<br>Zero-Trust AI Agent<br>for DeFi Automation."
-  tagline: "Autonomous on-chain execution without sacrificing self-custody. Powered by an Isolated Signer Vault, OS-native credential storage, and an On-Chain Base Kill-Switch."
+  tagline: "Autonomous on-chain execution without sacrificing self-custody. Powered by an Isolated Signer Vault, OS-native credential storage, and an On-Chain Base Sepolia Kill-Switch."
   image:
     src: /favicon.svg # Dummy to trigger image slot
     alt: Nyxora Execution
@@ -28,7 +28,7 @@ features:
   - title: 🤖 Multi-LLM Support
     details: Easily switch between Gemini, Anthropic, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
   - title: ⛓️ Decentralized Agent Registry
-    details: Nyxora embeds a native On-Chain Kill-Switch on the Base network. If you suspect a local compromise, instantly revoke your agent's execution rights globally from any device via Basescan.
+    details: Nyxora embeds a native On-Chain Kill-Switch on the Base Sepolia network. If you suspect a local compromise, instantly revoke your agent's execution rights globally from any device via Basescan.
 ---
 
 <style>

@@ -79,27 +79,20 @@ PORT=8080 nyxora
 
 ---
 
-## 6. Web3 Transactions Failing (IPC or Port 3001 Errors)
+## 6. Web3 Transactions Failing (Zombie Sockets)
 
 **Symptoms:**
-When you ask the AI to perform a Web3 action (e.g., Transfer, Swap, Bridge), the Gateway Logs output an IPC connection error or an `ECONNREFUSED` error pointing to `/tmp/nyxora-policy.sock` or `127.0.0.1:3001`, and the transaction is never sent to your Dashboard for approval.
+When you ask the AI to perform a Web3 action (e.g., Transfer, Swap, Bridge), the Gateway Logs output an IPC connection error or an `ECONNREFUSED` error pointing to `/tmp/nyxora-policy.sock`, and the transaction is never sent to your Dashboard for approval.
 
 **Cause:**
-Nyxora's internal Zero-Trust Policy Server natively runs on a Unix Domain Socket (`/tmp/nyxora-policy.sock`) for hyper-optimized IPC, with a fallback to port `3001`. If the server crashed unexpectedly, it might leave behind a "zombie" socket file, or another application might be blocking the fallback TCP port.
+Nyxora's internal Zero-Trust Policy Server natively runs on a Unix Domain Socket (`/tmp/nyxora-policy.sock`) for hyper-optimized IPC. If the server crashed unexpectedly or was killed forcefully, it might leave behind a "zombie" socket file blocking new instances from starting.
 
 **Resolution:**
-1. **Clear Stale Sockets:** Run `rm -f /tmp/nyxora-policy.sock` to clear any leftover IPC bindings from a previous crash.
-2. **Free Port 3001:** If you are relying on the fallback TCP port, ensure no other background application is using port 3001, or migrate the fallback port via the `POLICY_PORT` environment variable:
-
-You can do this by running Nyxora with the variable inline:
-```bash
-POLICY_PORT=4005 nyxora start
-```
-Or permanently by adding it to your `~/.nyxora/.env` file:
-```env
-POLICY_PORT=4005
-```
-*(All AI Web3 Skills will automatically detect this change and route your transactions to the new fallback port.)*
+1. **Clear Stale Sockets:** Run the following command to clear any leftover IPC bindings from a previous crash:
+   ```bash
+   rm -f /tmp/nyxora-*.sock
+   ```
+2. **Restart Agent:** Start Nyxora again (`nyxora start`), and the system will automatically generate fresh, healthy Unix Sockets.
 
 ---
 

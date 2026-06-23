@@ -1,6 +1,6 @@
 # Base Smart Contract Architecture
 
-Nyxora transcends traditional Web2 wrappers by embedding its core security model entirely on-chain. To provide users with absolute, trustless control over their AI agents, Nyxora utilizes the **Base Network** as its Global Command Center.
+Nyxora transcends traditional Web2 wrappers by embedding its core security model entirely on-chain. To provide users with absolute, trustless control over their AI agents, Nyxora utilizes the **Base Sepolia Network** as its Global Command Center.
 
 ## The AI Safety Dilemma
 Autonomous Web3 AI agents possess the power to sign transactions and move funds. However, this introduces a critical security risk:
@@ -12,7 +12,7 @@ Traditional centralized kill-switches (e.g., a boolean flag in a Web2 database) 
 
 ## The Solution: On-Chain Kill-Switch (The Missing Link)
 
-We built the **`NyxoraAgentRegistry`** Smart Contract natively on the Base network to solve this dilemma. It acts as an immutable, decentralized registry for all Nyxora agents.
+We built the **`NyxoraAgentRegistry`** Smart Contract natively on the Base Sepolia network to solve this dilemma. It acts as an immutable, decentralized registry for all Nyxora agents.
 
 Before Nyxora executes *any* transaction (whether it's on Ethereum Mainnet, Arbitrum, Optimism, or Binance Smart Chain), the system's Gateway **must first read the Base Smart Contract**. 
 
@@ -20,7 +20,7 @@ Before Nyxora executes *any* transaction (whether it's on Ethereum Mainnet, Arbi
 
 ### How It Works
 
-1. **Agent Registration:** Users register their wallet address as an AI Agent Controller on the Base Smart Contract, establishing an immutable on-chain identity.
+1. **Agent Registration:** Users register their wallet address as an AI Agent Controller on the Base Sepolia Smart Contract, establishing an immutable on-chain identity.
 2. **Global Execution Halting (Kill-Switch):** If a user suspects their local machine or server is compromised, they can interact directly with the contract via Basescan from a secure device (such as a mobile phone) and invoke the `toggleAgentStatus(false)` function.
 3. **Execution Intercepted:** The very next time the compromised Nyxora AI attempts to sign a transaction, the Gateway will query the Base RPC. Upon detecting the `false` status, the transaction will be permanently rejected with a `403 Security Blocked` error, strictly safeguarding the user's funds.
 
@@ -38,7 +38,7 @@ The `NyxoraAgentRegistry` is built as a decentralized public registry utilizing 
 How does Nyxora actually embed this decentralized contract into its local operations? 
 
 Nyxora implements a strict **Interceptor Pattern** at the core of its Gateway node. 
-Before any AI-generated transaction (e.g., a token swap or bridge) is forwarded to the user's OS-Native Keyring for signing, the transaction manager forcibly invokes the `checkRegistryStatus` function. This function performs an asynchronous RPC call to the Base network to verify the user's current status. If the Smart Contract returns `isActive == false`, the local Gateway process immediately terminates the execution thread, making it physically impossible for the AI to transmit the payload.
+Before any AI-generated transaction (e.g., a token swap or bridge) is forwarded to the user's OS-Native Keyring for signing, the transaction manager forcibly invokes the `checkRegistryStatus` function. This function performs an asynchronous RPC call to the Base Sepolia network to verify the user's current status. If the Smart Contract returns `isActive == false`, the local Gateway process immediately terminates the execution thread, making it physically impossible for the AI to transmit the payload.
 
 ## Smart Contract Details
 
@@ -59,8 +59,8 @@ Activating your on-chain security requires registering your wallet address direc
 5. **Confirm Transaction:** Approve the transaction in your wallet. Wait a few seconds for the blockchain to confirm it.
 6. **You're Protected!** Your wallet is now permanently mapped into the Nyxora ecosystem. If you ever need to trigger an emergency shutdown, return to the same page and call `toggleAgentStatus(false)`.
 
-### Why Base?
-We chose Base as the security backbone because of its **lightning-fast block times** and **sub-cent transaction fees**. Users can flip the Kill-Switch in seconds without worrying about exorbitant gas costs, ensuring the fail-safe is both rapid and economically viable during emergencies.
+### Why Base Sepolia?
+We chose the Base ecosystem as the security backbone because of its **lightning-fast block times** and **sub-cent transaction fees**. Users can flip the Kill-Switch in seconds without worrying about exorbitant gas costs, ensuring the fail-safe is both rapid and economically viable during emergencies.
 
 > [!NOTE]
 > *Currently (during the testing phase), the Smart Contract is deployed on the Base Sepolia (Testnet) network. In the next update, the system will be fully migrated to Base Mainnet.*

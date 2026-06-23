@@ -10,6 +10,9 @@ Native skills are divided into two primary categories: **Web3 Native Functions**
 
 Unlike generic AI assistants, Nyxora was built from the ground up for the blockchain. The core runtime includes a built-in Web3 provider layer, meaning the AI possesses native instincts for cryptocurrency operations.
 
+> [!NOTE]
+> **Pure Assistant Mode:** If you do not wish to use Web3 features, you can opt out during `nyxora setup`. This creates a `disabled_skills.json` file that cleanly disables all Wallet, DEX, and Blockchain functionality, turning Nyxora into a lightweight OS/Coding assistant.
+
 ### 🔐 Wallet & Key Management
 *   **Secure Signing:** The AI does not hold your private keys in its memory. It generates a cryptographic payload and requests the [OS-Native Keyring Vault](/security/vault) to sign the transaction. 
 *   **Address Awareness:** The AI always knows its own public address (`Agent Address`) and the currently active network (e.g., Ethereum Mainnet, Base, Sepolia).

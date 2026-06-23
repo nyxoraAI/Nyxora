@@ -34,14 +34,22 @@ Compile the core engine, MCP server, and the React Dashboard by running the buil
 npm run build
 ```
 
+### 4. Global Installation (Recommended)
+To make Nyxora accessible from anywhere in your terminal, link the compiled binaries globally:
+```bash
+npm install -g .
+# Or alternatively: npm link
+```
+This unlocks the powerful `nyxora` CLI command.
+
 ---
 
 ## ⚙️ Step 2: Running the Setup Wizard
 
-Once the dependencies are installed and the project is built, run the initialization command:
+Once the dependencies are installed and the project is globally linked, run the initialization command from anywhere:
 
 ```bash
-npm run setup
+nyxora setup
 ```
 
 **Fast API Key Injection (CLI Shortcut):**
@@ -53,9 +61,9 @@ npm run set-key <provider> <your_api_key>
 ```
 
 The interactive command-line wizard will guide you through:
-1. **AI Engine Selection:** Choose your primary LLM provider and input your API key securely.
-2. **Skill Selection:** Toggle Web3 and OS capabilities (Zero-Trust isolation).
-3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring.
+1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, DeepSeek, xAI, etc.) and your preferred Web Search provider (Tavily, Brave, DuckDuckGo, SearXNG). Input your API keys securely.
+2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
+3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).
 4. **Integration:** Configure optional integrations like the Telegram Bot.
 
 ---
@@ -65,9 +73,9 @@ The interactive command-line wizard will guide you through:
 Nyxora provides two ways to launch the system depending on your needs.
 
 ### Option A: Standard Operation
-To run Nyxora normally (using the compiled files), use the start command:
+To run Nyxora normally as a background service, simply type the global command:
 ```bash
-npm run start
+nyxora start
 ```
 
 ### Option B: Development Mode (Hot-Reloading)

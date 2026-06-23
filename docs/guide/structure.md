@@ -15,6 +15,11 @@ This directory contains all the main engines that power Nyxora:
 
 ## 2. Core Root Files
 *   **`launcher.ts` & `bin/nyxora.mjs`:** The entry points for the CLI. These files launch the background daemon, handle the interactive setup process (`nyxora setup`), and serve the Terminal integration.
-*   **`memory.db`:** The local SQLite database where Nyxora securely stores profiles, chat history (short-term/long-term memory), and contract address whitelists.
-*   **`user.md` & `IDENTITY.md`:** The configuration files where you define the AI's persona/identity and set specific custom rules for how the AI should conduct transactions.
 *   **`SECURITY.md`:** The documentation detailing Nyxora's cryptography standards and Threat Model mitigation strategies.
+
+## 3. Runtime Configuration Files
+These files are not committed to the Git repository. They are dynamically generated at runtime and securely stored in your local data directory (e.g., `~/.nyxora/config/`):
+*   **`memory.db`:** The local SQLite database where Nyxora securely stores profiles, chat history (short-term/long-term memory), and contract address whitelists.
+*   **`policy.yaml`:** The rigid configuration file for the NLP Security Policy.
+*   **`disabled_skills.json`:** A state file generated if you opt to disable Web3 capabilities (Pure Assistant Mode).
+*   **`user.md` & `IDENTITY.md`:** The configuration files where you define the AI's persona/identity and set specific custom rules for how the AI should conduct transactions.
