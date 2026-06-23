@@ -8,37 +8,7 @@ import { episodicDB } from '../memory/episodic';
 import { isSkillActive } from '../utils/skillManager';
 
 
-import { updateProfileToolDefinition, updateProfile } from './updateProfile';
-import { updateIdentityToolDefinition, updateIdentity } from './updateIdentity';
-import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../system/skills/updateSecurityPolicy';
-import { analyzeDocumentToolDefinition, analyzeDocument } from '../system/skills/analyzeDocument';
-import { readLocalFileToolDefinition, readLocalFile } from '../system/skills/readFile';
-import { writeLocalFileToolDefinition, writeLocalFile } from '../system/skills/writeFile';
-import { generateExcelToolDefinition, generateExcelFile } from '../system/skills/generateExcel';
-import { runTerminalCommandToolDefinition, runTerminalCommand } from '../system/skills/executeShell';
-import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
-import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
-
-import { editLocalFileToolDefinition, editLocalFile } from '../system/skills/editFile';
-import { gitManagerToolDefinition, executeGitCommand } from '../system/skills/gitManager';
-import { xManagerToolDefinition, manageTwitter } from '../system/skills/xManager';
-import { notionWorkspaceToolDefinition, manageNotion } from '../system/skills/notionWorkspace';
-import { audioTranscribeToolDefinition, transcribeAudio } from '../system/skills/audioTranscribe';
-import { summarizeTextToolDefinition, summarizeText } from '../system/skills/summarizeText';
-import { scheduleTaskDefinition, executeScheduleTask } from '../system/skills/scheduleTask';
-import { cancelTaskDefinition, executeCancelTask } from '../system/skills/cancelTask';
-import { 
-  readGmailInbox, 
-  listCalendarEvents, 
-  appendRowToSheets, 
-  readGoogleDocs, 
-  readGoogleFormResponses,
-  readGmailInboxToolDefinition,
-  listCalendarEventsToolDefinition,
-  appendRowToSheetsToolDefinition,
-  readGoogleDocsToolDefinition,
-  readGoogleFormResponsesToolDefinition
-} from '../system/skills/googleWorkspace';
+import { pluginManager } from '../plugin/registry';
 
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
@@ -167,10 +137,8 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
   const history = logger.getHistory(sessionId);
   
   // Format messages for OpenAI
-  let activeTools: any[] = [];
-  const SYSTEM_TOOLS = [updateProfileToolDefinition, updateIdentityToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition, scheduleTaskDefinition, cancelTaskDefinition];
-  const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
-  activeTools = [...SYSTEM_TOOLS, ...GOOGLE_TOOLS].filter(t => isSkillActive(t.function.name));
+  let activeTools = [...pluginManager.getAllToolDefinitions()];
+  activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
   const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
   const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools);
@@ -182,10 +150,8 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
 
   try {
     const context = 'os';
-    const SYSTEM_TOOLS = [updateProfileToolDefinition, updateIdentityToolDefinition, updateSecurityPolicyToolDefinition, analyzeDocumentToolDefinition, readLocalFileToolDefinition, writeLocalFileToolDefinition, generateExcelToolDefinition, runTerminalCommandToolDefinition, browseWebsiteToolDefinition, searchWebToolDefinition, editLocalFileToolDefinition, gitManagerToolDefinition, xManagerToolDefinition, notionWorkspaceToolDefinition, audioTranscribeToolDefinition, summarizeTextToolDefinition, scheduleTaskDefinition, cancelTaskDefinition];
-    const GOOGLE_TOOLS = [readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition];
     
-    let activeTools: any[] = [...SYSTEM_TOOLS, ...GOOGLE_TOOLS];
+    let activeTools = [...pluginManager.getAllToolDefinitions()];
     activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
     const response = await executeWithRetry(async (client) => {
@@ -258,104 +224,12 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
         }
 
         try {
-          switch (toolName) {
-            case 'update_profile': {
-              result = updateProfile(args.content, args.mode);
-              break;
-            }
-            case 'update_identity': {
-              result = updateIdentity(args.content, args.mode);
-              break;
-            }
-            case 'update_security_policy': {
-              result = await updateSecurityPolicy(args.policy, args.action || 'add');
-              break;
-            }
-            case 'analyze_document': {
-              result = await analyzeDocument(args.filePath);
-              break;
-            }
-            case 'read_local_file': {
-              result = readLocalFile(args.filePath, args.startLine, args.endLine);
-              break;
-            }
-            case 'edit_local_file': {
-              result = editLocalFile(args.filePath, args.searchString, args.replacementString);
-              break;
-            }
-            case 'execute_git_command': {
-              result = await executeGitCommand(args.action, args.commitMessage);
-              break;
-            }
-            case 'manage_twitter': {
-              result = await manageTwitter(args.action, args.content, args.username);
-              break;
-            }
-            case 'manage_notion': {
-              result = await manageNotion(args.action, args.pageId, args.text);
-              break;
-            }
-            case 'transcribe_audio': {
-              result = await transcribeAudio(args.filePath);
-              break;
-            }
-            case 'summarize_text': {
-              result = await summarizeText(args.text, args.focus);
-              break;
-            }
-            case 'write_local_file': {
-              result = writeLocalFile(args.filePath, args.content);
-              break;
-            }
-            case 'generate_excel_file': {
-              result = await generateExcelFile(args.data, args.filePath);
-              break;
-            }
-            case 'run_terminal_command': {
-              result = await runTerminalCommand(args.command);
-              break;
-            }
-            case 'browse_website': {
-              result = await browseWebsite(args.url);
-              break;
-            }
-            case 'search_web': {
-              result = await searchWeb(args.query, args.depth);
-              break;
-            }
-            case 'schedule_task': {
-              result = await executeScheduleTask(args);
-              break;
-            }
-            case 'cancel_task': {
-              result = await executeCancelTask(args);
-              break;
-            }
-
-            case 'read_gmail_inbox': {
-              result = await readGmailInbox(args.maxResults);
-              break;
-            }
-            case 'list_calendar_events': {
-              result = await listCalendarEvents(args.maxResults);
-              break;
-            }
-            case 'append_row_to_sheets': {
-              result = await appendRowToSheets(args.spreadsheetId, args.range, args.values);
-              break;
-            }
-            case 'read_google_docs': {
-              result = await readGoogleDocs(args.documentId);
-              break;
-            }
-            case 'read_google_form_responses': {
-              result = await readGoogleFormResponses(args.formId);
-              break;
-            }
-            default: {
-              result = `Error: Tool ${toolName} is not implemented.`;
-              break;
-            }
+          // 1. Execute via PluginManager
+          const pluginResult = await pluginManager.executeTool(toolName, args, { sessionId });
+          if (pluginResult !== null) {
+            result = pluginResult;
+          } else {
+            result = `Error: Tool ${toolName} is not implemented.`;
           }
 
           if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {

@@ -224,7 +224,7 @@ console.log(`================================`);
   }
 
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
-  startServer();
+  await startServer();
   const token = getSessionToken(); // Initialize token file
   setTimeout(() => {
     console.log(pc.cyan(`\n✨ Dashboard URL: http://localhost:3000/?token=${token}`));

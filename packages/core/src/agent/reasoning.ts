@@ -3,7 +3,6 @@ import path from 'path';
 import { OpenAI } from 'openai';
 import { LLMProvider, OpenAIAdapter, AnthropicAdapter, GeminiAdapter } from './llmProvider';
 import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenAI } from '@google/genai';
 import { loadConfig, loadApiKeys } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
@@ -82,8 +81,7 @@ export async function getLLMClient(): Promise<LLMProvider> {
   }
 
   if (providerName === 'gemini') {
-    const client = new GoogleGenAI({ apiKey });
-    return new GeminiAdapter(client);
+    return new GeminiAdapter(apiKey);
   }
 
   // Default fallback (OpenAI, Groq, OpenRouter, xAI, Mistral, DeepSeek)

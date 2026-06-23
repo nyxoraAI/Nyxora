@@ -27,60 +27,27 @@ import yaml from 'yaml';
 import { processUserInput, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig, loadRpcConfig, saveRpcConfig } from '../config/parser';
 import { loadDefiKeys, saveDefiKeys } from '../config/defiConfigManager';
+import { loadMarketKeys, saveMarketKeys } from '../config/marketConfigManager';
 import { getPublicClient, SUPPORTED_CHAIN_NAMES, getAddress } from '../web3/config';
 import { TOKEN_MAP, ERC20_ABI } from '../web3/utils/tokens';
 import { Tracker } from './tracker';
 import { txManager } from '../agent/transactionManager';
 import multer from 'multer';
 
-import { executeTransfer, transferToolDefinition } from '../web3/skills/transfer';
-import { executeSwap, swapTokenToolDefinition } from '../web3/skills/swapToken';
-import { getBalanceToolDefinition } from '../web3/skills/getBalance';
-import { checkAddressToolDefinition } from '../web3/skills/checkAddress';
-import { getMyAddressToolDefinition } from '../web3/skills/getMyAddress';
-import { manageCustomTokensDefinition } from '../web3/skills/manageCustomTokens';
-import { getPriceToolDefinition } from '../web3/skills/getPrice';
-import { checkSecurityToolDefinition } from '../web3/skills/checkSecurity';
-import { checkPortfolioToolDefinition } from '../web3/skills/checkPortfolio';
-import { marketAnalysisToolDefinition } from '../web3/skills/marketAnalysis';
+import { isSkillActive, toggleSkill, syncAllSkillsToConfig } from '../utils/skillManager';
+import { getUserWhitelist, saveTokenToWhitelist, removeTokenFromWhitelist } from '../utils/userWhitelistManager';
+import { pluginManager, initializePlugins } from '../plugin/registry';
+import { cronManager } from '../agent/cronManager';
+import { ChainName } from '../web3/config';
+import { getTokenMetadata } from '../web3/utils/tokens';
+import { checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
+import { executeTransfer } from '../web3/skills/transfer';
+import { executeSwap } from '../web3/skills/swapToken';
+import { executeBridge } from '../web3/skills/bridgeToken';
+import { executeMintNft } from '../web3/skills/mintNft';
+import { executeCustomTx } from '../web3/skills/customTx';
 import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
-import { isSkillActive, toggleSkill, syncAllSkillsToConfig } from '../utils/skillManager';
-import { executeBridge, bridgeTokenToolDefinition } from '../web3/skills/bridgeToken';
-import { executeMintNft, mintNftToolDefinition } from '../web3/skills/mintNft';
-import { executeCustomTx, customTxToolDefinition } from '../web3/skills/customTx';
-import { aaveSupplyToolDefinition } from '../web3/skills/defiLending';
-import { revokeApprovalToolDefinition } from '../web3/skills/revokeApprovals';
-import { vaultDepositToolDefinition } from '../web3/skills/yieldVault';
-import { provideLiquidityToolDefinition } from '../web3/skills/provideLiquidity';
-import { getTxHistoryToolDefinition } from '../web3/skills/getTxHistory';
-import { checkRegistryStatus, checkRegistryStatusToolDefinition } from '../web3/skills/checkRegistryStatus';
-import { createLimitOrderToolDefinition } from '../web3/skills/createLimitOrder';
-import { getUserWhitelist, saveTokenToWhitelist, removeTokenFromWhitelist } from '../utils/userWhitelistManager';
-import { getTokenMetadata } from '../web3/utils/tokens';
-import { ChainName } from '../web3/config';
-
-// System Skills
-import { browseWebsiteToolDefinition } from '../system/skills/browseWeb';
-import { runTerminalCommandToolDefinition } from '../system/skills/executeShell';
-
-import { readLocalFileToolDefinition } from '../system/skills/readFile';
-import { editLocalFileToolDefinition } from '../system/skills/editFile';
-import { gitManagerToolDefinition } from '../system/skills/gitManager';
-import { xManagerToolDefinition } from '../system/skills/xManager';
-import { notionWorkspaceToolDefinition } from '../system/skills/notionWorkspace';
-import { audioTranscribeToolDefinition } from '../system/skills/audioTranscribe';
-import { summarizeTextToolDefinition } from '../system/skills/summarizeText';
-import { scheduleTaskDefinition } from '../system/skills/scheduleTask';
-import { cancelTaskDefinition } from '../system/skills/cancelTask';
-import { cronManager } from '../agent/cronManager';
-import { updateSecurityPolicyToolDefinition } from '../system/skills/updateSecurityPolicy';
-import { writeLocalFileToolDefinition } from '../system/skills/writeFile';
-import { generateExcelToolDefinition } from '../system/skills/generateExcel';
-import { analyzeDocumentToolDefinition } from '../system/skills/analyzeDocument';
-import { searchWebToolDefinition } from '../system/skills/searchWeb';
-import { readGmailInboxToolDefinition, listCalendarEventsToolDefinition, appendRowToSheetsToolDefinition, readGoogleDocsToolDefinition, readGoogleFormResponsesToolDefinition } from '../system/skills/googleWorkspace';
-
 import { startTelegramBot } from './telegram';
 import { startBridgeWatcher } from '../agent/bridgeWatcher';
 import { eventListener } from '../web3/eventListener';
@@ -347,11 +314,28 @@ app.post('/api/rpc', (req, res) => {
 app.get('/api/defi-keys', (req, res) => {
   try {
     const keys = loadDefiKeys();
-    const masked: Record<string, string> = {};
-    for (const [k, v] of Object.entries(keys)) {
-      if (v && v.trim().length > 0) masked[k] = 'IS_SET';
+    
+    // Import dynamically to avoid circular dependencies if any
+    const { aggregatorRegistry } = require('../web3/aggregator/providerRegistry');
+    const providers = aggregatorRegistry.getAllProviders();
+    
+    const requirements: any[] = [];
+    
+    for (const provider of providers) {
+      if (provider.manifest.requiredApiKeys) {
+        for (const req of provider.manifest.requiredApiKeys) {
+          requirements.push({
+            id: req.id,
+            label: req.label,
+            required: req.required,
+            docsUrl: req.docsUrl,
+            configured: !!(keys[req.envKey] || keys[req.id])
+          });
+        }
+      }
     }
-    res.json(masked);
+    
+    res.json({ requirements });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -366,58 +350,60 @@ app.post('/api/defi-keys', (req, res) => {
   }
 });
 
-const allSkills = [
-  getBalanceToolDefinition,
-  transferToolDefinition,
-  getPriceToolDefinition,
-  swapTokenToolDefinition,
-  bridgeTokenToolDefinition,
-  mintNftToolDefinition,
-  customTxToolDefinition,
-  checkAddressToolDefinition,
-  getMyAddressToolDefinition,
-  checkSecurityToolDefinition,
-  checkPortfolioToolDefinition,
-  marketAnalysisToolDefinition,
-  manageCustomTokensDefinition,
-  aaveSupplyToolDefinition,
-  revokeApprovalToolDefinition,
-  vaultDepositToolDefinition,
-  provideLiquidityToolDefinition,
-  getTxHistoryToolDefinition,
-  createLimitOrderToolDefinition,
-  checkRegistryStatusToolDefinition
-];
+app.get('/api/market-keys', (req, res) => {
+  try {
+    const keys = loadMarketKeys();
+    res.json({
+      requirements: [
+        {
+          id: 'coingecko_key',
+          label: 'CoinGecko Pro API Key',
+          required: false,
+          docsUrl: 'https://www.coingecko.com/en/api',
+          configured: !!keys.coingecko_key
+        },
+        {
+          id: 'cmc_key',
+          label: 'CoinMarketCap Pro API Key',
+          required: false,
+          docsUrl: 'https://pro.coinmarketcap.com/',
+          configured: !!keys.cmc_key
+        }
+      ]
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-const systemSkills = [
-  runTerminalCommandToolDefinition,
-  readLocalFileToolDefinition,
-  writeLocalFileToolDefinition,
-  generateExcelToolDefinition,
-  browseWebsiteToolDefinition,
-  updateSecurityPolicyToolDefinition,
+app.post('/api/market-keys', (req, res) => {
+  try {
+    saveMarketKeys(req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  analyzeDocumentToolDefinition,
-  searchWebToolDefinition,
-  readGmailInboxToolDefinition,
-  listCalendarEventsToolDefinition,
-  appendRowToSheetsToolDefinition,
-  readGoogleDocsToolDefinition,
-  readGoogleFormResponsesToolDefinition,
-  editLocalFileToolDefinition,
-  gitManagerToolDefinition,
-  xManagerToolDefinition,
-  notionWorkspaceToolDefinition,
-  audioTranscribeToolDefinition,
-  summarizeTextToolDefinition,
-  scheduleTaskDefinition,
-  cancelTaskDefinition
-];
+// Get skills from PluginManager dynamically
+const getWeb3Skills = () => {
+  return pluginManager.getPlugins()
+    .filter(p => p.name.startsWith('Web3'))
+    .flatMap(p => p.tools);
+};
+
+const getSystemSkills = () => {
+  return pluginManager.getPlugins()
+    .filter(p => !p.name.startsWith('Web3'))
+    .flatMap(p => p.tools);
+};
 
 app.get('/api/stats', (req, res) => {
   const stats = Tracker.getStats();
   const dbPath = getPath('memory.db');
   
+  const allSkills = getWeb3Skills();
+  const systemSkills = getSystemSkills();
   const activeWeb3 = allSkills.filter(s => isSkillActive(s.function.name)).length;
   const activeSystem = systemSkills.filter(s => isSkillActive(s.function.name)).length;
   
@@ -439,6 +425,7 @@ app.get('/api/cron', (req, res) => {
 });
 
 app.get('/api/skills', (req, res) => {
+  const allSkills = getWeb3Skills();
   const skillsWithStatus = allSkills.map(skill => ({
     ...skill,
     isActive: isSkillActive(skill.function.name)
@@ -448,6 +435,7 @@ app.get('/api/skills', (req, res) => {
 });
 
 app.get('/api/skills/system', (req, res) => {
+  const systemSkills = getSystemSkills();
   const skillsWithStatus = systemSkills.map(skill => ({
     ...skill,
     isActive: isSkillActive(skill.function.name)
@@ -1079,10 +1067,18 @@ export async function autoMigrateKeys() {
   }
 }
 
-export function startServer() {
-  autoMigrateKeys().catch(e => console.error('[Auto-Migrate] Error:', e));
+export async function startServer() {
+  await autoMigrateKeys().catch(e => console.error('[Auto-Migrate] Error:', e));
 
+  await initializePlugins();
 
+  try {
+    const { aggregatorRegistry } = require('../web3/aggregator/providerRegistry');
+    await aggregatorRegistry.autoDiscover();
+    console.log('[Nyxora Gateway] DeFi Aggregator Providers Auto-Discovered.');
+  } catch (e) {
+    console.error('[Nyxora Gateway] Failed to auto-discover DeFi providers:', e);
+  }
 
   const PORT = Number(process.env.PORT || 3000);
   const server = app.listen(PORT, '127.0.0.1', () => {

@@ -1,6 +1,5 @@
 import { OpenAI } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { loadConfig, loadApiKeys } from '../config/parser';
 
 export interface NormalizedChatRequest {
@@ -153,11 +152,12 @@ export class AnthropicAdapter implements LLMProvider {
 }
 
 export class GeminiAdapter implements LLMProvider {
-  constructor(private client: GoogleGenAI) {}
+  constructor(private apiKey: string) {}
 
   async chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse> {
     let systemInstruction = '';
-    const rawGemini: any[] = [];
+    const contents: any[] = [];
+    
     for (const m of request.messages) {
       if (m.role === 'system') {
         systemInstruction = m.content;
@@ -165,7 +165,7 @@ export class GeminiAdapter implements LLMProvider {
       }
       
       if (m.role === 'user') {
-        rawGemini.push({ role: 'user', parts: [{ text: m.content }] });
+        contents.push({ role: 'user', parts: [{ text: m.content }] });
       } else if (m.role === 'assistant') {
         const parts: any[] = [];
         if (m.content) parts.push({ text: m.content });
@@ -181,9 +181,9 @@ export class GeminiAdapter implements LLMProvider {
             } catch(e) {}
           });
         }
-        rawGemini.push({ role: 'model', parts: parts });
+        contents.push({ role: 'model', parts: parts });
       } else if (m.role === 'tool') {
-        rawGemini.push({
+        contents.push({
           role: 'user',
           parts: [{
             functionResponse: {
@@ -195,18 +195,19 @@ export class GeminiAdapter implements LLMProvider {
       }
     }
 
-    const geminiMessages: any[] = [];
-    for (const m of rawGemini) {
-      const last = geminiMessages[geminiMessages.length - 1];
+    // Merge adjacent messages of the same role
+    const mergedContents: any[] = [];
+    for (const m of contents) {
+      const last = mergedContents[mergedContents.length - 1];
       if (last && last.role === m.role) {
         last.parts.push(...m.parts);
       } else {
-        geminiMessages.push(m);
+        mergedContents.push(m);
       }
     }
 
     let tools: any = undefined;
-    if (request.tools) {
+    if (request.tools && request.tools.length > 0) {
       tools = [{
         functionDeclarations: request.tools.map(t => ({
           name: t.function.name,
@@ -216,48 +217,66 @@ export class GeminiAdapter implements LLMProvider {
       }];
     }
 
-    const response = await this.client.models.generateContent({
-      model: request.model,
-      contents: geminiMessages as any,
-      config: {
-        systemInstruction: systemInstruction,
-        tools: tools,
-        temperature: request.temperature,
-        safetySettings: [
-          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE }
-        ]
-      }
+    const payload: any = {
+      contents: mergedContents,
+      generationConfig: {
+        temperature: request.temperature || 0.7,
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' }
+      ]
+    };
+
+    if (systemInstruction) {
+      payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    if (tools) {
+      payload.tools = tools;
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${request.model}:generateContent?key=${this.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API Error: ${response.status} ${response.statusText} - ${errText}`);
+    }
+
+    const data = await response.json();
 
     let contentStr = null;
     let toolCalls: any[] = [];
 
-    if (response.candidates && response.candidates.length > 0) {
-      const candidate = response.candidates[0];
+    if (data.candidates && data.candidates.length > 0) {
+      const candidate = data.candidates[0];
       
-      // Log finish reason for debugging safety blocks
       if (candidate.finishReason && candidate.finishReason !== 'STOP') {
         console.warn(`[LLM] Gemini API returned finishReason: ${candidate.finishReason}`);
       }
 
       if (candidate.content && candidate.content.parts) {
-        const parts = candidate.content.parts;
-        for (const part of parts) {
+        for (const part of candidate.content.parts) {
           if (part.text) {
             contentStr = (contentStr || '') + part.text;
           } else if (part.functionCall) {
-          toolCalls.push({
-            id: `call_${Math.random().toString(36).substring(7)}`,
-            type: 'function',
-            function: {
-              name: part.functionCall.name,
-              arguments: JSON.stringify(part.functionCall.args)
-            }
-          });
-        }
+            toolCalls.push({
+              id: `call_${Math.random().toString(36).substring(7)}`,
+              type: 'function',
+              function: {
+                name: part.functionCall.name,
+                arguments: JSON.stringify(part.functionCall.args || {})
+              }
+            });
+          }
         }
       }
     }

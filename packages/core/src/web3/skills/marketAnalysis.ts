@@ -2,6 +2,8 @@ import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 import { generateMarketHealthReport, MarketHealthResult } from '../utils/riskIntelligence';
 
+import { loadMarketKeys } from '../../config/marketConfigManager';
+
 async function fetchCexData(symbol: string) {
     try {
         const binance = await safeFetchJson<any>(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}USDT`);
@@ -20,10 +22,15 @@ async function fetchCexData(symbol: string) {
 
 async function fetchCoinGeckoData(symbol: string) {
     try {
-        const searchData = await safeFetchJson<any>(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
+        const keys = loadMarketKeys();
+        const isPro = !!keys.coingecko_key;
+        const baseUrl = isPro ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
+        const headers = isPro ? { 'x-cg-pro-api-key': keys.coingecko_key } : undefined;
+
+        const searchData = await safeFetchJson<any>(`${baseUrl}/search?query=${symbol}`, { headers });
         const foundCoin = searchData.coins?.find((c: any) => c.symbol.toLowerCase() === symbol.toLowerCase() || c.id === symbol.toLowerCase());
         if (foundCoin) {
-            const coinData = await safeFetchJson<any>(`https://api.coingecko.com/api/v3/coins/${foundCoin.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`);
+            const coinData = await safeFetchJson<any>(`${baseUrl}/coins/${foundCoin.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`, { headers });
             if (coinData && coinData.market_data) {
                 return {
                     price: coinData.market_data.current_price?.usd || 0,

@@ -59,11 +59,11 @@ export async function prepareBridgeToken(
       amount: amountStr,
       fromAddress: fromTokenAddress,
       toAddress: toTokenAddress,
-      expectedOutput: route.expectedOutput,
+      expectedOutput: route.outputAmount.toString(),
       provider: route.provider,
-      gasCostUsd: route.gasCostUsd,
-      txData: route.txPayload,
-      rawQuote: route.rawQuote
+      gasCostUsd: route.estimatedGasUsd || 0,
+      txData: route.execution,
+      rawQuote: route.raw
     });
 
     return `⏳ **Bridge queued:** ${amountStr} ${tokenSymbol} | ${fromChain.toUpperCase()} ➡️ ${toChain.toUpperCase()} | Via ${route.provider} | Approve below.`;

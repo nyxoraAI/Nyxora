@@ -11,7 +11,7 @@ interface ApiKeyRequirement {
   configured: boolean;
 }
 
-export const DefiKeys: React.FC = () => {
+export const MarketOracles: React.FC = () => {
   const [requirements, setRequirements] = useState<ApiKeyRequirement[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
@@ -20,13 +20,13 @@ export const DefiKeys: React.FC = () => {
   useEffect(() => {
     const fetchKeys = async () => {
       try {
-        const res = await apiFetch('/api/defi-keys');
+        const res = await apiFetch('/api/market-keys');
         const data = await res.json();
         if (data.requirements) {
           setRequirements(data.requirements);
         }
       } catch (err) {
-        console.error("Failed to fetch defi keys");
+        console.error("Failed to fetch market keys");
       }
     };
     fetchKeys();
@@ -38,7 +38,7 @@ export const DefiKeys: React.FC = () => {
       if (!value) return;
 
       const payload = { [id]: value };
-      const res = await apiFetch('/api/defi-keys', {
+      const res = await apiFetch('/api/market-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -66,7 +66,7 @@ export const DefiKeys: React.FC = () => {
     <div className="overview-container">
       <div className="nord-panel-header">
         <KeyRound size={28} color="var(--accent)" />
-        <h2 className="settings-title" style={{ margin: 0, color: 'var(--text-primary)' }}>DeFi Configuration</h2>
+        <h2 className="settings-title" style={{ margin: 0, color: 'var(--text-primary)' }}>Market Oracles Configuration</h2>
       </div>
 
       <div style={{ background: 'rgba(235, 203, 139, 0.1)', border: '1px solid rgba(235, 203, 139, 0.3)', padding: '16px', borderRadius: '8px', marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -85,8 +85,8 @@ export const DefiKeys: React.FC = () => {
       )}
 
       <div className="settings-section">
-        <h3 className="section-title" style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '1.2rem' }}>Dynamic Provider Integrations</h3>
-        <p className="section-description" style={{ marginBottom: '32px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>These fields are dynamically loaded from installed DeFi Aggregator Providers. Provide your API keys to bypass rate limits.</p>
+        <h3 className="section-title" style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '1.2rem' }}>Market Intelligence Providers</h3>
+        <p className="section-description" style={{ marginBottom: '32px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>These keys are used for market intelligence, price fetching, and portfolio analysis. If not provided, Nyxora will gracefully fallback to public APIs (CoinGecko Public / DexScreener).</p>
         
         {requirements.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '40px' }}>
@@ -147,4 +147,4 @@ export const DefiKeys: React.FC = () => {
   );
 };
 
-export default DefiKeys;
+export default MarketOracles;

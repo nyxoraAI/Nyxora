@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.24",
+  "version": "26.6.25",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -53,7 +53,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
     "@clack/prompts": "^1.4.0",
-    "@google/genai": "^2.9.0",
     "@grammyjs/runner": "^2.0.3",
     "@grammyjs/transformer-throttler": "^1.2.1",
     "@inquirer/search": "^4.2.1",

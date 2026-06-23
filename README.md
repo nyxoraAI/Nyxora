@@ -3,7 +3,7 @@
 
 
 [![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](#)
-[![Built on Arbitrum](https://img.shields.io/badge/Built_on-Arbitrum-28A0F0?style=flat&logo=arbitrum&logoColor=white)](https://arbitrum.io/)
+[![Built on Base](https://img.shields.io/badge/Built_on-Base-0052FF?style=flat&logo=base&logoColor=white)](https://base.org/)
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg)](#️-advanced-security-threat-model)
@@ -21,7 +21,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 ## 🔥 Key Features
 
 ### Advanced Security Architecture
-*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by an Arbitrum Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Arbitrum Architecture](https://nyxoraai.github.io/Nyxora/security/smart-contract)
+*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/security/smart-contract)
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **DeFi Configuration BYOK & UI Masking**: All aggregator and provider API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into a heavily guarded `~/.nyxora/defi_keys.yaml` file. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
@@ -95,58 +95,9 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 
 ---
 
-## 1. 🚀 Quick Start & Installation
+## 🚀 Quick Start & Installation
 
-### Global Installation via NPM (Recommended)
-The easiest and fastest way to use Nyxora is to install it globally via NPM. This ensures you get the latest version and can run Nyxora from anywhere on your machine.
-
-The fastest way to install Nyxora is via our automated installation script:
-
-**For Linux & macOS (Bash):**
-```bash
-curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
-```
-
-**For Windows (PowerShell):**
-```powershell
-iwr https://nyxoraai.github.io/Nyxora/install.ps1 -useb | iex
-```
-
-Alternatively, you can install it manually on any operating system using NPM:
-
-```bash
-npm install -g nyxora@latest
-```
-
-### 2. Run the Interactive Setup Wizard (API Keys, Wallet, Telegram)
-```bash
-nyxora setup
-```
-
-### 3. Start the Nyxora background daemon
-```bash
-nyxora start
-```
-
-### 4. Open the Web Dashboard
-```bash
-nyxora dashboard
-```
-
-### Utility: Atomically clear the AI's short-term and long-term memory
-```bash
-nyxora clear --force
-```
-
-### Utility: Clean Uninstallation
-To completely remove Nyxora, wipe the AI's local memory, and securely delete your Private Key from the OS Keyring before uninstalling the NPM package:
-```bash
-nyxora uninstall
-```
-> **⚠️ IMPORTANT:** Whenever you re-run `nyxora setup` or manually edit the config files, you **must restart the daemon** by running `nyxora restart` for the changes to take effect.
-
-### Local Development (From Source)
-If you wish to modify the code or run from source, you can use the Monorepo architecture.
+Nyxora operates on a Monorepo architecture. To run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
 ```bash
 git clone https://github.com/nyxoraAI/Nyxora.git
@@ -164,7 +115,9 @@ npm run setup
 # 4. Start the Application
 npm start
 ```
+
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
+
 > **⚠️ IMPORTANT:** Whenever you re-run `npm run setup` or manually edit the config files, you **must restart the dev server** for the changes to take effect.
 
 ---

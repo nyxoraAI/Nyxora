@@ -29,6 +29,8 @@ export default defineConfig({
         text: 'Developer & Architecture',
         items: [
           { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
+          { text: '🧩 Creating Custom Plugins', link: '/guide/custom-plugins' },
+          { text: '🧩 Custom DeFi Providers', link: '/guide/custom-defi-providers' },
           { text: '🌉 Cross-Chain Routing', link: '/guide/bridge-routing' },
           { text: '📁 Codebase Structure', link: '/guide/structure' },
           { text: '🔌 MCP Integration Guide', link: '/guide/mcp-integration' },

@@ -1,4 +1,5 @@
 import { safeFetchJson } from '../../utils/httpClient';
+import { loadMarketKeys } from '../../config/marketConfigManager';
 
 export const getPriceToolDefinition = {
   type: "function",
@@ -24,9 +25,15 @@ export const getPriceToolDefinition = {
 
 export async function getPrice(coinId: string, currency: string = 'usd'): Promise<string> {
   try {
+    const keys = loadMarketKeys();
+    const isPro = !!keys.coingecko_key;
+    const baseUrl = isPro ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
+    const headers = isPro ? { 'x-cg-pro-api-key': keys.coingecko_key } : undefined;
+
     const cur = String(currency || "").toLowerCase();
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${cur}&include_24hr_change=true`;
-    const data = await safeFetchJson<any>(url);
+    const url = `${baseUrl}/simple/price?ids=${coinId}&vs_currencies=${cur}&include_24hr_change=true`;
+    
+    const data = await safeFetchJson<any>(url, { headers });
     
     if (!data[coinId]) {
       return `❌ Could not find price data for **${coinId.toUpperCase()}**. Please verify the coin name.`;

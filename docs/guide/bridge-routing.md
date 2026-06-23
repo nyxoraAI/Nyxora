@@ -4,23 +4,19 @@ Nyxora features a dual-engine architecture for handling cross-chain operations (
 
 ---
 
-## 🏎️ Mainnet Philosophy: Instant Liquidity
-When operating on Mainnet ecosystems (e.g., Ethereum L1 to Base L2), users expect instant finality. Therefore, Nyxora bypasses the Native L2 Bridges and delegates operations to **Meta-Aggregators**.
+## 🏎️ Extensible Routing Runtime (Meta-Aggregator v2)
+Nyxora uses an **Extensible DeFi Liquidity-Routing Runtime**. Instead of hardcoding API paths, Nyxora queries an Inversion-of-Control (IoC) registry (`AggregatorRegistry`). All registered providers (like 1inch, Li.Fi, Relay, KyberSwap, or Native Bridges) are evaluated in parallel using a **Hedged Fetching Engine** (`Promise.allSettled`). 
 
-### Aggregator Hierarchy
-For cross-chain requests on Mainnet, Nyxora simultaneously queries:
-1. **Li.Fi**
-2. **Relay Protocol**
-3. **KyberSwap**
+The `RouteScorer` normalizes all quotes into a `CanonicalRouteQuote` and automatically selects the absolute best path based on your `RoutePreference` (e.g., highest output or lowest gas), completely abstracting whether you are on Mainnet or Testnet.
 
-The aggregator returning the highest expected token output is selected.
+### Mainnet Philosophy: Instant Liquidity
+When operating on Mainnet ecosystems (e.g., Ethereum L1 to Base L2), users expect instant finality. Therefore, Nyxora utilizes registered Meta-Aggregators (like Li.Fi and Relay).
 * **The Benefit:** Users receive their cross-chain assets in seconds or minutes instead of waiting for the Optimistic Rollup 7-day challenge period. The aggregator's solvers provide the instant liquidity.
-* **Same-Chain Swaps:** For same-chain operations, Nyxora additionally includes **1inch** and **0x (Matcha)** in the race to find the absolute best swap rate.
 
 ---
 
-## 🛠️ Testnet Sandbox: Native OP Bridge & Autonomy
-Testnets (like Base Sepolia or OP Sepolia) often lack deep liquidity on third-party aggregators. To guarantee reliable testing environments, Nyxora falls back to the **Native OP Stack Bridge**.
+## 🛠️ Testnet Sandbox: Native Bridges
+Testnets (like Base Sepolia or OP Sepolia) often lack deep liquidity on third-party aggregators. To guarantee reliable testing environments, Nyxora automatically seamlessly routes these transactions through the injected **ArbitrumBridgeProvider** or **OpBridgeProvider**.
 
 ### How it Works
 When bridging from L1 (Sepolia) to L2 (OP Sepolia):

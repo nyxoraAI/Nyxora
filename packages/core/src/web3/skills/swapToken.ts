@@ -50,14 +50,14 @@ export async function prepareSwapToken(
       amount: amountStr,
       fromAddress: fromTokenAddress,
       toAddress: toTokenAddress,
-      expectedOutput: route.expectedOutput,
+      expectedOutput: route.outputAmount.toString(),
       provider: route.provider,
-      gasCostUsd: route.gasCostUsd,
-      txData: route.txPayload,
-      rawQuote: route.rawQuote
+      gasCostUsd: route.estimatedGasUsd || 0,
+      txData: route.execution,
+      rawQuote: route.raw
     });
 
-    return `⏳ **Swap queued:** ${amountStr} ${fromToken} ➡️ ${route.expectedOutput} ${toToken} | ${chainName.toUpperCase()} | Via ${route.provider} | Approve below.`;
+    return `⏳ **Swap queued:** ${amountStr} ${fromToken} ➡️ ${route.outputAmount.toString()} ${toToken} | ${chainName.toUpperCase()} | Via ${route.provider} | Approve below.`;
   } catch (error: any) {
     return `Failed to prepare swap: ${error.message}`;
   }

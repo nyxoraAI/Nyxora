@@ -1,6 +1,6 @@
 import { ChainName } from '../config';
-import { fetchMainnetBestRoute, RouteQuote } from './aggregatorMainnet';
-import { fetchTestnetBestRoute } from './aggregatorTestnet';
+import { fetchBestRoute } from './routeSelector';
+import { QuoteRequest, CanonicalRouteQuote } from './types';
 
 export async function routeTransaction(
   fromChain: string,
@@ -10,7 +10,7 @@ export async function routeTransaction(
   amountInWei: string,
   userAddress: string,
   slippageTolerance: number | "auto" = "auto"
-): Promise<RouteQuote> {
+): Promise<CanonicalRouteQuote> {
   fromChain = String(fromChain || "");
   toChain = String(toChain || "");
 
@@ -31,14 +31,16 @@ export async function routeTransaction(
     else if (fromChain === 'ethereum') fromChain = 'sepolia';
   }
 
-  // Heuristic: If either chain is a testnet, route the entire transaction to the Testnet Aggregator
-  const isTestnet = fromChain.includes('sepolia') || toChain.includes('sepolia');
+  const request: QuoteRequest = {
+    fromChain,
+    toChain,
+    fromToken,
+    toToken,
+    amountInWei,
+    userAddress,
+    slippageTolerance
+  };
 
-  if (isTestnet) {
-    console.log(`[DeFi Router] Testnet detected. Routing to Testnet Aggregator (Relay, LayerZero, Arbitrum).`);
-    return await fetchTestnetBestRoute(fromChain as ChainName, toChain as ChainName, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
-  } else {
-    console.log(`[DeFi Router] Mainnet detected. Routing to Meta-Aggregator.`);
-    return await fetchMainnetBestRoute(fromChain as ChainName, toChain as ChainName, fromToken, toToken, amountInWei, userAddress, slippageTolerance);
-  }
+  console.log(`[DeFi Router] Routing transaction via Extensible Provider Runtime...`);
+  return await fetchBestRoute(request, "best_output");
 }

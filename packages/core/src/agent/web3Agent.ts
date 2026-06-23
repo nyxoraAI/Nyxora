@@ -5,40 +5,13 @@ import { loadConfig, loadApiKeys } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
-import { getBalanceToolDefinition, getBalance } from '../web3/skills/getBalance';
-import { transferToolDefinition, prepareTransfer } from '../web3/skills/transfer';
-import { getPriceToolDefinition, getPrice } from '../web3/skills/getPrice';
-import { swapTokenToolDefinition, prepareSwapToken } from '../web3/skills/swapToken';
-import { bridgeTokenToolDefinition, prepareBridgeToken } from '../web3/skills/bridgeToken';
 import { isSkillActive } from '../utils/skillManager';
-import { mintNftToolDefinition, prepareMintNft } from '../web3/skills/mintNft';
-import { customTxToolDefinition, prepareCustomTx } from '../web3/skills/customTx';
-
-import { checkSecurityToolDefinition, checkTokenSecurity } from '../web3/skills/checkSecurity';
-import { marketAnalysisToolDefinition, analyzeMarket } from '../web3/skills/marketAnalysis';
-import { createMarketWatchAgentToolDefinition, createMarketWatchAgent } from '../web3/skills/createMarketWatchAgent';
-import { checkPortfolioToolDefinition, checkPortfolio } from '../web3/skills/checkPortfolio';
-import { checkAddressToolDefinition, checkAddress } from '../web3/skills/checkAddress';
-import { getMyAddressToolDefinition, getMyAddress } from '../web3/skills/getMyAddress';
-import { manageCustomTokensDefinition, executeManageCustomTokens } from '../web3/skills/manageCustomTokens';
-import { revokeApprovalToolDefinition, prepareRevokeApproval } from '../web3/skills/revokeApprovals';
-import { aaveSupplyToolDefinition, prepareAaveSupply } from '../web3/skills/defiLending';
-import { vaultDepositToolDefinition, prepareVaultDeposit } from '../web3/skills/yieldVault';
-import { provideLiquidityToolDefinition, prepareProvideLiquidity } from '../web3/skills/provideLiquidity';
-import { getTxHistoryToolDefinition, getTxHistory } from '../web3/skills/getTxHistory';
-import { createLimitOrderToolDefinition, createLimitOrder } from '../web3/skills/createLimitOrder';
-import { checkRegistryStatusToolDefinition, checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
-import { browseWebsiteToolDefinition, browseWebsite } from '../system/skills/browseWeb';
-import { searchWebToolDefinition, searchWeb } from '../system/skills/searchWeb';
-
-
+import { pluginManager } from '../plugin/registry';
 
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
 
 export const logger = new Logger();
-
-
 
 const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
   ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
@@ -164,19 +137,10 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
   const history = logger.getHistory(sessionId);
   
   // Format messages for OpenAI
-  let tools: any[] = [];
-  if (isSkillActive('web3')) {
-    tools.push(
-      getBalanceToolDefinition, transferToolDefinition, getPriceToolDefinition, swapTokenToolDefinition,
-      bridgeTokenToolDefinition, mintNftToolDefinition, customTxToolDefinition, checkSecurityToolDefinition,
-      marketAnalysisToolDefinition, createMarketWatchAgentToolDefinition, checkPortfolioToolDefinition,
-      checkAddressToolDefinition, getMyAddressToolDefinition, manageCustomTokensDefinition,
-      revokeApprovalToolDefinition, aaveSupplyToolDefinition, vaultDepositToolDefinition,
-      provideLiquidityToolDefinition, getTxHistoryToolDefinition, createLimitOrderToolDefinition,
-      checkRegistryStatusToolDefinition
-    );
-  }
-  let activeTools = [...tools, browseWebsiteToolDefinition, searchWebToolDefinition];
+  // Inject Plugin Tools dynamically
+  const pluginTools = pluginManager.getAllToolDefinitions();
+  
+  let activeTools = [...pluginTools];
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
   const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
@@ -264,136 +228,12 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         }
 
         try {
-          switch (toolName) {
-            case 'get_balance': {
-              result = await getBalance(args.chainName, args.address, args.token);
-              break;
-            }
-            case 'transfer_token':
-            case 'transfer_native': {
-              result = await prepareTransfer(args.chainName, args.toAddress, args.amountStr || args.amountEth, args.token);
-              break;
-            }
-            case 'get_price': {
-              result = await getPrice(args.coinId, args.currency);
-              break;
-            }
-            case 'swap_token': {
-              result = await prepareSwapToken(args.chainName, args.fromToken, args.toToken, args.amountStr || args.amount, args.mode, args.providerName);
-              break;
-            }
-            case 'bridge_token': {
-              result = await prepareBridgeToken(args.fromChain, args.toChain, args.tokenSymbol, args.amountStr, args.mode, args.providerName);
-              break;
-            }
-            case 'mint_nft': {
-              result = await prepareMintNft(args.chainName, args.contractAddress, args.functionSignature, args.argsStr, args.valueEth);
-              break;
-            }
-            case 'custom_tx': {
-              result = await prepareCustomTx(args.chainName, args.toAddress, args.dataHex, args.valueEth, args.gasLimitStr);
-              break;
-            }
-            case 'check_token_security': {
-              result = await checkTokenSecurity(args.chainName, args.contractAddress);
-              break;
-            }
-            case 'analyze_market': {
-              result = await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
-              break;
-            }
-            case 'create_market_watch_agent': {
-              result = await createMarketWatchAgent(args.chainName, args.contractAddress, args.rules, args.durationDays);
-              break;
-            }
-            case 'check_portfolio': {
-              result = await checkPortfolio(args.chainName, args.address);
-              break;
-            }
-            case 'check_address': {
-              result = await checkAddress(args.chainName, args.address);
-              break;
-            }
-            case 'get_my_address': {
-              result = await getMyAddress();
-              break;
-            }
-            case 'manage_custom_tokens': {
-              result = await executeManageCustomTokens(args);
-              break;
-            }
-            case 'revoke_approval': {
-              result = await prepareRevokeApproval(
-                args.chainName,
-                args.tokenAddressOrSymbol,
-                args.spenderAddress
-              );
-              break;
-            }
-            case 'supply_aave': {
-              result = await prepareAaveSupply(
-                args.chainName,
-                args.tokenAddressOrSymbol,
-                args.amountStr
-              );
-              break;
-            }
-            case 'deposit_yield_vault': {
-              result = await prepareVaultDeposit(
-                args.chainName,
-                args.protocol || 'beefy',
-                args.vaultAddress,
-                args.tokenAddressOrSymbol,
-                args.amountStr
-              );
-              break;
-            }
-            case 'provide_liquidity_v3': {
-              result = await prepareProvideLiquidity(
-                args.chainName,
-                args.token0AddressOrSymbol,
-                args.token1AddressOrSymbol,
-                args.amount0Str,
-                args.amount1Str,
-                args.feeTier,
-                args.tickLower,
-                args.tickUpper
-              );
-              break;
-            }
-            case 'get_tx_history': {
-              result = await getTxHistory(args.chainName, args.address, args.days);
-              break;
-            }
-            case 'check_registry_status': {
-              const registryResult = await checkRegistryStatus();
-              result = JSON.stringify(registryResult);
-              break;
-            }
-            case 'create_limit_order': {
-              result = await createLimitOrder(
-                args.tokenSymbol,
-                args.tokenAddress,
-                args.triggerCondition as any,
-                args.triggerPriceUsd,
-                args.action as any,
-                args.amountUsd,
-                args.slippageTolerance
-              );
-              break;
-            }
-            case 'browse_website': {
-              result = await browseWebsite(args.url);
-              break;
-            }
-            case 'search_web': {
-              result = await searchWeb(args.query, args.depth);
-              break;
-            }
-            default: {
-              result = `Error: Tool ${toolName} is not implemented.`;
-              break;
-            }
+          // 1. Execute via PluginManager
+          const pluginResult = await pluginManager.executeTool(toolName, args, { sessionId });
+          if (pluginResult !== null) {
+            result = pluginResult;
+          } else {
+            result = `Error: Tool ${toolName} is not implemented.`;
           }
 
           if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {

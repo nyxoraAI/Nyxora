@@ -6,6 +6,7 @@ import Settings from './Settings';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
 import { DefiKeys } from './DefiKeys';
+import { MarketOracles } from './MarketOracles';
 import SearchChat from './SearchChat';
 import RpcConfig from './RpcConfig';
 import { Portfolio } from './Portfolio';
@@ -32,7 +33,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'rpcconfig' | 'search'>(() => {
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search'>(() => {
     return (localStorage.getItem('nyxora_current_view') as any) || 'chat';
   });
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
@@ -580,6 +581,13 @@ function App() {
               <Key size={15} className="nav-icon" /> <span className="nav-label">DeFi Configuration</span>
             </div>
             <div 
+              className={`nav-item ${currentView === 'marketoracles' ? 'active' : ''}`}
+              onClick={() => setCurrentView('marketoracles')}
+              title={isSidebarCollapsed ? "Market Oracles" : undefined}
+            >
+              <Database size={15} className="nav-icon" /> <span className="nav-label">Market Oracles</span>
+            </div>
+            <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
               title={isSidebarCollapsed ? "Settings" : undefined}
@@ -628,6 +636,7 @@ function App() {
               {currentView === 'search' ? 'Search Chat' :
                currentView === 'osskills' ? 'OS Skills' : 
                currentView === 'defikeys' ? 'DeFi Configuration' : 
+               currentView === 'marketoracles' ? 'Market Oracles' : 
                currentView === 'rpcconfig' ? 'RPC Configuration' : 
                currentView === 'skills' ? 'Web3 Skills' : 
                currentView}
@@ -686,6 +695,8 @@ function App() {
           <RpcConfig />
         ) : currentView === 'defikeys' ? (
           <DefiKeys />
+        ) : currentView === 'marketoracles' ? (
+          <MarketOracles />
         ) : (
           <div className="workspace-container">
             <div className="chat-wrapper" style={{ width: '100%', margin: '0 auto', maxWidth: '1000px' }}>
