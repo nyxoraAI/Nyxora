@@ -54,7 +54,10 @@ export const getRouterLogoUrl = (router: string) => {
     case 'lifi_key': return '/routers/lifi.png';
     case 'relay':
     case 'relay_key': return '/routers/relay.png';
-    case 'cmc_key': return '/routers/cmc.png';
+    case 'cmc_key':
+    case 'cmc_pro_key': return '/routers/cmc.png';
+    case 'coingecko_key':
+    case 'coingecko_pro_key': return '/routers/coingecko.png';
     case 'zerion_key': return '/routers/zerion.png';
     case 'auto': return ''; // Handled by NyxoraLogo
     default: return '';
