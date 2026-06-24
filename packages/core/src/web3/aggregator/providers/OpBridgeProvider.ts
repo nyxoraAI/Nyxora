@@ -32,8 +32,17 @@ export class OpBridgeProvider implements DefiAggregatorProvider {
   }
 
   public async getQuote(request: QuoteRequest, context: ProviderExecutionContext): Promise<CanonicalRouteQuote> {
-    // Official OP Stack L1 Standard Bridge on Sepolia
-    const bridgeAddress = '0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1'; 
+    // Each OP Stack L2 has its OWN L1StandardBridgeProxy on Sepolia L1
+    // Using the wrong address sends ETH to the wrong contract = loss of funds
+    const BRIDGE_ADDRESSES: Record<string, string> = {
+      optimism_sepolia: '0xFBb0621E0B23b5478B630BD55a5f21f67730B0F1', // Confirmed: OP Sepolia L1StandardBridgeProxy
+      base_sepolia:     '0xfd0Bf71F60660E2f608ed56e1659C450eB113120', // Confirmed: Base Sepolia L1StandardBridgeProxy
+    };
+    
+    const bridgeAddress = BRIDGE_ADDRESSES[request.toChain];
+    if (!bridgeAddress) {
+      throw new Error(`[OpBridgeProvider] No bridge address configured for destination chain: ${request.toChain}`);
+    }
     
     // ABI for depositETH
     const depositEthAbi = parseAbi([

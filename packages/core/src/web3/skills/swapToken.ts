@@ -29,8 +29,17 @@ export async function prepareSwapToken(
       await saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
     }
 
-    // Default to 18 decimals for formatting input, though Aggregator handles this if we pass raw
-    const amountWei = parseUnits(amountStr, 18).toString(); 
+    // Fetch actual token decimals on-chain to prevent overflow (BUG #1 Fix)
+    let decimals = 18;
+    if (!isNativeIn) {
+      const { getTokenMetadata } = await import('../utils/tokens');
+      const { getPublicClient } = await import('../utils/rpcEngine');
+      const client = getPublicClient(chainName);
+      const meta = await getTokenMetadata(client, fromTokenAddress);
+      decimals = meta.decimals;
+    }
+
+    const amountWei = parseUnits(amountStr, decimals).toString();
 
     const slippage = slippagePercent || "auto";
 
@@ -39,9 +48,11 @@ export async function prepareSwapToken(
       chainName, 
       fromTokenAddress, 
       toTokenAddress, 
-      amountWei, 
+      amountWei,
+      amountStr,
       userAddress, 
-      slippage
+      slippage,
+      providerName // BUG #5 Fix: Pass providerName down to router
     );
 
     const tx = txManager.createPendingTransaction('swap', chainName, {
@@ -54,7 +65,8 @@ export async function prepareSwapToken(
       provider: route.provider,
       gasCostUsd: route.estimatedGasUsd || 0,
       txData: route.execution,
-      rawQuote: route.raw
+      rawQuote: route.raw,
+      expiresAt: route.expiresAt
     });
 
     return `⏳ **Swap queued:** ${amountStr} ${fromToken} ➡️ ${route.outputAmount.toString()} ${toToken} | ${chainName.toUpperCase()} | Via ${route.provider} | Approve below.`;

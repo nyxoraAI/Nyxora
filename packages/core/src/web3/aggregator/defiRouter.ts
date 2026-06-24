@@ -8,8 +8,10 @@ export async function routeTransaction(
   fromToken: string,
   toToken: string,
   amountInWei: string,
+  amountFormatted: string | undefined,
   userAddress: string,
-  slippageTolerance: number | "auto" = "auto"
+  slippageTolerance: number | "auto" = "auto",
+  providerName?: string
 ): Promise<CanonicalRouteQuote> {
   fromChain = String(fromChain || "");
   toChain = String(toChain || "");
@@ -37,8 +39,10 @@ export async function routeTransaction(
     fromToken,
     toToken,
     amountInWei,
+    amountFormatted,
     userAddress,
-    slippageTolerance
+    slippageTolerance,
+    preferredProvider: providerName && providerName !== "auto" ? providerName : undefined
   };
 
   console.log(`[DeFi Router] Routing transaction via Extensible Provider Runtime...`);

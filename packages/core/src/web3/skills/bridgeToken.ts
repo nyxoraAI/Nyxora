@@ -39,7 +39,19 @@ export async function prepareBridgeToken(
     const fromTokenAddress = resolveToken(tokenSymbol, fromChain);
     const toTokenAddress = resolveToken(tokenSymbol, toChain);
     
-    const amountWei = parseUnits(amountStr, 18).toString(); 
+    const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000" || fromTokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    
+    // Fetch actual token decimals on-chain to prevent overflow (BUG #1 Fix)
+    let decimals = 18;
+    if (!isNativeIn) {
+      const { getTokenMetadata } = await import('../utils/tokens');
+      const { getPublicClient } = await import('../utils/rpcEngine');
+      const client = getPublicClient(fromChain);
+      const meta = await getTokenMetadata(client, fromTokenAddress);
+      decimals = meta.decimals;
+    }
+
+    const amountWei = parseUnits(amountStr, decimals).toString(); 
     const slippage = slippagePercent || "auto"; 
 
     const route = await routeTransaction(
@@ -47,9 +59,11 @@ export async function prepareBridgeToken(
       toChain, 
       fromTokenAddress, 
       toTokenAddress, 
-      amountWei, 
+      amountWei,
+      amountStr,
       userAddress, 
-      slippage
+      slippage,
+      providerName
     );
 
     const tx = txManager.createPendingTransaction('bridge', fromChain, {
@@ -63,7 +77,8 @@ export async function prepareBridgeToken(
       provider: route.provider,
       gasCostUsd: route.estimatedGasUsd || 0,
       txData: route.execution,
-      rawQuote: route.raw
+      rawQuote: route.raw,
+      expiresAt: route.expiresAt
     });
 
     return `⏳ **Bridge queued:** ${amountStr} ${tokenSymbol} | ${fromChain.toUpperCase()} ➡️ ${toChain.toUpperCase()} | Via ${route.provider} | Approve below.`;

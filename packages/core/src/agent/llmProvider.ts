@@ -23,6 +23,9 @@ export interface NormalizedChatResponse {
       };
     }[];
   };
+  usage?: {
+    total_tokens: number;
+  };
 }
 
 export interface LLMProvider {
@@ -38,7 +41,8 @@ export class OpenAIAdapter implements LLMProvider {
       message: {
         content: response.choices[0].message.content,
         tool_calls: response.choices[0].message.tool_calls as any
-      }
+      },
+      usage: response.usage ? { total_tokens: response.usage.total_tokens } : undefined
     };
   }
 }
@@ -146,7 +150,8 @@ export class AnthropicAdapter implements LLMProvider {
       message: {
         content: contentStr,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined
-      }
+      },
+      usage: response.usage ? { total_tokens: response.usage.input_tokens + response.usage.output_tokens } : undefined
     };
   }
 }
@@ -283,11 +288,17 @@ export class GeminiAdapter implements LLMProvider {
       }
     }
 
+    let totalTokens = 0;
+    if (data.usageMetadata && data.usageMetadata.totalTokenCount) {
+      totalTokens = data.usageMetadata.totalTokenCount;
+    }
+
     return {
       message: {
         content: contentStr,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined
-      }
+      },
+      usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
     };
   }
 }

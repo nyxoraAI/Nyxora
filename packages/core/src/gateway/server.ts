@@ -207,7 +207,7 @@ app.post('/api/upload-google-credentials', (req, res) => {
 app.get('/api/history', (req, res) => {
   try {
     const sessionId = req.query.session_id as string | undefined;
-    const history = logger.getHistory(sessionId);
+    const history = logger.getHistory(sessionId, 1000);
     // Filter out internal system prompt for the frontend
     const cleanHistory = history.filter((msg: any) => msg.role !== 'system');
     res.json(cleanHistory);

@@ -40,8 +40,10 @@ export interface QuoteRequest {
   fromToken: string;
   toToken: string;
   amountInWei: string;
+  amountFormatted?: string;
   userAddress: string;
   slippageTolerance: number | "auto";
+  preferredProvider?: string;
 }
 
 export interface ProviderExecutionContext {
@@ -70,6 +72,7 @@ export interface CanonicalRouteQuote {
 
   expiresAt: number;
   executable: boolean;
+  approvalAddress?: string;
 
   execution: {
     target: string;

@@ -40,17 +40,29 @@ export async function safeFetch(url: string | URL, options: HttpClientOptions = 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
 
+    const externalSignal = fetchOptions.signal as AbortSignal | undefined;
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+      if (externalSignal.aborted) controller.abort();
+      else externalSignal.addEventListener('abort', onExternalAbort);
+    }
+
+    const cleanup = () => {
+      clearTimeout(id);
+      if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
+    };
+
     try {
       const res = await fetch(url, {
         ...fetchOptions,
         headers: finalHeaders,
         signal: controller.signal
       });
-      clearTimeout(id);
+      cleanup();
 
       // Handle Rate Limits specifically with a forced retry if attempts remain
       if (res.status === 429) {
-        if (attempt < retries) {
+        if (attempt < retries && !controller.signal.aborted) {
           // Coingecko and others often need longer backoff, exponentially increase
           await delay(retryDelayMs * (attempt + 1) * 2);
           continue;
@@ -60,7 +72,7 @@ export async function safeFetch(url: string | URL, options: HttpClientOptions = 
 
       // Handle Server Errors with retry
       if (res.status >= 500) {
-        if (attempt < retries) {
+        if (attempt < retries && !controller.signal.aborted) {
           await delay(retryDelayMs * (attempt + 1));
           continue;
         }
@@ -70,8 +82,13 @@ export async function safeFetch(url: string | URL, options: HttpClientOptions = 
       return res;
 
     } catch (error: any) {
-      clearTimeout(id);
+      cleanup();
       lastError = error;
+
+      // Do not retry if the external aggregator specifically aborted us
+      if (externalSignal && externalSignal.aborted) {
+        throw new HttpError(499, 'Client Closed Request', '');
+      }
 
       // AbortError is a timeout
       if (error.name === 'AbortError') {
@@ -83,7 +100,7 @@ export async function safeFetch(url: string | URL, options: HttpClientOptions = 
       }
 
       // Network errors (like fetch failed)
-      if (attempt < retries) {
+      if (attempt < retries && !controller.signal.aborted) {
         await delay(retryDelayMs * (attempt + 1));
         continue;
       }

@@ -61,6 +61,13 @@ export async function getAddress(): Promise<string> {
 
 export async function submitTransaction(txPayload: any): Promise<string> {
   const token = getInternalToken();
+  if (txPayload.details) {
+    const expiresAt = txPayload.details.expiresAt || txPayload.details.rawQuote?.expiresAt;
+    if (expiresAt && Date.now() > expiresAt) {
+      throw new Error(`Quote Kadaluarsa. Harga pasar mungkin telah berubah. Silakan minta agen untuk membuat quote swap/bridge baru.`);
+    }
+  }
+
   if (txPayload.autoApprove) {
     txPayload.details = txPayload.details || {};
     // ROOT FIX: Paksa amountWei selalu ada di payload agar Policy Engine tidak salah baca

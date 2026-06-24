@@ -37,7 +37,7 @@ export class KyberSwapProvider implements DefiAggregatorProvider {
     
     // Phase 1: Route
     const routeUrl = `https://aggregator-api.kyberswap.com/${chainName}/api/v1/routes?tokenIn=${request.fromToken}&tokenOut=${request.toToken}&amountIn=${request.amountInWei}`;
-    const routeRes = await safeFetch(routeUrl, { signal: context.abortSignal });
+    const routeRes = await safeFetch(routeUrl, { signal: context.abortSignal, retries: 0 });
     if (!routeRes.ok) throw new Error(`KyberSwap Route Error: ${await routeRes.text()}`);
     const routeData = await routeRes.json();
     
@@ -55,13 +55,18 @@ export class KyberSwapProvider implements DefiAggregatorProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildPayload),
-      signal: context.abortSignal
+      signal: context.abortSignal,
+      retries: 0
     });
     if (!buildRes.ok) throw new Error(`KyberSwap Build Error: ${await buildRes.text()}`);
     const buildData = await buildRes.json();
 
-    const isNative = request.fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
-                     request.fromToken === '0x0000000000000000000000000000000000000000';
+    // KyberSwap returns calldata in 'data' field, and router address in 'routerAddress'
+    if (!buildData.data || !buildData.data.routerAddress || !buildData.data.data) {
+      throw new Error(`KyberSwap build response missing required fields (routerAddress or data). Got: ${JSON.stringify(Object.keys(buildData.data || {}))}`);
+    }
+
+    const isNative = request.fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
     return {
       provider: this.manifest.name,

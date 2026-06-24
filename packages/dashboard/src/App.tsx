@@ -25,6 +25,7 @@ interface Message {
   content: string;
   name?: string;
   tool_calls?: any[];
+  isOptimistic?: boolean;
 }
 
 interface Config {
@@ -256,7 +257,16 @@ function App() {
       const res = await apiFetch(url);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data);
+        setMessages(prev => {
+          const optimisticMsgs = prev.filter(m => m.isOptimistic);
+          if (optimisticMsgs.length > 0) {
+            const missingOptimistic = optimisticMsgs.filter(opt => !data.some((d: any) => d.role === 'user' && d.content === opt.content));
+            if (missingOptimistic.length > 0) {
+              return [...data, ...missingOptimistic];
+            }
+          }
+          return data;
+        });
       }
     } catch (err) {
       console.warn('Backend not ready, retrying history fetch in 2s...');
@@ -405,7 +415,7 @@ function App() {
       }
     }
 
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setMessages(prev => [...prev, { role: 'user', content: userMsg, isOptimistic: true }]);
 
     try {
       const res = await apiFetch(`/api/chat`, {

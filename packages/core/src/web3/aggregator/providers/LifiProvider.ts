@@ -43,18 +43,32 @@ export class LifiProvider implements DefiAggregatorProvider {
   public async getQuote(request: QuoteRequest, context: ProviderExecutionContext): Promise<CanonicalRouteQuote> {
     const key = context.apiKeys['lifi_key'];
     const slipParam = request.slippageTolerance === "auto" ? 0.005 : (request.slippageTolerance as number / 100);
-    const url = `https://li.quest/v1/quote?fromChain=${request.fromChain}&toChain=${request.toChain}&fromToken=${request.fromToken}&toToken=${request.toToken}&fromAmount=${request.amountInWei}&fromAddress=${request.userAddress}&slippage=${slipParam}`;
+    const fromChainId = CHAIN_IDS[request.fromChain];
+    const toChainId = CHAIN_IDS[request.toChain];
+    const url = `https://li.quest/v1/quote?fromChain=${fromChainId}&toChain=${toChainId}&fromToken=${request.fromToken}&toToken=${request.toToken}&fromAmount=${request.amountInWei}&fromAddress=${request.userAddress}&slippage=${slipParam}`;
 
     const headers: any = {};
     if (key) headers['x-lifi-api-key'] = key;
 
     const res = await safeFetch(url, {
       headers,
-      signal: context.abortSignal
+      signal: context.abortSignal,
+      retries: 0
     });
 
     if (!res.ok) throw new Error(`LI.FI API Error: ${await res.text()}`);
     const data = await res.json();
+
+    // LiFi can return HTTP 200 with an 'errors' array if a tool fails
+    if (data.errors && data.errors.length > 0) {
+      const err = data.errors[0];
+      throw new Error(`LI.FI route error (${err.code || 'UNKNOWN'}): ${err.message}`);
+    }
+
+    // transactionRequest may be null if LiFi found no executable route
+    if (!data.transactionRequest || !data.transactionRequest.to) {
+      throw new Error(`[LifiProvider] No valid transactionRequest returned — no executable route found`);
+    }
 
     return {
       provider: this.manifest.name,

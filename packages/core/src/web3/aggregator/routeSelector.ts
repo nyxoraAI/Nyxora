@@ -3,10 +3,9 @@ import { quoteValidator } from './quoteValidator';
 import { routeScorer, RoutePreference } from './routeScorer';
 import { QuoteRequest, CanonicalRouteQuote, ProviderExecutionContext } from './types';
 import { loadDefiKeys } from '../../config/defiConfigManager';
+import { healthService } from './providerHealthService';
 import crypto from 'crypto';
-
-const PROVIDER_TIMEOUT_MS = 4000;
-
+// Dynamic timeout implemented inside fetchBestRoute
 function withTimeout<T>(promise: Promise<T>, ms: number, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Provider timeout')), ms);
@@ -39,7 +38,12 @@ export async function fetchBestRoute(
   preference: RoutePreference = "best_output"
 ): Promise<CanonicalRouteQuote> {
   // 1. Resolve eligible providers
-  const eligibleProviders = aggregatorRegistry.resolveEligibleProviders(request);
+  let eligibleProviders = aggregatorRegistry.resolveEligibleProviders(request);
+  
+  if (request.preferredProvider && request.preferredProvider !== "auto") {
+    eligibleProviders = eligibleProviders.filter(p => p.manifest.id === request.preferredProvider);
+  }
+
   if (eligibleProviders.length === 0) {
     throw new Error('[RouteSelector] No eligible providers found for this route.');
   }
@@ -53,9 +57,12 @@ export async function fetchBestRoute(
     apiKeys: keys
   };
 
-  // 3. Parallel fetch with timeout
+  // 3. Parallel fetch with adaptive timeout
+  // Same-chain swaps are fast, but cross-chain bridges (Relay, LiFi) need more time to calculate routes
+  const timeoutMs = request.fromChain === request.toChain ? 4000 : 8000;
+
   const promises = eligibleProviders.map(provider => 
-    withTimeout(provider.getQuote(request, context), PROVIDER_TIMEOUT_MS, controller.signal)
+    withTimeout(provider.getQuote(request, context), timeoutMs, controller.signal)
       .then(quote => {
         // Validate immediately after receiving
         const error = quoteValidator.validate(quote, request);
@@ -68,24 +75,30 @@ export async function fetchBestRoute(
 
   const settled = await Promise.allSettled(promises);
 
-  // 4. Collect fulfilled quotes
-  const quotes = settled
-    .filter((result): result is PromiseFulfilledResult<CanonicalRouteQuote> => result.status === 'fulfilled')
-    .map(result => result.value);
+  // 4. Collect fulfilled quotes and record health
+  const quotes: CanonicalRouteQuote[] = [];
+  
+  settled.forEach((result, i) => {
+    const providerId = eligibleProviders[i].manifest.id;
+    if (result.status === 'fulfilled') {
+      quotes.push(result.value);
+      healthService.recordSuccess(providerId);
+    } else {
+      console.warn(`[RouteSelector] Provider ${eligibleProviders[i].manifest.name} failed:`, result.reason);
+      healthService.recordFailure(providerId, result.reason?.message || "Unknown error");
+    }
+  });
 
   if (quotes.length === 0) {
-    // Log reasons for failure
-    settled.forEach((res, i) => {
-      if (res.status === 'rejected') {
-        console.warn(`[RouteSelector] Provider ${eligibleProviders[i].manifest.name} failed:`, res.reason);
-      }
-    });
     throw new Error('[RouteSelector] All providers failed or timed out. No route found.');
   }
 
   // 5. Score and select best
   const bestQuote = routeScorer.selectBest(quotes, request, preference);
   
+  // Abort any slow providers still running in background
+  controller.abort();
+
   if (!bestQuote) {
     throw new Error('[RouteSelector] Failed to score quotes. No route found.');
   }

@@ -186,28 +186,28 @@ export class Logger {
     this.db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(newTitle, sessionId);
   }
 
-  public getHistory(sessionId?: string): MemoryEntry[] {
+  public getHistory(sessionId?: string, limit: number = 40): MemoryEntry[] {
     let rows;
     // Phase 2: Sliding Window Algorithm (LLM Context Limit)
-    // Fetch only the last 40 messages, then order them chronologically
+    // Fetch only the last X messages, then order them chronologically
     if (sessionId) {
       rows = this.db.prepare(`
         SELECT * FROM (
           SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
           WHERE session_id = ? 
-          ORDER BY id DESC LIMIT 40
+          ORDER BY id DESC LIMIT ?
         ) ORDER BY id ASC
-      `).all(sessionId);
+      `).all(sessionId, limit);
     } else {
       rows = this.db.prepare(`
         SELECT * FROM (
           SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
           WHERE session_id IS NULL
-          ORDER BY id DESC LIMIT 40
+          ORDER BY id DESC LIMIT ?
         ) ORDER BY id ASC
-      `).all();
+      `).all(limit);
     }
     
     return rows.map((row: any) => {

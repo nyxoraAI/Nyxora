@@ -50,12 +50,13 @@ export class OneInchProvider implements DefiAggregatorProvider {
 
     const chainId = CHAIN_IDS[request.fromChain];
     const slippage = request.slippageTolerance === "auto" ? "0.5" : request.slippageTolerance.toString();
-    
+    // Re-added &disableEstimate=true to prevent 1inch API from returning 400 Bad Request on unapproved tokens
     const url = `https://api.1inch.dev/swap/v6.0/${chainId}/swap?src=${request.fromToken}&dst=${request.toToken}&amount=${request.amountInWei}&from=${request.userAddress}&slippage=${slippage}&disableEstimate=true`;
 
     const res = await safeFetch(url, {
       headers: { 'Authorization': `Bearer ${key}` },
-      signal: context.abortSignal
+      signal: context.abortSignal,
+      retries: 0
     });
 
     if (!res.ok) {

@@ -65,7 +65,13 @@ export class AggregatorRegistry {
       return;
     }
 
-    const files = fs.readdirSync(providersDir).filter(f => f.endsWith('.ts') || f.endsWith('.js'));
+    const isCompiled = __dirname.includes('dist') || __dirname.includes('build') || process.env.NODE_ENV === 'production';
+    const files = fs.readdirSync(providersDir).filter(f => {
+      if (f.endsWith('.d.ts')) return false;
+      if (isCompiled) return f.endsWith('.js');
+      return f.endsWith('.ts') || f.endsWith('.js');
+    });
+    
     for (const file of files) {
       const fullPath = path.join(providersDir, file);
       try {

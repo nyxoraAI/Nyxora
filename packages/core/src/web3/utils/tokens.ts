@@ -57,58 +57,58 @@ export const ERC20_ABI = [
 
 export const TOKEN_MAP: Record<ChainName, Record<string, `0x${string}`>> = {
   ethereum: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
   },
   arbitrum: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WETH: "0x82aF49447D8a07e3bd95BD0d56f352415231c111",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     "USDC.E": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
     USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"
   },
   base: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WETH: "0x4200000000000000000000000000000000000006",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     USDT: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
   },
   optimism: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WETH: "0x4200000000000000000000000000000000000006",
     USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     USDT: "0x94b008aA00579c1307b0EF2c499aD98a8ce58e58"
   },
   bsc: {
-    BNB: "0x0000000000000000000000000000000000000000",
+    BNB: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WBNB: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32CD580d",
     USDT: "0x55d398326f99059fF775485246999027B3197955"
   },
   sepolia: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WETH: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
     USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // Circle Faucet Sepolia USDC
     USDT: "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0"  // Common Sepolia USDT
   },
   polygon: {
-    MATIC: "0x0000000000000000000000000000000000000000",
-    POL: "0x0000000000000000000000000000000000000000",
+    MATIC: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    POL: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     WMATIC: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     WPOL: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
   },
   base_sepolia: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   },
   arbitrum_sepolia: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   },
   optimism_sepolia: {
-    ETH: "0x0000000000000000000000000000000000000000",
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   }
 };
 
@@ -198,7 +198,7 @@ export async function preloadTokenMetadataAndAllowance(client: any, userAddress:
   const contracts = [];
   
   for (const token of tokens) {
-    if (token === "0x0000000000000000000000000000000000000000") continue;
+    if (token === "0x0000000000000000000000000000000000000000" || token === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") continue;
     contracts.push({ address: token, abi: ERC20_ABI, functionName: 'decimals' });
     contracts.push({ address: token, abi: ERC20_ABI, functionName: 'symbol' });
     // In actual AA flow, you'd add allowance checks here against common spenders.
