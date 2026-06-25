@@ -16,6 +16,23 @@ Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchai
 
 It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human-in-the-Loop** execution model, ensuring that Remote AIs (LLMs) never have unilateral access to your funds.
 
+<br/>
+
+## ⚡ Supported Ecosystem & Integrations
+
+<p align="center">
+  <a href="https://base.org"><img src="https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=base&logoColor=white" alt="Base"></a>
+  <a href="https://arbitrum.io/"><img src="https://img.shields.io/badge/Arbitrum-28A0F0?style=for-the-badge&logo=arbitrum&logoColor=white" alt="Arbitrum"></a>
+  <a href="https://www.binance.com/"><img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=black" alt="BSC"></a>
+  <a href="https://openai.com"><img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"></a>
+  <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white" alt="Gemini"></a>
+  <a href="https://1inch.io/"><img src="https://img.shields.io/badge/1inch-0B132B?style=for-the-badge&logo=1inch&logoColor=white" alt="1inch"></a>
+  <a href="https://www.coingecko.com/"><img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logo=coingecko&logoColor=white" alt="CoinGecko"></a>
+  <a href="https://viem.sh/"><img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem"></a>
+</p>
+
+<br/>
+
 ---
 
 ## 🔥 Key Features
