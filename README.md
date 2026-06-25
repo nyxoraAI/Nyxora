@@ -2,7 +2,7 @@
 **Your Personal Web3 Assistant.**
 
 
-[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](#)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta-green.svg)](#)
 [![Built on Base](https://img.shields.io/badge/Built_on-Base-0052FF?style=flat&logo=base&logoColor=white)](https://base.org/)
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

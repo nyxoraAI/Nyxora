@@ -145,13 +145,15 @@ app.post('/sign-transaction', async (req, res) => {
            let nextNonce = Math.max(rpcNonce, nonceCache[chainId] || 0);
            
            const txRequest = txPayload.details?.txRequest || txPayload.details?.txData || txPayload;
+           const toAddress = txRequest.to || txRequest.target;
+           const txDataStr = txRequest.data || txRequest.calldata;
            
            // Phase 2: Transaction Simulation (Dry-Run / Anti-Fail)
            try {
               await client.estimateGas({
                 account,
-                to: txRequest.to,
-                data: txRequest.data,
+                to: toAddress,
+                data: txDataStr,
                 value: txRequest.value ? BigInt(txRequest.value) : 0n
               });
            } catch (simError: any) {
@@ -161,8 +163,8 @@ app.post('/sign-transaction', async (req, res) => {
            // @ts-ignore
            const hash = await client.sendTransaction({
              account,
-             to: txRequest.to,
-             data: txRequest.data,
+             to: toAddress,
+             data: txDataStr,
              value: txRequest.value ? BigInt(txRequest.value) : 0n,
              nonce: nextNonce,
              gas: txRequest.gas ? BigInt(txRequest.gas) : undefined,

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.29]
+### Release & Stability
+- **Beta Phase**: Nyxora officially enters the stable Beta phase for wider public testing.
+- **NPM Publishing Integrity**: Explicitly whitelisted `CHANGELOG.md` within the `package.json` files array to guarantee release notes are synchronized onto the public NPM registry.
 
 ## [26.6.28]
 ### Features & Personalization
@@ -21,8 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Installation Docs Refinement:** Synchronized `README.md` and VitePress documentation with accurate Smart Wrapper `curl` instructions for Windows, macOS, and Linux, complete with proper uninstallation guidelines.
 
 ### Bug Fixes & Optimizations
-- **Beta Readiness Milestone:** Officially upgraded the Nyxora project status badge in `README.md` from Alpha to Beta.
-- **LLM Debug Leak Resolved:** Removed the noisy `[LLM Debug] Sending X messages...` console log in `web3Agent.ts` to ensure a clean production terminal for Beta testers.
 - **Uniswap V3 LP UX Overhaul:** Significantly lowered the technical barrier for `provideLiquidityV3.ts`. If an AI agent or user does not specify a strict `tickLower` and `tickUpper`, the contract simulation now automatically defaults to **Full Range** (`MIN_TICK` to `MAX_TICK`) based on the selected fee tier's tick spacing.
 - **Market Watch Persistence Engine:** Engineered a robust auto-resume sequence for `createMarketWatchAgent.ts`. Background tasks are now serialized to `~/.nyxora/data/market_tasks.json` upon creation and seamlessly resurrected by the Gateway `server.ts` upon daemon restart.
 - **RPC Fallback Integrity:** Fixed an edge-case bug in `rpcEngine.ts` where empty array definitions bypassed fallback transports. Added HTTP and WSS failovers for the `base_sepolia` network.

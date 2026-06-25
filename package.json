@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.6.28",
+  "version": "26.6.29",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -19,6 +19,7 @@
   "files": [
     "bin",
     "dist",
+    "CHANGELOG.md",
     "launcher.ts",
     "packages/core/src",
     "packages/core/package.json",
