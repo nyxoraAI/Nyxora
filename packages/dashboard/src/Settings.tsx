@@ -5,6 +5,7 @@ import { PillSelect } from './components/PillSelect';
 import { LlmIcon } from './components/LlmIcons';
 import { getChainLogoUrl } from './utils/logos';
 import { GoogleAuthWizard } from './components/GoogleAuthWizard';
+import { FiatSelector } from './FiatSelector';
 
 const ChainIcon = ({ id }: { id: string }) => (
   <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -18,7 +19,7 @@ const ChainIcon = ({ id }: { id: string }) => (
 );
 
 interface Config {
-  agent: { name: string; default_chain: string; default_slippage?: number | 'auto' };
+  agent: { name: string; default_chain: string; default_slippage?: number | 'auto'; log_level?: string; base_fiat?: string };
   llm: { provider: string; model: string; temperature: number };
   web3?: { rpc_urls?: Record<string, string | string[]>; explorer_api_key?: string };
 }
@@ -58,6 +59,37 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
+  const [supportedFiats, setSupportedFiats] = useState<string[]>(['usd', 'idr', 'eur', 'jpy', 'gbp', 'aud']);
+  const [wipingMemory, setWipingMemory] = useState(false);
+
+  useEffect(() => {
+    fetch('https://api.coingecko.com/api/v3/simple/supported_vs_currencies')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setSupportedFiats(data);
+        }
+      })
+      .catch(err => console.error('Failed to load supported fiats', err));
+  }, []);
+
+  const handleWipeMemory = async () => {
+    if (confirm("DANGER: Are you sure you want to permanently wipe all episodic memory? This cannot be undone.")) {
+      setWipingMemory(true);
+      try {
+        const res = await apiFetch('/api/memory/all', { method: 'DELETE' });
+        if (res.ok) {
+          alert("Episodic memory wiped completely.");
+        } else {
+          alert("Failed to wipe memory.");
+        }
+      } catch (err) {
+        alert("Failed to wipe memory.");
+      } finally {
+        setWipingMemory(false);
+      }
+    }
+  };
 
   useEffect(() => {
     // Fetch User Profile
@@ -94,7 +126,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         agent: {
           name: config.agent?.name || 'Nyxora',
           default_chain: config.agent?.default_chain || 'base',
-          default_slippage: config.agent?.default_slippage || 0.5
+          default_slippage: config.agent?.default_slippage || 0.5,
+          log_level: config.agent?.log_level || 'info',
+          base_fiat: config.agent?.base_fiat || 'usd'
         },
         llm: {
           provider: config.llm?.provider || 'openai',
@@ -158,24 +192,34 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
       });
       
       if (userProfile) {
-        await apiFetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userProfile)
-        });
+        try {
+          await apiFetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userProfile)
+          });
+        } catch (e) {
+          console.error('Failed to save profile', e);
+        }
       }
 
       if (policyConfig) {
-        await apiFetch('/api/policy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(policyConfig)
-        });
+        try {
+          await apiFetch('/api/policy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(policyConfig)
+          });
+        } catch (e) {
+          console.error('Failed to save policy', e);
+        }
       }
 
       if (res.ok) {
         onConfigChange(formData);
         alert('Settings saved successfully!');
+      } else {
+        throw new Error('Failed to save main config');
       }
     } catch (e) {
       console.error(e);
@@ -213,7 +257,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               value={formData.agent.default_chain}
               onChange={(val) => handleChange('agent', 'default_chain', val)}
               pillColor="var(--accent)"
-              textColor="#000000"
+              textColor="var(--bg-secondary)"
               options={[
                 { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
                 { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
@@ -269,8 +313,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
             <PillSelect 
               value={formData.llm.provider}
               onChange={(val) => handleChange('llm', 'provider', val)}
-              pillColor="var(--text-secondary)"
-              textColor="#000000"
+              pillColor="var(--accent)"
+              textColor="var(--bg-secondary)"
               options={[
                 { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
                 { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
@@ -433,7 +477,82 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               ]}
             />
           </div>
-          <div className="form-group flex-1"></div>
+          <div className="form-group flex-1">
+            <label className="nord-label">Memory & Operations</label>
+            <button 
+              onClick={handleWipeMemory}
+              disabled={wipingMemory}
+              style={{
+                width: '100%',
+                background: 'rgba(191, 97, 106, 0.1)',
+                color: '#BF616A',
+                border: '1px solid rgba(191, 97, 106, 0.5)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                cursor: wipingMemory ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontWeight: 'bold',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.2)')}
+              onMouseLeave={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.1)')}
+            >
+              {wipingMemory ? 'Wiping...' : 'Wipe All Episodic Memory (Panic Button)'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+        <div className="nord-panel-header">
+          <Globe size={18} color="var(--accent)" />
+          <h3>Appearance & UI Personalization</h3>
+        </div>
+        <div className="form-row">
+          <div className="form-group flex-1">
+            <label className="nord-label">Base Fiat Currency</label>
+            <FiatSelector 
+              value={formData.agent.base_fiat || 'usd'}
+              onChange={(val) => handleChange('agent', 'base_fiat', val)}
+              options={supportedFiats}
+            />
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+              Used across the dashboard for cosmetic fiat conversion. Core backend operations remain strictly in USD.
+            </p>
+          </div>
+          <div className="form-group flex-1">
+            <label className="nord-label">Dashboard Theme</label>
+            <PillSelect 
+              value={localStorage.getItem('nyxora_theme') || 'auto'}
+              onChange={(val) => {
+                localStorage.setItem('nyxora_theme', val);
+                window.location.reload();
+              }}
+              pillColor="var(--accent)"
+              textColor="var(--bg-secondary)"
+              options={[
+                { id: 'auto', label: 'System (Auto)' },
+                { id: 'dark', label: 'Dark Mode' },
+                { id: 'light', label: 'Light Mode' }
+              ]}
+            />
+          </div>
+          <div className="form-group flex-1">
+            <label className="nord-label">Backend Log Level</label>
+            <PillSelect 
+              value={formData.agent.log_level || 'info'}
+              onChange={(val) => handleChange('agent', 'log_level', val)}
+              pillColor="var(--accent)"
+              textColor="var(--bg-secondary)"
+              options={[
+                { id: 'info', label: 'Info (Standard)' },
+                { id: 'debug', label: 'Debug (Verbose)' }
+              ]}
+            />
+          </div>
         </div>
       </div>
 
@@ -466,7 +585,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           <h3>Web3 Explorer Settings</h3>
         </div>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-          Configure blockchain explorer API keys to enable agent verification of smart contracts.
+          Configure blockchain explorer API keys to enable the agent to fetch transaction history.
           <br/><span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Note: RPC Endpoint configurations have been moved to the dedicated "RPC Configuration" tab in the sidebar.</span>
         </p>
         <div style={{ marginBottom: '24px' }} className="form-group">
@@ -482,7 +601,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
       </div>
 
       <div className="form-actions" style={{ justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid rgba(216, 222, 233, 0.05)' }}>
-        <button className="nord-btn-primary" onClick={handleSave} disabled={isSaving}>
+        <button className="nord-btn-primary" style={{ background: 'var(--accent)', color: 'var(--bg-secondary)', fontWeight: 600 }} onClick={handleSave} disabled={isSaving}>
           <Save size={16} style={{ marginRight: '8px' }} />
           {isSaving ? 'Saving...' : 'Save Configuration'}
         </button>

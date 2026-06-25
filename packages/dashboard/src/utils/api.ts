@@ -10,7 +10,7 @@ if (tokenFromUrl) {
 
 export const getToken = () => localStorage.getItem('nyxora_token') || '';
 
-export const API_BASE_URL = import.meta.env.PROD ? '' : 'http://127.0.0.1:3000';
+export const API_BASE_URL = '';
 
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const token = getToken();
@@ -29,6 +29,10 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
       ...init,
       headers,
     });
+
+    if (response.status === 401 || response.status === 403) {
+      window.dispatchEvent(new CustomEvent('nyxora-auth-error'));
+    }
 
     window.dispatchEvent(new CustomEvent('nyxora-network-restored'));
     return response;

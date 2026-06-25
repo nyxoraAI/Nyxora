@@ -15,18 +15,7 @@ export class MemoryValidator {
       throw new Error('SECURITY VIOLATION: Potential Private Key detected in memory extraction.');
     }
 
-    // 2. Check for typical 12-24 word BIP-39 Mnemonic patterns.
-    // We do a rough heuristic: 12-24 lowercase words separated by spaces in a single block.
-    // This is hard to do perfectly with regex, so we look for sequences of 12+ words
-    const words = text.toLowerCase().match(/\b[a-z]+\b/g) || [];
-    if (words.length >= 12) {
-      // Very basic check: are there exactly 12 or 24 words in a continuous string?
-      const mnemonicRegex = /\b([a-z]+(?:\s+[a-z]+){11,23})\b/g;
-      if (mnemonicRegex.test(text.toLowerCase())) {
-        // Log it as suspicious, but we'll reject it to be safe if it looks like a seed phrase
-        throw new Error('SECURITY VIOLATION: Potential Seed Phrase detected in memory extraction.');
-      }
-    }
+    // Removed overly aggressive 12-word mnemonic check to avoid false positives in conversational languages
 
     // 3. Check for API/Bot Tokens (e.g., Telegram token format: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11)
     const telegramTokenRegex = /\b\d{8,10}:[a-zA-Z0-9_-]{35}\b/g;

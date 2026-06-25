@@ -186,6 +186,17 @@ export class Logger {
     this.db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(newTitle, sessionId);
   }
 
+  public searchSessions(query: string) {
+    const term = `%${query}%`;
+    return this.db.prepare(`
+      SELECT DISTINCT s.* 
+      FROM sessions s
+      LEFT JOIN messages m ON s.id = m.session_id
+      WHERE s.title LIKE ? OR m.content LIKE ?
+      ORDER BY s.timestamp DESC
+    `).all(term, term);
+  }
+
   public getHistory(sessionId?: string, limit: number = 40): MemoryEntry[] {
     let rows;
     // Phase 2: Sliding Window Algorithm (LLM Context Limit)

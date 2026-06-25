@@ -41,7 +41,7 @@ export const PillSelect: React.FC<PillSelectProps> = ({ value, options, onChange
       </button>
 
       {isOpen && (
-        <ul className="network-dropdown-menu" style={{ width: '100%', top: 'calc(100% + 8px)', padding: '8px', zIndex: 1000 }}>
+        <ul className="network-dropdown-menu styled-scroll" style={{ width: '100%', top: 'calc(100% + 8px)', padding: '8px', zIndex: 1000, maxHeight: '250px', overflowY: 'auto' }}>
           {options.map(opt => (
             <li 
               key={opt.id}

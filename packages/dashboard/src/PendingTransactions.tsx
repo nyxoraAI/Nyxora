@@ -1,30 +1,28 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from './utils/api';
+import { usePolling } from './utils/usePolling';
 import { ShieldAlert, Check, X } from 'lucide-react';
 
 export default function PendingTransactions({ sessionId }: { sessionId: string | null }) {
   const [pending, setPending] = useState<any[]>([]);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchPending = async () => {
-      try {
-        const res = await apiFetch('/api/transactions');
-        if (res.ok) {
-          setPending(await res.json());
-        }
-      } catch (e) {
-        console.error(e);
+  const fetchPending = async () => {
+    try {
+      const res = await apiFetch('/api/transactions');
+      if (res.ok) {
+        setPending(await res.json());
       }
-    };
-    fetchPending();
-    const interval = setInterval(fetchPending, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  usePolling(fetchPending, 5000);
 
   const handleAction = async (tx: any, action: 'approve' | 'reject') => {
     const id = tx.id;
-    setLoadingId(id);
+    setLoadingIds(prev => new Set(prev).add(id));
     try {
       const res = await apiFetch(`/api/transactions/${id}/${action}`, { 
         method: 'POST',
@@ -41,7 +39,11 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
     } catch (e: any) {
       alert(`Failed to ${action}: ${e.message}`);
     } finally {
-      setLoadingId(null);
+      setLoadingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
     }
   };
 
@@ -82,14 +84,14 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
           <div style={{ display: 'flex', gap: 10 }}>
             <button 
               onClick={() => handleAction(tx, 'approve')} 
-              disabled={loadingId === tx.id}
-              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#15803d' : '#22c55e', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-              <Check size={16} /> {loadingId === tx.id ? 'Processing...' : 'Approve'}
+              disabled={loadingIds.has(tx.id)}
+              style={{ flex: 1, padding: '10px', background: loadingIds.has(tx.id) ? '#15803d' : '#22c55e', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingIds.has(tx.id) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              <Check size={16} /> {loadingIds.has(tx.id) ? 'Processing...' : 'Approve'}
             </button>
             <button 
               onClick={() => handleAction(tx, 'reject')} 
-              disabled={loadingId === tx.id}
-              style={{ flex: 1, padding: '10px', background: loadingId === tx.id ? '#b91c1c' : '#ef4444', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingId === tx.id ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              disabled={loadingIds.has(tx.id)}
+              style={{ flex: 1, padding: '10px', background: loadingIds.has(tx.id) ? '#b91c1c' : '#ef4444', color: 'var(--text-primary)', border: 'none', borderRadius: 8, cursor: loadingIds.has(tx.id) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
               <X size={16} /> Reject
             </button>
           </div>

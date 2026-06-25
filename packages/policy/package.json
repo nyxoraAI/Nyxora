@@ -1,6 +1,6 @@
 {
   "name": "nyxora-policy-engine",
-  "version": "26.6.27",
+  "version": "26.6.28",
   "private": true,
   "main": "src/server.ts",
   "dependencies": {

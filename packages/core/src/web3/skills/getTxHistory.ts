@@ -26,7 +26,7 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     const apiUrl = `https://api.etherscan.io/v2/api?chainid=${chainId}`;
 
     const config = loadConfig();
-    const apiKey = config.web3?.explorer_api_key || 'YourApiKeyToken'; // Public fallback
+    const apiKey = config.web3?.explorer_api_key || ''; // Public fallback with no key
     const apiKeyParam = apiKey ? `&apikey=${apiKey}` : '';
 
     const startTimestamp = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);

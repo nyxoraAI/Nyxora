@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 
 const tokenPath = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
 let JWT_SECRET = '';
@@ -18,20 +19,29 @@ try {
   process.exit(1);
 }
 
+const pkgPath = path.join(__dirname, '..', 'package.json');
+const pkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version;
+
 const server = new McpServer({
   name: "Nyxora MCP Server",
-  version: "1.6.5"
+  version: pkgVersion
 });
 
 // Helper to make internal requests to Policy Engine
-function callPolicyEngine(path: string, method: string, payload?: any): Promise<any> {
+function callPolicyEngine(apiPath: string, method: string, payload?: any): Promise<any> {
   return new Promise((resolve, reject) => {
+    if (payload && apiPath === '/request-tx') {
+      const amountWei = payload.details?.amountWei || '';
+      payload.internalSignature = crypto.createHmac('sha256', JWT_SECRET as string)
+        .update(payload.chainName + amountWei)
+        .digest('hex');
+    }
+
     const dataString = payload ? JSON.stringify(payload) : '';
     
     const options = {
-      hostname: '127.0.0.1',
-      port: 3001,
-      path: path,
+      socketPath: '/tmp/nyxora-policy.sock',
+      path: apiPath,
       method: method,
       headers: {
         'Content-Type': 'application/json',
@@ -58,6 +68,11 @@ function callPolicyEngine(path: string, method: string, payload?: any): Promise<
     });
 
     req.on('error', (e) => reject(new Error(`Policy Engine Connection Error: ${e.message}`)));
+    
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('Policy Engine Connection Timeout'));
+    });
     
     if (dataString) {
       req.write(dataString);

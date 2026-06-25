@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [26.6.28]
+### Features & Personalization
+- **Global Fiat Currency Converter:** Integrated a dynamic fiat currency selector in `Settings.tsx` that fetches live `supported_vs_currencies` from CoinGecko. The `Portfolio.tsx` dashboard now seamlessly converts and renders all balances in the selected global fiat (IDR, EUR, GBP, JPY, etc.) using client-side processing, while safely preserving core backend trading logic in pure USD.
+- **Episodic Memory Panic Button:** Introduced a dedicated "Wipe All Episodic Memory" trigger in the UI that routes to `DELETE /api/memory/all`. This systematically purges SQLite records and instantly resynchronizes the LLM `user.md` prompt.
+- **Dashboard Theme Selection:** Hard-wired the Theme Selector (Light, Dark, Auto) directly into the Settings panel for greater visibility.
+- **Dynamic Log Level Toggle:** Exposed `log_level` (`info`, `debug`) configuration in `NyxoraConfig.agent` to natively control backend verbosity via the Settings UI.
+
+### Security, MCP & Documentation
+- **On-Chain Kill-Switch Enforcement:** Moved the `checkRegistryStatus()` Base Sepolia interceptor directly into the core Policy Engine (`/request-tx` and `/approve-tx/:id`). This seals a critical bypass vulnerability, ensuring that all external transactions (including those via Telegram, MCP, or CRON) are strictly blocked if the Kill-Switch is thrown on-chain.
+- **MCP Server Hardening:** Refactored MCP Server IPC from TCP (`port 3001`) to Unix Domain Socket (`/tmp/nyxora-policy.sock`) for hyper-optimized security. Enforced End-to-End HMAC Signing on all internal `/request-tx` payloads to protect against request manipulation. Added a strict HTTP Timeout (`10000ms`) to prevent hanging clients.
+- **Standalone MCP CLI:** Added a native `nyxora mcp` command to the CLI manager for isolated developer testing, accompanied by dynamically resolved SDK versions (`^1.29.0`).
+- **NVM & GUI PATH Troubleshooting:** Overhauled the `docs/guide/mcp-integration.md` to cleanly separate global `nyxora start` and source `npm start` instructions. Appended a dedicated Warning block documenting Node Version Manager (NVM/Volta) PATH failures specific to Claude Desktop.
+- **Installation Docs Refinement:** Synchronized `README.md` and VitePress documentation with accurate Smart Wrapper `curl` instructions for Windows, macOS, and Linux, complete with proper uninstallation guidelines.
+
+### Bug Fixes & Optimizations
+- **Beta Readiness Milestone:** Officially upgraded the Nyxora project status badge in `README.md` from Alpha to Beta.
+- **LLM Debug Leak Resolved:** Removed the noisy `[LLM Debug] Sending X messages...` console log in `web3Agent.ts` to ensure a clean production terminal for Beta testers.
+- **Uniswap V3 LP UX Overhaul:** Significantly lowered the technical barrier for `provideLiquidityV3.ts`. If an AI agent or user does not specify a strict `tickLower` and `tickUpper`, the contract simulation now automatically defaults to **Full Range** (`MIN_TICK` to `MAX_TICK`) based on the selected fee tier's tick spacing.
+- **Market Watch Persistence Engine:** Engineered a robust auto-resume sequence for `createMarketWatchAgent.ts`. Background tasks are now serialized to `~/.nyxora/data/market_tasks.json` upon creation and seamlessly resurrected by the Gateway `server.ts` upon daemon restart.
+- **RPC Fallback Integrity:** Fixed an edge-case bug in `rpcEngine.ts` where empty array definitions bypassed fallback transports. Added HTTP and WSS failovers for the `base_sepolia` network.
+- **DeFi Keys Architecture:** Stripped legacy `envKey` dependencies in `/api/defi-keys`. Replaced it with pure `id` lookups and injected a `Set` deduplication algorithm to prevent duplicated API key requirements rendering in the UI.
+- **OpenOcean Decimal Parsing:** Resolved a critical application crash where `OpenOceanProvider.ts` incorrectly parsed fractional `amount` inputs directly into `BigInt`. It now strictly targets raw wei values.
+- **Market Oracles Lazy Loading:** Relocated the global `MARKET_KEYS_FILE` declaration within `marketConfigManager.ts` to execute lazily, resolving startup path resolution race conditions.
+- **Waterfall Fallback Engine:** Rewired `marketEngine.ts` to gracefully cascade across CoinGecko, CoinMarketCap, and DexScreener. If a token fails to resolve globally, the Engine now returns a clean, LLM-friendly diagnostic error instead of silently defaulting.
+- **Transparent Key Storage Security:** Eliminated misleading "Encrypted Locally" notices across `DefiKeys.tsx`, `MarketOracles.tsx`, and `Settings.tsx`. Disabled `explorer_api_key` decryption inside `parser.ts` to strictly enforce isolated Plain Text storage as per design constraints.
+- **Etherscan V2 Compatibility:** Emptied the legacy `YourApiKeyToken` default placeholder in `getTxHistory.ts` to ensure the Etherscan public fallback gracefully defaults to rate-limited public access.
+- **Dev Mode Authentication Loop:** Introduced an interactive `AuthModal` inside `App.tsx` that automatically traps HTTP 401/403 responses and prompts developers to input their `x-nyxora-token`, terminating the silent failure loop.
+- **Vite Local Proxying:** Configured `server.proxy` within `vite.config.ts` to seamlessly tunnel `/api` requests to port `3000`. Stripped hardcoded loopbacks from `API_BASE_URL` to completely eliminate Dev CORS errors and resolve production relative-path resolution.
+- **Concurrent Transaction Race Conditions:** Upgraded `loadingId` state architecture in `PendingTransactions.tsx` from a single string to a `Set<string>`. The UI now accurately renders independent spinner states when executing parallel "Approve All" routines.
+- **WebSocket Gateway Security:** Patched a dangerous type coercion vulnerability inside `WebSocketManager.ts` where `validateToken()` returned an object. The handshake now properly unwraps `.valid` to strictly reject unauthorized socket upgrades.
+- **Global Chat Search Integration:** Added a native `GET /api/sessions/search?q=` SQLite query endpoint. Re-wired `SearchChat.tsx` to utilize a debounced remote API instead of purely filtering local session titles.
+- **Settings Race Condition:** Segregated secondary `apiFetch` dispatches (Profile, Policy) within their own localized `try/catch` enclosures inside `Settings.tsx` to prevent localized failures from blocking the primary config persistence notification.
+- **Dynamic Model Verification:** Eliminated the hardcoded "1 ok" text on the `Overview.tsx` dashboard panel. The UI now dynamically infers LLM readiness by securely checking for API Key presence.
+- **Modular DeFi Keys Removal:** Added full lifecycle support for DeFi aggregator keys by exposing a `DELETE /api/defi-keys/:id` endpoint on the server, paired with a dynamic Delete button in the frontend.
+- **Excessive Polling Memory Leaks:** Architected a `usePolling.ts` custom hook incorporating the `Page Visibility API`. Globally migrated HTTP polling intervals (`Overview`, `App`, `PendingTransactions`) from aggressive 2-second ticks down to efficient 5-second intervals that automatically sleep when the browser tab is hidden.
+- **Reflection Engine Provider Agnosticism:** Migrated `getOpenAI()` to a dynamic `getLLMClient()` resolution. Dropped hardcoded `json_object` enforcement in favor of strict system prompts to natively support Anthropic, Gemini, and OpenRouter implementations.
+- **Reflection Engine Noise Filtering:** Hard-filtered `role === 'tool'` messages from the episodic history payload to prevent the LLM from falsely treating background RPC/blockchain logs as user behavioral preferences.
+- **Background Memory Synchronization:** Patched a severe lifecycle bug where memory updates (`user.md`) only compiled when users manually deleted a memory in the UI. `PromotionEngine` now executes automatically in the background milliseconds after `ReflectionEngine` completes its analysis.
+- **Memory Confidence Overflow Limits:** Introduced an aggressive `.min(1.0, confidence)` clamp at the `episodic.ts` `INSERT` & `UPDATE` boundary. This prevents permanent memory overrides from pushing confidence ratios to mathematically impossible boundaries.
+- **SearchSessions SQL Target Fix:** Shifted `ORDER BY s.updated_at` to `s.timestamp` within `logger.ts` to align with the active schema layout and prevent SQLite termination errors.
+- **Reflection Engine Session Binding:** Bound `ReflectionEngine` directly to the active `sessionId` pipeline and introduced an early-return safeguard, properly restoring episodic extraction which previously failed due to NULL session targets.
+- **Relaxed Cryptographic Sanitization:** Disarmed the extremely aggressive 12-word regex heuristic in `validator.ts` that historically flagged standard conversational text inputs as security violations.
+
 ## [26.6.27]
 ### Bug Fixes & Security
 - **Aggregator Decimal Normalization:** Fixed a critical overflow bug in `swapToken.ts` and `bridgeToken.ts` where token amounts were hardcoded to 18 decimals (`parseUnits(amountStr, 18)`). The system now strictly queries `getTokenMetadata` via `viem` to fetch the true on-chain decimals (e.g., 6 for USDC/USDT) before transaction construction.

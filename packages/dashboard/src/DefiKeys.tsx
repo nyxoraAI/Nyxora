@@ -61,6 +61,21 @@ export const DefiKeys: React.FC = () => {
       setStatus(`Failed to save key`);
     }
   };
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/defi-keys/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        setStatus(`Key deleted successfully!`);
+        setRequirements(reqs => reqs.map(r => r.id === id ? { ...r, configured: false } : r));
+        setTimeout(() => setStatus(null), 3000);
+      }
+    } catch (err) {
+      setStatus(`Failed to delete key`);
+    }
+  };
 
   return (
     <div className="overview-container">
@@ -71,11 +86,10 @@ export const DefiKeys: React.FC = () => {
 
       <div style={{ background: 'rgba(235, 203, 139, 0.1)', border: '1px solid rgba(235, 203, 139, 0.3)', padding: '16px', borderRadius: '8px', marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
         <ShieldAlert size={24} color="#ebcb8b" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          <strong style={{ color: '#ebcb8b' }}>Security Notice:</strong> Your keys are encrypted locally by the Nyxora backend. 
-          To protect against browser extensions and screen-sharing, stored keys are NEVER sent back to this dashboard. 
-          They will simply appear as <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--accent)' }}>CONFIGURED</code>.
-        </div>
+        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <strong style={{ color: '#ebcb8b' }}>Security Notice:</strong> Your keys are stored in plain text locally inside <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '4px' }}>~/.nyxora/config/defi_keys.yaml</code>. 
+          They are highly isolated and never transmitted except directly to the respective provider's API.
+        </p>
       </div>
 
       {status && (
@@ -137,6 +151,14 @@ export const DefiKeys: React.FC = () => {
                   >
                     <Save size={16} /> Save
                   </button>
+                  {req.configured && (
+                    <button 
+                      onClick={() => handleDelete(req.id)}
+                      style={{ height: '40px', padding: '0 16px', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -350,6 +350,20 @@ async function unlock() {
   }
 }
 
+async function serveMcp() {
+  const compiledMcp = path.join(projectRoot, 'packages/mcp-server/dist/server.js');
+  const useCompiled = fs.existsSync(compiledMcp);
+  const cmd = useCompiled ? 'node' : 'npx';
+  const args = useCompiled ? [compiledMcp] : ['ts-node', '-T', 'packages/mcp-server/src/server.ts'];
+  const child = spawn(cmd, args, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, TS_NODE_CACHE: 'false' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
 async function main() {
   switch(command) {
     case 'doctor': await runDoctor(); break;
@@ -366,6 +380,7 @@ async function main() {
     case 'unlock': await unlock(); break;
     case 'clean-logs': await cleanLogs(); break;
     case 'autostart': await autostart(process.argv[3]); break;
+    case 'mcp': await serveMcp(); break;
     case '-v':
     case '--v':
     case '--version':
@@ -383,6 +398,7 @@ Commands:
   start          Start the Nyxora background daemon
   stop           Stop the running daemon
   restart        Restart the daemon
+  mcp            Start the MCP Server directly (for testing/debug)
   chat           Chat interactively with the AI in terminal
   setup          Run the interactive Setup Wizard
   dashboard      Open the dashboard in your browser

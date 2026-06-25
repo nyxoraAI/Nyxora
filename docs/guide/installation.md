@@ -12,9 +12,25 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ---
 
-## 🚀 Option 1: Global Installation (Recommended)
+## 🚀 Option 1: One-Line Installation (Recommended)
 
-Nyxora can be installed globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry.
+
+**Linux & macOS:**
+```bash
+curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
+```
+
+---
+
+## 📦 Option 2: Global Installation (NPM)
+
+If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
 
 ```bash
 # Install globally
@@ -38,7 +54,7 @@ The interactive command-line wizard (`nyxora setup`) will guide you through:
 
 ---
 
-## 💻 Option 2: Local Development (Source Code)
+## 💻 Option 3: Local Development (Source Code)
 
 Nyxora operates on a Monorepo architecture using NPM Workspaces. If you want to run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
@@ -69,4 +85,16 @@ npm start
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 
 > **⚠️ IMPORTANT:** Whenever you re-run `setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
+
+---
+
+## 🧹 Uninstallation & Reset
+
+If you ever need to securely wipe the AI's episodic memory, delete your API keys, and completely remove Nyxora's configuration from your operating system, simply run:
+
+```bash
+nyxora uninstall
+```
+
+This acts as a master reset switch to return your environment to a clean state.
 

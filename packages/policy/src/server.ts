@@ -12,6 +12,7 @@ import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
 import { decode } from '@msgpack/msgpack';
+import { checkRegistryStatus } from '../../core/src/web3/skills/checkRegistryStatus';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -129,24 +130,31 @@ app.get('/address', (req, res) => {
   signerReq.end();
 });
 
-app.post('/request-tx', (req, res) => {
+app.post('/request-tx', async (req, res) => {
   try {
     const payload = TxRequestSchema.parse(req.body);
     const txId = crypto.randomUUID();
     
+    // ENFORCE End-to-End HMAC Signature for all requests (MCP or internal)
+    const providedSig = req.body.internalSignature;
+    if (!providedSig) return res.status(403).json({ error: 'Missing internal signature' });
+    
+    const amountWei = payload.details?.amountWei || '';
+    const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(payload.chainName + amountWei).digest('hex');
+    
+    if (providedSig !== expectedSig) {
+        return res.status(403).json({ error: 'Invalid internal signature. Request rejected.' });
+    }
+
+    // --- On-Chain Kill-Switch Interceptor ---
+    const registryCheck = await checkRegistryStatus();
+    if (!registryCheck.isActive) {
+        return res.status(403).json({ error: `[On-Chain Policy] ${registryCheck.reason}` });
+    }
+    // ----------------------------------------
+
     // Auto-approve bypass for internal trusted features like CL/TP
     if (payload.autoApprove) {
-        const providedSig = req.body.internalSignature;
-        if (!providedSig) return res.status(403).json({ error: 'Missing internal signature for autoApprove' });
-        
-        // Ensure amountWei exists
-        const amountWei = payload.details?.amountWei || '';
-        const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(payload.chainName + amountWei).digest('hex');
-        
-        if (providedSig !== expectedSig) {
-            return res.status(403).json({ error: 'Invalid internal signature for autoApprove' });
-        }
-
         const requestPayload = JSON.stringify({ txPayload: payload });
         const options = {
             socketPath: SIGNER_SOCKET,
@@ -236,7 +244,7 @@ app.get('/pending-tx', (req, res) => {
   res.json(Object.values(pendingTransactions).filter(tx => tx.status === 'pending'));
 });
 
-app.post('/approve-tx/:id', (req, res) => {
+app.post('/approve-tx/:id', async (req, res) => {
   const txId = req.params.id;
   const { nonce, approvalHash } = req.body;
   const tx = pendingTransactions[txId];
@@ -250,6 +258,13 @@ app.post('/approve-tx/:id', (req, res) => {
   if (approvalHash !== expectedHash) {
       return res.status(403).json({ error: 'Invalid Challenge Nonce Hash. Cryptographic approval failed.' });
   }
+
+  // --- On-Chain Kill-Switch Interceptor (Just-in-Time) ---
+  const registryCheck = await checkRegistryStatus();
+  if (!registryCheck.isActive) {
+      return res.status(403).json({ error: `[On-Chain Policy] ${registryCheck.reason}` });
+  }
+  // -------------------------------------------------------
 
   const requestPayload = JSON.stringify({
     txPayload: tx

@@ -22,7 +22,7 @@ export function getPublicClient(chainName: ChainName): PublicClient {
   }
   
   // Fallback public RPCs (Top tier from Chainlist.org prioritized)
-  if (!customRpcRaw) {
+  if (transports.length === 0) {
     if (chainName === 'ethereum') {
       transports.push(http('https://rpc.mevblocker.io', { timeout: 5000, batch: { batchSize: 100 } })); // Primary MEV protection
       transports.push(http('https://rpc.flashbots.net', { timeout: 5000, batch: { batchSize: 100 } })); // Secondary MEV protection
@@ -53,6 +53,9 @@ export function getPublicClient(chainName: ChainName): PublicClient {
     } else if (chainName === 'optimism_sepolia') {
       transports.push(http('https://optimism-sepolia-rpc.publicnode.com', { timeout: 5000 }));
       transports.push(http('https://sepolia.optimism.io', { timeout: 5000 }));
+    } else if (chainName === 'base_sepolia') {
+      transports.push(http('https://base-sepolia-rpc.publicnode.com', { timeout: 5000 }));
+      transports.push(http('https://sepolia.base.org', { timeout: 5000 }));
     }
   }
 
@@ -97,6 +100,7 @@ export function getWsClient(chainName: ChainName): PublicClient {
     else if (chainName === 'polygon') wsUrl = 'wss://polygon-rpc.publicnode.com';
     else if (chainName === 'arbitrum_sepolia') wsUrl = 'wss://arbitrum-sepolia-rpc.publicnode.com';
     else if (chainName === 'optimism_sepolia') wsUrl = 'wss://optimism-sepolia-rpc.publicnode.com';
+    else if (chainName === 'base_sepolia') wsUrl = 'wss://base-sepolia-rpc.publicnode.com';
   }
 
   // If WSS is totally unavailable, fallback to HTTP polling transparently

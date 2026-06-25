@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, MessageSquare } from 'lucide-react';
+import { apiFetch } from './utils/api';
 import './SearchChat.css';
 
 interface SearchChatProps {
@@ -9,14 +10,29 @@ interface SearchChatProps {
 
 const SearchChat: React.FC<SearchChatProps> = ({ chatSessions, onSelectSession }) => {
   const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>(chatSessions);
 
-  const filteredSessions = useMemo(() => {
-    if (!query.trim()) return chatSessions;
-    const lowerQuery = query.toLowerCase();
-    return chatSessions.filter(session => 
-      session.title && session.title.toLowerCase().includes(lowerQuery)
-    );
-  }, [chatSessions, query]);
+  useEffect(() => {
+    if (!query.trim()) {
+      setSearchResults(chatSessions);
+      return;
+    }
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`/api/sessions/search?q=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          setSearchResults(await res.json());
+        }
+      } catch (err) {
+        console.error("Search failed", err);
+      }
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [query, chatSessions]);
+
+  const filteredSessions = searchResults;
 
   return (
     <div className="search-chat-container">

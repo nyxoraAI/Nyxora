@@ -27,7 +27,35 @@ interface WhitelistedToken {
   source: string;
 }
 
-export const Portfolio: React.FC = () => {
+export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' }) => {
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+
+  useEffect(() => {
+    if (baseFiat.toLowerCase() === 'usd') {
+      setExchangeRate(1);
+      return;
+    }
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=${baseFiat.toLowerCase()}`)
+      .then(res => res.json())
+      .then(data => {
+        const rate = data.tether?.[baseFiat.toLowerCase()];
+        if (rate) setExchangeRate(rate);
+      })
+      .catch(err => console.error('Failed to fetch exchange rate', err));
+  }, [baseFiat]);
+
+  const fiatSymbol = useMemo(() => {
+    const f = baseFiat.toLowerCase();
+    if (f === 'idr') return 'Rp ';
+    if (f === 'eur') return '€';
+    if (f === 'jpy') return '¥';
+    if (f === 'gbp') return '£';
+    if (f === 'aud') return 'A$';
+    if (f === 'krw') return '₩';
+    if (f === 'inr') return '₹';
+    if (f === 'cny') return '¥';
+    return '$';
+  }, [baseFiat]);
   const [data, setData] = useState<PortfolioData | null>(null);
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [selectedChain, setSelectedChain] = useState<string>('all');
@@ -251,7 +279,7 @@ export const Portfolio: React.FC = () => {
           )}
 
           <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '24px', display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-            $ {totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {fiatSymbol}{(totalUsd * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span style={{ fontSize: '1rem', color: totalChange >= 0 ? '#A3BE8C' : '#BF616A', fontWeight: '500' }}>
               {totalChange >= 0 ? '+' : ''}{totalChange.toFixed(2)}%
             </span>
@@ -347,7 +375,7 @@ export const Portfolio: React.FC = () => {
             <div>TOKEN</div>
             <div style={{ textAlign: 'right' }}>PRICE</div>
             <div style={{ textAlign: 'right' }}>AMOUNT</div>
-            <div style={{ textAlign: 'right' }}>USD VALUE</div>
+            <div style={{ textAlign: 'right' }}>VALUE ({baseFiat.toUpperCase()})</div>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -407,7 +435,7 @@ export const Portfolio: React.FC = () => {
                   </div>
                   
                   <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                    {t.priceUsd ? `$${t.priceUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : '-'}
+                    {t.priceUsd ? `${fiatSymbol}${(t.priceUsd * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : '-'}
                   </div>
                   
                   <div style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: '600' }}>
@@ -415,7 +443,7 @@ export const Portfolio: React.FC = () => {
                   </div>
                   
                   <div style={{ textAlign: 'right', color: '#A3BE8C', fontWeight: '600', fontSize: '1.1rem' }}>
-                    {usdVal > 0 ? `$${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00'}
+                    {usdVal > 0 ? `${fiatSymbol}${(usdVal * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${fiatSymbol}0.00`}
                   </div>
                 </div>
               );

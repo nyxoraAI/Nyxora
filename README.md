@@ -97,8 +97,21 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 
 ## 🚀 Quick Start & Installation
 
-### Option 1: Global Installation (Recommended)
-Nyxora can be installed globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+### Option 1: One-Line Installation (Recommended)
+The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry.
+
+**Linux & macOS:**
+```bash
+curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
+```
+
+### Option 2: Global Installation (NPM)
+If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
 
 ```bash
 # Install globally
@@ -124,7 +137,7 @@ cd Nyxora
 # 1. Install Dependencies
 npm install
 
-# 2. Build the Dashboard UI
+# 2. Build the Core, MCP Server, and Dashboard UI
 npm run build
 
 # 3. Interactive Setup Wizard
@@ -137,6 +150,13 @@ npm start
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 
 > **⚠️ IMPORTANT:** Whenever you re-run `nyxora setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
+
+### 🧹 Uninstallation & Reset
+If you ever need to securely wipe the AI's episodic memory, delete your API keys, and completely remove Nyxora's configuration from your operating system, simply run:
+```bash
+nyxora uninstall
+```
+This acts as a master reset switch to return your environment to a clean state.
 
 ---
 

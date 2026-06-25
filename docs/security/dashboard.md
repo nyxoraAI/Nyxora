@@ -40,18 +40,18 @@ The Dashboard is designed to be a transparent window into the background daemon'
 *   **Active CRON Jobs:** The Overview page actively polls the `/api/cron` endpoint to display the exact number of recurring background tasks currently registered by the AI Scheduler.
 *   **Agent Identity Sync:** If you instruct the AI to change its name via a chat command (e.g., "Change your name to Jarvis"), the backend instantly updates the global `nyxora.config.json` file. This guarantees that your Dashboard UI and Telegram Bot always reflect the AI's latest personality and naming configurations.
 
-## Policy Engine (Hard-coded Firewall)
+## Policy Engine Dashboard (Hard-coded Firewall)
 
-Within the Dashboard Settings interface, there is a strict security mechanism known as the **Policy Engine**. This acts as an impenetrable shield that cannot be overridden by the LLM agent under any circumstances.
+Nyxora kini memiliki modul **Policy Engine Dashboard** mandiri di dalam antarmuka Settings. Ini merupakan mekanisme keamanan ketat yang bertindak sebagai perisai tak tertembus, yang sama sekali tidak dapat di-bypass oleh agen LLM dalam kondisi apapun. Melalui dashboard ini, Anda dapat langsung mengatur aturan keselamatan berbasis NLP dan batas pengeluaran transaksi tanpa harus mengedit file `policy.yaml` secara manual.
 
-Two of its primary protections are:
-1. **Max USD per Transaction:** A hard limit on the maximum fiat value allowed per transaction.
-2. **Strict Whitelist Only:** Instantly blocks any transfer or smart contract interaction directed at an unlisted address.
+Dua perlindungan utamanya adalah:
+1. **Max USD per Transaction:** Batas keras (hard limit) pada nilai fiat maksimum yang diizinkan per transaksi.
+2. **Strict Whitelist Only:** Secara instan memblokir transfer atau interaksi *smart contract* apa pun yang diarahkan ke alamat yang tidak terdaftar.
 
 ### Manual Whitelist Configuration
-To eliminate the risk of UI injection attacks or fatal typos, the Dashboard interface intentionally **does not provide** a text input field for wallet addresses.
+Meskipun batas pengeluaran dan aturan NLP dapat diatur melalui GUI Dasbor, untuk mengeliminasi risiko serangan injeksi UI atau kesalahan ketik fatal, antarmuka Dasbor **sengaja tidak menyediakan** kolom input teks untuk mendaftarkan alamat dompet (*whitelist*).
 
-Advanced users who wish to utilize this feature must manually inject the approved addresses into the `~/.nyxora/policy.yaml` file (or the root `policy.yaml`) under the `whitelist:` array.
+Pengguna tingkat lanjut yang ingin menggunakan fitur ini harus menyuntikkan alamat yang disetujui secara manual ke dalam file `~/.nyxora/policy.yaml` (atau `policy.yaml` di root) di bawah array `whitelist:`.
 
 **Example `policy.yaml` Format:**
 ```yaml
@@ -66,3 +66,11 @@ whitelist:
 
 > [!NOTE]
 > Make sure to halt the daemon (`Ctrl+C` or `nyxora stop`) before modifying this YAML file, then restart it to ensure the system ingests the latest configuration securely.
+
+## RPC Dashboard
+
+Nyxora menyediakan tab **RPC Configuration** yang sepenuhnya baru. Melalui antarmuka ini, pengguna dapat dengan mudah mengganti *endpoint* untuk lingkungan Mainnet dan Testnet secara transparan. Sistem ini juga dibangun dengan mekanisme *fallback* yang kokoh; jika node RPC utama gagal, sistem akan otomatis beralih ke jalur cadangan untuk memastikan agen tetap terhubung ke blockchain tanpa hambatan.
+
+## Global Fiat Currency Converter
+
+Untuk memudahkan pelacakan portofolio pengguna dari berbagai negara, Dasbor Portfolio kini terintegrasi dengan **Global Fiat Currency Converter**. Fitur ini mengambil data kurs secara live dari CoinGecko, memungkinkan Anda untuk secara instan mengonversi dan menampilkan total kekayaan kripto lintas rantai Anda ke dalam mata uang fiat lokal (seperti IDR, EUR, GBP, JPY, dll) hanya dengan memilih opsi dari halaman Pengaturan (*Settings*).

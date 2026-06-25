@@ -30,7 +30,11 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
       return report;
     }
   } catch (e) {
-    console.warn("CoinGecko analysis failed, falling back to CMC...", e);
+    if (keys.cmc_key) {
+      console.warn("CoinGecko analysis failed, falling back to CMC...", e.message);
+    } else {
+      console.warn("CoinGecko analysis failed, falling back to DexScreener...", e.message);
+    }
   }
 
   // Tier 1 & 2: CoinMarketCap (Pro if key exists)
@@ -55,7 +59,7 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
         return report;
       }
     } catch (e) {
-      console.warn("CMC analysis failed, falling back to DexScreener...", e);
+      console.warn("CMC analysis failed, falling back to DexScreener...", e.message);
     }
   }
 
@@ -72,7 +76,7 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
   try {
     const data = await safeFetchJson<any>(dexSearchUrl);
     if (!data.pairs || data.pairs.length === 0) {
-      return `No market data found for '${tokenAddressOrSymbol}' on CMC, CoinGecko, or DexScreener across any chain.`;
+      return `❌ Market Engine Error: The token '${tokenAddressOrSymbol}' does not exist on CoinGecko, CoinMarketCap, or DexScreener across any supported chain. Please inform the user that this token is either not launched, completely dead, or the symbol is incorrect.`;
     }
 
     let pair = data.pairs.find((p: any) => p.chainId === chainName);

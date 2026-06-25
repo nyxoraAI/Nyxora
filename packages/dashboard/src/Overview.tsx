@@ -1,10 +1,12 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect, useRef } from 'react';
+import { usePolling } from './utils/usePolling';
 import './overview.css';
 
 interface Config {
   agent: { name: string; default_chain: string };
   llm: { provider: string; model: string; temperature: number };
+  credentials?: Record<string, string>;
 }
 
 interface Stats {
@@ -52,38 +54,34 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
   const eventLogsEndRef = useRef<HTMLDivElement>(null);
   const gatewayLogsEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const statsRes = await apiFetch('/api/stats');
-        if (statsRes.ok) setStats(await statsRes.json());
+  const fetchData = async () => {
+    try {
+      const statsRes = await apiFetch('/api/stats');
+      if (statsRes.ok) setStats(await statsRes.json());
 
-        const logsRes = await apiFetch('/api/logs');
-        if (logsRes.ok) {
-          const logs = await logsRes.json();
-          setEvents(logs.events);
-          setGatewayLogs(logs.gateway);
-        }
-
-        const cronRes = await apiFetch('/api/cron');
-        if (cronRes.ok) {
-          const cronData = await cronRes.json();
-          setCronJobs(cronData.activeJobs);
-        }
-
-        const memRes = await apiFetch('/api/memory');
-        if (memRes.ok) {
-          setMemories(await memRes.json());
-        }
-      } catch (err) {
-        console.error("Failed to fetch analytics");
+      const logsRes = await apiFetch('/api/logs');
+      if (logsRes.ok) {
+        const logs = await logsRes.json();
+        setEvents(logs.events);
+        setGatewayLogs(logs.gateway);
       }
-    };
 
-    fetchData();
-    const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
-  }, []);
+      const cronRes = await apiFetch('/api/cron');
+      if (cronRes.ok) {
+        const cronData = await cronRes.json();
+        setCronJobs(cronData.activeJobs);
+      }
+
+      const memRes = await apiFetch('/api/memory');
+      if (memRes.ok) {
+        setMemories(await memRes.json());
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics");
+    }
+  };
+
+  usePolling(fetchData, 5000);
 
   const handleDeleteMemory = async (id: number) => {
     try {
@@ -148,8 +146,19 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
         </div>
         <div className="metric-card">
           <label>MODEL AUTH</label>
-          <div className="metric-val text-green">1 ok</div>
-          <div className="metric-sub">{config.llm.provider.toUpperCase()} provider connected</div>
+          {(() => {
+            const provider = config.llm.provider.toLowerCase();
+            const apiKey = config.credentials ? config.credentials[`${provider}_key`] : undefined;
+            const isConfigured = apiKey && apiKey.length > 5;
+            return (
+              <>
+                <div className={`metric-val ${isConfigured ? 'text-green' : 'text-red'}`} style={{ color: isConfigured ? 'var(--success)' : 'var(--danger)' }}>
+                  {isConfigured ? 'Configured' : 'Missing Key'}
+                </div>
+                <div className="metric-sub">{config.llm.provider.toUpperCase()} provider {isConfigured ? 'connected' : 'not configured'}</div>
+              </>
+            );
+          })()}
         </div>
       </div>
 

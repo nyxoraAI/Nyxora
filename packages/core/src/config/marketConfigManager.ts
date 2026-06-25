@@ -2,9 +2,8 @@ import fs from 'fs';
 import yaml from 'yaml';
 import { getPath } from './paths';
 
-const MARKET_KEYS_FILE = getPath('market_keys.yaml');
-
 export function loadMarketKeys(): Record<string, string> {
+  const MARKET_KEYS_FILE = getPath('market_keys.yaml');
   if (!fs.existsSync(MARKET_KEYS_FILE)) {
     return {};
   }
@@ -31,6 +30,7 @@ export function saveMarketKeys(keys: Record<string, string>): void {
       }
     }
 
+    const MARKET_KEYS_FILE = getPath('market_keys.yaml');
     fs.writeFileSync(MARKET_KEYS_FILE, yaml.stringify(updated), 'utf8');
   } catch (error) {
     console.error('[Config] Failed to save market keys:', error);

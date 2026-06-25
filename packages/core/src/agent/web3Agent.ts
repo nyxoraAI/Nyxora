@@ -80,7 +80,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
     const response = await executeWithRetry(async (client) => {
       // Debug log to find out why Gemini 400 error happens
-      console.log(`[LLM Debug] Sending ${messages.length} messages to LLM.`);
+      // console.log(`[LLM Debug] Sending ${messages.length} messages to LLM.`);
       return await client.chat({
           model: config.llm.model,
           temperature: config.llm.temperature,

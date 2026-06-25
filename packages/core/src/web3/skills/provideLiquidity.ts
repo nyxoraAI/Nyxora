@@ -75,9 +75,16 @@ export async function prepareProvideLiquidity(
     }
     if (typeof actualSlippage !== 'number' || isNaN(actualSlippage)) actualSlippage = 0.5;
 
-    // CRITICAL SAFETY REQUIREMENT: AI MUST ASK USER FOR TICKS
-    if (tickLower === undefined || tickUpper === undefined) {
-        return `ACTION REQUIRED: I cannot calculate the Uniswap V3 price range (tickLower and tickUpper) autonomously for safety reasons. Please ask the user to provide the exact tickLower and tickUpper values they want for this liquidity pool before I can prepare the transaction.`;
+    // If ticks are not provided, default to Full Range based on tickSpacing
+    let tLower = tickLower;
+    let tUpper = tickUpper;
+
+    if (tLower === undefined || tUpper === undefined) {
+        const MIN_TICK = -887272;
+        const MAX_TICK = 887272;
+        const tickSpacing = feeTier === 100 ? 1 : feeTier === 500 ? 10 : feeTier === 3000 ? 60 : 200;
+        tLower = Math.ceil(MIN_TICK / tickSpacing) * tickSpacing;
+        tUpper = Math.floor(MAX_TICK / tickSpacing) * tickSpacing;
     }
 
     const publicClient = getPublicClient(chainName);
@@ -148,7 +155,7 @@ export async function prepareProvideLiquidity(
     const amount1Min = (amount1Wei * (10000n - slippageFactor)) / 10000n;
 
     const mintParams = {
-        token0, token1, fee: feeTier, tickLower, tickUpper,
+        token0, token1, fee: feeTier, tickLower: tLower, tickUpper: tUpper,
         amount0Desired: amount0Wei, amount1Desired: amount1Wei,
         amount0Min, amount1Min,
         recipient: account, deadline
@@ -170,7 +177,7 @@ export async function prepareProvideLiquidity(
     }
 
     const tx = txManager.createPendingTransaction('univ3Mint', chainName, { 
-      positionManagerAddress, token0, token1, amount0, amount1, tickLower, tickUpper,
+      positionManagerAddress, token0, token1, amount0, amount1, tickLower: tLower, tickUpper: tUpper,
       gasEstimate: gasEstimate.toString()
     });
 
@@ -194,8 +201,8 @@ export const provideLiquidityToolDefinition = {
         amount0Str: { type: "string" },
         amount1Str: { type: "string" },
         feeTier: { type: "number", description: "Uniswap fee tier (e.g. 500 for 0.05%, 3000 for 0.3%, 10000 for 1%)" },
-        tickLower: { type: "number", description: "MUST BE PROVIDED BY USER." },
-        tickUpper: { type: "number", description: "MUST BE PROVIDED BY USER." }
+        tickLower: { type: "number", description: "Optional. Leave empty for Full Range." },
+        tickUpper: { type: "number", description: "Optional. Leave empty for Full Range." }
       },
       required: ["chainName", "token0AddressOrSymbol", "token1AddressOrSymbol", "amount0Str", "amount1Str", "feeTier"]
     }

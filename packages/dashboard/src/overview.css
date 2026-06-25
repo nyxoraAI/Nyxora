@@ -14,6 +14,10 @@
   border-radius: 4px;
 }
 
+body.light-theme .overview-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
 .overview-header h1 {
   font-size: 1.5rem;
   font-weight: 600;

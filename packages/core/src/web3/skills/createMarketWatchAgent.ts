@@ -1,5 +1,9 @@
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 
+import fs from 'fs';
+import path from 'path';
+import { getAppDir } from '../../config/paths';
+
 export async function createMarketWatchAgent(
     chainName: ChainName, 
     contractAddress: string,
@@ -11,6 +15,26 @@ export async function createMarketWatchAgent(
     // or instantiate a background worker. For now, we simulate the agent spawning.
     
     const jobId = `watch-${contractAddress.substring(0,8)}-${Date.now()}`;
+    
+    // Save to persistence disk
+    try {
+        const tasksPath = path.join(getAppDir(), 'market_tasks.json');
+        let tasks = [];
+        if (fs.existsSync(tasksPath)) {
+            tasks = JSON.parse(fs.readFileSync(tasksPath, 'utf8'));
+        }
+        tasks.push({
+            jobId,
+            chainName,
+            contractAddress,
+            rules,
+            durationDays,
+            createdAt: Date.now()
+        });
+        fs.writeFileSync(tasksPath, JSON.stringify(tasks, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Failed to persist market watch task', e);
+    }
     
     let report = `✅ **Autonomous Watchdog Agent Deployed!**\n\n`;
     report += `**Job ID:** \`${jobId}\`\n`;

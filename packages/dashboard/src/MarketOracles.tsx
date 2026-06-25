@@ -72,9 +72,10 @@ export const MarketOracles: React.FC = () => {
       <div style={{ background: 'rgba(235, 203, 139, 0.1)', border: '1px solid rgba(235, 203, 139, 0.3)', padding: '16px', borderRadius: '8px', marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
         <ShieldAlert size={24} color="#ebcb8b" style={{ flexShrink: 0, marginTop: '2px' }} />
         <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          <strong style={{ color: '#ebcb8b' }}>Security Notice:</strong> Your keys are encrypted locally by the Nyxora backend. 
-          To protect against browser extensions and screen-sharing, stored keys are NEVER sent back to this dashboard. 
-          They will simply appear as <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--accent)' }}>CONFIGURED</code>.
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>
+            <strong style={{ color: '#ebcb8b' }}>Security Notice:</strong> Your keys are stored in plain text locally inside <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '4px' }}>~/.nyxora/config/market_keys.yaml</code>. 
+            They are highly isolated and never transmitted except directly to the respective Oracle API.
+          </p>
         </div>
       </div>
 

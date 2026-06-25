@@ -106,6 +106,8 @@ export interface NyxoraConfig {
     default_chain: string;
     default_router?: string;
     default_slippage?: number | "auto";
+    log_level?: 'info' | 'debug';
+    base_fiat?: string;
   };
   llm: {
     provider: string;
@@ -182,10 +184,7 @@ export function loadConfig(): NyxoraConfig {
       if (parsed.integrations.telegram.bot_token.startsWith('ENC:')) needsSave = true;
       parsed.integrations.telegram.bot_token = decryptDataSync(parsed.integrations.telegram.bot_token);
     }
-    if (parsed.web3?.explorer_api_key) {
-      if (parsed.web3.explorer_api_key.startsWith('ENC:')) needsSave = true;
-      parsed.web3.explorer_api_key = decryptDataSync(parsed.web3.explorer_api_key);
-    }
+    
     
     // Auto-migration logic: move llm.credentials to root credentials
     if (parsed.llm && (parsed.llm as any).credentials) {

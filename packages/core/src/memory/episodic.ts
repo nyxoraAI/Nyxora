@@ -47,16 +47,18 @@ export class EpisodicMemoryDB {
     // Upsert logic
     const existing = this.db.prepare('SELECT id, occurrences, confidence FROM episodic_memories WHERE fact = ?').get(fact) as any;
     
+    const safeScore = Math.min(1.0, confidenceScore);
+    
     if (existing) {
       // Increment occurrences, boost confidence slightly up to max 1.0
       const newOccurrences = existing.occurrences + 1;
-      const newConfidence = Math.min(1.0, existing.confidence + (confidenceScore * 0.2)); // Dampened boost
+      const newConfidence = Math.min(1.0, existing.confidence + (safeScore * 0.2)); // Dampened boost
 
       const stmt = this.db.prepare('UPDATE episodic_memories SET occurrences = ?, confidence = ?, rule_type = ?, lastSeen = CURRENT_TIMESTAMP WHERE id = ?');
       stmt.run(newOccurrences, newConfidence, ruleType, existing.id);
     } else {
       const stmt = this.db.prepare('INSERT INTO episodic_memories (fact, confidence, category, rule_type) VALUES (?, ?, ?, ?)');
-      stmt.run(fact, confidenceScore, category, ruleType);
+      stmt.run(fact, safeScore, category, ruleType);
     }
   }
 
@@ -77,6 +79,11 @@ export class EpisodicMemoryDB {
       WHERE confidence < ? AND lastSeen <= datetime('now', '-' || ? || ' days')
     `);
     stmt.run(minConfidence, daysOld);
+  }
+
+  public clearAllMemories(): void {
+    const stmt = this.db.prepare('DELETE FROM episodic_memories');
+    stmt.run();
   }
 
   public close(): void {

@@ -65,7 +65,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ value, onChang
       </button>
 
       {isOpen && (
-        <ul className="network-dropdown-menu">
+        <ul className="network-dropdown-menu styled-scroll" style={{ maxHeight: '250px', overflowY: 'auto' }}>
           {options.map(net => (
             <li 
               key={net.id}

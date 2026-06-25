@@ -68,7 +68,7 @@ export class OpenOceanProvider implements DefiAggregatorProvider {
       routeId: `openocean-${crypto.randomUUID()}`,
       fromChainId: chainId,
       toChainId: chainId,
-      inputAmount: BigInt(amount),
+      inputAmount: BigInt(request.amountInWei || "0"),
       outputAmount: BigInt(data.outAmount),
       executable: true,
       expiresAt: Date.now() + 60000,

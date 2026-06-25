@@ -11,6 +11,10 @@ The Nyxora MCP Server communicates with the Nyxora daemon through a highly secur
 Therefore, **you must have the Nyxora daemon running** before you can use the MCP Server:
 
 ```bash
+# If you installed Nyxora globally (Option 1 & 2):
+nyxora start
+
+# If you installed Nyxora from Source Code (Option 3):
 npm start
 ```
 
@@ -24,23 +28,40 @@ To connect Claude Desktop to Nyxora, you need to add Nyxora as an MCP Server in 
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-2. Add the following JSON snippet to the `mcpServers` object (adjust the absolute path to point to your Nyxora repository):
+2. Add the following JSON snippet to the `mcpServers` object. 
 
+**If you installed Nyxora globally (Option 1 & 2):**
 ```json
 {
   "mcpServers": {
     "nyxora": {
-      "command": "npx",
-      "args": [
-        "ts-node",
-        "/absolute/path/to/nyxora/packages/mcp-server/src/server.ts"
-      ]
+      "command": "nyxora",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**If you run Nyxora from source code (Option 3):**
+```json
+{
+  "mcpServers": {
+    "nyxora": {
+      "command": "node",
+      "args": ["/absolute/path/to/Nyxora/packages/mcp-server/dist/server.js"]
     }
   }
 }
 ```
 
 3. **Restart Claude Desktop**. You will now see a new "plug" icon or Nyxora tools available in your Claude chat!
+
+> **⚠️ NVM & PATH Troubleshooting (Important for Claude Desktop):** 
+> Claude Desktop is a GUI application and **does not automatically inherit your terminal's `PATH` variables**. If you installed Node.js via NVM or Volta, Claude may fail to find the `nyxora` or `node` command.
+> 
+> If you encounter connection errors, you must replace `"nyxora"` with the absolute path to the binary. To find the correct path, run `which nyxora` (or `which node`) in your terminal. For example: `"command": "/Users/username/.nvm/versions/node/v20.0.0/bin/nyxora"`.
+> 
+> **To view Claude Logs:** macOS (`~/Library/Logs/Claude/mcp.log`), Windows (`%APPDATA%\Claude\logs\mcp.log`).
 
 ## Cursor IDE Configuration
 
@@ -51,7 +72,9 @@ If you are using the Cursor IDE and want its AI features to interact with Nyxora
 3. Click **Add New MCP Server**.
 4. Set the Type to `command`.
 5. Set the Name to `nyxora`.
-6. Set the Command to: `npx ts-node /absolute/path/to/nyxora/packages/mcp-server/src/server.ts`
+6. Set the Command to: 
+   - **Global Install:** `nyxora mcp`
+   - **Source Code Install:** `node /absolute/path/to/Nyxora/packages/mcp-server/dist/server.js`
 7. Click Save and Refresh.
 
 ## Available Capabilities
@@ -61,3 +84,5 @@ Once connected, your AI client will have access to:
 - **`request_transaction`**: Requests EVM operations (like `swap` or `transfer`). The Policy Engine evaluates the request and if approved, signs and broadcasts it.
 
 > **Security Note**: External AI clients never touch your private keys. They only interface with the standard MCP API, which is strictly governed by your Nyxora `policy.yaml` rules.
+
+

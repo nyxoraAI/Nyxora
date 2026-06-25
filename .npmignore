@@ -15,6 +15,7 @@ scratch/
 # Nyxora CLI Specifics
 .github/
 /docs/
+/wiki/
 /assets/
 config.yaml
 rpc_key.yaml
@@ -35,6 +36,7 @@ IDENTITY.md
 security_policy.md
 .npmrc
 *.tgz
+.cursorrules
 
 # Build Caches & Test Files
 **/*.tsbuildinfo

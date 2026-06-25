@@ -235,6 +235,18 @@ app.get('/api/sessions', (req, res) => {
   }
 });
 
+app.get('/api/sessions/search', (req, res) => {
+  try {
+    const q = req.query.q as string;
+    if (!q) {
+      return res.json(logger.getSessions());
+    }
+    res.json(logger.searchSessions(q));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/sessions', (req, res) => {
   try {
     const { title } = req.body;
@@ -323,17 +335,21 @@ app.get('/api/defi-keys', (req, res) => {
     const providers = aggregatorRegistry.getAllProviders();
     
     const requirements: any[] = [];
+    const seenKeys = new Set<string>();
     
     for (const provider of providers) {
       if (provider.manifest.requiredApiKeys) {
         for (const req of provider.manifest.requiredApiKeys) {
-          requirements.push({
-            id: req.id,
-            label: req.label,
-            required: req.required,
-            docsUrl: req.docsUrl,
-            configured: !!(keys[req.envKey] || keys[req.id])
-          });
+          if (!seenKeys.has(req.id)) {
+            seenKeys.add(req.id);
+            requirements.push({
+              id: req.id,
+              label: req.label,
+              required: req.required,
+              docsUrl: req.docsUrl,
+              configured: !!keys[req.id]
+            });
+          }
         }
       }
     }
@@ -347,6 +363,17 @@ app.get('/api/defi-keys', (req, res) => {
 app.post('/api/defi-keys', (req, res) => {
   try {
     saveDefiKeys(req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/defi-keys/:id', (req, res) => {
+  try {
+    const keys = loadDefiKeys();
+    delete keys[req.params.id];
+    saveDefiKeys(keys);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -894,11 +921,14 @@ app.get('/api/portfolio', async (req, res) => {
 let messageCounter = 0;
 let idleTimer: NodeJS.Timeout | null = null;
 
-function resetIdleTimer() {
+function resetIdleTimer(sessionId?: string) {
   if (idleTimer) clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
     console.log('[Memory] Idle trigger activated. Running Reflection Engine...');
-    ReflectionEngine.runReflection();
+    ReflectionEngine.runReflection(sessionId).then(() => {
+      const { PromotionEngine } = require('../memory/promotionEngine');
+      PromotionEngine.runPromotionAndDecay();
+    }).catch(console.error);
   }, 3 * 60 * 1000); // 3 minutes idle
 }
 
@@ -931,13 +961,16 @@ app.post('/api/chat', async (req, res) => {
     const response = await processUserInput(message, 'user', undefined, session_id);
     
     // Memory Triggers
-    resetIdleTimer();
+    resetIdleTimer(session_id);
     messageCounter++;
     if (messageCounter >= 5) {
       console.log('[Memory] N-Message threshold reached. Running Reflection Engine...');
       messageCounter = 0;
       // Run asynchronously
-      ReflectionEngine.runReflection();
+      ReflectionEngine.runReflection(session_id).then(() => {
+        const { PromotionEngine } = require('../memory/promotionEngine');
+        PromotionEngine.runPromotionAndDecay();
+      }).catch(console.error);
     }
 
     res.json({ response });
@@ -951,6 +984,17 @@ app.get('/api/memory', (req, res) => {
   try {
     const memories = episodicDB.getMemories();
     res.json(memories);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/memory/all', (req, res) => {
+  try {
+    episodicDB.clearAllMemories();
+    const { PromotionEngine } = require('../memory/promotionEngine');
+    PromotionEngine.runPromotionAndDecay();
+    res.json({ success: true, message: "Episodic memory wiped completely." });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -1098,6 +1142,22 @@ export async function startServer() {
     
     // Start Event Listener for Limit Orders (V3)
     eventListener.start();
+    
+    // Resume Market Watch tasks
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const { getAppDir } = require('../config/paths');
+      const tasksPath = path.join(getAppDir(), 'market_tasks.json');
+      if (fs.existsSync(tasksPath)) {
+        const tasks = JSON.parse(fs.readFileSync(tasksPath, 'utf8'));
+        if (tasks.length > 0) {
+          console.log(`[Market Watch] Resuming ${tasks.length} background watch tasks...`);
+        }
+      }
+    } catch (e) {
+      console.error('[Market Watch] Failed to resume tasks:', e);
+    }
   });
 
   server.on('error', (e: any) => {

@@ -18,6 +18,7 @@ import MarketWidget from './MarketWidget';
 import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
 import ReconnectOverlay from './components/ReconnectOverlay';
+import { usePolling } from './utils/usePolling';
 import './index.css';
 
 interface Message {
@@ -55,6 +56,10 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auth Modal State
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalInput, setAuthModalInput] = useState('');
 
   // Auto-Lock State
   const [isLocked, setIsLocked] = useState(false);
@@ -108,6 +113,22 @@ function App() {
   useEffect(() => {
     localStorage.setItem('nyxora_sidebar_collapsed', isSidebarCollapsed.toString());
   }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    const handleAuthError = () => {
+      setShowAuthModal(true);
+    };
+    
+    // Check initially if token exists
+    if (!localStorage.getItem('nyxora_token')) {
+      setShowAuthModal(true);
+    }
+
+    window.addEventListener('nyxora-auth-error', handleAuthError);
+    return () => {
+      window.removeEventListener('nyxora-auth-error', handleAuthError);
+    };
+  }, []);
 
   useEffect(() => {
     lastActivityRef.current = Date.now();
@@ -365,18 +386,23 @@ function App() {
     }
   };
 
+
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
   useEffect(() => {
     fetchHistory();
-    fetchConfig();
     fetchSessions();
     fetchTrendingTokens();
-    const interval = setInterval(() => {
-      fetchHistory();
-      fetchSessions();
-      fetchTrendingTokens();
-    }, 2000);
-    return () => clearInterval(interval);
   }, [activeSessionId]);
+
+  usePolling(() => {
+    fetchHistory();
+    fetchSessions();
+    fetchTrendingTokens();
+  }, 5000);
 
   useEffect(() => {
     // Adding a slight timeout to ensure DOM is fully rendered before scrolling
@@ -694,7 +720,7 @@ function App() {
         ) : currentView === 'overview' ? (
           <Overview config={config} sessionsCount={chatSessions.length} />
         ) : currentView === 'portfolio' ? (
-          <Portfolio />
+          <Portfolio baseFiat={config?.agent?.base_fiat || 'usd'} />
         ) : currentView === 'skills' ? (
           <Skills />
         ) : currentView === 'osskills' ? (
@@ -828,15 +854,13 @@ function App() {
                 if (e.key === 'Escape') setEditingSessionId(null);
               }}
               autoFocus
-              style={{ width: '100%', background: 'transparent', color: 'var(--text-primary)', border: '1px solid #3f4451', borderRadius: '8px', padding: '14px 16px', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-              onBlur={(e) => e.target.style.borderColor = '#3f4451'}
+              style={{ width: '100%', boxSizing: 'border-box', background: '#2d2d3b', border: '1px solid #4a4a5a', borderRadius: '12px', padding: '12px 16px', color: '#f8fafc', fontSize: '1rem', outline: 'none', marginBottom: '20px' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button 
                 onClick={() => setEditingSessionId(null)}
-                style={{ background: 'transparent', border: 'none', color: '#a0aec0', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 500, fontSize: '0.9rem' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                style={{ background: 'transparent', border: '1px solid #4a4a5a', color: '#94a3b8', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 500, fontSize: '0.9rem' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#2d2d3b'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 Cancel
@@ -850,6 +874,46 @@ function App() {
                 Rename
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showAuthModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '32px', width: '400px', boxShadow: '0 20px 40px rgba(0,0,0,0.8)', border: '1px solid var(--accent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <Shield size={28} color="var(--accent)" />
+              <h3 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 600 }}>Authentication Required</h3>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: '24px' }}>
+              Please enter your Nyxora Auth Token to connect to the backend server.
+            </p>
+            <input 
+              type="password" 
+              placeholder="x-nyxora-token"
+              value={authModalInput}
+              onChange={(e) => setAuthModalInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && authModalInput.trim()) {
+                  localStorage.setItem('nyxora_token', authModalInput.trim());
+                  window.location.reload();
+                }
+              }}
+              autoFocus
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 16px', color: 'var(--text-primary)', fontSize: '1rem', outline: 'none', marginBottom: '24px' }}
+            />
+            <button 
+              onClick={() => {
+                if (authModalInput.trim()) {
+                  localStorage.setItem('nyxora_token', authModalInput.trim());
+                  window.location.reload();
+                }
+              }}
+              disabled={!authModalInput.trim()}
+              style={{ width: '100%', background: 'var(--accent)', border: 'none', color: '#13131a', cursor: authModalInput.trim() ? 'pointer' : 'not-allowed', padding: '14px 20px', borderRadius: '12px', fontWeight: 600, fontSize: '1rem', opacity: authModalInput.trim() ? 1 : 0.5 }}
+            >
+              Connect to Server
+            </button>
           </div>
         </div>
       )}

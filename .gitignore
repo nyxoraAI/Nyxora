@@ -23,11 +23,13 @@ packages/dashboard/.eslintcache
 packages/policy/policy.yaml
 scratch/
 docs/.vitepress/cache/
+/wiki/
 
 # System files
 .DS_Store
 Thumbs.db
 *.log
+.cursorrules
 
 # Google Workspace Secrets
 credentials.json
