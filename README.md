@@ -20,15 +20,40 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ## ⚡ Supported Ecosystem & Integrations
 
+**🧠 The Brain (AI / LLM Providers)**
 <p align="center">
-  <a href="https://base.org"><img src="https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=base&logoColor=white" alt="Base"></a>
-  <a href="https://arbitrum.io/"><img src="https://img.shields.io/badge/Arbitrum-28A0F0?style=for-the-badge&logo=arbitrum&logoColor=white" alt="Arbitrum"></a>
-  <a href="https://www.binance.com/"><img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=black" alt="BSC"></a>
-  <a href="https://openai.com"><img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"></a>
-  <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white" alt="Gemini"></a>
-  <a href="https://1inch.io/"><img src="https://img.shields.io/badge/1inch-0B132B?style=for-the-badge&logo=1inch&logoColor=white" alt="1inch"></a>
-  <a href="https://www.coingecko.com/"><img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logo=coingecko&logoColor=white" alt="CoinGecko"></a>
-  <a href="https://viem.sh/"><img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem"></a>
+  <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI">
+  <img src="https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white" alt="Gemini">
+  <img src="https://img.shields.io/badge/Anthropic-1A1A1A?style=for-the-badge&logo=anthropic&logoColor=white" alt="Anthropic">
+  <img src="https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logoColor=white" alt="Groq">
+  <img src="https://img.shields.io/badge/Mistral-F26522?style=for-the-badge&logoColor=white" alt="Mistral">
+  <img src="https://img.shields.io/badge/xAI-000000?style=for-the-badge&logo=x&logoColor=white" alt="xAI">
+  <img src="https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge&logoColor=white" alt="DeepSeek">
+  <img src="https://img.shields.io/badge/OpenRouter-1A1A1A?style=for-the-badge&logoColor=white" alt="OpenRouter">
+  <img src="https://img.shields.io/badge/Ollama-FFFFFF?style=for-the-badge&logoColor=black" alt="Ollama">
+</p>
+
+**⛓️ The Muscles (Web3 & DeFi Ecosystem)**
+<p align="center">
+  <img src="https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=base&logoColor=white" alt="Base">
+  <img src="https://img.shields.io/badge/Arbitrum-28A0F0?style=for-the-badge&logo=arbitrum&logoColor=white" alt="Arbitrum">
+  <img src="https://img.shields.io/badge/Optimism-FF0420?style=for-the-badge&logo=optimism&logoColor=white" alt="Optimism">
+  <img src="https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white" alt="Ethereum">
+  <img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=black" alt="BSC">
+  <img src="https://img.shields.io/badge/1inch-0B132B?style=for-the-badge&logoColor=white" alt="1inch">
+  <img src="https://img.shields.io/badge/0x-000000?style=for-the-badge&logoColor=white" alt="0x">
+  <img src="https://img.shields.io/badge/LI.FI-4C3A9E?style=for-the-badge&logoColor=white" alt="LI.FI">
+  <img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap">
+  <img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logo=coingecko&logoColor=white" alt="CoinGecko">
+  <img src="https://img.shields.io/badge/DexScreener-000000?style=for-the-badge&logoColor=white" alt="DexScreener">
+  <img src="https://img.shields.io/badge/GoPlus-FF0000?style=for-the-badge&logoColor=white" alt="GoPlus">
+</p>
+
+**💻 Core Technologies**
+<p align="center">
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem">
 </p>
 
 <br/>
