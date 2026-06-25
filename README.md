@@ -45,6 +45,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
   <img src="https://img.shields.io/badge/LI.FI-4C3A9E?style=for-the-badge&logoColor=white" alt="LI.FI">
   <img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap">
   <img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logo=coingecko&logoColor=white" alt="CoinGecko">
+  <img src="https://img.shields.io/badge/CoinMarketCap-0D31BD?style=for-the-badge&logo=coinmarketcap&logoColor=white" alt="CoinMarketCap">
   <img src="https://img.shields.io/badge/DexScreener-000000?style=for-the-badge&logoColor=white" alt="DexScreener">
   <img src="https://img.shields.io/badge/GoPlus-FF0000?style=for-the-badge&logoColor=white" alt="GoPlus">
 </p>
