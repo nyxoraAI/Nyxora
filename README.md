@@ -44,6 +44,8 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
   <a href="https://0x.org/"><img src="https://img.shields.io/badge/0x-000000?style=for-the-badge&logoColor=white" alt="0x"></a>
   <a href="https://li.fi/"><img src="https://img.shields.io/badge/LI.FI-F7C2FF?style=for-the-badge&logoColor=white" alt="LI.FI"></a>
   <a href="https://kyberswap.com/"><img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap"></a>
+  <a href="https://openocean.finance/"><img src="https://img.shields.io/badge/OpenOcean-000000?style=for-the-badge&logoColor=white" alt="OpenOcean"></a>
+  <a href="https://relay.link/"><img src="https://img.shields.io/badge/Relay-4A00E0?style=for-the-badge&logoColor=white" alt="Relay"></a>
   <a href="https://www.coingecko.com/"><img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logoColor=white" alt="CoinGecko"></a>
   <a href="https://coinmarketcap.com/"><img src="https://img.shields.io/badge/CoinMarketCap-1A52F9?style=for-the-badge&logo=coinmarketcap&logoColor=white" alt="CoinMarketCap"></a>
   <a href="https://dexscreener.com/"><img src="https://img.shields.io/badge/DexScreener-171717?style=for-the-badge&logoColor=white" alt="DexScreener"></a>
