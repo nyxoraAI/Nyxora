@@ -22,39 +22,39 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 **🧠 The Brain (AI / LLM Providers)**
 <p align="center">
-  <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI">
-  <img src="https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white" alt="Gemini">
-  <img src="https://img.shields.io/badge/Anthropic-1A1A1A?style=for-the-badge&logo=anthropic&logoColor=white" alt="Anthropic">
-  <img src="https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logoColor=white" alt="Groq">
-  <img src="https://img.shields.io/badge/Mistral-F26522?style=for-the-badge&logoColor=white" alt="Mistral">
-  <img src="https://img.shields.io/badge/xAI-000000?style=for-the-badge&logo=x&logoColor=white" alt="xAI">
-  <img src="https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge&logoColor=white" alt="DeepSeek">
-  <img src="https://img.shields.io/badge/OpenRouter-1A1A1A?style=for-the-badge&logoColor=white" alt="OpenRouter">
-  <img src="https://img.shields.io/badge/Ollama-FFFFFF?style=for-the-badge&logoColor=black" alt="Ollama">
+  <a href="https://openai.com/"><img src="https://img.shields.io/badge/OpenAI-000000?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"></a>
+  <a href="https://cloud.google.com/ai/gemini?hl=id"><img src="https://img.shields.io/badge/Google_AI_Studio-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Google AI Studio"></a>
+  <a href="https://claude.com/platform/api"><img src="https://img.shields.io/badge/Anthropic-D97757?style=for-the-badge&logo=anthropic&logoColor=white" alt="Anthropic"></a>
+  <a href="https://console.groq.com/keys"><img src="https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white" alt="Groq"></a>
+  <a href="https://mistral.ai/"><img src="https://img.shields.io/badge/Mistral-F26522?style=for-the-badge&logo=mistral&logoColor=white" alt="Mistral"></a>
+  <a href="https://x.ai/"><img src="https://img.shields.io/badge/xAI-000000?style=for-the-badge&logo=x&logoColor=white" alt="xAI"></a>
+  <a href="https://www.deepseek.com/en/"><img src="https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge&logo=deepseek&logoColor=white" alt="DeepSeek"></a>
+  <a href="https://openrouter.ai/"><img src="https://img.shields.io/badge/OpenRouter-1A1A1A?style=for-the-badge&logo=openrouter&logoColor=white" alt="OpenRouter"></a>
+  <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-FFFFFF?style=for-the-badge&logo=ollama&logoColor=black" alt="Ollama"></a>
 </p>
 
 **⛓️ The Muscles (Web3 & DeFi Ecosystem)**
 <p align="center">
-  <img src="https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=base&logoColor=white" alt="Base">
-  <img src="https://img.shields.io/badge/Arbitrum-28A0F0?style=for-the-badge&logo=arbitrum&logoColor=white" alt="Arbitrum">
-  <img src="https://img.shields.io/badge/Optimism-FF0420?style=for-the-badge&logo=optimism&logoColor=white" alt="Optimism">
-  <img src="https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white" alt="Ethereum">
-  <img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=black" alt="BSC">
-  <img src="https://img.shields.io/badge/1inch-0B132B?style=for-the-badge&logoColor=white" alt="1inch">
-  <img src="https://img.shields.io/badge/0x-000000?style=for-the-badge&logoColor=white" alt="0x">
-  <img src="https://img.shields.io/badge/LI.FI-4C3A9E?style=for-the-badge&logoColor=white" alt="LI.FI">
-  <img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap">
-  <img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logo=coingecko&logoColor=white" alt="CoinGecko">
-  <img src="https://img.shields.io/badge/CoinMarketCap-0D31BD?style=for-the-badge&logo=coinmarketcap&logoColor=white" alt="CoinMarketCap">
-  <img src="https://img.shields.io/badge/DexScreener-000000?style=for-the-badge&logoColor=white" alt="DexScreener">
-  <img src="https://img.shields.io/badge/GoPlus-FF0000?style=for-the-badge&logoColor=white" alt="GoPlus">
+  <a href="https://www.base.org/"><img src="https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base"></a>
+  <a href="https://arbitrum.io/"><img src="https://img.shields.io/badge/Arbitrum-28A0F0?style=for-the-badge&logoColor=white" alt="Arbitrum"></a>
+  <a href="https://optimism.io/"><img src="https://img.shields.io/badge/Optimism-FF0420?style=for-the-badge&logo=optimism&logoColor=white" alt="Optimism"></a>
+  <a href="https://ethereum.org/"><img src="https://img.shields.io/badge/Ethereum-627EEA?style=for-the-badge&logo=ethereum&logoColor=white" alt="Ethereum"></a>
+  <a href="https://www.bnbchain.org/en/bnb-smart-chain"><img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=black" alt="BSC"></a>
+  <a href="https://1inch.com/id"><img src="https://img.shields.io/badge/1inch-051024?style=for-the-badge&logoColor=white" alt="1inch"></a>
+  <a href="https://0x.org/"><img src="https://img.shields.io/badge/0x-000000?style=for-the-badge&logoColor=white" alt="0x"></a>
+  <a href="https://li.fi/"><img src="https://img.shields.io/badge/LI.FI-F7C2FF?style=for-the-badge&logoColor=white" alt="LI.FI"></a>
+  <a href="https://kyberswap.com/"><img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap"></a>
+  <a href="https://www.coingecko.com/"><img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logoColor=white" alt="CoinGecko"></a>
+  <a href="https://coinmarketcap.com/"><img src="https://img.shields.io/badge/CoinMarketCap-1A52F9?style=for-the-badge&logoColor=white" alt="CoinMarketCap"></a>
+  <a href="https://dexscreener.com/"><img src="https://img.shields.io/badge/DexScreener-171717?style=for-the-badge&logoColor=white" alt="DexScreener"></a>
+  <a href="https://gopluslabs.io/en"><img src="https://img.shields.io/badge/GoPlus_Security-10B981?style=for-the-badge&logoColor=white" alt="GoPlus Labs"></a>
 </p>
 
 **💻 Core Technologies**
 <p align="center">
-  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
-  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem">
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://viem.sh/"><img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem"></a>
 </p>
 
 <br/>
