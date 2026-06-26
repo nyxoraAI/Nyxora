@@ -34,6 +34,7 @@ export default defineConfig({
           { text: '👋 Overview', link: '/' },
           { text: '🚀 Getting Started', link: '/guide/introduction' },
           { text: '💻 Installation Guide', link: '/guide/installation' },
+          { text: '⌨️ CLI Reference', link: '/guide/cli-reference' },
           { text: '🌐 Nyxora Ecosystem', link: '/guide/ecosystem' }
         ]
       },
