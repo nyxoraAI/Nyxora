@@ -14,7 +14,7 @@ hero:
       link: /guide/introduction
     - theme: alt
       text: Explore Runtime
-      link: /guide/custom_skills
+      link: /guide/architecture
 
 features:
   - title: 🏛️ 3-Tier IPC Architecture
