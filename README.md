@@ -45,7 +45,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
   <a href="https://li.fi/"><img src="https://img.shields.io/badge/LI.FI-F7C2FF?style=for-the-badge&logoColor=white" alt="LI.FI"></a>
   <a href="https://kyberswap.com/"><img src="https://img.shields.io/badge/KyberSwap-31CB9E?style=for-the-badge&logoColor=white" alt="KyberSwap"></a>
   <a href="https://www.coingecko.com/"><img src="https://img.shields.io/badge/CoinGecko-8CC63F?style=for-the-badge&logoColor=white" alt="CoinGecko"></a>
-  <a href="https://coinmarketcap.com/"><img src="https://img.shields.io/badge/CoinMarketCap-1A52F9?style=for-the-badge&logoColor=white" alt="CoinMarketCap"></a>
+  <a href="https://coinmarketcap.com/"><img src="https://img.shields.io/badge/CoinMarketCap-1A52F9?style=for-the-badge&logo=coinmarketcap&logoColor=white" alt="CoinMarketCap"></a>
   <a href="https://dexscreener.com/"><img src="https://img.shields.io/badge/DexScreener-171717?style=for-the-badge&logoColor=white" alt="DexScreener"></a>
   <a href="https://gopluslabs.io/en"><img src="https://img.shields.io/badge/GoPlus_Security-10B981?style=for-the-badge&logoColor=white" alt="GoPlus Labs"></a>
 </p>
@@ -226,3 +226,8 @@ Building and maintaining a highly secure, zero-trust architecture takes signific
 
 ---
 **License:** MIT License
+
+<br>
+<p align="center">
+  <sub><b>Disclaimer:</b> All product names, logos, and brands are property of their respective owners. All company, product, and service names used in this website/repository are for identification purposes only. Use of these names, logos, and brands does not imply endorsement or official partnership.</sub>
+</p>
