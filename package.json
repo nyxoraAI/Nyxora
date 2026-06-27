@@ -48,8 +48,7 @@
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
     "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
-    "test": "npm run test --workspace=packages/core",
-    "prepare": "husky"
+    "test": "npm run test --workspace=packages/core"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
