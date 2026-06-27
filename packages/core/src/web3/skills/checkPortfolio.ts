@@ -145,7 +145,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
             }
           });
         }
-      } catch (e) {}
+      } catch {}
     }
 
     for (const b of nonZeroBalances) {

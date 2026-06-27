@@ -12,6 +12,7 @@ import { executeCustomTx } from '../web3/skills/customTx';
 
 import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
+import { checkRegistryStatus } from '../web3/skills/checkRegistryStatus';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
 import pc from 'picocolors';
 import fs from 'fs';
@@ -143,7 +144,7 @@ export function startTelegramBot() {
             } else {
               await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
             }
-          } catch (e) {}
+          } catch {}
         };
 
         const response = await processUserInput(text, 'user', onProgress, `telegram_${ctx.chat?.id}`);
@@ -207,7 +208,7 @@ export function startTelegramBot() {
             } else {
               await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
             }
-          } catch (e) {}
+          } catch {}
         };
 
         const response = await processUserInput(prompt, 'user', onProgress, `telegram_${ctx.chat?.id}`);
@@ -238,6 +239,16 @@ export function startTelegramBot() {
       await ctx.api.editMessageReplyMarkup(ctx.chat!.id, ctx.msg!.message_id, { reply_markup: { inline_keyboard: [] } }).catch(() => {});
 
       try {
+        // --- Arbitrum Registry Kill-Switch Interceptor ---
+        const registryCheck = await checkRegistryStatus();
+        if (!registryCheck.isActive) {
+          txManager.updateStatus(txId, 'failed', registryCheck.reason);
+          logger.addEntry({ role: 'assistant', content: `❌ **Security Blocked:** ${registryCheck.reason}` }, `telegram_${ctx.chat?.id}`);
+          await ctx.reply(formatToTelegramHTML(`❌ **Security Blocked:** ${registryCheck.reason}`), { parse_mode: 'HTML' });
+          return;
+        }
+        // ------------------------------------------------
+
         let result = '';
         if (tx.type === 'transfer') {
           result = await executeTransfer(tx.chainName as any, tx.details, true);

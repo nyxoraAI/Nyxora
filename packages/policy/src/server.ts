@@ -329,7 +329,7 @@ const gracefulShutdown = () => {
   console.log('[Policy Engine] Received shutdown signal. Cleaning up IPC...');
   try {
     if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
-  } catch (e) {}
+  } catch {}
   process.exit(0);
 };
 

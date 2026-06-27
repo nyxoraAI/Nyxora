@@ -70,7 +70,7 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
     if (resolved !== "0x0000000000000000000000000000000000000000") {
       query = resolved; // Use exact address if resolved locally
     }
-  } catch (e) {}
+  } catch {}
 
   const dexSearchUrl = `https://api.dexscreener.com/latest/dex/search?q=${query}`;
   try {

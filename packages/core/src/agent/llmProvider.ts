@@ -73,7 +73,7 @@ export class AnthropicAdapter implements LLMProvider {
                 name: tc.function.name,
                 input: JSON.parse(tc.function.arguments)
               });
-            } catch (e) {}
+            } catch {}
           });
         }
         anthropicMessages.push({ role: 'assistant', content: blocks.length > 0 ? blocks : m.content });
@@ -183,7 +183,7 @@ export class GeminiAdapter implements LLMProvider {
                   args: JSON.parse(tc.function.arguments)
                 }
               });
-            } catch(e) {}
+            } catch {}
           });
         }
         if (parts.length > 0) {

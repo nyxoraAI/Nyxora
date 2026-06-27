@@ -27,11 +27,16 @@ export function loadDefiKeys(): DefiKeys {
   }
 }
 
-export function saveDefiKeys(newKeys: Partial<DefiKeys>): void {
+export function saveDefiKeys(newKeys: Partial<DefiKeys>, overwrite: boolean = false): void {
   const configPath = getPath('defi_keys.yaml');
   try {
-    const currentKeys = loadDefiKeys();
-    const merged = { ...currentKeys, ...newKeys };
+    let merged;
+    if (overwrite) {
+      merged = newKeys;
+    } else {
+      const currentKeys = loadDefiKeys();
+      merged = { ...currentKeys, ...newKeys };
+    }
     const yamlStr = yaml.stringify(merged);
     fs.writeFileSync(configPath, yamlStr, 'utf8');
   } catch (e) {

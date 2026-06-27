@@ -89,9 +89,7 @@ export class EpisodicMemoryDB {
   public close(): void {
     try {
       this.db.close();
-    } catch (e) {
-      // ignore
-    }
+    } catch {}
   }
 }
 

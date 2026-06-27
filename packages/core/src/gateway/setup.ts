@@ -401,7 +401,7 @@ Provider: ${config.llm.provider}`;
         }
         if (!paired) {
             s.stop('Timeout waiting for Telegram pairing. Setup will continue, but Telegram integration is disabled.');
-            try { bot.stop(); } catch(e) {}
+            try { bot.stop(); } catch {}
             authorizedChatId = undefined;
             telegramToken = '';
         } else {
@@ -412,7 +412,7 @@ Provider: ${config.llm.provider}`;
         // Try to stop the bot if it was initialized before the error (L17)
         try { 
           if (bot) bot.stop(); 
-        } catch(e) {}
+        } catch {}
       }
     }
   }

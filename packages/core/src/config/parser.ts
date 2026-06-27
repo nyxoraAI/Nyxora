@@ -14,9 +14,7 @@ function getEncryptionKeySync(): Buffer {
             const output = execSync(`node -e "require('@napi-rs/keyring').Entry.prototype.getPassword.call(new (require('@napi-rs/keyring').Entry)('nyxora', 'config_master')).then(console.log).catch(()=>console.log(''))"`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
             const pk = output?.trim();
             if (pk) masterKeyRaw = pk;
-        } catch (e) {
-            // Ignore
-        }
+        } catch {}
     }
     if (!masterKeyRaw) {
         try {
@@ -25,7 +23,7 @@ function getEncryptionKeySync(): Buffer {
                 masterKeyRaw = fs.readFileSync(masterKeyPath, 'utf8').trim();
             } else {
                 masterKeyRaw = crypto.randomBytes(32).toString('hex');
-                try { fs.writeFileSync(masterKeyPath, masterKeyRaw, { mode: 0o600 }); } catch (e) {}
+                try { fs.writeFileSync(masterKeyPath, masterKeyRaw, { mode: 0o600 }); } catch {}
             }
         } catch (e) {
             masterKeyRaw = 'default_fallback_nyxora_key';

@@ -34,9 +34,7 @@ const MAX_LOGS = 100;
 let trackerFile = '';
 try {
   trackerFile = getPath('tracker.json');
-} catch (e) {
-  // Fallback
-}
+} catch {}
 
 function loadState() {
   if (!trackerFile) return;
@@ -51,7 +49,7 @@ function loadState() {
         gatewayLogs.splice(0, gatewayLogs.length, ...data.gatewayLogs);
       }
     }
-  } catch (e) {}
+  } catch {}
 }
 
 let savePending = false;
@@ -77,7 +75,7 @@ function flushState() {
   } catch (e) {
     try {
       fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
-    } catch(err) {}
+    } catch {}
   }
 }
 

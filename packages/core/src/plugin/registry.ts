@@ -31,9 +31,7 @@ export async function initializePlugins() {
               if (instance.name && instance.version && instance.tools && instance.handlers) {
                 pluginManager.register(instance);
               }
-            } catch (e) {
-              // Not a constructor or missing args, ignore
-            }
+            } catch {}
           }
         }
       } catch (err) {

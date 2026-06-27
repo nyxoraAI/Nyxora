@@ -47,7 +47,7 @@ CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outpu
 `;
       });
     }
-  } catch (error) {}
+  } catch {}
   
   return basePrompt;
 }

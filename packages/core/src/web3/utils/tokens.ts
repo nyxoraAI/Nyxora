@@ -170,9 +170,7 @@ export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`)
     });
     if (results[0].status === 'success') decimals = results[0].result as number;
     if (results[1].status === 'success') symbol = results[1].result as string;
-  } catch (err) {
-    // Fallback if multicall fails
-  }
+  } catch {}
 
   const metadata: TokenMetadata = { decimals, symbol };
 

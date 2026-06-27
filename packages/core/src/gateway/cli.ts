@@ -111,7 +111,7 @@ console.log(`================================`);
         try {
           const vaultPath = path.join(os.homedir(), '.nyxora', 'auth', 'vault.key');
           if (fs.existsSync(vaultPath)) fs.unlinkSync(vaultPath);
-        } catch (e) {}
+        } catch {}
       } catch (e: any) {
         const vaultDir = path.join(os.homedir(), '.nyxora', 'auth');
         if (!fs.existsSync(vaultDir)) fs.mkdirSync(vaultDir, { recursive: true });
@@ -163,11 +163,11 @@ console.log(`================================`);
     try {
       const { Entry } = await import('@napi-rs/keyring');
       const walletEntry = new Entry('nyxora', 'wallet');
-      try { await walletEntry.deletePassword(); } catch(e) {}
+      try { await walletEntry.deletePassword(); } catch {}
       console.log(pc.green('✅ Wallet key removed from OS Keyring.'));
       
       const masterEntry = new Entry('nyxora', 'config_master');
-      try { await masterEntry.deletePassword(); } catch(e) {}
+      try { await masterEntry.deletePassword(); } catch {}
       console.log(pc.green('✅ Master key removed from OS Keyring.'));
     } catch (e: any) {
       console.log(pc.gray('⚠️  Could not access OS Keyring.'));

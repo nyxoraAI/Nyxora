@@ -48,7 +48,7 @@ CRITICAL RULE 8: AMOUNT PRECISION. Use 6 decimal places for precision, or 2 if >
 `;
       });
     }
-  } catch (error) {}
+  } catch {}
   
   return basePrompt;
 }

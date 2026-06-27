@@ -96,7 +96,7 @@ export async function runDoctor() {
       const pidStr = fs.readFileSync(pidPath, 'utf8').trim();
       process.kill(parseInt(pidStr, 10), 0);
       isDaemonRunning = true;
-    } catch(e) {}
+    } catch {}
   }
 
   if (isDaemonRunning && !port3000Free) {
@@ -119,7 +119,7 @@ export async function runDoctor() {
     let sockExists = false;
     try {
       sockExists = fs.existsSync(sockPath);
-    } catch(e) {}
+    } catch {}
 
     if (sockExists) {
       if (isDaemonRunning) {

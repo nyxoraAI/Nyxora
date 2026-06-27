@@ -162,7 +162,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
     setFormData(prev => {
       if (!prev) return prev;
       const urls = value.split(',').map(s => s.trim()).filter(s => s);
-      const newRpcUrls = { ...(prev.web3?.rpc_urls || {}) };
+      const newRpcUrls = { ...prev.web3?.rpc_urls };
       
       if (urls.length === 0) {
         delete newRpcUrls[chainName];

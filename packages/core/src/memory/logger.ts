@@ -113,9 +113,7 @@ export class Logger {
     // Ensure session_id exists for older DBs
     try {
       this.db.prepare('ALTER TABLE messages ADD COLUMN session_id TEXT').run();
-    } catch (e) {
-      // Column probably already exists
-    }
+    } catch {}
 
     // Migration logic from old memory.json to SQLite
     const config = loadConfig() || {};
@@ -243,7 +241,7 @@ export class Logger {
           const title = sessionId.startsWith('telegram_') ? `Telegram Chat` : 'New Session';
           this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(sessionId, title);
         }
-      } catch (e) {}
+      } catch {}
     }
 
     const insert = this.db.prepare(`

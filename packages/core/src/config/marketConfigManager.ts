@@ -17,11 +17,15 @@ export function loadMarketKeys(): Record<string, string> {
   }
 }
 
-export function saveMarketKeys(keys: Record<string, string>): void {
+export function saveMarketKeys(keys: Record<string, string>, overwrite: boolean = false): void {
   try {
-    // Merge with existing
-    const existing = loadMarketKeys();
-    const updated = { ...existing, ...keys };
+    let updated;
+    if (overwrite) {
+      updated = { ...keys };
+    } else {
+      const existing = loadMarketKeys();
+      updated = { ...existing, ...keys };
+    }
     
     // Remove empty values
     for (const k in updated) {

@@ -15,7 +15,7 @@ export async function chatInteractive() {
     try {
       const parsed = JSON.parse(token);
       token = parsed.token;
-    } catch (e) {}
+    } catch {}
   }
 
   const logo = `
@@ -113,9 +113,7 @@ export async function chatInteractive() {
             }
           }
         }
-      } catch (e) {
-        // silently ignore fetch errors for tx polling
-      }
+      } catch {}
     } catch (error) {
       s.stop(pc.red('Connection failed.'));
       console.log(pc.red(`Is the daemon running? (http://localhost:3000)`));

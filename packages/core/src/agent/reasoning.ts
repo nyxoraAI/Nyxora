@@ -138,9 +138,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
         basePrompt += `- [${mem.category.toUpperCase()}] ${mem.fact} (Confidence: ${(mem.confidence * 100).toFixed(0)}%)\n`;
       });
     }
-  } catch (error) {
-    // Ignore db errors if not initialized
-  }
+  } catch {}
 
   // V3: Inject Personalized Risk Profile
   try {
@@ -155,9 +153,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
       }
       basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
     }
-  } catch (e) {
-    // Ignore if db not ready
-  }
+  } catch {}
 
   return basePrompt;
 }

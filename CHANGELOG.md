@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6.30]
+### UI/UX & Quality of Life
+- **AI Web Platform Style Empty State**: Overhauled the default chat interface when no messages are present. The dashboard now features a sleek, centered "What's on your mind today?" greeting, automatically repositioning the input bar to the center.
+- **Dynamic Trending Tokens**: Replaced static suggestion pills with real-time Trending Tokens powered by the backend CoinGecko integration. Tokens gracefully appear under the input bar when the chat is empty.
+- **English Token Prompt Translation**: Updated the auto-fill prompt for trending token analysis to English ("Please provide the latest market analysis for...").
+- **Fixed Sticky Routing Cache**: Removed legacy `localStorage` persistence for `currentView`. The application now strictly resets to the `chat` interface upon every reload, preventing users from getting stuck in isolated menus (like Settings) across sessions.
+
+### Infrastructure & Quality Assurance
+- **Automated CI/CD Workflows**: Implemented robust GitHub Actions (`.github/workflows/ci.yml`) to automatically validate codebase integrity (build, test) on every push and pull request to the `main` branch.
+- **Linter Eradication**: Completely uninstalled and removed all traces of ESLint, Oxlint, `lint-staged`, and Husky pre-commit hooks from the monorepo to grant developers absolute freedom and eliminate commit friction.
+- **Mass Codebase Remediation**: Executed a highly targeted regex-based refactoring script across the monorepo to resolve over 150 instances of "empty block statement" warnings specifically targeting hollow `catch (e) {}` blocks, cleaning up legacy code overhead.
+
+### Localization & Architecture
+- **Global Codebase Standardization**: Conducted a comprehensive audit and translated 15+ hardcoded Indonesian string literals (UI error boundaries, LLM exception handling, Market Intelligence routing logic) into professional, crypto-native English to support international open-source contributors.
+- **Dynamic Local-First Timezones**: Eradicated hardcoded `id-ID` and `Asia/Jakarta` parameter bindings deep within `reasoning.ts`, `osAgent.ts`, and `web3Agent.ts`. Nyxora now natively inherits the user's host OS timezone context while securely formatting dates in `en-US` for accurate LLM semantic parsing.
+- **Text-to-Speech (TTS) Accent Correction**: Repaired the Dashboard's audio synthesis module by migrating `utterance.lang` to `en-US`, completely resolving the robotic accent glitch when reading English crypto analytics aloud.
+
 ## [26.6.29]
 ### Release & Stability
 - **Beta Phase**: Nyxora officially enters the stable Beta phase for wider public testing.

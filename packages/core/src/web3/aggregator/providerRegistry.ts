@@ -83,7 +83,7 @@ export class AggregatorRegistry {
               if (instance.manifest && instance.manifest.id && instance.getQuote) {
                 this.register(instance);
               }
-            } catch (e) {}
+            } catch {}
           }
         }
       } catch (e) {

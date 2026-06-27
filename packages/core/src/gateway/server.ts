@@ -293,9 +293,9 @@ app.post('/api/config', (req, res) => {
     const newConfig = {
       ...currentConfig,
       ...req.body,
-      agent: { ...currentConfig.agent, ...(req.body.agent || {}) },
-      llm: { ...currentConfig.llm, ...(req.body.llm || {}) },
-      web3: { ...currentConfig.web3, ...(req.body.web3 || {}) }
+      agent: { ...currentConfig.agent, ...req.body.agent },
+      llm: { ...currentConfig.llm, ...req.body.llm },
+      web3: { ...currentConfig.web3, ...req.body.web3 }
     };
     // Save merged configuration to file
     saveConfig(newConfig);
@@ -373,7 +373,7 @@ app.delete('/api/defi-keys/:id', (req, res) => {
   try {
     const keys = loadDefiKeys();
     delete keys[req.params.id];
-    saveDefiKeys(keys);
+    saveDefiKeys(keys, true);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -409,6 +409,17 @@ app.get('/api/market-keys', (req, res) => {
 app.post('/api/market-keys', (req, res) => {
   try {
     saveMarketKeys(req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/market-keys/:id', (req, res) => {
+  try {
+    const keys = loadMarketKeys();
+    delete keys[req.params.id];
+    saveMarketKeys(keys, true);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -775,7 +786,7 @@ app.get('/api/portfolio', async (req, res) => {
         }
 
         // 2. Combine TOKEN_MAP and YAML whitelist for this chain
-        const tokensToQuery = { ...((TOKEN_MAP as any)[chainName] || {}) };
+        const tokensToQuery = { ...(TOKEN_MAP as any)[chainName] };
         
         // Inject whitelisted tokens
         userCustomTokens.forEach(t => {
@@ -812,9 +823,7 @@ app.get('/api/portfolio', async (req, res) => {
                 isNative: false
               });
             }
-          } catch (e) {
-            // Ignore read errors
-          }
+          } catch {}
         }));
       } catch (e) {
         console.error(`Portfolio error on ${chainName}:`, e);
@@ -1095,7 +1104,7 @@ export async function autoMigrateKeys() {
       await entry.deletePassword();
       console.log('[Auto-Migrate] Migrated legacy keys from OS Keyring.');
     }
-  } catch (e) {}
+  } catch {}
 
   if (Object.keys(extractedKeys).length === 0 && fs.existsSync(vaultPath)) {
     try {
@@ -1103,7 +1112,7 @@ export async function autoMigrateKeys() {
       extractedKeys = JSON.parse(file);
       fs.unlinkSync(vaultPath);
       console.log('[Auto-Migrate] Migrated legacy keys from api_vault.key.');
-    } catch (e) {}
+    } catch {}
   }
 
   if (Object.keys(extractedKeys).length > 0) {

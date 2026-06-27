@@ -1,4 +1,6 @@
 export const getChainLogoUrl = (chain: string) => {
+  if (!chain) return 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png';
+  
   const twName: any = {
     ethereum: 'ethereum',
     base: 'base',

@@ -150,13 +150,13 @@ export async function logoutGoogle(): Promise<boolean> {
     const { Entry } = require('@napi-rs/keyring');
     const entry = new Entry('nyxora', 'google_refresh_token');
     await entry.deletePassword();
-  } catch (e) {}
+  } catch {}
 
   try {
     if (fs.existsSync(FALLBACK_TOKEN_PATH)) {
       fs.unlinkSync(FALLBACK_TOKEN_PATH);
     }
-  } catch (e) {}
+  } catch {}
 
   accessToken = null;
   tokenExpiry = 0;

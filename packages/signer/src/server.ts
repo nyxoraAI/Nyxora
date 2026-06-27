@@ -211,7 +211,7 @@ const gracefulShutdown = () => {
   if (typeof vaultPrivateKey !== 'undefined') vaultPrivateKey = null; // Zero out memory reference
   try {
     if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
-  } catch (e) {}
+  } catch {}
   process.exit(0);
 };
 

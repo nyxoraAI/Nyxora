@@ -26,9 +26,7 @@ export default function ReconnectOverlay() {
         try {
           // Just a light ping to the auth status endpoint
           await apiFetch('/api/auth/google/status');
-        } catch (e) {
-          // still offline
-        }
+        } catch {}
       }, 3000);
     }
     return () => clearInterval(interval);

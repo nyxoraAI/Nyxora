@@ -8,15 +8,15 @@ async function fetchCexData(symbol: string) {
     try {
         const binance = await safeFetchJson<any>(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}USDT`);
         if (binance && binance.lastPrice) return { price: parseFloat(binance.lastPrice), vol: parseFloat(binance.quoteVolume), change: parseFloat(binance.priceChangePercent), name: "Binance" };
-    } catch(e) {}
+    } catch {}
     try {
         const kucoin = await safeFetchJson<any>(`https://api.kucoin.com/api/v1/market/stats?symbol=${symbol}-USDT`);
         if (kucoin && kucoin.data && kucoin.data.last) return { price: parseFloat(kucoin.data.last), vol: parseFloat(kucoin.data.volValue), change: parseFloat(kucoin.data.changeRate) * 100, name: "KuCoin" };
-    } catch(e) {}
+    } catch {}
     try {
         const mexc = await safeFetchJson<any>(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${symbol}USDT`);
         if (mexc && mexc.lastPrice) return { price: parseFloat(mexc.lastPrice), vol: parseFloat(mexc.quoteVolume), change: parseFloat(mexc.priceChangePercent), name: "MEXC" };
-    } catch(e) {}
+    } catch {}
     return null;
 }
 
@@ -42,7 +42,7 @@ async function fetchCoinGeckoData(symbol: string) {
                 };
             }
         }
-    } catch(e) {}
+    } catch {}
     return null;
 }
 
@@ -183,9 +183,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
                  if (weekAgoTvl > 0) tvlChange7d = ((todayTvl - weekAgoTvl) / weekAgoTvl) * 100;
              }
         }
-    } catch (e) {
-        // Graceful degradation
-    }
+    } catch {}
 
     // ==========================================
     // TAHAP 3: ETHERSCAN RPC (Holder Concentration)

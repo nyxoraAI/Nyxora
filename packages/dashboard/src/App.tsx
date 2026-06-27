@@ -35,9 +35,7 @@ interface Config {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search'>(() => {
-    return (localStorage.getItem('nyxora_current_view') as any) || 'chat';
-  });
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -71,9 +69,6 @@ function App() {
   const [theme, setTheme] = useState<'dark' | 'light' | 'auto'>(() => (localStorage.getItem('nyxora_theme') as 'dark' | 'light' | 'auto') || 'auto');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => localStorage.getItem('nyxora_sidebar_collapsed') === 'true');
 
-  useEffect(() => {
-    localStorage.setItem('nyxora_current_view', currentView);
-  }, [currentView]);
 
   useEffect(() => {
     if (activeSessionId) {
@@ -162,7 +157,7 @@ function App() {
             setIsLocked(false);
             lastActivityRef.current = Date.now();
           }
-        } catch(e) {}
+        } catch {}
       }, 1000);
     }
     return () => clearInterval(unlockCheck);
@@ -198,7 +193,7 @@ function App() {
     try {
       recognitionRef.current?.start();
       setIsListening(true);
-    } catch (e) {}
+    } catch {}
   };
 
   const speak = (text: string) => {
@@ -305,7 +300,7 @@ function App() {
           setActiveSessionId(data[0].id);
         }
       }
-    } catch (err) {}
+    } catch {}
   };
 
   const fetchTrendingTokens = async () => {
@@ -314,7 +309,7 @@ function App() {
       if (res.ok) {
         setTrendingTokens(await res.json());
       }
-    } catch (err) {}
+    } catch {}
   };
 
   const createNewSession = async () => {
@@ -331,7 +326,7 @@ function App() {
         await fetchSessions();
         setCurrentView('chat');
       }
-    } catch (err) {}
+    } catch {}
   };
 
   const renameSession = async (id: string, newTitle: string) => {
@@ -343,7 +338,7 @@ function App() {
       });
       setEditingSessionId(null);
       await fetchSessions();
-    } catch (err) {}
+    } catch {}
   };
 
   const deleteSession = async (id: string, e: React.MouseEvent) => {
@@ -355,7 +350,7 @@ function App() {
         setMessages([]);
       }
       await fetchSessions();
-    } catch (err) {}
+    } catch {}
   };
 
   const fetchConfig = async () => {
@@ -734,11 +729,52 @@ function App() {
         ) : currentView === 'marketoracles' ? (
           <MarketOracles />
         ) : (
-          <div className="workspace-container">
-            <div className="chat-wrapper" style={{ width: '100%', margin: '0 auto', maxWidth: '1000px' }}>
-              <div className="chat-container">
-              {messages.map((msg, idx) => {
-              const handleCopy = () => {
+            <div className="workspace-container">
+              <div className={`chat-wrapper ${messages.length === 0 ? 'empty-state-wrapper' : ''}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                
+                {messages.length === 0 && (
+                  <div className="empty-state-container" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0,
+                    animation: 'fadeInUp 0.8s ease-out forwards',
+                    textAlign: 'center',
+                    marginBottom: '40px'
+                  }}>
+                    <div style={{
+                      background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%)',
+                      padding: '40px',
+                      borderRadius: '50%',
+                      marginBottom: '20px'
+                    }}>
+                      <NyxoraLogo size={80} color="var(--accent)" />
+                    </div>
+                    <h1 className="empty-state-title" style={{
+                      fontSize: '3rem',
+                      fontWeight: 700,
+                      marginBottom: '16px',
+                      letterSpacing: '-1px'
+                    }}>
+                      What's on your mind?
+                    </h1>
+                    <p style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '1.2rem',
+                      maxWidth: '500px',
+                      lineHeight: '1.6'
+                    }}>
+                      I am Nyxora, your autonomous Web3 assistant. Ask me to analyze tokens, manage your portfolio, or execute on-chain transactions.
+                    </p>
+                  </div>
+                )}
+
+                <div className="chat-container" style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
+                  <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+                {messages.map((msg, idx) => {
+                const handleCopy = () => {
                 navigator.clipboard.writeText(msg.content);
                 setCopiedIndex(idx);
                 setTimeout(() => setCopiedIndex(null), 2000);
@@ -790,6 +826,7 @@ function App() {
               </div>
             )}
             <div ref={messagesEndRef} />
+            </div>
             </div>
 
             <div className="input-area">

@@ -9,7 +9,7 @@ export function updateSecurityPolicy(rule: string, action: 'add' | 'remove' | 'c
     
     if (fs.existsSync(policyPath)) {
       const file = fs.readFileSync(policyPath, 'utf8');
-      policyRules = { ...policyRules, ...(yaml.parse(file) || {}) };
+      policyRules = { ...policyRules, ...yaml.parse(file) };
     }
 
     if (!Array.isArray(policyRules.custom_llm_rules)) {

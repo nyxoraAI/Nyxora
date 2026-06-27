@@ -11,7 +11,7 @@ function getInternalToken(): string | undefined {
     if (fs.existsSync(tokenPath)) {
       return fs.readFileSync(tokenPath, 'utf8').trim();
     }
-  } catch (e) {}
+  } catch {}
   return undefined;
 }
 
@@ -25,9 +25,7 @@ export async function getAddress(): Promise<string> {
       port: fs.existsSync(POLICY_SOCKET) ? undefined : (process.env.POLICY_PORT || 3001),
       path: '/address',
       method: 'GET',
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
+      headers: (token ? { 'Authorization': `Bearer ${token}` } : {})
     };
 
     const req = http.request(options, (res) => {

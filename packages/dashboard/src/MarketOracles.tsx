@@ -62,6 +62,22 @@ export const MarketOracles: React.FC = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/market-keys/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        setStatus(`Key deleted successfully!`);
+        setRequirements(reqs => reqs.map(r => r.id === id ? { ...r, configured: false } : r));
+        setTimeout(() => setStatus(null), 3000);
+      }
+    } catch (err) {
+      setStatus(`Failed to delete key`);
+    }
+  };
+
   return (
     <div className="overview-container">
       <div className="nord-panel-header">
@@ -138,6 +154,14 @@ export const MarketOracles: React.FC = () => {
                   >
                     <Save size={16} /> Save
                   </button>
+                  {req.configured && (
+                    <button 
+                      onClick={() => handleDelete(req.id)}
+                      style={{ height: '40px', padding: '0 16px', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );

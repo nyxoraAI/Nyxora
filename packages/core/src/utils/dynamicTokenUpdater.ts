@@ -26,9 +26,7 @@ export async function fetchDynamicTokens(): Promise<DynamicTokens> {
         return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
       }
     }
-  } catch (e) {
-    // Ignore cache error
-  }
+  } catch {}
 
   const result: DynamicTokens = {};
   console.log('[DynamicTokenUpdater] Fetching updated token lists...');
