@@ -61,6 +61,7 @@ export default defineConfig({
           { text: '💻 Google Workspace MVP', link: '/skills/google-workspace' },
 
           { text: '⚙️ DeFi Configuration', link: '/skills/defi-config' },
+          { text: '📊 Market Oracles', link: '/skills/market-oracles' },
           { text: '📈 Understanding Slippage', link: '/skills/slippage' },
           { text: '🪙 Chain Specifics', link: '/skills/chains' },
           { text: '🔌 Custom RPC Configuration', link: '/skills/rpc' },

@@ -63,4 +63,4 @@ Activating your on-chain security requires registering your wallet address direc
 We chose the Base ecosystem as the security backbone because of its **lightning-fast block times** and **sub-cent transaction fees**. Users can flip the Kill-Switch in seconds without worrying about exorbitant gas costs, ensuring the fail-safe is both rapid and economically viable during emergencies.
 
 > [!NOTE]
-> *Currently (during the testing phase), the Smart Contract is deployed on the Base Sepolia (Testnet) network. In the next update, the system will be fully migrated to Base Mainnet.*
+> *Currently (during the Beta phase), the Smart Contract is deployed on the Base Sepolia (Testnet) network. In the next update, the system will be fully migrated to Base Mainnet.*
