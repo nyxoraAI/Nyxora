@@ -203,7 +203,7 @@ function App() {
     // Clean markdown before speaking
     const cleanText = text.replace(/[*#_`]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'id-ID';
+    utterance.lang = 'en-US';
     
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => {
@@ -246,7 +246,7 @@ function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        const prompt = `Tolong analisis dokumen ini: ${data.filePath}`;
+        const prompt = `Please analyze this document: ${data.filePath}`;
         handleSend(null as any, prompt);
       } else {
         console.error('File upload failed');

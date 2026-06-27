@@ -135,7 +135,7 @@ export function resolveToken(tokenSymbolOrAddress: string, chainName: ChainName)
     if (match) return match.address as `0x${string}`;
   }
 
-  throw new Error(`Token "${tokenSymbolOrAddress}" pada chain ${chainName} tidak ditemukan. Silakan gunakan alamat kontrak langsung (0x...).`);
+  throw new Error(`Token "${tokenSymbolOrAddress}" on chain ${chainName} was not found. Please use the direct contract address (0x...).`);
 }
 
 export interface TokenMetadata {

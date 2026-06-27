@@ -21,7 +21,7 @@ import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
 function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general'): string {
     const config = loadConfig();
-    const currentDateTime = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+    const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = "";
 
     if (context === 'web3') {
@@ -245,7 +245,7 @@ Reply with EXACTLY ONE WORD.`;
           finalContent = finalContent.trim();
           
           if (!finalContent) {
-             finalContent = "⚠️ LLM mengembalikan respons kosong atau terputus. Hal ini biasanya terjadi karena fluktuasi koneksi API atau limitasi sesaat. Silakan coba lagi.";
+             finalContent = "⚠️ The LLM returned an empty or truncated response. This usually happens due to API connection fluctuations or temporary rate limits. Please try again.";
           }
           
           logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
@@ -253,10 +253,10 @@ Reply with EXACTLY ONE WORD.`;
       } catch (error: any) {
           console.error("General LLM Error:", error);
           const status = error?.status || error?.response?.status;
-          let errorMsg = '⚠️ Sistem sedang mengalami limitasi koneksi LLM (Rate Limit). Harap tunggu beberapa detik dan coba lagi.';
+          let errorMsg = '⚠️ The system is experiencing LLM API rate limits. Please wait a few seconds and try again.';
           
           if (status === 400 || (error.message && error.message.toLowerCase().includes('invalid'))) {
-              errorMsg = '⚠️ Terjadi kesalahan. Format pesan atau alat (skill) tidak dimengerti oleh LLM.';
+              errorMsg = '⚠️ An error occurred. The LLM failed to format the tool or message correctly.';
           }
           
           logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);

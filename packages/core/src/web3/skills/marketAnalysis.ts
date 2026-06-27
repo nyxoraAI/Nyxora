@@ -108,10 +108,10 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     let isCexAsset = false;
 
     // ==========================================
-    // TAHAP 1: DATA ROUTING (SYMBOL VS CA)
+    // PHASE 1: DATA ROUTING (SYMBOL VS CA)
     // ==========================================
     if (isAddress) {
-        // Jika input adalah Contract Address -> Hit DEX Pertama
+        // If input is Contract Address -> Hit DEX First
         const targetPair = await fetchDexData(cleanInput, true, chainName);
         if (targetPair) {
             officialSymbol = targetPair.baseToken.symbol;
@@ -123,16 +123,16 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
             volume24h = targetPair.volume?.h24 || 0;
             priceChange24h = targetPair.priceChange?.h24 || 0;
         } else {
-            return `[Market Intelligence] Gagal menemukan data untuk Contract Address ${tokenAddressOrSymbol} di DEX.`;
+            return `[Market Intelligence] Failed to find data for Contract Address ${tokenAddressOrSymbol} on DEX.`;
         }
         
-        // Ambil momentum dari CEX jika ada
+        // Fetch CEX momentum if available
         const momentum = await fetchCexMomentum(officialSymbol, currentPrice);
         ma50 = momentum.ma50;
         rsi = momentum.rsi;
 
     } else {
-        // Jika input adalah Symbol -> Hit CEX & CoinGecko
+        // If input is Symbol -> Hit CEX & CoinGecko
         const cgData = await fetchCoinGeckoData(officialSymbol);
         const cex = await fetchCexData(officialSymbol);
         
@@ -143,16 +143,16 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
             volume24h = cgData ? cgData.vol : (cex?.vol || 0);
             priceChange24h = cex ? cex.change : (cgData?.change || 0);
             
-            // Gunakan FDV CoinGecko asli jika ada, jika tidak proxy dari volume CEX
+            // Use original CoinGecko FDV if available, else proxy from CEX volume
             mcapUsd = cgData ? cgData.fdv : (volume24h * 10); 
-            // Estimasi likuiditas institusional (CoinGecko tidak mengembalikan market liquidity kedalaman pool, jadi gunakan 10% dari mcap)
+            // Estimate institutional liquidity (CoinGecko lacks deep liquidity, proxying as 10% of mcap)
             liquidityUsd = cgData ? cgData.fdv * 0.1 : (volume24h * 2); 
 
             const momentum = await fetchCexMomentum(officialSymbol, currentPrice);
             ma50 = momentum.ma50;
             rsi = momentum.rsi;
         } else {
-            // Jika tidak ada di CEX, Fallback ke DEX
+            // Fallback to DEX if CEX data is unavailable
             const targetPair = await fetchDexData(cleanInput, false, chainName);
             if (targetPair) {
                 officialSymbol = targetPair.baseToken.symbol;
@@ -164,13 +164,13 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
                 volume24h = targetPair.volume?.h24 || 0;
                 priceChange24h = targetPair.priceChange?.h24 || 0;
             } else {
-                return `[Market Intelligence] Gagal menemukan data pasar untuk simbol ${officialSymbol} di CEX maupun DEX.`;
+                return `[Market Intelligence] Failed to find market data for symbol ${officialSymbol} on both CEX and DEX.`;
             }
         }
     }
 
     // ==========================================
-    // TAHAP 2: DEFILLAMA (Smart Money / TVL)
+    // PHASE 2: DEFILLAMA (Smart Money / TVL)
     // ==========================================
     let tvlChange7d: number | null = null;
     try {
@@ -186,7 +186,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     } catch {}
 
     // ==========================================
-    // TAHAP 3: ETHERSCAN RPC (Holder Concentration)
+    // PHASE 3: ETHERSCAN RPC (Holder Concentration)
     // ==========================================
     let top10HoldersPercent: number | null = null;
     if (contractAddress || isCexAsset) {
@@ -196,14 +196,14 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     }
 
     // ==========================================
-    // TAHAP 4: MARKET HEALTH SCORE CALCULATION
+    // PHASE 4: MARKET HEALTH SCORE CALCULATION
     // ==========================================
     const healthResult: MarketHealthResult = generateMarketHealthReport(
         liquidityUsd, mcapUsd, tvlChange7d, volume24h, priceChange24h, top10HoldersPercent, rsi, currentPrice, ma50
     );
 
     // ==========================================
-    // TAHAP 5: CONTEXT ASSEMBLY FOR LLM
+    // PHASE 5: CONTEXT ASSEMBLY FOR LLM
     // ==========================================
     let report = `📊 **Market Intelligence Report: ${officialSymbol}**\n`;
     report += `CA: \`${contractAddress || 'N/A'}\` | Network: ${network}\n\n`;

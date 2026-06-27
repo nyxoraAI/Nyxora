@@ -62,13 +62,13 @@ export async function submitTransaction(txPayload: any): Promise<string> {
   if (txPayload.details) {
     const expiresAt = txPayload.details.expiresAt || txPayload.details.rawQuote?.expiresAt;
     if (expiresAt && Date.now() > expiresAt) {
-      throw new Error(`Quote Kadaluarsa. Harga pasar mungkin telah berubah. Silakan minta agen untuk membuat quote swap/bridge baru.`);
+      throw new Error(`Quote Expired. Market prices may have changed. Please ask the agent to generate a new swap/bridge quote.`);
     }
   }
 
   if (txPayload.autoApprove) {
     txPayload.details = txPayload.details || {};
-    // ROOT FIX: Paksa amountWei selalu ada di payload agar Policy Engine tidak salah baca
+    // ROOT FIX: Force amountWei in payload to prevent Policy Engine misinterpretation
     txPayload.details.amountWei = txPayload.details.amountWei || txPayload.details.valueWei || "0";
     
     const amountWei = txPayload.details.amountWei;

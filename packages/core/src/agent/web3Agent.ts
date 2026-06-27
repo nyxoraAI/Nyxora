@@ -18,7 +18,7 @@ import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
 function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3'): string {
     const config = loadConfig();
-    const currentDateTime = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+    const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = `You are Nyxora's Web3 Agent (DeFi Specialist).
 The current real-world date and time is: ${currentDateTime}.
 Default Chain: ${config.agent.default_chain}
@@ -241,7 +241,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     let errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';
     
     if (status === 400 || (error.message && error.message.toLowerCase().includes('invalid'))) {
-      errorMsg = '⚠️ Terjadi kesalahan pemahaman instruksi. LLM kesulitan menentukan format alat (skill) yang cocok. Silakan coba deskripsikan perintah Anda dengan lebih spesifik.';
+      errorMsg = '⚠️ Failed to parse instruction. The LLM had trouble determining the appropriate tool format. Please describe your command more specifically.';
     }
     
     logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
