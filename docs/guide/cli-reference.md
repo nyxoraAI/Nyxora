@@ -81,6 +81,28 @@ nyxora set-key <provider> <key>
 nyxora set-key openai sk-proj-...
 ```
 
+**Supported Providers:**
+
+*Language Models (LLMs)*
+- `openai`: OpenAI GPT-4/GPT-3.5
+- `gemini`: Google Gemini
+- `openrouter`: OpenRouter API
+- `groq`: Groq High-Speed API
+- `mistral`: Mistral AI
+- `xai`: xAI Grok
+- `deepseek`: DeepSeek
+
+*Search Engines*
+- `tavily`: Tavily AI Search
+- `brave`: Brave Search
+
+*Integrations*
+- `twitter`: X/Twitter API
+- `notion`: Notion API
+- `github`: GitHub API
+
+*(Note: Custom or unlisted providers will automatically be saved with a `_key` suffix, e.g., `nyxora set-key anthropic sk-xxx` becomes `anthropic_key`).*
+
 ### `wallet`
 Manage your underlying Web3 wallet and EVM Private Key integration.
 ```bash
