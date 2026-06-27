@@ -99,7 +99,7 @@ export async function prepareProvideLiquidity(
     let token0Addr = resolveToken(token0AddressOrSymbol, chainName) as `0x${string}`;
     let token1Addr = resolveToken(token1AddressOrSymbol, chainName) as `0x${string}`;
     
-    if (token0Addr === "0x0000000000000000000000000000000000000000" || token1Addr === "0x0000000000000000000000000000000000000000") {
+    if (token0Addr === "0x0000000000000000000000000000000000000000" || token0Addr === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" || token1Addr === "0x0000000000000000000000000000000000000000" || token1Addr === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
         return "Error: Cannot provide native ETH directly to V3. Must wrap to WETH first.";
     }
 

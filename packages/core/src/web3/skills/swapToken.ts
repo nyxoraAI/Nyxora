@@ -21,11 +21,11 @@ export async function prepareSwapToken(
     
     const fromTokenAddress = resolveToken(fromToken, chainName);
     const toTokenAddress = resolveToken(toToken, chainName);
-    const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000";
+    const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000" || fromTokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
     // Auto-save to Degen Whitelist
     if (!isNativeIn) await saveTokenToWhitelist(userAddress, chainName, fromTokenAddress, 'swap');
-    if (toTokenAddress !== "0x0000000000000000000000000000000000000000") {
+    if (toTokenAddress !== "0x0000000000000000000000000000000000000000" && toTokenAddress !== "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
       await saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
     }
 

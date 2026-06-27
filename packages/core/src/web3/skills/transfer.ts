@@ -22,7 +22,7 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
 
     if (token) {
       tokenAddress = resolveToken(token, chainName);
-      isNative = tokenAddress === "0x0000000000000000000000000000000000000000";
+      isNative = tokenAddress === "0x0000000000000000000000000000000000000000" || tokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
     }
 
     let gasEstimate: bigint = 0n;

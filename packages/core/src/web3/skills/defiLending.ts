@@ -42,7 +42,7 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
     }
 
     let tokenAddress = resolveToken(tokenAddressOrSymbol, chainName);
-    if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+    if (tokenAddress === "0x0000000000000000000000000000000000000000" || tokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
         return "Error: Cannot supply native ETH/BNB directly. Please provide WETH or a valid ERC-20 token.";
     }
 

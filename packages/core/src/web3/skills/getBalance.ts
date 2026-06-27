@@ -19,7 +19,7 @@ export async function getBalance(chainName: ChainName, address?: `0x${string}`, 
 
     if (token) {
       const tokenAddress = resolveToken(token, chainName);
-      if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+      if (tokenAddress === "0x0000000000000000000000000000000000000000" || tokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
         const balanceWei = await client.getBalance({ address: targetAddress as `0x${string}` });
         const balanceEth = formatEther(balanceWei);
         return `${balanceEth} on ${chainName}`;

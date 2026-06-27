@@ -13,7 +13,7 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
     const account = userAddress as `0x${string}`;
     
     let tokenAddress = resolveToken(tokenAddressOrSymbol, chainName);
-    if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+    if (tokenAddress === "0x0000000000000000000000000000000000000000" || tokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
         return "Cannot revoke approval for native tokens.";
     }
 

@@ -29,7 +29,7 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
     const account = userAddress as `0x${string}`;
     
     let tokenAddress = resolveToken(tokenAddressOrSymbol, chainName);
-    if (tokenAddress === "0x0000000000000000000000000000000000000000") {
+    if (tokenAddress === "0x0000000000000000000000000000000000000000" || tokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
         return "Error: Cannot deposit native token directly into Vaults. Please wrap it first (e.g. WETH).";
     }
 
