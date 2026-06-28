@@ -22,4 +22,4 @@ By separating the language generation (LLM) from the cryptographic execution (Si
 
 <br>
 
-> ⚠️ *Note: The rules established in the Policy Engine are enforced at the network/interceptor level, making it mathematically impossible for the AI to bypass them.*
+>  *Note: The rules established in the Policy Engine are enforced at the network/interceptor level, making it mathematically impossible for the AI to bypass them.*

@@ -28,7 +28,7 @@ Unlike generic AI agents, Nyxora also maps behavioral signatures to public block
 
 ### Hard-Coded Memory Validator (Anti-Injection Shield)
 We operate under a **Zero-Trust** paradigm. We do not rely on LLM System Prompts as the primary defense against Prompt Injection. 
-Before any candidate memory touches the SQLite database, it must pass a strict RegExp-based **Hard-Coded Validator**. This physical code barrier autonomously intercepts and annihilates patterns resembling EVM Private Keys, BIP-39 Seed Phrases, Telegram Bot Tokens, and `"system override"` commands.
+Before any candidate memory touches the SQLite database, it must pass a strict RegExp-based **Hard-Coded Validator**. This physical code barrier autonomously intercepts and annihilates patterns resembling EVM Private Keys, Telegram Bot Tokens, and `"system override"` commands.
 
 ### Air-Gapped Keyring Isolation
 The Honcho Daemon is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
@@ -72,11 +72,11 @@ Absolutely not. Nyxora is architected like a highly secure bank.
 What if Nyxora incorrectly guesses your habit? For example, you tried an obscure meme coin once, and Nyxora assumed it was your favorite asset?
 
 Don't worry. You can simply open the Nyxora Web Dashboard. There, you will find a dedicated tab called **"Memory Log"**. The interface is incredibly simple and transparent:
-- ✅ *User prefers casual language.*
-- ✅ *User prefers the Arbitrum network.*
-- ✅ *User is a fan of PEPE coin.*
+-  *User prefers casual language.*
+-  *User prefers the Arbitrum network.*
+-  *User is a fan of PEPE coin.*
 
-If you dislike the third observation, you simply click the **[Delete] 🗑️** button next to it. That's it. Nyxora will instantly erase it from its memory forever.
+If you dislike the third observation, you simply click the **[Delete] ** button next to it. That's it. Nyxora will instantly erase it from its memory forever.
 
 ---
 **Bottom line:** Nyxora no longer feels like rigid software that requires meticulous daily programming. It feels like an intuitive, obedient, and profoundly secure Web3 companion.

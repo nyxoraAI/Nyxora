@@ -1,4 +1,4 @@
-# ⌨️ CLI Reference
+# CLI Reference
 
 Nyxora comes with a powerful Command Line Interface (CLI) Manager to help you control the background daemon, manage keys, and execute administrative tasks directly from your terminal.
 

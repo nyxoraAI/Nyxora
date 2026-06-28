@@ -56,7 +56,7 @@ To connect Claude Desktop to Nyxora, you need to add Nyxora as an MCP Server in 
 
 3. **Restart Claude Desktop**. You will now see a new "plug" icon or Nyxora tools available in your Claude chat!
 
-> **⚠️ NVM & PATH Troubleshooting (Important for Claude Desktop):** 
+> ** NVM & PATH Troubleshooting (Important for Claude Desktop):** 
 > Claude Desktop is a GUI application and **does not automatically inherit your terminal's `PATH` variables**. If you installed Node.js via NVM or Volta, Claude may fail to find the `nyxora` or `node` command.
 > 
 > If you encounter connection errors, you must replace `"nyxora"` with the absolute path to the binary. To find the correct path, run `which nyxora` (or `which node`) in your terminal. For example: `"command": "/Users/username/.nvm/versions/node/v20.0.0/bin/nyxora"`.

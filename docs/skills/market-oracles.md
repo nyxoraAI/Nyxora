@@ -1,4 +1,4 @@
-# 📊 Market Oracles Configuration (Optional)
+# Market Oracles Configuration (Optional)
 
 By default, Nyxora's **Market Intelligence** and price fetching capabilities operate fully without requiring any configuration. However, for advanced users or high-frequency traders, configuring Private API Keys is highly recommended.
 

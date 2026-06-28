@@ -1,10 +1,10 @@
-# 🌉 Cross-Chain Routing & Bridge Architecture
+# Cross-Chain Routing & Bridge Architecture
 
 Nyxora features a dual-engine architecture for handling cross-chain operations (Swaps and Bridges). The system dynamically adjusts its routing strategy based on whether you are executing transactions on **Mainnet** or **Testnet**.
 
 ---
 
-## 🏎️ Extensible Routing Runtime (Meta-Aggregator v2)
+## Extensible Routing Runtime (Meta-Aggregator v2)
 Nyxora uses an **Extensible DeFi Liquidity-Routing Runtime**. Instead of hardcoding API paths, Nyxora queries an Inversion-of-Control (IoC) registry (`AggregatorRegistry`). All registered providers (like 1inch, Li.Fi, Relay, KyberSwap, or Native Bridges) are evaluated in parallel using a **Hedged Fetching Engine** (`Promise.allSettled`). 
 
 The `RouteScorer` normalizes all quotes into a `CanonicalRouteQuote` and automatically selects the absolute best path based on your `RoutePreference` (e.g., highest output or lowest gas), completely abstracting whether you are on Mainnet or Testnet.
@@ -15,7 +15,7 @@ When operating on Mainnet ecosystems (e.g., Ethereum L1 to Base L2), users expec
 
 ---
 
-## 🛠️ Testnet Sandbox: Native Bridges
+## Testnet Sandbox: Native Bridges
 Testnets (like Base Sepolia or OP Sepolia) often lack deep liquidity on third-party aggregators. To guarantee reliable testing environments, Nyxora automatically seamlessly routes these transactions through the injected **ArbitrumBridgeProvider** or **OpBridgeProvider**.
 
 ### How it Works
@@ -37,7 +37,7 @@ This ensures total zero-trust autonomy without relying on centralized UI platfor
 
 ---
 
-## 🔍 FAQ
+## FAQ
 
 **Q: I bridged to Optimism, why does the Agent show a Sepolia Tx Hash?**
 > In OP Stack rollups, a deposit is fundamentally a cross-chain message. You cryptographically sign the transaction on the **Source Chain** (L1). The L1 Smart Contract locks your funds and emits a `TransactionDeposited` event. The **L2 Sequencer** continuously monitors the L1 for this event and *asynchronously* mints the corresponding funds on L2. Nyxora gives you the L1 receipt as proof of deposit.

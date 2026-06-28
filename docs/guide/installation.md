@@ -4,7 +4,7 @@ Nyxora is designed for a frictionless onboarding experience. We provide a CLI-ba
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 Before installing Nyxora, ensure your system meets the following requirements:
 1. **Node.js** (Version 18 or higher).
 2. A minimum of 2GB RAM.
@@ -12,7 +12,7 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ---
 
-## 🚀 Option 1: One-Line Installation (Recommended)
+## Option 1: One-Line Installation (Recommended)
 
 The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry.
 
@@ -28,7 +28,7 @@ iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
 
 ---
 
-## 📦 Option 2: Global Installation (NPM)
+## Option 2: Global Installation (NPM)
 
 If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
 
@@ -54,7 +54,7 @@ The interactive command-line wizard (`nyxora setup`) will guide you through:
 
 ---
 
-## 💻 Option 3: Local Development (Source Code)
+## Option 3: Local Development (Source Code)
 
 Nyxora operates on a Monorepo architecture using NPM Workspaces. If you want to run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
@@ -84,11 +84,11 @@ npm start
 ```
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 
-> **⚠️ IMPORTANT:** Whenever you re-run `setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
+> ** IMPORTANT:** Whenever you re-run `setup` or manually edit the config files, you **must restart the server** for the changes to take effect.
 
 ---
 
-## 🧹 Uninstallation & Reset
+## Uninstallation & Reset
 
 If you ever need to securely wipe the AI's episodic memory, delete your API keys, and completely remove Nyxora's configuration from your operating system, simply run:
 

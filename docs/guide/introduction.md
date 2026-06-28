@@ -6,12 +6,12 @@ Built with **Node.js** for the backend and **React** for the dashboard interface
 
 ---
 
-## 🌟 Key Features & Advantages
+## Key Features & Advantages
 
 ### 1. Zero-Knowledge Security & Local Cryptography
 Nyxora ensures that your Private Key is never transmitted to external AI models like OpenAI, Anthropic, or Gemini. All cryptographic transaction signing occurs **locally and in complete isolation** using your OS-native Keyring architecture.
 
-### 2. Multi-LLM Support & API Rotation
+### 2. Multi-LLM Support
 Nyxora is an agnostic framework. You can seamlessly switch between models from various providers:
 - **Google Gemini** (`gemini-3.1-pro`, `gemini-2.5-flash`)
 - **Anthropic (Claude)** (`claude-4.6`, `claude-3.5-sonnet`)
@@ -44,7 +44,7 @@ Nyxora goes beyond simple token transfers. It is equipped with pro-trader tools:
 
 ---
 
-## 📐 Architecture Workflow
+## Architecture Workflow
 
 This architecture is designed to enforce maximum security while maintaining seamless automation. 
 

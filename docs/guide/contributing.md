@@ -1,10 +1,10 @@
-# 🤝 Contributing to Nyxora
+# Contributing to Nyxora
 
 We warmly welcome community contributions! Whether you want to fix a bug, improve documentation, or build a whole new Web3 Plugin, we'd love to have your help. Nyxora is designed to be highly extensible, and the community is at the heart of our mission to build the ultimate zero-trust AI agent framework.
 
 ---
 
-## 🏗️ The Plugin Architecture
+## The Plugin Architecture
 
 Nyxora features an extensible **Plugin Architecture** that makes it incredibly easy to add new capabilities (like new DEXs, Oracles, Chains, or external integrations) *without* modifying the core reasoning engine. 
 
@@ -22,7 +22,7 @@ Instead of hacking into complex AI prompt loops, you can simply leverage our rob
 
 ---
 
-## 🔍 Finding an Issue
+## Finding an Issue
 
 If you're looking for a way to contribute but aren't sure where to start, check out the [Issues page](https://github.com/nyxoraAI/Nyxora/issues) on our GitHub repository.
 - Look for issues tagged with `good first issue` for great beginner-friendly tasks.
@@ -31,7 +31,7 @@ If you're looking for a way to contribute but aren't sure where to start, check 
 
 ---
 
-## 🚀 Pull Request Workflow
+## Pull Request Workflow
 
 We use a standard Git workflow for all contributions:
 
@@ -56,7 +56,7 @@ We use a standard Git workflow for all contributions:
 
 ---
 
-## 💻 Running the System Locally
+## Running the System Locally
 
 To verify your changes before submitting a PR, you need to compile and run the Nyxora Monorepo locally.
 

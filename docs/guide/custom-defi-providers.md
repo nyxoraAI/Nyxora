@@ -1,4 +1,4 @@
-# 🧩 Custom DeFi Providers
+# Custom DeFi Providers
 
 Nyxora features an **Extensible DeFi Liquidity-Routing Runtime** (Meta-Aggregator v2). This architecture allows community developers and users to seamlessly integrate any third-party Decentralized Exchange (DEX), Bridge, or Aggregator into Nyxora's routing engine with **zero friction**.
 
@@ -6,7 +6,7 @@ Because of the **Auto-Discovery** mechanism in the `AggregatorRegistry`, you do 
 
 ---
 
-## 🛠️ Step-by-Step Integration Guide
+## Step-by-Step Integration Guide
 
 ### 1. Create a New TypeScript File
 Navigate to the providers directory in the core package:
@@ -107,7 +107,7 @@ Upon boot:
 
 ---
 
-## 🛡️ Zero-Trust Architecture
+## Zero-Trust Architecture
 
 You might be wondering: **Why is `walletAccess: 'sign'` strictly blocked?**
 
@@ -121,7 +121,7 @@ This Zero-Trust sandbox guarantees that even if a user installs a malicious comm
 
 ---
 
-## 🎨 Dynamic UI Integration
+## Dynamic UI Integration
 
 If your provider requires a private API key (to bypass rate limits), simply declare it in your manifest:
 
@@ -150,7 +150,7 @@ By default, custom providers will render without a logo. To display a beautiful 
 
 ---
 
-## 🤖 Autonomous Installation (Self-Upgrading AI)
+## Autonomous Installation (Self-Upgrading AI)
 
 Don't want to deal with manual file creation? Nyxora's Local Agent comes equipped with the `install_defi_provider` skill.
 

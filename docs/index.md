@@ -31,6 +31,10 @@ features:
     details: The internal Honcho Daemon continuously audits chat history to extract and adapt to your trading persona and risk tolerance dynamically.
   - title: 🧩 Autonomous Skill Synthesizing
     details: Tell the AI to learn a new workflow, and it will autonomously write and save a custom modular plugin following the agentskills.io standard.
+  - title: 🔌 Universal MCP Server
+    details: Expose Nyxora's Web3 execution capabilities directly to Claude Desktop, Cursor, or any MCP-compatible client securely.
+  - title: 🏦 DeFi Yield Automation
+    details: Autonomously interact with Aave V3 lending pools and Beefy Finance auto-compounders to maximize asset yield.
 ---
 
 <style>
@@ -93,7 +97,7 @@ features:
     </div>
     <div class="why-card">
       <h3>⚡ Premium Utility UI</h3>
-      <p>A sleek, readable dashboard built for professional Web3 execution. Manage multiple ChatGPT-style isolated chat sessions effortlessly.</p>
+      <p>A sleek, readable dashboard built for professional Web3 execution. Manage multiple isolated chat sessions seamlessly across various AI models (Gemini, Claude, DeepSeek, etc.) in a unified workspace.</p>
     </div>
     <div class="why-card">
       <h3>🛡️ MEV & Slippage Defense</h3>
@@ -106,6 +110,14 @@ features:
     <div class="why-card">
       <h3>🧩 agentskills.io Standard</h3>
       <p>Extend Nyxora's capabilities effortlessly. Drop any custom community skill into your local <code>~/.nyxora/skills/</code> directory, or command Nyxora to autonomously code and synthesize a new skill for itself!</p>
+    </div>
+    <div class="why-card">
+      <h3>🔌 Universal MCP Server</h3>
+      <p>Turn Nyxora into a backend powerhouse. Seamlessly connect its sandboxed Web3 execution environment to external AI tools like Claude Desktop or Cursor via the Model Context Protocol.</p>
+    </div>
+    <div class="why-card">
+      <h3>🏦 DeFi Yield Automation</h3>
+      <p>Stop letting assets sit idle. Command Nyxora to autonomously supply liquidity to Aave V3 or route LP tokens into Beefy Finance auto-compounding vaults.</p>
     </div>
   </div>
 </div>

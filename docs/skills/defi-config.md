@@ -1,4 +1,4 @@
-# ⚙️ DeFi Configuration (BYOK)
+# DeFi Configuration (BYOK)
 
 Nyxora is designed as a highly secure, Zero-Trust platform. Therefore, all aggregator secrets (such as API Keys for 1inch, 0x, Relay, etc.) are never stored in the frontend interface nor explicitly in open databases.
 

@@ -27,3 +27,37 @@
   --vp-c-divider: rgba(216, 222, 233, 0.1) !important;
   --vp-sidebar-bg-color: #2e3440 !important;
 }
+
+/* =========================================
+   macOS Terminal Style for Code Blocks
+   ========================================= */
+.vp-doc div[class*="language-"] {
+  position: relative;
+  padding-top: 36px !important; /* Space for the macOS header */
+  border-radius: 8px !important;
+}
+
+/* Draw the Red, Yellow, Green buttons */
+.vp-doc div[class*="language-"]::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 15px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff5f56; /* Close button */
+  box-shadow: 18px 0 0 #ffbd2e, 36px 0 0 #27c93f; /* Minimize & Maximize buttons */
+  z-index: 2;
+}
+
+/* Reposition VitePress default language label to align with buttons */
+.vp-doc div[class*="language-"] > span.lang {
+  top: 10px !important;
+  right: 50px !important;
+}
+
+/* Reposition VitePress default copy button to align with buttons */
+.vp-doc div[class*="language-"] > button.copy {
+  top: 6px !important;
+}

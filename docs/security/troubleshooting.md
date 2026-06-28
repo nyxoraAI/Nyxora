@@ -1,4 +1,4 @@
-# 🛟 Troubleshooting Guide
+# Troubleshooting Guide
 
 Welcome to the Nyxora troubleshooting hub. If your agent encounters issues during boot-up or operation, you will likely find the solution here.
 
