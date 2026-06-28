@@ -46,6 +46,7 @@ export default defineConfig({
           { text: '🧩 Custom DeFi Providers', link: '/guide/custom-defi-providers' },
           { text: '🌉 Cross-Chain Routing', link: '/guide/bridge-routing' },
           { text: '📁 Codebase Structure', link: '/guide/structure' },
+          { text: '🤝 Contributing Guide', link: '/guide/contributing' },
           { text: '🔌 MCP Integration Guide', link: '/guide/mcp-integration' },
           { text: '🧠 Guarded Autonomy', link: '/guide/guarded_autonomy' },
           { text: '🗄️ Memory Architecture', link: '/guide/memory-architecture' },
