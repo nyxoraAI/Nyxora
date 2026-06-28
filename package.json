@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.1",
+  "version": "26.7.2",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -71,7 +71,6 @@
     "express-rate-limit": "^7.5.0",
     "grammy": "^1.44.0",
     "helmet": "^8.0.0",
-    "isolated-vm": "^6.1.2",
     "jsonwebtoken": "^9.0.2",
     "linkedom": "^0.18.12",
     "mammoth": "^1.6.0",

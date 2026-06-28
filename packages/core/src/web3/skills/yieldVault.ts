@@ -36,6 +36,14 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
     const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
     const amountWei = parseUnits(amountStr, metadata.decimals);
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, tokenAddress, amountWei.toString());
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
+
     // 1. Check Allowance
     const allowance = await publicClient.readContract({
         address: tokenAddress as `0x${string}`,
@@ -54,7 +62,7 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
             symbol: metadata.symbol,
             gasEstimate: "60000"
         });
-        return `⏳ **Approve queued:** ${metadata.symbol} | For: ${protocol.toUpperCase()} Vault | ${chainName.toUpperCase()} | Approve below.`;
+        return `⏳ **Approve queued:** ${metadata.symbol} | For: ${protocol.toUpperCase()} Vault | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
     }
 
     // 2. Simulate Deposit
@@ -82,7 +90,7 @@ export async function prepareVaultDeposit(chainName: ChainName, protocol: string
       gasEstimate: gasEstimate.toString()
     });
 
-    return `⏳ **Vault Deposit queued:** ${amountStr} ${metadata.symbol} | ${protocol.toUpperCase()} | ${chainName.toUpperCase()} | Approve below.`;
+    return `⏳ **Vault Deposit queued:** ${amountStr} ${metadata.symbol} | ${protocol.toUpperCase()} | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Failed to prepare Vault deposit: ${error.message}`;
   }

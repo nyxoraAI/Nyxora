@@ -20,6 +20,13 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
     const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
     const symbol = metadata.symbol;
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, tokenAddress, "0");
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
     // Simulate ERC-20 Approve to 0
     let gasEstimate: bigint = 0n;
     try {
@@ -43,7 +50,7 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
       gasEstimate: gasEstimate.toString()
     });
 
-    return `⏳ **Revoke queued:** ${symbol} | Spender: ${spenderAddress} | ${chainName.toUpperCase()} | Approve below.`;
+    return `⏳ **Revoke queued:** ${symbol} | Spender: ${spenderAddress} | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Failed to prepare revoke approval: ${error.message}`;
   }

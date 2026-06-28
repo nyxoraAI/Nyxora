@@ -55,8 +55,13 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
 
   if (pending.length === 0) return null;
 
+  // The UI popup is disabled in favor of conversational text approval (Zero-Latency).
+  return null;
+
+  /*
   return (
     <div style={{ position: 'fixed', bottom: 20, right: 20, width: 350, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 10 }}>
+
       {pending.length > 1 && (
         <button 
           onClick={handleApproveAll}
@@ -99,4 +104,5 @@ export default function PendingTransactions({ sessionId }: { sessionId: string |
       ))}
     </div>
   );
+  */
 }

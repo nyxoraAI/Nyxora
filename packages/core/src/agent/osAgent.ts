@@ -6,6 +6,32 @@ import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
 import { isSkillActive } from '../utils/skillManager';
+import { cognitiveManager } from '../cognitive/cognitiveManager';
+
+const EXECUTION_DISCIPLINE = `
+<tool_persistence>
+Use tools whenever they can increase the accuracy, completeness, or factual correctness of your response.
+Do NOT stop early if another tool call would materially improve the result.
+Continue using tools until the task is completely finished and verified.
+</tool_persistence>
+
+<mandatory_tool_use>
+NEVER answer the following using only your internal memory — ALWAYS use the relevant tool:
+- Arithmetic, math, calculations
+- System State: OS version, RAM, processes
+- File contents, file sizes
+- Real-world current events
+</mandatory_tool_use>
+
+<act_dont_ask>
+When a user's request has a clear, standard interpretation, take immediate ACTION instead of asking for clarification.
+</act_dont_ask>
+
+<task_completion>
+The deliverable must be a working artifact backed by real tool output — not just a description or a plan of how you would do it.
+NEVER fabricate, hallucinate, or forge tool outputs.
+</task_completion>
+`;
 
 
 import { pluginManager } from '../plugin/registry';
@@ -19,7 +45,7 @@ export const logger = new Logger();
 
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
-function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os'): string {
+function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userInput: string = ''): string {
     const config = loadConfig();
     const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = `You are Nyxora's OS Agent (System & Automation Specialist).
@@ -32,7 +58,16 @@ CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome natu
 CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.
 CRITICAL RULE 3: FILE SYSTEM SAFETY. You are STRICTLY FORBIDDEN from modifying config.yaml, rpc_key.yaml, or policy.yaml using terminal commands like sed or echo.
 CRITICAL RULE 4: CRON JOBS VS LIMIT ORDERS. Do NOT use schedule_task for price-based trading triggers. Use schedule_task for time-based recurring tasks.
-CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outputs.`;
+CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outputs.
+
+${EXECUTION_DISCIPLINE}
+`;
+
+  // Inject Active Cognitive Skills
+  const activeSOP = cognitiveManager.loadActiveCognitiveSkills(userInput);
+  if (activeSOP) {
+    basePrompt += `\n\n[ACTIVE COGNITIVE SKILLS]\n${activeSOP}\n`;
+  }
 
   // Inject Episodic Memories
   try {
@@ -67,35 +102,56 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
   const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools, config.llm.provider);
 
   let messages: any[] = [
-    { role: 'system', content: getSystemPrompt('os') },
+    { role: 'system', content: getSystemPrompt('os', input) },
     ...sanitizedHistory
   ];
 
   try {
-    const response = await executeWithRetry(async (client) => {
-      return await client.chat({
-          model: config.llm.model,
-          temperature: config.llm.temperature,
-          messages: messages,
-          tools: activeTools
+    let turnCount = 0;
+    const MAX_TURNS = 10;
+
+    while (turnCount < MAX_TURNS) {
+      turnCount++;
+      const currentHistory = logger.getHistory(sessionId);
+      const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      const messages: any[] = [
+        { role: 'system', content: getSystemPrompt('os', input) },
+        ...sanitizedHistory
+      ];
+
+      const response = await executeWithRetry(async (client) => {
+        return await client.chat({
+            model: config.llm.model,
+            temperature: config.llm.temperature,
+            messages: messages,
+            tools: activeTools
+        });
       });
-    });
 
-    const responseMessage = response.message;
-    
-    Tracker.addMessage();
-    if (response.usage?.total_tokens) {
-      Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
-    }
-    Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
+      const responseMessage = response.message;
+      
+      if (turnCount === 1) {
+        Tracker.addMessage();
+      }
+      
+      if (response.usage?.total_tokens) {
+        Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
+      }
+      Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
-    logger.addEntry({
-      role: 'assistant',
-      content: responseMessage.content || "",
-      tool_calls: responseMessage.tool_calls,
-    }, sessionId);
+      logger.addEntry({
+        role: 'assistant',
+        content: responseMessage.content || "",
+        tool_calls: responseMessage.tool_calls,
+      }, sessionId);
 
-    if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+      if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
+        let finalContent = responseMessage.content || "No response generated.";
+        finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/gi, '');
+        finalContent = finalContent.trim();
+        return finalContent;
+      }
+
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
       // Enabled fastReturnTools to eliminate 2nd LLM latency for transaction popups
@@ -115,7 +171,12 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
         if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
 
         try {
-          args = JSON.parse(toolCall.function.arguments);
+          let argStr = toolCall.function.arguments;
+          // [Auto-Recovery] Fix common LLM JSON errors (e.g. missing closing brace)
+          if (argStr && !argStr.trim().endsWith('}')) {
+            argStr += '}';
+          }
+          args = JSON.parse(argStr);
         } catch (parseError: any) {
           console.error(pc.red(`[LLM Validation Error] Invalid JSON arguments for ${toolName}: ${parseError.message}`));
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Please correct the format. Error: ${parseError.message}`;
@@ -180,53 +241,13 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
         logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
         return finalContent;
       }
-
-      // Second call to get the final answer after tool execution
-      const secondSanitized = sanitizeHistoryForLLM(logger.getHistory(sessionId), activeTools, config.llm.provider);
-      const secondMessages = [
-        { role: 'system', content: getSystemPrompt('os') },
-        ...secondSanitized
-      ];
-
-      const secondResponse = await executeWithRetry(async (client) => {
-        return await client.chat({
-          model: config.llm.model,
-          messages: secondMessages,
-        });
-      });
-
-      if (secondResponse.usage?.total_tokens) {
-        Tracker.addTokens(secondResponse.usage.total_tokens, config.llm.provider);
-      }
-      Tracker.addEvent('llm.final_response', { provider: config.llm.provider });
-
-      let finalContent = secondResponse.message.content || "";
       
-      // Clean up orphaned <think> blocks that forgot to output </think>
-      finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
-      finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
-      if (finalContent.includes('<think>')) {
-        finalContent = finalContent.replace(/<think>[\s\S]*?\n\n/i, '');
-        finalContent = finalContent.replace(/<think>[\s\S]*$/i, '');
-      }
-      finalContent = finalContent.trim();
-
-      logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
-      return finalContent;
+      // Loop continues, sending tool results in the next turn
     }
-
-    let finalContent = responseMessage.content || "No response generated.";
     
-    // Clean up orphaned <think> blocks that forgot to output </think>
-    finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
-    finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
-    if (finalContent.includes('<think>')) {
-      finalContent = finalContent.replace(/<think>[\s\S]*?\n\n/i, '');
-      finalContent = finalContent.replace(/<think>[\s\S]*$/i, '');
-    }
-    finalContent = finalContent.trim();
-    
-    return finalContent;
+    const maxTurnMsg = "⚠️ Reached maximum interaction limit (10 turns). Please be more specific.";
+    logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
+    return maxTurnMsg;
   } catch (error: any) {
     console.error("LLM Error:", error);
     const status = error?.status || error?.response?.status;

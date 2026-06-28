@@ -1,21 +1,25 @@
 # The Technical Architecture (For Developers)
 
-Under the hood, Nyxora's memory system is powered by a robust **4-Layer Architecture** designed specifically for high-stakes Web3 environments. This architecture eliminates memory pollution (hallucinations), slashes LLM token consumption, and completely sandboxes sensitive cryptographic data.
+Under the hood, Nyxora's memory system is powered by a robust architecture designed specifically for high-stakes Web3 environments. This architecture eliminates memory pollution (hallucinations), slashes LLM token consumption, and completely sandboxes sensitive cryptographic data.
 
-## The 4-Layer Memory Architecture
+## Dialectic User Modeling (The Memory Engine)
+
+With the Hermes Adaptation, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `honchoDaemon.ts`.
 
 ### 1. Layer 1: Session Memory (Short-Term)
 The standard conversational context buffer. It tracks recent dialogue to maintain conversational flow and is inherently volatile.
 
-### 2. Layer 2: Episodic Memory (SQLite Database)
-A local SQLite database where the **Reflection Engine** stores "Candidate Facts." Instead of blindly trusting raw data, every extracted fact carries rich metadata:
-- `occurrences`: How many times the habit was observed.
-- `confidence`: The system's certainty score.
-- `rule_type`: Distinguishes between normal observations, temporary preferences, and permanent user rules.
-- `lastSeen`: Powers the **Memory Decay** garbage collector (purging irrelevant memories older than 60 days).
+### 2. Layer 2: Episodic Memory & Persona (`episodic.db`)
+A local SQLite database where the **Honcho Daemon** stores extracted persona traits and historical episodes. Instead of blindly trusting raw data, the daemon runs continuously in the background to audit your chat history. It extracts:
+- Trading style (e.g., Degen, Conservative)
+- Risk tolerance
+- Network/Chain preferences
+- Stylistic/Tone preferences
 
-### 3. Layer 3: User Profile (`user.md` / The Golden Profile)
-The **Promotion Engine** asynchronously evaluates Layer 2. If an episodic memory breaches the promotion threshold (combining occurrences and confidence), it is officially promoted to the `user.md` file. This guarantees that the LLM System Prompt remains lightweight, injecting only the absolute most crucial and verified facts.
+These traits are stored securely in the `user_personas` table within `episodic.db`.
+
+### 3. Layer 3: Dynamic System Injection
+There is no manual `user.md` profile to edit anymore. The reasoning engine (`reasoning.ts`) dynamically queries `episodic.db` upon every interaction, pulling the most relevant persona traits and injecting them directly into the System Prompt. This guarantees that the LLM System Prompt remains lightweight and highly personalized.
 
 ### 4. Layer 4: Web3 Knowledge Profile
 Unlike generic AI agents, Nyxora also maps behavioral signatures to public blockchain addresses. It learns the functionality of your assets (e.g., *Wallet A is a cold vault, Wallet B is a burner address*), making cross-chain routing suggestions contextually brilliant.
@@ -27,13 +31,10 @@ We operate under a **Zero-Trust** paradigm. We do not rely on LLM System Prompts
 Before any candidate memory touches the SQLite database, it must pass a strict RegExp-based **Hard-Coded Validator**. This physical code barrier autonomously intercepts and annihilates patterns resembling EVM Private Keys, BIP-39 Seed Phrases, Telegram Bot Tokens, and `"system override"` commands.
 
 ### Air-Gapped Keyring Isolation
-The Reflection Engine is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
+The Honcho Daemon is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
 
 ### Persistent Background Reflection
-The memory extraction process operates asynchronously in the background to guarantee zero impact on chat latency. It is triggered by three infallible hooks:
-1. **Idle Timer**: Activates when the user is inactive for 3 minutes.
-2. **N-Message Threshold**: Activates after every 5 message exchanges.
-3. **Graceful Shutdown Hook**: Bound to `SIGTERM`/`SIGINT`, ensuring that if the daemon is terminated, the memory buffer is flushed and permanently secured before the process exits.
+The persona extraction process operates asynchronously in the background (`honchoDaemon.ts`) to guarantee zero impact on chat latency. 
 
 <br>
 
@@ -53,12 +54,12 @@ Nyxora works exactly like that. You no longer need to type exhaustively long com
 If Nyxora makes a mistake and you correct it:
 > **You:** "I already told you, never use Ethereum! The gas fees are too high!"
 
-Nyxora instantly registers that reprimand as a **Golden Rule**. Moving forward, it will never dare to suggest or use the Ethereum network for your transactions again, unless you explicitly revoke the ban.
+Nyxora instantly registers that reprimand as a **Persona Trait**. Moving forward, it will never dare to suggest or use the Ethereum network for your transactions again, unless you explicitly revoke the ban.
 
 ## 3. Background Processing During Idle Time
 Have you ever had a long conversation with an AI assistant, only for it to suffer amnesia and forget everything the moment you restart your laptop? 
 
-Nyxora does not suffer from amnesia. When you finish chatting and step away for a drink (leaving the screen idle), Nyxora quietly reflects and transcribes the essence of your conversation into its "Permanent Notebook." Tomorrow, or even next month, when you boot up your laptop, it still remembers exactly who you are and what you prefer.
+Nyxora does not suffer from amnesia. When you finish chatting, the Honcho Daemon quietly reflects and transcribes the essence of your conversation into its SQLite "Permanent Notebook." Tomorrow, or even next month, when you boot up your laptop, it still remembers exactly who you are and what you prefer.
 
 ## 4. God-Tier Security (The Vault vs. The Notebook)
 You might be worried: *"If the AI gets too smart and remembers everything, could it steal my funds?"*

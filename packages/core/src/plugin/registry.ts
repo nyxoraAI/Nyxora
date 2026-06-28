@@ -9,6 +9,8 @@ let isInitialized = false;
 export async function initializePlugins() {
   if (isInitialized) return;
   
+  await pluginManager.initialize(); // Initialize agentskills.io scanner
+  
   const pluginDirs = [
     path.join(__dirname, '../web3/plugins'),
     path.join(__dirname, '../system/plugins')

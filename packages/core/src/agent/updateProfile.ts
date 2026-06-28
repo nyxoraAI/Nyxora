@@ -1,23 +1,24 @@
-import fs from 'fs';
-import { getPath } from '../config/paths';
+import { episodicDB } from '../memory/episodic';
+import { PromotionEngine } from '../memory/promotionEngine';
 
-export function updateProfile(content: string, mode: 'append' | 'replace'): string {
+export async function updateProfile(content: string, mode: 'append' | 'replace'): Promise<string> {
   try {
-    const userMdPath = getPath('user.md');
-    
     if (mode === 'replace') {
-      fs.writeFileSync(userMdPath, content, 'utf8');
-      return "Profile replaced successfully. New user.md has been saved.";
-    } else {
-      let existingContent = "";
-      if (fs.existsSync(userMdPath)) {
-        existingContent = fs.readFileSync(userMdPath, 'utf8');
-      }
-      
-      const newContent = existingContent + "\n" + content;
-      fs.writeFileSync(userMdPath, newContent, 'utf8');
-      return "Profile appended successfully. New instructions added to user.md.";
+      episodicDB.clearAllMemories();
     }
+    
+    const lines = content.split('\n').filter(l => l.trim() !== '');
+    for (const line of lines) {
+       let cleanLine = line.trim();
+       if (cleanLine.startsWith('- ')) cleanLine = cleanLine.substring(2);
+       if (cleanLine) {
+         episodicDB.addCandidateFact(cleanLine, 1.0, 'general', 'permanent');
+       }
+    }
+    
+    await PromotionEngine.runPromotionAndDecay();
+
+    return "Profile updated successfully in Episodic DB and synchronized to user.md.";
   } catch (error: any) {
     return `Failed to update profile: ${error.message}`;
   }

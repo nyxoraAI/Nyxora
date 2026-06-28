@@ -41,6 +41,12 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
           value,
         });
       }
+
+      // --- Pre-flight Balance Check (Native) ---
+      const { validateTransactionBalances } = await import('../utils/balanceChecker');
+      const balanceCheck = await validateTransactionBalances(chainName, userAddress, tokenAddress, parseEther(amountStr).toString());
+      if (!balanceCheck.isValid) throw new Error(balanceCheck.message);
+      // -----------------------------------------
     } else {
       // Simulate ERC-20 Transfer
       const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
@@ -49,6 +55,12 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
 
       const value = parseUnits(amountStr, decimals);
       
+      // --- Pre-flight Balance Check (ERC20) ---
+      const { validateTransactionBalances } = await import('../utils/balanceChecker');
+      const balanceCheck = await validateTransactionBalances(chainName, userAddress, tokenAddress, value.toString());
+      if (!balanceCheck.isValid) throw new Error(balanceCheck.message);
+      // ----------------------------------------
+
       const { request } = await publicClient.simulateContract({
         account,
         address: tokenAddress as `0x${string}`,
@@ -70,7 +82,7 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
     });
 
     const tokenName = isNative ? "Native Token" : symbol;
-    return `⏳ **Transfer queued:** ${amountStr} ${tokenName} | ${chainName.toUpperCase()} ➡️ ${toAddress} | Approve below.`;
+    return `⚡ **Transfer Prepared**\nI have prepared your transfer on the **${chainName.toUpperCase()}** network. Here are the details:\n\n- **Amount:** ${amountStr} ${tokenName}\n- **To:** \`${toAddress}\`\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;
   } catch (error: any) {
     return `Simulation failed! Cannot prepare transfer. Error: ${error.message}`;
   }

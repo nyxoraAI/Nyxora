@@ -126,7 +126,7 @@ nyxora doctor
 ```
 
 ### `clear`
-Atomically wipes the AI's short-term and long-term memory SQLite databases. Use this if you want the AI to "forget" past conversations and learned preferences.
+Atomically wipes the AI's episodic SQLite database (`episodic.db`). Use this if you want the Honcho Daemon to "forget" past conversations, personas, and learned trading preferences.
 ```bash
 nyxora clear
 ```

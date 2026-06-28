@@ -127,6 +127,15 @@ export async function prepareProvideLiquidity(
     const amount0Wei = parseUnits(amount0, meta0.decimals);
     const amount1Wei = parseUnits(amount1, meta1.decimals);
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck0 = await validateTransactionBalances(chainName, userAddress, token0, amount0Wei.toString());
+    if (!balanceCheck0.isValid) throw new Error(balanceCheck0.message);
+    
+    const balanceCheck1 = await validateTransactionBalances(chainName, userAddress, token1, amount1Wei.toString());
+    if (!balanceCheck1.isValid) throw new Error(balanceCheck1.message);
+    // --------------------------------
+
     // 1. Check Allowances for BOTH tokens
     const allowance0 = await publicClient.readContract({
         address: token0, abi: ERC20_ABI, functionName: 'allowance', args: [account, positionManagerAddress]
@@ -138,12 +147,12 @@ export async function prepareProvideLiquidity(
 
     if (allowance0 < amount0Wei) {
         const tx = txManager.createPendingTransaction('approve', chainName, { spenderAddress: positionManagerAddress, tokenAddress: token0, amountStr: amount0, symbol: meta0.symbol, gasEstimate: "60000" });
-        return `⏳ **Approve queued:** ${meta0.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Approve below.`;
+        return `⏳ **Approve queued:** ${meta0.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
     }
 
     if (allowance1 < amount1Wei) {
         const tx = txManager.createPendingTransaction('approve', chainName, { spenderAddress: positionManagerAddress, tokenAddress: token1, amountStr: amount1, symbol: meta1.symbol, gasEstimate: "60000" });
-        return `⏳ **Approve queued:** ${meta1.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Approve below.`;
+        return `⏳ **Approve queued:** ${meta1.symbol} | For: Uniswap V3 | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
     }
 
     // 2. Simulate Mint
@@ -181,7 +190,7 @@ export async function prepareProvideLiquidity(
       gasEstimate: gasEstimate.toString()
     });
 
-    return `⏳ **Add Liquidity queued:** ${amount0} ${meta0.symbol} & ${amount1} ${meta1.symbol} | ${chainName.toUpperCase()} | Approve below.`;
+    return `⏳ **Add Liquidity queued:** ${amount0} ${meta0.symbol} & ${amount1} ${meta1.symbol} | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Failed to prepare liquidity provision: ${error.message}`;
   }

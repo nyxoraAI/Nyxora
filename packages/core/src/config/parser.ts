@@ -142,6 +142,9 @@ export interface NyxoraConfig {
       authorized_chat_id?: number;
     };
   };
+  security?: {
+    dashboard_password?: string;
+  };
   skills?: {
     web3: string[];
     os: string[];
@@ -247,6 +250,7 @@ export function loadConfig(): NyxoraConfig {
       integrations: parsed.integrations || {
         telegram: { enabled: false }
       },
+      security: parsed.security || { dashboard_password: '123456' },
       skills: parsed.skills
     };
 

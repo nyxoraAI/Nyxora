@@ -1,14 +1,9 @@
 import { apiFetch } from './utils/api';
-import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2 } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
-import Skills from './Skills';
-import OsSkills from './OsSkills';
-import { DefiKeys } from './DefiKeys';
-import { MarketOracles } from './MarketOracles';
 import SearchChat from './SearchChat';
-import RpcConfig from './RpcConfig';
 import { Portfolio } from './Portfolio';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
@@ -18,6 +13,7 @@ import MarketWidget from './MarketWidget';
 import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
 import ReconnectOverlay from './components/ReconnectOverlay';
+import Login from './Login';
 import { usePolling } from './utils/usePolling';
 import './index.css';
 
@@ -35,6 +31,7 @@ interface Config {
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
   const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -461,6 +458,11 @@ function App() {
       console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
+      // Reset textarea height after sending
+      const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = 'auto';
+      }
     }
   };
 
@@ -495,13 +497,61 @@ function App() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {cleanContent && (
-          <div style={{ whiteSpace: 'pre-wrap' }}>
+          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {parseBold(cleanContent)}
           </div>
         )}
       </div>
     );
   };
+
+  const greetings = [
+    {
+      title: "What's on your mind?",
+      desc: "I am Nyxora, your autonomous Web3 assistant. Ask me to analyze tokens, manage your portfolio, or execute on-chain transactions."
+    },
+    {
+      title: "Ready to explore Web3?",
+      desc: "From swapping tokens to yield farming, just tell me what to do and I'll handle the complex smart contracts."
+    },
+    {
+      title: "How can I assist your portfolio today?",
+      desc: "I can read market sentiment, estimate gas fees, and protect your wallet from malicious allowances."
+    },
+    {
+      title: "Navigate the crypto markets with ease.",
+      desc: "Whether you need a bridge to Arbitrum, Optimism, Base, BSC, Polygon, or liquidity on Uniswap, I am ready to execute your commands."
+    },
+    {
+      title: "Your autonomous DeFi command center.",
+      desc: "I am Nyxora. I will securely route your trades and execute DeFi strategies without compromising your keys."
+    },
+    {
+      title: "Your autonomous Local System Assistant.",
+      desc: "I can read files on your computer, securely execute terminal commands, and manage your local directories natively."
+    },
+    {
+      title: "Automate your daily OS workflows.",
+      desc: "Whether you need to parse local PDFs, draft documents, or run background bash scripts, I am ready to execute your commands."
+    },
+    {
+      title: "Beyond the Blockchain.",
+      desc: "My capabilities extend to your local machine. Just ask me to analyze system logs, organize your workspace, or send an email."
+    }
+  ];
+
+  // Pick a random greeting every time the component renders an empty chat state
+  // We use the activeSessionId as a dependency so it changes when you switch/create chats
+  const currentGreeting = useMemo(() => {
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }, [activeSessionId, messages.length]);
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => {
+      setIsAuthenticated(true);
+      localStorage.setItem('nyxora_auth', 'true');
+    }} />;
+  }
 
   return (
     <>
@@ -584,41 +634,6 @@ function App() {
               <Wallet size={15} className="nav-icon" /> <span className="nav-label">Portfolio</span>
             </div>
             <div 
-              className={`nav-item ${currentView === 'skills' ? 'active' : ''}`}
-              onClick={() => setCurrentView('skills')}
-              title={isSidebarCollapsed ? "Web3 Skills" : undefined}
-            >
-              <Zap size={15} className="nav-icon" /> <span className="nav-label">Web3 Skills</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'osskills' ? 'active' : ''}`}
-              onClick={() => setCurrentView('osskills')}
-              title={isSidebarCollapsed ? "OS Skills" : undefined}
-            >
-              <Terminal size={15} className="nav-icon" /> <span className="nav-label">OS Skills</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`}
-              onClick={() => setCurrentView('rpcconfig')}
-              title={isSidebarCollapsed ? "RPC Configuration" : undefined}
-            >
-              <Server size={15} className="nav-icon" /> <span className="nav-label">RPC Configuration</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'defikeys' ? 'active' : ''}`}
-              onClick={() => setCurrentView('defikeys')}
-              title={isSidebarCollapsed ? "DeFi Configuration" : undefined}
-            >
-              <Key size={15} className="nav-icon" /> <span className="nav-label">DeFi Configuration</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'marketoracles' ? 'active' : ''}`}
-              onClick={() => setCurrentView('marketoracles')}
-              title={isSidebarCollapsed ? "Market Oracles" : undefined}
-            >
-              <Database size={15} className="nav-icon" /> <span className="nav-label">Market Oracles</span>
-            </div>
-            <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
               title={isSidebarCollapsed ? "Settings" : undefined}
@@ -664,13 +679,7 @@ function App() {
             <span>Nyxora</span>
             <span style={{color: '#3b82f6'}}>•</span>
             <span style={{color: 'var(--text-primary)', textTransform: 'capitalize'}}>
-              {currentView === 'search' ? 'Search Chat' :
-               currentView === 'osskills' ? 'OS Skills' : 
-               currentView === 'defikeys' ? 'DeFi Configuration' : 
-               currentView === 'marketoracles' ? 'Market Oracles' : 
-               currentView === 'rpcconfig' ? 'RPC Configuration' : 
-               currentView === 'skills' ? 'Web3 Skills' : 
-               currentView}
+              {currentView === 'search' ? 'Search Chat' : currentView}
             </span>
           </div>
           
@@ -716,18 +725,18 @@ function App() {
           <Overview config={config} sessionsCount={chatSessions.length} />
         ) : currentView === 'portfolio' ? (
           <Portfolio baseFiat={config?.agent?.base_fiat || 'usd'} />
-        ) : currentView === 'skills' ? (
-          <Skills />
-        ) : currentView === 'osskills' ? (
-          <OsSkills />
         ) : currentView === 'settings' ? (
-          <Settings config={config} onConfigChange={setConfig} autoLockTime={autoLockTime} setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }} />
-        ) : currentView === 'rpcconfig' ? (
-          <RpcConfig />
-        ) : currentView === 'defikeys' ? (
-          <DefiKeys />
-        ) : currentView === 'marketoracles' ? (
-          <MarketOracles />
+          <Settings 
+            config={config} 
+            onConfigChange={setConfig} 
+            autoLockTime={autoLockTime} 
+            setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }}
+            onLogout={() => {
+              setIsAuthenticated(false);
+              localStorage.removeItem('nyxora_auth');
+              setCurrentView('chat');
+            }} 
+          />
         ) : (
             <div className="workspace-container">
               <div className={`chat-wrapper ${messages.length === 0 ? 'empty-state-wrapper' : ''}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -757,7 +766,7 @@ function App() {
                       marginBottom: '16px',
                       letterSpacing: '-1px'
                     }}>
-                      What's on your mind?
+                      {currentGreeting.title}
                     </h1>
                     <p style={{
                       color: 'var(--text-secondary)',
@@ -765,7 +774,7 @@ function App() {
                       maxWidth: '500px',
                       lineHeight: '1.6'
                     }}>
-                      I am Nyxora, your autonomous Web3 assistant. Ask me to analyze tokens, manage your portfolio, or execute on-chain transactions.
+                      {currentGreeting.desc}
                     </p>
                   </div>
                 )}
@@ -845,16 +854,31 @@ function App() {
                     </button>
                   </div>
                 </div>
-                <input
-                  type="text"
-                  className="chat-input"
-                  placeholder={isVoiceMode ? "Listening..." : "Message Nyxora Agent (Enter to send)..."}
+                <textarea
+                  className="chat-input styled-scroll"
+                  placeholder={isVoiceMode ? "Listening..." : "Message Nyxora Agent (Enter to send, Shift+Enter for new line)..."}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend(e as unknown as React.FormEvent);
+                    }
+                  }}
                   disabled={isLoading}
+                  rows={1}
+                  style={{ resize: 'none', minHeight: '36px', paddingTop: '10px' }}
                 />
                 <button type="submit" className="send-button" disabled={isLoading || !input.trim()}>
-                  <Send size={20} />
+                  {isLoading ? (
+                    <Loader2 size={20} className="spinner" />
+                  ) : (
+                    <Send size={20} />
+                  )}
                 </button>
               </form>
               <div className="trending-tokens">
@@ -863,7 +887,7 @@ function App() {
                   <span 
                     key={idx} 
                     className="token-tag" 
-                    onClick={() => setInput(`Tolong berikan analisis pasar terbaru untuk ${token}`)}
+                    onClick={() => setInput(`Please provide the latest market analysis for ${token}`)}
                     title={`Click to analyze ${token}`}
                     style={{ cursor: 'pointer' }}
                   >

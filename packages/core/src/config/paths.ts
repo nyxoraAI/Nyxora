@@ -23,9 +23,11 @@ export function getPath(filename: string): string {
   let subDir = '';
   const lowerFile = filename.toLowerCase();
   
-  if (lowerFile.endsWith('.db') || lowerFile.endsWith('.db-wal') || lowerFile.endsWith('.db-shm') || lowerFile.endsWith('.json') && lowerFile.includes('memory') || lowerFile.endsWith('.md') || lowerFile.includes('orders')) {
+  if (filename === 'skills' || lowerFile.startsWith('skills/')) {
+    subDir = 'skills';
+  } else if (lowerFile.endsWith('.db') || lowerFile.endsWith('.db-wal') || lowerFile.endsWith('.db-shm') || (lowerFile.endsWith('.json') && lowerFile.includes('memory')) || lowerFile.endsWith('.md') || lowerFile.includes('orders')) {
     subDir = 'data';
-  } else if (lowerFile.endsWith('.yaml') || lowerFile.includes('config') || lowerFile.includes('skills') || lowerFile.includes('whitelist') || lowerFile.includes('tokens')) {
+  } else if (lowerFile.endsWith('.yaml') || lowerFile.includes('config') || lowerFile.includes('whitelist') || lowerFile.includes('tokens')) {
     subDir = 'config';
   } else if (lowerFile.endsWith('.token') || lowerFile.includes('vault') || lowerFile.includes('credentials')) {
     subDir = 'auth';
@@ -36,11 +38,18 @@ export function getPath(filename: string): string {
   const targetDir = path.join(baseDir, subDir);
   ensureDir(targetDir);
   
-  const fullPath = path.join(targetDir, filename);
+  let fullPath = path.join(targetDir, filename);
+
+  // Prevent duplicating the subdirectory name if the filename already includes it
+  if (filename === subDir) {
+    fullPath = targetDir;
+  } else if (filename.startsWith(subDir + '/') || filename.startsWith(subDir + '\\')) {
+    fullPath = path.join(baseDir, filename);
+  }
 
   // AUTO-MIGRATION: If file exists in root but not in subdir, move it
   const oldRootPath = path.join(baseDir, filename);
-  if (subDir !== '') {
+  if (subDir !== '' && fullPath !== oldRootPath) {
     if (fs.existsSync(oldRootPath) && !fs.existsSync(fullPath)) {
       try {
         fs.renameSync(oldRootPath, fullPath);

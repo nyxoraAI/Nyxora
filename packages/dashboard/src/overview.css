@@ -4,6 +4,15 @@
   height: calc(100vh - 64px);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+}
+
+.settings-subpanel {
+  width: 100%;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
 }
 
 .overview-container::-webkit-scrollbar {

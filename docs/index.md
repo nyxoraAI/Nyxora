@@ -27,8 +27,10 @@ features:
     details: Real-time asset tracking combining CoinGecko global data with DexScreener on-chain metrics across Ethereum, Base, Solana, and more.
   - title: 🤖 Multi-LLM Support
     details: Easily switch between Gemini, Anthropic, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
-  - title: ⛓️ Decentralized Agent Registry
-    details: Nyxora embeds a native On-Chain Kill-Switch on the Base Sepolia network. If you suspect a local compromise, instantly revoke your agent's execution rights globally from any device via Basescan.
+  - title: 🧠 Dialectic User Modeling
+    details: The internal Honcho Daemon continuously audits chat history to extract and adapt to your trading persona and risk tolerance dynamically.
+  - title: 🧩 Autonomous Skill Synthesizing
+    details: Tell the AI to learn a new workflow, and it will autonomously write and save a custom modular plugin following the agentskills.io standard.
 ---
 
 <style>
@@ -98,8 +100,12 @@ features:
       <p>Automatically routes trades through MEV-protected aggregators and enforces strict dual-layered slippage hard-limits to block front-running and sandwich attacks.</p>
     </div>
     <div class="why-card">
-      <h3>🧠 Persistent Memory Architecture</h3>
-      <p>Nyxora quietly extracts and learns your Web3 habits in the background through a secure 4-Layer air-gapped system, drastically minimizing repetitive user instructions and eliminating the need to repeatedly define DeFi preferences.</p>
+      <h3>🧠 Dialectic User Modeling</h3>
+      <p>Nyxora quietly extracts and learns your Web3 habits in the background. The asynchronous <b>Honcho Daemon</b> continuously audits your chat history to extract your persona and save it to <code>episodic.db</code>, drastically minimizing repetitive user instructions.</p>
+    </div>
+    <div class="why-card">
+      <h3>🧩 agentskills.io Standard</h3>
+      <p>Extend Nyxora's capabilities effortlessly. Drop any custom community skill into your local <code>~/.nyxora/skills/</code> directory, or command Nyxora to autonomously code and synthesize a new skill for itself!</p>
     </div>
   </div>
 </div>

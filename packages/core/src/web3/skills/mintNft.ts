@@ -48,6 +48,15 @@ export async function prepareMintNft(
 
     const valueWei = parseEther(valueEth);
 
+    // --- Pre-flight Balance Check ---
+    // Mint uses native coin as valueWei
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", valueWei.toString());
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
+
     const { request } = await publicClient.simulateContract({
       account,
       address: contractAddress,
@@ -69,7 +78,7 @@ export async function prepareMintNft(
       gasEstimate: gasEstimate.toString()
     });
 
-    return `⏳ **Mint NFT queued:** ${contractAddress} | ${chainName.toUpperCase()} | ⚠️ Verify Contract | Approve below.`;
+    return `⏳ **Mint NFT queued:** ${contractAddress} | ${chainName.toUpperCase()} | ⚠️ Verify Contract | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Simulation failed! Cannot prepare mint. Error: ${error.message}`;
   }

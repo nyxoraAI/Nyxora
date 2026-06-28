@@ -35,8 +35,12 @@ export class PromotionEngine {
         }
       }
 
+      // Deduplicate arrays
+      const uniquePermanent = [...new Set(permanentPreferences)];
+      const uniqueRecent = [...new Set(recentObservations)];
+
       // 4. Rewrite user.md (The Golden Profile)
-      this.rewriteUserProfile(permanentPreferences, recentObservations);
+      this.rewriteUserProfile(uniquePermanent, uniqueRecent);
 
     } catch (error) {
       console.error('[PromotionEngine] Error running promotion engine:', error);

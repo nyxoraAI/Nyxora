@@ -1,4 +1,4 @@
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { getAddress, submitTransaction } from '../utils/vaultClient';
 import { txManager } from '../../agent/transactionManager';
@@ -29,7 +29,6 @@ export async function prepareSwapToken(
       await saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
     }
 
-    // Fetch actual token decimals on-chain to prevent overflow (BUG #1 Fix)
     let decimals = 18;
     if (!isNativeIn) {
       const { getTokenMetadata } = await import('../utils/tokens');
@@ -39,8 +38,25 @@ export async function prepareSwapToken(
       decimals = meta.decimals;
     }
 
+    let toDecimals = 18;
+    const isNativeOut = toTokenAddress === "0x0000000000000000000000000000000000000000" || toTokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    if (!isNativeOut) {
+      const { getTokenMetadata } = await import('../utils/tokens');
+      const { getPublicClient } = await import('../utils/rpcEngine');
+      const client = getPublicClient(chainName);
+      const toMeta = await getTokenMetadata(client, toTokenAddress);
+      toDecimals = toMeta.decimals;
+    }
+
     const amountWei = parseUnits(amountStr, decimals).toString();
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, fromTokenAddress, amountWei);
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
     const slippage = slippagePercent || "auto";
 
     const route = await routeTransaction(
@@ -69,7 +85,8 @@ export async function prepareSwapToken(
       expiresAt: route.expiresAt
     });
 
-    return `⏳ **Swap queued:** ${amountStr} ${fromToken} ➡️ ${route.outputAmount.toString()} ${toToken} | ${chainName.toUpperCase()} | Via ${route.provider} | Approve below.`;
+    const formattedOutput = formatUnits(route.outputAmount, toDecimals);
+    return `⚡ **Transaction Prepared**\nI have found the best route for your swap via **${route.provider}** on the **${chainName.toUpperCase()}** network. Here are the details:\n\n- **Send:** ${amountStr} ${fromToken.toUpperCase()}\n- **Est. Receive:** ${formattedOutput} ${toToken.toUpperCase()}\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;
   } catch (error: any) {
     return `Failed to prepare swap: ${error.message}`;
   }

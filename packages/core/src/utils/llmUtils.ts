@@ -9,6 +9,7 @@ let cachedApiKey = '';
 
 export const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey: boolean }> = {
   ollama: { baseURL: process.env.OLLAMA_BASE_URL ? `${process.env.OLLAMA_BASE_URL}/v1` : 'http://localhost:11434/v1', requiresApiKey: false },
+  '9router': { baseURL: 'http://localhost:20128/v1', requiresApiKey: false },
   gemini: { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', requiresApiKey: true },
   openrouter: { baseURL: 'https://openrouter.ai/api/v1', requiresApiKey: true },
   groq: { baseURL: 'https://api.groq.com/openai/v1', requiresApiKey: true },
@@ -53,12 +54,13 @@ export async function getLLMClient(): Promise<LLMProvider> {
   const config = loadConfig();
   const vaultKeys = await loadApiKeys();
   const providerName = config.llm.provider || 'openai';
+  const providerConf = PROVIDER_CONFIGS[providerName] || PROVIDER_CONFIGS['openai'];
 
   let apiKey = '';
   const keyName = `${providerName}_key`;
   apiKey = vaultKeys[keyName] || config.credentials?.[keyName] || '';
 
-  if (!apiKey && providerName !== 'ollama') {
+  if (!apiKey && providerConf.requiresApiKey) {
     throw new Error(`[Security] No API Key found for ${providerName} in OS Keyring. Please run 'nyxora set-key ${providerName} <key>' or 'nyxora setup'.`);
   }
 
@@ -66,7 +68,7 @@ export async function getLLMClient(): Promise<LLMProvider> {
       return cachedLLMClient;
   }
 
-  if (providerName !== 'ollama') {
+  if (providerConf.requiresApiKey) {
     console.log(`[LLM] Using API Key securely unlocked from OS Keyring vault for ${providerName}.`);
   }
 
@@ -85,7 +87,6 @@ export async function getLLMClient(): Promise<LLMProvider> {
   }
 
   // Default fallback (OpenAI, Groq, OpenRouter, xAI, Mistral, DeepSeek)
-  const providerConf = PROVIDER_CONFIGS[providerName] || PROVIDER_CONFIGS['openai'];
   const client = new OpenAI({
     baseURL: providerConf.baseURL,
     apiKey: apiKey || 'local',

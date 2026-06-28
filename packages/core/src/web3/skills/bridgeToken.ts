@@ -1,4 +1,4 @@
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { getAddress, submitTransaction } from '../utils/vaultClient';
 import { txManager } from '../../agent/transactionManager';
@@ -54,6 +54,15 @@ export async function prepareBridgeToken(
     const amountWei = parseUnits(amountStr, decimals).toString(); 
     const slippage = slippagePercent || "auto"; 
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(fromChain, userAddress, fromTokenAddress, amountWei);
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
+
+
     const route = await routeTransaction(
       fromChain, 
       toChain, 
@@ -81,7 +90,8 @@ export async function prepareBridgeToken(
       expiresAt: route.expiresAt
     });
 
-    return `⏳ **Bridge queued:** ${amountStr} ${tokenSymbol} | ${fromChain.toUpperCase()} ➡️ ${toChain.toUpperCase()} | Via ${route.provider} | Approve below.`;
+    const formattedOutput = formatUnits(route.outputAmount, decimals);
+    return `⚡ **Bridge Transaction Prepared**\nI have prepared a route to bridge your tokens via **${route.provider}**. Here are the details:\n\n- **From:** ${amountStr} ${tokenSymbol.toUpperCase()} on **${fromChain.toUpperCase()}**\n- **Est. Receive:** ${formattedOutput} ${tokenSymbol.toUpperCase()} on **${toChain.toUpperCase()}**\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;
   } catch (error: any) {
     console.error("BRIDGE TOKEN ERROR:", error);
     return `Failed to prepare bridge: ${error.message}`;

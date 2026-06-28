@@ -78,7 +78,7 @@ export const DefiKeys: React.FC = () => {
   };
 
   return (
-    <div className="overview-container">
+    <div className="settings-subpanel">
       <div className="nord-panel-header">
         <KeyRound size={28} color="var(--accent)" />
         <h2 className="settings-title" style={{ margin: 0, color: 'var(--text-primary)' }}>DeFi Configuration</h2>

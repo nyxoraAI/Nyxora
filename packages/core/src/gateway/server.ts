@@ -60,8 +60,13 @@ import { generatePrivacyPolicyHtml, generateTosHtml } from './legalGenerator';
 import { episodicDB } from '../memory/episodic';
 import { ReflectionEngine } from '../memory/reflection';
 
+import { honchoDaemon } from '../agent/honchoDaemon';
+
 // Initialize Google Auth
 initGoogleAuth();
+
+// Start Background Honcho Daemon
+honchoDaemon.start();
 
 // Synchronize all active skills to config.yaml on startup
 syncAllSkillsToConfig();
@@ -433,6 +438,10 @@ const getWeb3Skills = () => {
     .flatMap(p => p.tools);
 };
 
+const getExternalSkills = () => {
+  return pluginManager.agentSkills ? pluginManager.agentSkills.getToolSchemas() : [];
+};
+
 const getSystemSkills = () => {
   return pluginManager.getPlugins()
     .filter(p => !p.name.startsWith('Web3'))
@@ -445,11 +454,14 @@ app.get('/api/stats', (req, res) => {
   
   const allSkills = getWeb3Skills();
   const systemSkills = getSystemSkills();
+  const externalSkills = getExternalSkills();
+  
   const activeWeb3 = allSkills.filter(s => isSkillActive(s.function.name)).length;
   const activeSystem = systemSkills.filter(s => isSkillActive(s.function.name)).length;
+  const activeExternal = externalSkills.filter(s => isSkillActive(s.function.name)).length;
   
-  const totalSkills = allSkills.length + systemSkills.length;
-  const activeSkills = activeWeb3 + activeSystem;
+  const totalSkills = allSkills.length + systemSkills.length + externalSkills.length;
+  const activeSkills = activeWeb3 + activeSystem + activeExternal;
 
   res.json({ ...stats, memoryPath: dbPath, totalSkills, activeSkills });
 });
@@ -468,6 +480,16 @@ app.get('/api/cron', (req, res) => {
 app.get('/api/skills', (req, res) => {
   const allSkills = getWeb3Skills();
   const skillsWithStatus = allSkills.map(skill => ({
+    ...skill,
+    isActive: isSkillActive(skill.function.name)
+  }));
+  
+  res.json(skillsWithStatus);
+});
+
+app.get('/api/skills/external', (req, res) => {
+  const externalSkills = getExternalSkills();
+  const skillsWithStatus = externalSkills.map(skill => ({
     ...skill,
     isActive: isSkillActive(skill.function.name)
   }));
@@ -527,6 +549,45 @@ app.get('/api/portfolio/token-metadata', async (req, res) => {
     const client = getPublicClient(chain as ChainName);
     const metadata = await getTokenMetadata(client, address as `0x${string}`);
     res.json(metadata);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Dashboard Auth Routes
+app.post('/api/auth', (req, res) => {
+  try {
+    const config = loadConfig();
+    const currentPass = config.security?.dashboard_password || '123456';
+    if (req.body?.password === currentPass) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: 'Invalid password' });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/update', (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const config = loadConfig();
+    const currentPass = config.security?.dashboard_password || '123456';
+    
+    if (oldPassword !== currentPass) {
+      return res.status(401).json({ error: 'Invalid old password' });
+    }
+    
+    if (!newPassword || newPassword.length < 4) {
+      return res.status(400).json({ error: 'New password must be at least 4 characters' });
+    }
+    
+    config.security = config.security || {};
+    config.security.dashboard_password = newPassword;
+    saveConfig(config);
+    
+    res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

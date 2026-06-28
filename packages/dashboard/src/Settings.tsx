@@ -1,12 +1,17 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Save, User, Cpu, Key, Network, Globe, Shield } from 'lucide-react';
+import { Save, User, Cpu, Key, Network, Globe, Shield, Zap, Terminal, Database, Plug } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
 import { LlmIcon } from './components/LlmIcons';
 import { getChainLogoUrl } from './utils/logos';
 import { GoogleAuthWizard } from './components/GoogleAuthWizard';
 import { FiatSelector } from './FiatSelector';
-
+import Skills from './Skills';
+import OsSkills from './OsSkills';
+import ExternalSkills from './ExternalSkills';
+import { DefiKeys } from './DefiKeys';
+import { MarketOracles } from './MarketOracles';
+import RpcConfig from './RpcConfig';
 const ChainIcon = ({ id }: { id: string }) => (
   <div style={{ width: '14px', height: '14px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
     <img 
@@ -42,9 +47,11 @@ interface SettingsProps {
   onConfigChange: (newConfig: Config) => void;
   autoLockTime: number;
   setAutoLockTime: (val: number) => void;
+  onLogout?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime }) => {
+const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime, onLogout }) => {
+  const [activeCategory, setActiveCategory] = useState<string>('agent');
   const [formData, setFormData] = useState<Config | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     risk_level: 'Moderate',
@@ -58,6 +65,13 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
     custom_llm_rules: []
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string>('');
+
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passSaveStatus, setPassSaveStatus] = useState('');
+
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
   const [supportedFiats, setSupportedFiats] = useState<string[]>(['usd', 'idr', 'eur', 'jpy', 'gbp', 'aud']);
   const [wipingMemory, setWipingMemory] = useState(false);
@@ -222,392 +236,552 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         throw new Error('Failed to save main config');
       }
     } catch (e) {
-      console.error(e);
-      alert('Failed to save settings');
+      setSaveStatus('Error saving policy');
+      setTimeout(() => setSaveStatus(''), 3000);
     } finally {
-      setIsSaving(false);
+      setSavingPolicy(false);
     }
   };
 
+  const handlePasswordChange = async () => {
+    try {
+      setPassSaveStatus('Saving...');
+      const res = await apiFetch('/api/auth/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPassSaveStatus('Password updated successfully');
+        setOldPassword('');
+        setNewPassword('');
+      } else {
+        setPassSaveStatus(data.error || 'Failed to update password');
+      }
+    } catch (err) {
+      setPassSaveStatus('Connection failed');
+    }
+    setTimeout(() => setPassSaveStatus(''), 4000);
+  };
+
   return (
-    <div className="overview-container">
-      <div className="overview-header" style={{ marginBottom: '32px' }}>
-        <h1 style={{ color: 'var(--text-primary)' }}>Configuration</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Modify the core behaviors and parameters of the Nyxora Agent.</p>
+    <div className="settings-layout" style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+      <div className="settings-sidebar-menu" style={{ width: '260px', borderRight: '1px solid var(--glass-border)', padding: '24px 16px', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        
+        <div className="settings-section-title" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px', paddingLeft: '12px' }}>GENERAL</div>
+        
+        <div className={`settings-menu-item ${activeCategory === 'agent' ? 'active' : ''}`} onClick={() => setActiveCategory('agent')}>
+          <User size={16} /> <span className="settings-menu-label">Agent Profile</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'llm' ? 'active' : ''}`} onClick={() => setActiveCategory('llm')}>
+          <Cpu size={16} /> <span className="settings-menu-label">LLM Engine</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'appearance' ? 'active' : ''}`} onClick={() => setActiveCategory('appearance')}>
+          <Globe size={16} /> <span className="settings-menu-label">Appearance</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'security' ? 'active' : ''}`} onClick={() => setActiveCategory('security')}>
+          <Shield size={16} /> <span className="settings-menu-label">Security & Privacy</span>
+        </div>
+
+        <div className="settings-section-title" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginTop: '16px', marginBottom: '4px', paddingLeft: '12px' }}>AGENT CAPABILITIES</div>
+        
+        <div className={`settings-menu-item ${activeCategory === 'web3skills' ? 'active' : ''}`} onClick={() => setActiveCategory('web3skills')}>
+          <Zap size={16} /> <span className="settings-menu-label">Web3 Skills</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'osskills' ? 'active' : ''}`} onClick={() => setActiveCategory('osskills')}>
+          <Terminal size={16} /> <span className="settings-menu-label">OS Skills</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'externalskills' ? 'active' : ''}`} onClick={() => setActiveCategory('externalskills')}>
+          <Plug size={16} /> <span className="settings-menu-label">External Skills</span>
+        </div>
+
+        <div className="settings-section-title" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginTop: '16px', marginBottom: '4px', paddingLeft: '12px' }}>ADVANCED</div>
+        
+        <div className={`settings-menu-item ${activeCategory === 'risk' ? 'active' : ''}`} onClick={() => setActiveCategory('risk')}>
+          <Shield size={16} /> <span className="settings-menu-label">Risk & Policy</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'rpc' ? 'active' : ''}`} onClick={() => setActiveCategory('rpc')}>
+          <Network size={16} /> <span className="settings-menu-label">RPC Config</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'defi' ? 'active' : ''}`} onClick={() => setActiveCategory('defi')}>
+          <Key size={16} /> <span className="settings-menu-label">DeFi Config</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'oracles' ? 'active' : ''}`} onClick={() => setActiveCategory('oracles')}>
+          <Database size={16} /> <span className="settings-menu-label">Market Oracles</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'integrations' ? 'active' : ''}`} onClick={() => setActiveCategory('integrations')}>
+          <Key size={16} /> <span className="settings-menu-label">Integrations</span>
+        </div>
+
       </div>
 
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
-        <div className="nord-panel-header">
-          <User size={18} color="var(--text-secondary)" />
-          <h3>Agent Profile</h3>
-        </div>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Agent Name</label>
-            <input 
-              className="nord-pill-input"
-              type="text" 
-              value={formData.agent.name} 
-              onChange={e => handleChange('agent', 'name', e.target.value)} 
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Default Web3 Chain</label>
-            <PillSelect 
-              value={formData.agent.default_chain}
-              onChange={(val) => handleChange('agent', 'default_chain', val)}
-              pillColor="var(--accent)"
-              textColor="var(--bg-secondary)"
-              options={[
-                { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
-                { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
-                { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
-                { id: 'arbitrum', label: 'Arbitrum One', icon: <ChainIcon id="arbitrum" /> },
-                { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
-                { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
-                { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
-                { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> },
-                { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
-                { id: 'optimism_sepolia', label: 'OP Sepolia', icon: <ChainIcon id="optimism_sepolia" /> }
-              ]}
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Default Slippage (%)</label>
-            <input 
-              className="nord-pill-input"
-              type="text" 
-              placeholder="e.g. 0.5 or auto"
-              value={formData.agent.default_slippage ?? 'auto'} 
-              onChange={e => {
-                const val = e.target.value;
-                if (val.toLowerCase() === 'auto' || val === '') {
-                  handleChange('agent', 'default_slippage', 'auto');
-                } else {
-                  handleChange('agent', 'default_slippage', val);
-                }
-              }} 
-              onBlur={e => {
-                const val = String(e.target.value);
-                if (val.toLowerCase() !== 'auto') {
-                   const num = parseFloat(val);
-                   handleChange('agent', 'default_slippage', isNaN(num) ? 'auto' : num);
-                }
-              }}
-            />
-          </div>
-          <div className="form-group flex-1"></div>
-        </div>
-      </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '32px' }}>
-        <div className="nord-panel-header">
-          <Cpu size={18} color="var(--text-secondary)" />
-          <h3>LLM Engine</h3>
-        </div>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Provider</label>
-            <PillSelect 
-              value={formData.llm.provider}
-              onChange={(val) => handleChange('llm', 'provider', val)}
-              pillColor="var(--accent)"
-              textColor="var(--bg-secondary)"
-              options={[
-                { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
-                { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
-                { id: 'openai', label: 'OpenAI', icon: <LlmIcon provider="openai" size={14} /> },
-                { id: 'openrouter', label: 'OpenRouter', icon: <LlmIcon provider="openrouter" size={14} /> },
-                { id: 'ollama', label: 'Ollama (Local)', icon: <LlmIcon provider="ollama" size={14} /> },
-                { id: 'groq', label: 'Groq', icon: <LlmIcon provider="groq" size={14} /> },
-                { id: 'mistral', label: 'Mistral AI', icon: <LlmIcon provider="mistral" size={14} /> },
-                { id: 'xai', label: 'xAI (Grok)', icon: <LlmIcon provider="xai" size={14} /> },
-                { id: 'deepseek', label: 'DeepSeek', icon: <LlmIcon provider="deepseek" size={14} /> }
-              ]}
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Model Name</label>
-            <input 
-              className="nord-pill-input"
-              style={{ color: 'var(--text-secondary)' }}
-              type="text" 
-              value={formData.llm.model} 
-              onChange={e => handleChange('llm', 'model', e.target.value)} 
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Temperature ({formData.llm.temperature})</label>
-            <input 
-              className="nord-slider"
-              type="range" 
-              min="0" max="1" step="0.1"
-              value={formData.llm.temperature} 
-              onChange={e => handleChange('llm', 'temperature', e.target.value)} 
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-          <div className="nord-panel-header">
-            <Shield size={18} color="var(--danger)" />
-            <h3>Personalized Risk Profile</h3>
-          </div>
-          <div className="form-row">
-            <div className="form-group flex-1">
-              <label className="nord-label">Risk Tolerance Level</label>
-              <PillSelect 
-                value={userProfile.risk_level}
-                onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
-                pillColor="var(--danger)"
-                textColor="var(--text-primary)"
-                options={[
-                  { id: 'Conservative', label: 'Conservative (Safe)' },
-                  { id: 'Moderate', label: 'Moderate' },
-                  { id: 'Aggressive', label: 'Aggressive (Degen)' }
-                ]}
-              />
-            </div>
-            <div className="form-group flex-1">
-              <label className="nord-label">Max Allowed Slippage (%)</label>
-              <input 
-                className="nord-pill-input"
-                type="number" 
-                step="0.1"
-                value={userProfile.max_slippage} 
-                onChange={e => setUserProfile({ ...userProfile, max_slippage: parseFloat(e.target.value) || 1.0 })} 
-              />
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '15px', marginBottom: '5px' }}>
-            <input 
-              type="checkbox" 
-              id="avoid_memecoins"
-              checked={userProfile.avoid_memecoins}
-              onChange={e => setUserProfile({ ...userProfile, avoid_memecoins: e.target.checked })}
-              style={{ cursor: 'pointer', accentColor: 'var(--danger)', width: '16px', height: '16px', margin: 0, flexShrink: 0 }}
-            />
-            <label htmlFor="avoid_memecoins" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>Strictly Avoid Memecoins / Unknown Contracts</label>
-          </div>
-        </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-        <div className="nord-panel-header">
-          <Shield size={18} color="var(--accent)" />
-          <h3>Policy Engine (Hard-coded Firewall)</h3>
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-          Critical limits enforced at the signer level. The LLM cannot override these boundaries.
-        </p>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Max USD per Transaction</label>
-            <input 
-              className="nord-pill-input"
-              type="number" 
-              step="1"
-              value={policyConfig.max_usd_per_tx} 
-              onChange={e => setPolicyConfig({ ...policyConfig, max_usd_per_tx: parseFloat(e.target.value) || 0 })} 
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label" style={{ marginBottom: '12px', display: 'block' }}>Approval & Restrictions</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
-                  id="require_approval"
-                  checked={policyConfig.require_approval}
-                  onChange={e => setPolicyConfig({ ...policyConfig, require_approval: e.target.checked })}
-                  style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
-                />
-                <label htmlFor="require_approval" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
-                  Require Manual Approval for every transaction
-                </label>
+      <div className="settings-content-area styled-scroll" style={{ flex: 1, padding: '32px 48px', overflowY: 'auto' }}>
+        
+        <div className="settings-scroll-container" style={{ margin: '0' }}>
+          
+          {activeCategory === 'agent' && (
+            <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+              <div className="nord-panel-header">
+                <h3>Agent Profile</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
-                  id="whitelist_only"
-                  checked={policyConfig.whitelist_only}
-                  onChange={e => setPolicyConfig({ ...policyConfig, whitelist_only: e.target.checked })}
-                  style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
-                />
-                <label htmlFor="whitelist_only" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
-                  Strict Whitelist Only (Block unknown addresses)
-                </label>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Agent Name</label>
+                  <input 
+                    className="nord-pill-input"
+                    type="text" 
+                    value={formData.agent.name} 
+                    onChange={e => handleChange('agent', 'name', e.target.value)} 
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Default Web3 Chain</label>
+                  <PillSelect 
+                    value={formData.agent.default_chain}
+                    onChange={(val) => handleChange('agent', 'default_chain', val)}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
+                      { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
+                      { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
+                      { id: 'arbitrum', label: 'Arbitrum One', icon: <ChainIcon id="arbitrum" /> },
+                      { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
+                      { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
+                      { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
+                      { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> },
+                      { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
+                      { id: 'optimism_sepolia', label: 'OP Sepolia', icon: <ChainIcon id="optimism_sepolia" /> }
+                    ]}
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Default Slippage (%)</label>
+                  <input 
+                    className="nord-pill-input"
+                    type="text" 
+                    placeholder="e.g. 0.5 or auto"
+                    value={formData.agent.default_slippage ?? 'auto'} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val.toLowerCase() === 'auto' || val === '') {
+                        handleChange('agent', 'default_slippage', 'auto');
+                      } else {
+                        handleChange('agent', 'default_slippage', val);
+                      }
+                    }} 
+                    onBlur={e => {
+                      const val = String(e.target.value);
+                      if (val.toLowerCase() !== 'auto') {
+                         const num = parseFloat(val);
+                         handleChange('agent', 'default_slippage', isNaN(num) ? 'auto' : num);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="form-group flex-1"></div>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="form-group" style={{ marginTop: '15px' }}>
-          <label className="nord-label">Custom LLM Rules (Natural Language)</label>
-          <textarea 
-            className="nord-input"
-            rows={3}
-            style={{ width: '100%', resize: 'vertical' }}
-            placeholder="e.g. Never buy a token if liquidity is below $10,000&#10;Do not touch drive E" 
-            value={policyConfig.custom_llm_rules.join('\n')}
-            onChange={e => setPolicyConfig({ ...policyConfig, custom_llm_rules: e.target.value.split('\n') })}
-          />
+          )}
+
+          {activeCategory === 'llm' && (
+            <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+              <div className="nord-panel-header">
+                <h3>LLM Engine</h3>
+              </div>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Provider</label>
+                  <PillSelect 
+                    value={formData.llm.provider}
+                    onChange={(val) => handleChange('llm', 'provider', val)}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
+                      { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
+                      { id: 'openai', label: 'OpenAI', icon: <LlmIcon provider="openai" size={14} /> },
+                      { id: 'openrouter', label: 'OpenRouter', icon: <LlmIcon provider="openrouter" size={14} /> },
+                      { id: '9router', label: '9Router (Local Proxy)', icon: <LlmIcon provider="9router" size={14} /> },
+                      { id: 'ollama', label: 'Ollama (Local)', icon: <LlmIcon provider="ollama" size={14} /> },
+                      { id: 'groq', label: 'Groq', icon: <LlmIcon provider="groq" size={14} /> },
+                      { id: 'mistral', label: 'Mistral AI', icon: <LlmIcon provider="mistral" size={14} /> },
+                      { id: 'xai', label: 'xAI (Grok)', icon: <LlmIcon provider="xai" size={14} /> },
+                      { id: 'deepseek', label: 'DeepSeek', icon: <LlmIcon provider="deepseek" size={14} /> }
+                    ]}
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Model Name</label>
+                  <input 
+                    className="nord-pill-input"
+                    style={{ color: 'var(--text-secondary)' }}
+                    type="text" 
+                    value={formData.llm.model} 
+                    onChange={e => handleChange('llm', 'model', e.target.value)} 
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Temperature ({formData.llm.temperature})</label>
+                  <input 
+                    className="nord-slider"
+                    type="range" 
+                    min="0" max="1" step="0.1"
+                    value={formData.llm.temperature} 
+                    onChange={e => handleChange('llm', 'temperature', e.target.value)} 
+                  />
+                </div>
+              </div>
+              {formData.llm.provider === '9router' && (
+                <div style={{ background: 'rgba(136, 192, 208, 0.1)', border: '1px solid rgba(136, 192, 208, 0.3)', padding: '14px', borderRadius: '8px', marginTop: '16px' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: '#88c0d0' }}>ℹ️ Local Proxy Required:</strong> Ensure you have installed and started the 9Router proxy before saving.
+                    <br/><br/>
+                    <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'monospace' }}>npm install -g 9router</code>
+                    <br/>
+                    <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', display: 'inline-block', fontSize: '0.8rem', fontFamily: 'monospace' }}>9router</code>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeCategory === 'appearance' && (
+            <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+              <div className="nord-panel-header">
+                <h3>Appearance & UI Personalization</h3>
+              </div>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Base Fiat Currency</label>
+                  <FiatSelector 
+                    value={formData.agent.base_fiat || 'usd'}
+                    onChange={(val) => handleChange('agent', 'base_fiat', val)}
+                    options={supportedFiats}
+                  />
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    Used across the dashboard for cosmetic fiat conversion. Core backend operations remain strictly in USD.
+                  </p>
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Dashboard Theme</label>
+                  <PillSelect 
+                    value={localStorage.getItem('nyxora_theme') || 'auto'}
+                    onChange={(val) => {
+                      localStorage.setItem('nyxora_theme', val);
+                      window.location.reload();
+                    }}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: 'auto', label: 'System (Auto)' },
+                      { id: 'dark', label: 'Dark Mode' },
+                      { id: 'light', label: 'Light Mode' }
+                    ]}
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Backend Log Level</label>
+                  <PillSelect 
+                    value={formData.agent.log_level || 'info'}
+                    onChange={(val) => handleChange('agent', 'log_level', val)}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: 'info', label: 'Info (Standard)' },
+                      { id: 'debug', label: 'Debug (Verbose)' }
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCategory === 'security' && (
+            <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+              <div className="nord-panel-header">
+                <h3>Security & Privacy</h3>
+              </div>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Auto-Lock Session (Idle Timeout)</label>
+                  <PillSelect 
+                    value={autoLockTime.toString()}
+                    onChange={(val) => setAutoLockTime(parseInt(val))}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: '0', label: 'Off' },
+                      { id: '15', label: '15 Minutes' },
+                      { id: '30', label: '30 Minutes' },
+                      { id: '60', label: '1 Hour' }
+                    ]}
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Memory & Operations</label>
+                  <button 
+                    onClick={handleWipeMemory}
+                    disabled={wipingMemory}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(191, 97, 106, 0.1)',
+                      color: '#BF616A',
+                      border: '1px solid rgba(191, 97, 106, 0.5)',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      cursor: wipingMemory ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontWeight: 'bold',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.2)')}
+                    onMouseLeave={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.1)')}
+                  >
+                    {wipingMemory ? 'Wiping...' : 'Wipe All Episodic Memory (Panic Button)'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="nord-panel-header" style={{ marginTop: '24px' }}>
+                <h3>Dashboard Access</h3>
+              </div>
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label className="nord-label">Change Dashboard Password</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <input 
+                      type="password" 
+                      placeholder="Old Password" 
+                      className="nord-input" 
+                      style={{ flex: 1 }}
+                      value={oldPassword}
+                      onChange={e => setOldPassword(e.target.value)}
+                    />
+                    <input 
+                      type="password" 
+                      placeholder="New Password" 
+                      className="nord-input" 
+                      style={{ flex: 1 }}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                    />
+                    <button 
+                      className="nord-btn-primary" 
+                      style={{ padding: '0 16px', borderRadius: '8px' }}
+                      onClick={handlePasswordChange}
+                      disabled={!oldPassword || !newPassword}
+                    >
+                      Update
+                    </button>
+                  </div>
+                  {passSaveStatus && <span style={{ fontSize: '0.85rem', color: passSaveStatus.includes('success') ? 'var(--success)' : 'var(--danger)' }}>{passSaveStatus}</span>}
+                </div>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Manual Lock</label>
+                  <button 
+                    onClick={onLogout}
+                    style={{
+                      width: '100%',
+                      background: 'var(--danger)',
+                      color: '#eceff4',
+                      border: 'none',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontWeight: 600
+                    }}
+                  >
+                    <Key size={16} /> Log Out (Lock Dashboard)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCategory === 'risk' && (
+            <>
+              <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+                <div className="nord-panel-header">
+                  <h3 style={{ color: 'var(--danger)' }}>Personalized Risk Profile</h3>
+                </div>
+                <div className="form-row">
+                  <div className="form-group flex-1">
+                    <label className="nord-label">Risk Tolerance Level</label>
+                    <PillSelect 
+                      value={userProfile.risk_level}
+                      onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
+                      pillColor="var(--danger)"
+                      textColor="var(--text-primary)"
+                      options={[
+                        { id: 'Conservative', label: 'Conservative (Safe)' },
+                        { id: 'Moderate', label: 'Moderate' },
+                        { id: 'Aggressive', label: 'Aggressive (Degen)' }
+                      ]}
+                    />
+                  </div>
+                  <div className="form-group flex-1">
+                    <label className="nord-label">Max Allowed Slippage (%)</label>
+                    <input 
+                      className="nord-pill-input"
+                      type="number" 
+                      step="0.1"
+                      value={userProfile.max_slippage} 
+                      onChange={e => setUserProfile({ ...userProfile, max_slippage: parseFloat(e.target.value) || 1.0 })} 
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '15px', marginBottom: '5px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="avoid_memecoins"
+                    checked={userProfile.avoid_memecoins}
+                    onChange={e => setUserProfile({ ...userProfile, avoid_memecoins: e.target.checked })}
+                    style={{ cursor: 'pointer', accentColor: 'var(--danger)', width: '16px', height: '16px', margin: 0, flexShrink: 0 }}
+                  />
+                  <label htmlFor="avoid_memecoins" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>Strictly Avoid Memecoins / Unknown Contracts</label>
+                </div>
+              </div>
+
+              <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+                <div className="nord-panel-header">
+                  <h3>Policy Engine (Hard-coded Firewall)</h3>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Critical limits enforced at the signer level. The LLM cannot override these boundaries.
+                </p>
+                <div className="form-row">
+                  <div className="form-group flex-1">
+                    <label className="nord-label">Max USD per Transaction</label>
+                    <input 
+                      className="nord-pill-input"
+                      type="number" 
+                      step="1"
+                      value={policyConfig.max_usd_per_tx} 
+                      onChange={e => setPolicyConfig({ ...policyConfig, max_usd_per_tx: parseFloat(e.target.value) || 0 })} 
+                    />
+                  </div>
+                  <div className="form-group flex-1">
+                    <label className="nord-label" style={{ marginBottom: '12px', display: 'block' }}>Approval & Restrictions</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input 
+                          type="checkbox" 
+                          id="require_approval"
+                          checked={policyConfig.require_approval}
+                          onChange={e => setPolicyConfig({ ...policyConfig, require_approval: e.target.checked })}
+                          style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
+                        />
+                        <label htmlFor="require_approval" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
+                          Require Manual Approval for every transaction
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input 
+                          type="checkbox" 
+                          id="whitelist_only"
+                          checked={policyConfig.whitelist_only}
+                          onChange={e => setPolicyConfig({ ...policyConfig, whitelist_only: e.target.checked })}
+                          style={{ cursor: 'pointer', accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0 }}
+                        />
+                        <label htmlFor="whitelist_only" className="nord-label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontSize: '0.85rem' }}>
+                          Strict Whitelist Only (Block unknown addresses)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="form-group" style={{ marginTop: '15px' }}>
+                  <label className="nord-label">Custom LLM Rules (Natural Language)</label>
+                  <textarea 
+                    className="nord-input"
+                    rows={3}
+                    style={{ width: '100%', resize: 'vertical' }}
+                    placeholder="e.g. Never buy a token if liquidity is below $10,000&#10;Do not touch drive E" 
+                    value={policyConfig.custom_llm_rules.join('\n')}
+                    onChange={e => setPolicyConfig({ ...policyConfig, custom_llm_rules: e.target.value.split('\n') })}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeCategory === 'integrations' && (
+            <>
+              <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+                <div className="nord-panel-header">
+                  <h3>Integrations</h3>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Connect Nyxora to external services to expand its capabilities.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
+                  <div>
+                    <h4 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Google Workspace</h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
+                  </div>
+                  <button 
+                    className="nord-btn-primary" 
+                    style={{ background: 'var(--success)', color: 'var(--bg-secondary)', fontWeight: 600 }}
+                    onClick={() => setShowGoogleWizard(true)}
+                  >
+                    Setup OAuth
+                  </button>
+                </div>
+              </div>
+
+              <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
+                <div className="nord-panel-header">
+                  <h3>Web3 Explorer Settings</h3>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Configure blockchain explorer API keys to enable the agent to fetch transaction history.
+                </p>
+                <div style={{ marginBottom: '24px' }} className="form-group">
+                  <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>
+                  <input 
+                    className="nord-input"
+                    type="password" 
+                    placeholder="Leaves empty to use free public endpoints" 
+                    value={formData.web3?.explorer_api_key || ''}
+                    onChange={(e) => handleChange('web3', 'explorer_api_key', e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Render integrated configurations */}
+          {activeCategory === 'web3skills' && <div style={{ margin: '-24px' }}><Skills /></div>}
+          {activeCategory === 'osskills' && <div style={{ margin: '-24px' }}><OsSkills /></div>}
+          {activeCategory === 'externalskills' && <div style={{ margin: '-24px' }}><ExternalSkills /></div>}
+          {activeCategory === 'rpc' && <div style={{ margin: '-24px' }}><RpcConfig /></div>}
+          {activeCategory === 'defi' && <div style={{ margin: '-24px' }}><DefiKeys /></div>}
+          {activeCategory === 'oracles' && <div style={{ margin: '-24px' }}><MarketOracles /></div>}
+
+          {/* Save Button for standard settings form */}
+          {['agent', 'llm', 'appearance', 'security', 'risk', 'integrations'].includes(activeCategory) && (
+            <div className="form-actions" style={{ justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid rgba(216, 222, 233, 0.05)' }}>
+              <button className="nord-btn-primary" style={{ background: 'var(--accent)', color: 'var(--bg-secondary)', fontWeight: 600 }} onClick={handleSave} disabled={isSaving}>
+                <Save size={16} style={{ marginRight: '8px' }} />
+                {isSaving ? 'Saving...' : 'Save Configuration'}
+              </button>
+            </div>
+          )}
+
+          {showGoogleWizard && <GoogleAuthWizard onClose={() => setShowGoogleWizard(false)} />}
         </div>
       </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-        <div className="nord-panel-header">
-          <Shield size={18} color="var(--accent)" />
-          <h3>Security & Privacy</h3>
-        </div>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Auto-Lock Session (Idle Timeout)</label>
-            <PillSelect 
-              value={autoLockTime.toString()}
-              onChange={(val) => setAutoLockTime(parseInt(val))}
-              pillColor="var(--accent)"
-              textColor="var(--bg-secondary)"
-              options={[
-                { id: '0', label: 'Off' },
-                { id: '15', label: '15 Minutes' },
-                { id: '30', label: '30 Minutes' },
-                { id: '60', label: '1 Hour' }
-              ]}
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Memory & Operations</label>
-            <button 
-              onClick={handleWipeMemory}
-              disabled={wipingMemory}
-              style={{
-                width: '100%',
-                background: 'rgba(191, 97, 106, 0.1)',
-                color: '#BF616A',
-                border: '1px solid rgba(191, 97, 106, 0.5)',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                cursor: wipingMemory ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontWeight: 'bold',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.2)')}
-              onMouseLeave={(e) => !wipingMemory && (e.currentTarget.style.background = 'rgba(191, 97, 106, 0.1)')}
-            >
-              {wipingMemory ? 'Wiping...' : 'Wipe All Episodic Memory (Panic Button)'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-        <div className="nord-panel-header">
-          <Globe size={18} color="var(--accent)" />
-          <h3>Appearance & UI Personalization</h3>
-        </div>
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="nord-label">Base Fiat Currency</label>
-            <FiatSelector 
-              value={formData.agent.base_fiat || 'usd'}
-              onChange={(val) => handleChange('agent', 'base_fiat', val)}
-              options={supportedFiats}
-            />
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-              Used across the dashboard for cosmetic fiat conversion. Core backend operations remain strictly in USD.
-            </p>
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Dashboard Theme</label>
-            <PillSelect 
-              value={localStorage.getItem('nyxora_theme') || 'auto'}
-              onChange={(val) => {
-                localStorage.setItem('nyxora_theme', val);
-                window.location.reload();
-              }}
-              pillColor="var(--accent)"
-              textColor="var(--bg-secondary)"
-              options={[
-                { id: 'auto', label: 'System (Auto)' },
-                { id: 'dark', label: 'Dark Mode' },
-                { id: 'light', label: 'Light Mode' }
-              ]}
-            />
-          </div>
-          <div className="form-group flex-1">
-            <label className="nord-label">Backend Log Level</label>
-            <PillSelect 
-              value={formData.agent.log_level || 'info'}
-              onChange={(val) => handleChange('agent', 'log_level', val)}
-              pillColor="var(--accent)"
-              textColor="var(--bg-secondary)"
-              options={[
-                { id: 'info', label: 'Info (Standard)' },
-                { id: 'debug', label: 'Debug (Verbose)' }
-              ]}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-        <div className="nord-panel-header">
-          <Key size={18} color="var(--success)" />
-          <h3>Integrations</h3>
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-          Connect Nyxora to external services to expand its capabilities.
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
-          <div>
-            <h4 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Google Workspace</h4>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
-          </div>
-          <button 
-            className="nord-btn-primary" 
-            style={{ background: 'var(--success)', color: 'var(--bg-secondary)', fontWeight: 600 }}
-            onClick={() => setShowGoogleWizard(true)}
-          >
-            Setup OAuth
-          </button>
-        </div>
-      </div>
-
-      <div className="panel" style={{ background: 'transparent', border: 'none', padding: 0, marginTop: '40px' }}>
-        <div className="nord-panel-header">
-          <Network size={18} color="var(--text-secondary)" />
-          <h3>Web3 Explorer Settings</h3>
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-          Configure blockchain explorer API keys to enable the agent to fetch transaction history.
-          <br/><span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Note: RPC Endpoint configurations have been moved to the dedicated "RPC Configuration" tab in the sidebar.</span>
-        </p>
-        <div style={{ marginBottom: '24px' }} className="form-group">
-          <label className="nord-label">Etherscan API V2 Key (Unified - All Networks)</label>
-          <input 
-            className="nord-input"
-            type="password" 
-            placeholder="Leaves empty to use free public endpoints" 
-            value={formData.web3?.explorer_api_key || ''}
-            onChange={(e) => handleChange('web3', 'explorer_api_key', e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="form-actions" style={{ justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid rgba(216, 222, 233, 0.05)' }}>
-        <button className="nord-btn-primary" style={{ background: 'var(--accent)', color: 'var(--bg-secondary)', fontWeight: 600 }} onClick={handleSave} disabled={isSaving}>
-          <Save size={16} style={{ marginRight: '8px' }} />
-          {isSaving ? 'Saving...' : 'Save Configuration'}
-        </button>
-      </div>
-
-      {showGoogleWizard && <GoogleAuthWizard onClose={() => setShowGoogleWizard(false)} />}
     </div>
   );
 };

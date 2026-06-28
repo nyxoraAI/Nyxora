@@ -49,6 +49,14 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
     const metadata = await getTokenMetadata(publicClient, tokenAddress as `0x${string}`);
     const amountWei = parseUnits(amountStr, metadata.decimals);
 
+    // --- Pre-flight Balance Check ---
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, tokenAddress, amountWei.toString());
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
+
     // 1. Check Allowance first
     const allowance = await publicClient.readContract({
         address: tokenAddress as `0x${string}`,
@@ -68,7 +76,7 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
             symbol: metadata.symbol,
             gasEstimate: "60000"
         });
-        return `⏳ **Approve queued:** ${metadata.symbol} | For: Aave V3 | ${chainName.toUpperCase()} | Approve below.`;
+        return `⏳ **Approve queued:** ${metadata.symbol} | For: Aave V3 | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
     }
 
     // 2. Simulate Supply
@@ -95,7 +103,7 @@ export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymb
       gasEstimate: gasEstimate.toString()
     });
 
-    return `⏳ **Aave Supply queued:** ${amountStr} ${metadata.symbol} | ${chainName.toUpperCase()} | Approve below.`;
+    return `⏳ **Aave Supply queued:** ${amountStr} ${metadata.symbol} | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Failed to prepare Aave supply: ${error.message}`;
   }

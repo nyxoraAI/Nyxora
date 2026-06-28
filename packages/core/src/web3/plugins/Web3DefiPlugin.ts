@@ -10,6 +10,7 @@ import { vaultDepositToolDefinition, prepareVaultDeposit } from '../skills/yield
 import { provideLiquidityToolDefinition, prepareProvideLiquidity } from '../skills/provideLiquidity';
 import { createLimitOrderToolDefinition, createLimitOrder } from '../skills/createLimitOrder';
 import { installDefiProviderDefinition, installDefiProvider } from '../skills/installDefiProvider';
+import { confirmPendingTxToolDefinition, confirmPendingTx } from '../skills/confirmPendingTx';
 
 export class Web3DefiPlugin implements Plugin {
   public name = 'Web3DefiPlugin';
@@ -27,7 +28,8 @@ export class Web3DefiPlugin implements Plugin {
     vaultDepositToolDefinition,
     provideLiquidityToolDefinition,
     createLimitOrderToolDefinition,
-    installDefiProviderDefinition
+    installDefiProviderDefinition,
+    confirmPendingTxToolDefinition
   ];
 
   public handlers = {
@@ -71,6 +73,9 @@ export class Web3DefiPlugin implements Plugin {
     },
     [installDefiProviderDefinition.function.name]: async (args: any) => {
       return await installDefiProvider(args.providerName, args.url, args.code);
+    },
+    [confirmPendingTxToolDefinition.function.name]: async (args: any) => {
+      return await confirmPendingTx(args.action);
     }
   };
 }

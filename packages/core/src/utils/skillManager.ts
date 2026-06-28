@@ -20,11 +20,13 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'read_google_docs': { category: 'os', name: 'readDocs' },
   'read_google_form_responses': { category: 'os', name: 'readForms' },
   'execute_git_command': { category: 'os', name: 'gitManager' },
+  'forget_memory': { category: 'os', name: 'forgetMemory' },
   'manage_twitter': { category: 'os', name: 'xManager' },
   'manage_notion': { category: 'os', name: 'notionWorkspace' },
   'transcribe_audio': { category: 'os', name: 'audioTranscribe' },
   'summarize_text': { category: 'os', name: 'summarizeText' },
   'update_security_policy': { category: 'os', name: 'updateSecurityPolicy' },
+  'create_cognitive_skill': { category: 'os', name: 'createCognitiveSkill' },
   
   // Web3 Skills
   'transfer_token': { category: 'web3', name: 'transfer' },
@@ -38,6 +40,7 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'check_token_security': { category: 'web3', name: 'checkSecurity' },
   'check_portfolio': { category: 'web3', name: 'checkPortfolio' },
   'analyze_market': { category: 'web3', name: 'marketAnalysis' },
+  'get_trending_tokens': { category: 'web3', name: 'getTrendingTokens' },
   'manage_custom_tokens': { category: 'web3', name: 'manageCustomTokens' },
   'get_price': { category: 'web3', name: 'getPrice' },
   'supply_aave': { category: 'web3', name: 'aaveSupply' },
@@ -46,7 +49,8 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'provide_liquidity_v3': { category: 'web3', name: 'provideLiquidity' },
   'get_tx_history': { category: 'web3', name: 'getTxHistory' },
   'check_registry_status': { category: 'web3', name: 'checkRegistryStatus' },
-  'create_limit_order': { category: 'web3', name: 'createLimitOrder' }
+  'create_limit_order': { category: 'web3', name: 'createLimitOrder' },
+  'confirm_pending_tx': { category: 'web3', name: 'confirmPendingTx' }
 };
 
 function getDisabledSkillsFile(): string {

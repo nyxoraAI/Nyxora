@@ -4,6 +4,7 @@ import { updateIdentityToolDefinition, updateIdentity } from '../../agent/update
 import { updateSecurityPolicyToolDefinition, updateSecurityPolicy } from '../skills/updateSecurityPolicy';
 import { scheduleTaskDefinition, executeScheduleTask } from '../skills/scheduleTask';
 import { cancelTaskDefinition, executeCancelTask } from '../skills/cancelTask';
+import { forgetMemoryToolDefinition, forgetMemory } from '../skills/forgetMemory';
 
 export class SystemCorePlugin implements Plugin {
   public name = 'SystemCorePlugin';
@@ -15,7 +16,8 @@ export class SystemCorePlugin implements Plugin {
     updateIdentityToolDefinition,
     updateSecurityPolicyToolDefinition,
     scheduleTaskDefinition,
-    cancelTaskDefinition
+    cancelTaskDefinition,
+    forgetMemoryToolDefinition
   ];
 
   public handlers = {
@@ -33,6 +35,9 @@ export class SystemCorePlugin implements Plugin {
     },
     ['cancel_task']: async (args: any) => {
       return await executeCancelTask(args);
+    },
+    ['forget_memory']: async (args: any) => {
+      return await forgetMemory(args.keyword);
     }
   };
 }

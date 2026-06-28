@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.7.2]
+### Orchestrator Architecture & Extensibility
+- **Multi-Turn Agentic Loop**: Radically overhauled the core LLM execution loop in `web3Agent.ts` and `osAgent.ts`. The engines now utilize a robust `while (turnCount < MAX_TURNS)` architecture. This definitively resolves the "lost context" bug where the AI would drop its tool schemas after a single execution turn, granting Nyxora the endurance to execute highly complex, multi-step operations (e.g., directory scanning followed by programmatic file generation) in a single uninterrupted stream.
+- **External Skill Builder (`SystemExternalPlugin`)**: Engineered a completely isolated IoC plugin dedicated solely to third-party integrations. Introduced the `create_agent_skill` tool, enabling the AI to programmatically scaffold new Node.js execution scripts (`execute.ts`) and auto-generate strict YAML frontmatter for `SKILL.md`. This transforms Nyxora into a fully autonomous Agent-Building Platform that can code and register its own tools dynamically without muddying the native OS/Web3 tool ecosystems.
+
+### Cognitive Reasoning & Identity Architecture
+- **Cognitive Reasoning Engine**: Implemented a powerful new Cognitive Skill system that parses user intent and routes them to strict Standard Operating Procedures (SOPs). Added `cognitiveManager.ts` and foundational SOPs for Systematic Debugging, Test-Driven Development (TDD), and Architecture Planning to drastically improve agent output reliability and strictly enforce developer disciplines.
+- **Episodic Memory V2 Architecture**: Completely overhauled the Episodic Memory SQLite database (`episodic.db`) to fix memory duplication and identity conflict issues (e.g., persona overlap).
+  - Added a `key_topic` deduplication layer to ensure old conflicting facts are automatically wiped before new ones are saved.
+  - Re-routed the `update_profile` AI tool to write directly to SQLite instead of `user.md`, fixing severe overwrite bugs caused by the background Promotion Engine.
+- **`forget_memory` Tool**: Introduced a surgical memory deletion skill. The AI can now autonomously search for and permanently delete specific habits or mistaken persona traits from the SQLite database upon the user's explicit request.
+
+### Architectural Revamps & UI/UX
+- **Settings Dashboard Redesign**: Restructured the Settings interface into a sleek, full-width Master-Detail layout with a dedicated sidebar. Consolidated all advanced configuration menus (Web3 Skills, OS Skills, RPC, DeFi, Oracles) previously scattered across the main navigation directly into this unified command center for a cleaner user experience.
+- **UI & Layout Optimizations**: Fixed restrictive width constraints on configuration panels, allowing them to fluidly span the entire viewport. Eliminated double-scrollbar bugs on embedded skill panels by seamlessly integrating them into the parent container with unified glassmorphism scrollbar styling.
+- **Zero-Latency Conversational Approval**: Completely overhauled the Web3 transaction approval flow. 
+  - Eradicated all intrusive UI modals (`PendingTransactions.tsx`) from the Dashboard and ripped out `InlineKeyboard` popup logic from the Telegram Gateway.
+  - Transactions are now approved organically via text. The AI autonomously interprets conversational cues (e.g., answering "Yes" or "No") and executes the pending on-chain transaction in the background using the new `confirmPendingTx` skill.
+  - **Token Efficiency Intact**: Ingeniously maintained the `fastReturnTools` bypass. Transaction preparation strings now output a direct prompt ("*Please reply with 'Yes' to execute, or 'No' to cancel*") instantly, achieving conversational UX without incurring the latency or API cost of generating an LLM prompt for every single transaction queue.
+- **Pre-flight Balance & Gas Security Check**: Engineered a universal `balanceChecker` utility that validates wallet balances across all 9 Web3 transaction skills *before* queuing them.
+  - Acts as a smart guardrail similar to Rabby Wallet's UX. It automatically aborts transaction preparations entirely if the user lacks the required ERC20 tokens or if their Native Coin (ETH/BNB) balance is completely depleted (preventing out-of-gas failures).
+  - **Human-Readable Error Feedback**: Overhauled the raw error outputs from 18-decimal Wei formats to standard units. The system now dynamically fetches token metadata (decimals and symbols) on-the-fly and applies `formatUnits` to present clean, readable error messages (e.g., *"You need at least 500 USDC"* instead of raw Wei integers), significantly reducing friction for novice users.
+
 ## [26.7.1]
 ### Bug Fixes & Optimizations
 - **Native Coin Resolution Mass Remediation**: Fixed a systemic architectural flaw where Web3 transaction modules strictly validated against the Zero Address (`0x00...00`) for native coins (ETH/BNB/MATIC). The codebase now universally intercepts and processes the `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` pseudo-address generated by aggregators. This stabilizes critical transactional skills including:
@@ -35,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.6.29]
 ### Release & Stability
-- **Beta Phase**: Nyxora officially enters the stable Beta phase for wider public testing.
+- **Beta Phase (Reverted)**: Nyxora briefly entered the Beta phase here for wider public testing, but the status has since reverted to Alpha in `v26.7.2` to accommodate massive core architectural experiments.
 - **NPM Publishing Integrity**: Explicitly whitelisted `CHANGELOG.md` within the `package.json` files array to guarantee release notes are synchronized onto the public NPM registry.
 
 ## [26.6.28]

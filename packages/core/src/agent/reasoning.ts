@@ -143,15 +143,27 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
   // V3: Inject Personalized Risk Profile
   try {
     const profile = logger.getUserProfile();
-    if (profile) {
+    const personas = episodicDB.getPersonas();
+    
+    if (profile || personas.length > 0) {
       basePrompt += `\n\n--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
-      basePrompt += `Risk Level: ${profile.risk_level}\n`;
-      basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
-      basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
-      if (profile.custom_rules) {
-        basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
+      if (profile) {
+        basePrompt += `Risk Level: ${profile.risk_level}\n`;
+        basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
+        basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
+        if (profile.custom_rules) {
+          basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
+        }
+        basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
       }
-      basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
+      
+      if (personas.length > 0) {
+        basePrompt += `\nObserved Traits (Dialectic Modeling):\n`;
+        personas.forEach(p => {
+          basePrompt += `- ${p.trait} (Confidence: ${(p.confidence * 100).toFixed(0)}%)\n`;
+        });
+        basePrompt += `Adapt your tone, vocabulary, and suggestions to align with these observed user traits.\n`;
+      }
     }
   } catch {}
 
@@ -176,26 +188,28 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   
   const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
 Rules:
-1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for resolving pronouns (e.g., "buy it").
-2. If the final message involves blockchain, crypto, bridging, swapping, tokens, or wallets, reply 'web3'.
-3. If the final message involves fetching news, web search, weather, email, files, or terminal, reply 'os'.
-4. If it's just casual conversation, reply 'general'.
-Reply with EXACTLY ONE WORD.`;
+1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
+2. The user may speak in ANY language, including casual slang, idioms, or abbreviations (e.g., 'tf', 'wd', 'buy', 'sell'). Translate their core intent logically.
+3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, or transactions, reply 'web3'.
+4. If the core intent involves OS automation, web search, weather, emails, files, terminal, or changing AI settings, reply 'os'.
+5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+Reply with EXACTLY ONE WORD: web3, os, or general.`;
 
   const routerMessages = [
       { role: 'system', content: routerPrompt },
-      ...textOnlyHistory.slice(-4),
+      ...textOnlyHistory.slice(-10),
       { role: 'user', content: input }
   ];
 
   let context: 'web3' | 'os' | 'general' = 'general';
+  
   try {
       const routerResponse = await executeWithRetry(async (client) => {
           return await client.chat({
               model: config.llm.model,
               messages: routerMessages as any,
               temperature: 0.1,
-              max_tokens: 10
+              max_tokens: 1000
           });
       }, 3); // 3 retries for transient 503/429 errors
       

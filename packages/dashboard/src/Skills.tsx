@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle, Droplet, Lock, Vault, Landmark } from 'lucide-react';
+import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle, Droplet, Lock, Vault, Landmark, Flame } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -45,6 +45,7 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'check token security': return <Shield size={size} color={color} />;
     case 'check portfolio': return <PieChart size={size} color={color} />;
     case 'analyze market': return <LineChart size={size} color={color} />;
+    case 'get trending tokens': return <Flame size={size} color={color} />;
     case 'create wallet': return <WalletCards size={size} color={color} />;
     case 'supply aave': return <Landmark size={size} color={color} />;
     case 'revoke approval': return <Lock size={size} color={color} />;
@@ -97,7 +98,7 @@ const Skills: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="overview-container">Loading skills...</div>;
+  if (isLoading) return <div className="settings-subpanel">Loading skills...</div>;
 
   const filteredSkills = skills.filter(skill => 
     skill.function.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -105,7 +106,7 @@ const Skills: React.FC = () => {
   );
 
   return (
-    <div className="overview-container">
+    <div className="settings-subpanel">
       <div className="overview-header" style={{ marginBottom: '24px' }}>
         <h1 style={{ color: 'var(--text-primary)' }}>Skills</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Installed skills and their status.</p>

@@ -1,116 +1,86 @@
-# Creating Custom Plugins
+# Creating Custom Skills
 
-Nyxora operates on a modular, **Inversion of Control (IoC) Plugin Architecture**. This allows third-party developers to inject new capabilities into the agent without modifying the core execution engines (`web3Agent.ts` or `osAgent.ts`).
+Nyxora operates on a modular, **Inversion of Control (IoC) Plugin Architecture**. With the recent "Hermes Adaptation," we have introduced the **`agentskills.io`** standard, allowing third-party developers and users to inject new capabilities into the agent in a highly decoupled, modular way.
 
-## The Plugin Interface
+## The `agentskills.io` Standard
 
-Every plugin in Nyxora must implement the `Plugin` interface located at `packages/core/src/plugin/types.ts`:
+Unlike native Web3 skills (which are hardcoded into the `packages/core/src/web3/plugins/` directory), Custom Skills are standalone modular directories.
 
-```typescript
-export interface Plugin {
-  /** The unique name of the plugin */
-  name: string;
-  
-  /** A brief description of what the plugin does */
-  description: string;
-  
-  /** Semantic versioning */
-  version: string;
-  
-  /** An array of tool definitions formatted for the LLM */
-  tools: any[];
-  
-  /** A mapping of tool names to their execution functions */
-  handlers: Record<string, (args: any, context?: any) => Promise<any>>;
-}
-```
+By default, Nyxora scans the global directory for your custom skills:
+`~/.nyxora/skills/`
 
-## Step 1: Create Your Plugin Class
+A valid custom skill directory must contain two files:
+1. `SKILL.md` (The Manifest)
+2. `scripts/execute.ts` (The Logic)
 
-To create a new capability (e.g., interacting with Spotify, fetching weather data, or integrating a custom Web3 protocol), create a new file inside `packages/core/src/system/plugins/` or `packages/core/src/web3/plugins/`.
+### Step 1: Create the Manifest (`SKILL.md`)
 
-Here is an example of a simple weather plugin:
+The `SKILL.md` file defines the identity and the LLM schema of your skill. The schema tells Nyxora's reasoning engine exactly what this tool does and what arguments it needs.
 
-```typescript
-import { Plugin } from '../../plugin/types';
+Create a folder `~/.nyxora/skills/my_weather_skill/` and add `SKILL.md`:
 
-// 1. Define the Tool Schema for the LLM
-const getWeatherToolDefinition = {
-  type: 'function',
-  function: {
-    name: 'get_weather',
-    description: 'Fetch the current weather for a specific city.',
-    parameters: {
-      type: 'object',
-      properties: {
-        city: { type: 'string', description: 'The name of the city' }
-      },
-      required: ['city']
-    }
+```markdown
+# MyWeatherSkill
+Version: 1.0.0
+Description: Provides real-time weather information.
+
+## Schema
+{
+  "name": "get_weather",
+  "description": "Fetch the current weather for a specific city.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "string", "description": "The name of the city" }
+    },
+    "required": ["city"]
   }
-};
-
-// 2. Define the execution logic
-async function fetchWeather(city: string) {
-  // Your logic here (e.g., calling an API)
-  return `The weather in ${city} is currently 25°C and sunny.`;
-}
-
-// 3. Create the Plugin Class
-export class CustomWeatherPlugin implements Plugin {
-  public name = 'SystemWeatherPlugin';
-  public description = 'Provides real-time weather information.';
-  public version = '1.0.0';
-
-  // Inject the schema
-  public tools = [getWeatherToolDefinition];
-
-  // Map the schema name to the execution logic
-  public handlers = {
-    [getWeatherToolDefinition.function.name]: async (args: any) => {
-      return await fetchWeather(args.city);
-    }
-  };
 }
 ```
 
-## Step 2: Auto-Discovery
+### Step 2: Create the Execution Logic (`scripts/execute.ts`)
 
-You no longer need to manually register your plugin! 
+Inside the same folder, create a `scripts/execute.ts` file. This file must export a default `execute` function that takes the arguments defined in your schema.
 
-Nyxora features a fully autonomous **Auto-Discovery Engine**. Simply save your `.ts` file into the appropriate directory (`web3/plugins` or `system/plugins`).
+```typescript
+// ~/.nyxora/skills/my_weather_skill/scripts/execute.ts
 
-When you start Nyxora (`npm run dev` or `npm start`), the engine will automatically scan those directories, dynamically import your class, and inject it into the global `PluginManager` without a single line of configuration.
+export async function execute(args: { city: string }): Promise<string> {
+  const { city } = args;
+  
+  try {
+    // Your logic here (e.g., calling a weather API)
+    // For demonstration, we'll just return a mock string.
+    return `The weather in ${city} is currently 25°C and sunny.`;
+  } catch (error: any) {
+    return `[Weather Skill Error] Failed to fetch weather: ${error.message}`;
+  }
+}
+```
 
-## (Alternative) Dynamic URL Installation
+### Step 3: Auto-Discovery
 
-Don't want to deal with moving files manually? You can instruct the Nyxora Agent to install a plugin directly from a URL!
+You do not need to manually register your skill! 
 
-Nyxora is equipped with the `SystemPluginInstallerPlugin`, an autonomous package manager.
+Nyxora features a fully autonomous **Auto-Discovery Engine** (`AgentSkills`). When you start Nyxora (`npm run start`), the engine will automatically scan the `~/.nyxora/skills/` directory, dynamically parse your `SKILL.md`, compile your `execute.ts`, and inject it into the global `PluginManager` without a single line of configuration.
 
-Simply open the chat and say:
-> *"Please install the weather plugin from this URL: https://raw.githubusercontent.com/username/repo/main/CustomWeatherPlugin.ts"*
+---
+
+## Autonomous Skill Synthesizing (AI Creating AI)
+
+Don't want to write code manually? Nyxora possesses the meta-ability to create skills for itself using the `skillExtractor.ts` engine!
+
+Simply open the chat and instruct Nyxora:
+> *"Nyxora, I want you to memorize a new workflow. Whenever I ask for the weather, fetch it from wttr.in. Please create a new skill for this named `auto_weather`."*
 
 Nyxora will:
-1. Fetch the raw TypeScript code.
-2. Verify that it implements the `Plugin` interface correctly (and attempts to auto-heal it if there are minor syntax issues).
-3. Automatically segregate it into the correct `Web3` or `System` isolation zone based on its class name.
-4. Ask for your **explicit manual approval** (Security Gate) before saving it to disk.
+1. Autonomously write the `execute.ts` logic.
+2. Autonomously generate the `SKILL.md` schema.
+3. Save the new modular folder directly into `~/.nyxora/skills/auto_weather/`.
+4. The skill will be available immediately or upon the next daemon reboot.
 
-## Step 3: Architecture Separation (Web3 vs OS)
+## UI Toggle Synchronization
 
-Nyxora intelligently segregates Web3 tools from OS/System tools based on the plugin's name.
-
-> [!IMPORTANT]
-> **Zero-Trust Boundaries**
-> To ensure capability isolation:
-> - If your plugin interacts with blockchains or wallets, its name **MUST** start with `Web3` (e.g., `Web3CustomDexPlugin`).
-> - If your plugin interacts with APIs, the OS, or external systems, its name **MUST NOT** start with `Web3` (e.g., `SystemWeatherPlugin`, `GoogleWorkspacePlugin`).
-
-The Nyxora API Server automatically reads the plugin names to securely route tools to either the Web3 Agent Context or the OS Agent Context.
-
-## Step 4: UI Toggle Synchronization
-
-Because Nyxora dynamically reads the `PluginManager`, any tool you add to your plugin will automatically appear in the backend's `/api/skills` endpoint. 
+Because Nyxora dynamically reads the `PluginManager` and `AgentSkills`, any tool you add to your `~/.nyxora/skills/` directory will automatically appear in the backend's `/api/skills` endpoint. 
 
 The web dashboard will automatically display your new skills, allowing users to toggle your custom capabilities on or off without you needing to write any frontend code!

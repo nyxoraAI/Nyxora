@@ -11,6 +11,18 @@ export async function prepareCustomTx(
 ): Promise<string> {
   try {
     if (!chainName || !toAddress || !data) throw new Error("Missing required parameters for custom transaction.");
+    const { getAddress } = await import('../utils/vaultClient');
+    const userAddress = await getAddress();
+
+    // --- Pre-flight Balance Check ---
+    // Custom Tx uses native coin as value Wei.
+    const { validateTransactionBalances } = await import('../utils/balanceChecker');
+    const balanceCheck = await validateTransactionBalances(chainName, userAddress, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", valueWei);
+    if (!balanceCheck.isValid) {
+      throw new Error(balanceCheck.message);
+    }
+    // --------------------------------
+
     const tx = txManager.createPendingTransaction('custom', chainName, {
       toAddress,
       data,
@@ -18,7 +30,7 @@ export async function prepareCustomTx(
       description
     });
 
-    return `⏳ **Custom Tx queued:** ${description} | ${chainName.toUpperCase()} | Approve below.`;
+    return `⏳ **Custom Tx queued:** ${description} | ${chainName.toUpperCase()} | Please reply with 'Yes' to execute, or 'No' to cancel.`;
   } catch (error: any) {
     return `Failed to prepare custom tx: ${error.message}`;
   }

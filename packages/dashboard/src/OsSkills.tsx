@@ -124,7 +124,7 @@ const OsSkills: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="overview-container">Loading OS skills...</div>;
+  if (isLoading) return <div className="settings-subpanel">Loading OS skills...</div>;
 
   const filteredSkills = skills.filter(skill => 
     skill.function.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -132,7 +132,7 @@ const OsSkills: React.FC = () => {
   );
 
   return (
-    <div className="overview-container">
+    <div className="settings-subpanel">
       <div className="overview-header" style={{ marginBottom: '24px' }}>
         <h1 style={{ color: 'var(--text-primary)' }}>OS Skills</h1>
         <p style={{ color: 'var(--text-secondary)' }}>System-level capabilities for the agent OS.</p>

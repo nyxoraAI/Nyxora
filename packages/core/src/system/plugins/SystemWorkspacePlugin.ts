@@ -5,6 +5,7 @@ import { editLocalFileToolDefinition, editLocalFile } from '../skills/editFile';
 import { generateExcelToolDefinition, generateExcelFile } from '../skills/generateExcel';
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../skills/executeShell';
 import { gitManagerToolDefinition, executeGitCommand } from '../skills/gitManager';
+import { createCognitiveSkillToolDefinition, createCognitiveSkill } from '../skills/createCognitiveSkill';
 
 export class SystemWorkspacePlugin implements Plugin {
   public name = 'SystemWorkspacePlugin';
@@ -17,7 +18,8 @@ export class SystemWorkspacePlugin implements Plugin {
     editLocalFileToolDefinition,
     generateExcelToolDefinition,
     runTerminalCommandToolDefinition,
-    gitManagerToolDefinition
+    gitManagerToolDefinition,
+    createCognitiveSkillToolDefinition
   ];
 
   public handlers = {
@@ -38,6 +40,9 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['git_manager']: async (args: any) => {
       return await executeGitCommand(args.command, args.args);
+    },
+    ['create_cognitive_skill']: async (args: any) => {
+      return await createCognitiveSkill(args.category, args.skillName, args.content);
     }
   };
 }

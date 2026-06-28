@@ -1,6 +1,6 @@
 import { Plugin } from '../../plugin/types';
 import { checkSecurityToolDefinition, checkTokenSecurity } from '../skills/checkSecurity';
-import { marketAnalysisToolDefinition, analyzeMarket } from '../skills/marketAnalysis';
+import { getTrendingTokensToolDefinition, getTrendingTokens } from '../skills/getTrendingTokens';
 import { createMarketWatchAgentToolDefinition, createMarketWatchAgent } from '../skills/createMarketWatchAgent';
 import { checkRegistryStatusToolDefinition, checkRegistryStatus } from '../skills/checkRegistryStatus';
 
@@ -11,7 +11,7 @@ export class Web3SecurityPlugin implements Plugin {
 
   public tools = [
     checkSecurityToolDefinition,
-    marketAnalysisToolDefinition,
+    getTrendingTokensToolDefinition,
     createMarketWatchAgentToolDefinition,
     checkRegistryStatusToolDefinition
   ];
@@ -20,8 +20,8 @@ export class Web3SecurityPlugin implements Plugin {
     ['check_token_security']: async (args: any) => {
       return await checkTokenSecurity(args.chainName, args.contractAddress);
     },
-    ['analyze_market']: async (args: any) => {
-      return await analyzeMarket(args.chainName, args.tokenAddressOrSymbol);
+    ['get_trending_tokens']: async (args: any) => {
+      return await getTrendingTokens(args.chainName, 5);
     },
     ['create_market_watch_agent']: async (args: any) => {
       return await createMarketWatchAgent(args.chainName, args.contractAddress, args.rules, args.durationDays);

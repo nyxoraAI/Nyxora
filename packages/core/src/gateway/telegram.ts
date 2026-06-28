@@ -153,22 +153,7 @@ export function startTelegramBot() {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
 
-        const pendingTxs = txManager.getPending();
-        const recentPendingTxs = pendingTxs.filter((tx: any) => Date.now() - tx.createdAt < 120000);
-        
-        if (recentPendingTxs.length > 0) {
-          const keyboard = new InlineKeyboard();
-          recentPendingTxs.forEach((tx: any) => {
-            keyboard.text(`✅ Approve ${tx.type}`, `approve_${tx.id}`).text(`❌ Reject`, `reject_${tx.id}`).row();
-          });
-          
-          await ctx.reply(formatToTelegramHTML(response), {
-            parse_mode: 'HTML',
-            reply_markup: keyboard
-          });
-          return;
-        }
-
+        // Transactions will now use conversational approval (Zero-Latency text prompts) instead of InlineKeyboards.
         await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
@@ -197,7 +182,7 @@ export function startTelegramBot() {
         const buffer = await res.arrayBuffer();
         fs.writeFileSync(localFilePath, Buffer.from(buffer));
         
-        const prompt = `Tolong analisis dokumen ini: ${localFilePath}\n\n${caption}`;
+        const prompt = `Please analyze this document: ${localFilePath}\n\n${caption}`;
         
         let progressMsgId: number | null = null;
         const onProgress = async (progressText: string) => {
@@ -224,84 +209,7 @@ export function startTelegramBot() {
       }
     });
 
-    bot.callbackQuery(/^approve_(.+)$/, async (ctx) => {
-      const txId = ctx.match[1];
-      const tx = txManager.getTransaction(txId);
-
-      if (!tx || tx.status !== 'pending') {
-        await ctx.answerCallbackQuery({ text: 'Transaction not found or already processed.', show_alert: true });
-        return;
-      }
-
-      await ctx.answerCallbackQuery('Processing transaction...');
-      await ctx.reply(`⏳ Processing transaction ${txId}...`);
-      
-      await ctx.api.editMessageReplyMarkup(ctx.chat!.id, ctx.msg!.message_id, { reply_markup: { inline_keyboard: [] } }).catch(() => {});
-
-      try {
-        // --- Arbitrum Registry Kill-Switch Interceptor ---
-        const registryCheck = await checkRegistryStatus();
-        if (!registryCheck.isActive) {
-          txManager.updateStatus(txId, 'failed', registryCheck.reason);
-          logger.addEntry({ role: 'assistant', content: `❌ **Security Blocked:** ${registryCheck.reason}` }, `telegram_${ctx.chat?.id}`);
-          await ctx.reply(formatToTelegramHTML(`❌ **Security Blocked:** ${registryCheck.reason}`), { parse_mode: 'HTML' });
-          return;
-        }
-        // ------------------------------------------------
-
-        let result = '';
-        if (tx.type === 'transfer') {
-          result = await executeTransfer(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'swap') {
-          result = await executeSwap(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'bridge') {
-          result = await executeBridge(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'mint') {
-          result = await executeMintNft(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'custom') {
-          result = await executeCustomTx(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'approve') {
-          result = await executeApprove(tx.chainName as any, tx.details);
-        } else if (tx.type === 'aaveSupply') {
-          result = await executeAaveSupply(tx.chainName as any, tx.details);
-        } else if (tx.type === 'vaultDeposit') {
-          result = await executeVaultDeposit(tx.chainName as any, tx.details);
-        } else if (tx.type === 'univ3Mint') {
-          result = await executeUniv3Mint(tx.chainName as any, tx.details);
-        } else if (tx.type === 'revokeApproval') {
-          result = await executeRevokeApproval(tx.chainName as any, tx.details, true);
-        } else if (tx.type === 'limit_order') {
-          const success = logger.activateLimitOrder(tx.details.orderId);
-          if (success) {
-            result = `Limit Order ${tx.details.orderId} is now ACTIVE. The Event-Driven Engine is monitoring the market.`;
-          } else {
-            throw new Error(`Failed to activate Limit Order. ID not found in database.`);
-          }
-        }
-        
-        txManager.updateStatus(txId, 'executed', result);
-        
-        const prettyMsg = formatTransactionSuccess(tx, result);
-        await ctx.reply(formatToTelegramHTML(`✅ **Transaction processed: Success**\n\n${prettyMsg}`), { parse_mode: 'HTML' });
-        
-        processUserInput(`Transaction ${txId} was APPROVED via Telegram. Result: ${result}`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
-      } catch (err: any) {
-        txManager.updateStatus(txId, 'failed', err.message);
-        const prettyError = formatTransactionError(tx, err.message);
-        await ctx.reply(prettyError);
-        processUserInput(`Transaction ${txId} FAILED via Telegram. Error: ${err.message}`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
-      }
-    });
-
-    bot.callbackQuery(/^reject_(.+)$/, async (ctx) => {
-      const txId = ctx.match[1];
-      txManager.updateStatus(txId, 'rejected');
-      processUserInput(`Transaction ${txId} was REJECTED via Telegram. CRITICAL: DO NOT retry or recreate this transaction. Acknowledge this cancellation to the user and stop.`, 'system', undefined, `telegram_${ctx.chat?.id}`).catch(() => {});
-      
-      await ctx.answerCallbackQuery('Transaction cancelled.');
-      await ctx.reply(`❌ Transaction cancelled.`);
-      await ctx.api.editMessageReplyMarkup(ctx.chat!.id, ctx.msg!.message_id, { reply_markup: { inline_keyboard: [] } }).catch(() => {});
-    });
+    // Transaction approval and rejection are now handled conversationally via the LLM and the confirm_pending_tx tool.
 
     bot.catch((err) => {
       console.error('[Telegram] Grammy error:', err);

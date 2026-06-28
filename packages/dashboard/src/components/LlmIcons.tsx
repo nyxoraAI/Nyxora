@@ -43,6 +43,15 @@ export const LlmIcon: React.FC<LlmIconProps> = ({ provider, size = 14, className
           <path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-6-3v6.5l6 3 6-3V6.5l-6 3zM12 22l-10-5v-6l10 5 10-5v6z" />
         </svg>
       );
+    case '9router':
+      return (
+        <svg {...iconProps} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+          <line x1="6" y1="6" x2="6.01" y2="6" />
+          <line x1="6" y1="18" x2="6.01" y2="18" />
+        </svg>
+      );
     case 'ollama':
       return (
         <svg {...iconProps} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

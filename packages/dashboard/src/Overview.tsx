@@ -148,14 +148,19 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
           <label>MODEL AUTH</label>
           {(() => {
             const provider = config.llm.provider.toLowerCase();
+            const isLocalProxy = provider === '9router' || provider === 'ollama';
             const apiKey = config.credentials ? config.credentials[`${provider}_key`] : undefined;
-            const isConfigured = apiKey && apiKey.length > 5;
+            const isConfigured = (apiKey && apiKey.length > 5) || isLocalProxy;
             return (
               <>
                 <div className={`metric-val ${isConfigured ? 'text-green' : 'text-red'}`} style={{ color: isConfigured ? 'var(--success)' : 'var(--danger)' }}>
-                  {isConfigured ? 'Configured' : 'Missing Key'}
+                  {isLocalProxy ? 'Local Proxy' : (isConfigured ? 'Configured' : 'Missing Key')}
                 </div>
-                <div className="metric-sub">{config.llm.provider.toUpperCase()} provider {isConfigured ? 'connected' : 'not configured'}</div>
+                <div className="metric-sub">
+                  {isLocalProxy 
+                    ? `${config.llm.provider.toUpperCase()} running (no key needed)` 
+                    : `${config.llm.provider.toUpperCase()} provider ${isConfigured ? 'connected' : 'not configured'}`}
+                </div>
               </>
             );
           })()}

@@ -87,7 +87,7 @@ export const checkRegistryStatusToolDefinition = {
   type: "function",
   function: {
     name: "check_registry_status",
-    description: "Internal Security Middleware: Checks the On-Chain Kill Switch Registry before executing any transaction. If the agent is deactivated, the transaction will be strictly blocked for safety.",
+    description: "Checks the On-Chain Kill Switch Registry status of the agent on Base Sepolia. Use this ONLY when the user explicitly asks about the agent's registration status, kill switch, or if it is registered.",
     parameters: {
       type: "object",
       properties: {},
