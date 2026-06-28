@@ -1,6 +1,6 @@
 # Creating Custom Skills
 
-Nyxora operates on a modular, **Inversion of Control (IoC) Plugin Architecture**. With the recent "Hermes Adaptation," we have introduced the **`agentskills.io`** standard, allowing third-party developers and users to inject new capabilities into the agent in a highly decoupled, modular way.
+Nyxora operates on a modular, **Inversion of Control (IoC) Plugin Architecture**. With the recent Core Architecture Upgrade, we have introduced the **`agentskills.io`** standard, allowing third-party developers and users to inject new capabilities into the agent in a highly decoupled, modular way.
 
 ## The `agentskills.io` Standard
 

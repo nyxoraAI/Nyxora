@@ -4,7 +4,7 @@ Under the hood, Nyxora's memory system is powered by a robust architecture desig
 
 ## Dialectic User Modeling (The Memory Engine)
 
-With the Hermes Adaptation, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `honchoDaemon.ts`.
+With the latest architecture upgrade, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `honchoDaemon.ts`.
 
 ### 1. Layer 1: Session Memory (Short-Term)
 The standard conversational context buffer. It tracks recent dialogue to maintain conversational flow and is inherently volatile.

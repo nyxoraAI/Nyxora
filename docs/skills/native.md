@@ -1,6 +1,6 @@
 # Skills & Capabilities (Comprehensive Guide)
 
-Nyxora's capabilities are highly modular and securely isolated. With the **Hermes Adaptation**, skills are divided into three strict structural categories:
+Nyxora's capabilities are highly modular and securely isolated. Currently, skills are divided into three strict structural categories:
 
 1. **Native Web3 Plugins:** Hardcoded into `packages/core/src/web3/plugins/` (Immutable).
 2. **Default OS/System Skills:** Hardcoded into the core engine via `packages/core/src/system/plugins/`.
