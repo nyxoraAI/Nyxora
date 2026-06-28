@@ -2,13 +2,14 @@
 **Your Personal Web3 Assistant.**
 
 
-[![Status: Beta](https://img.shields.io/badge/Status-Beta-green.svg)](#)
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg)](#)
 [![Built on Base](https://img.shields.io/badge/Built_on-Base-0052FF?style=flat&logo=base&logoColor=white)](https://base.org/)
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg)](#️-advanced-security-threat-model)
 [![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg)](#️-advanced-security-threat-model)
 [![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-advanced-security-threat-model)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Utility-Centric dark-themed UI and strict client-side key isolation. 
 
@@ -94,12 +95,13 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 *   **System Automation & Full OS Access**: Instruct the agent to read/write local files, run terminal commands, and browse the web natively.
 *   **Automated Excel Reporting**: Instruct the agent to compile its Web3 portfolio or transaction history findings and autonomously generate beautiful `.xlsx` spreadsheet reports saved directly to your local machine.
 *   **Unstoppable Synergy**: Combine both engines with a single prompt. Example: *"Read the latest presale token email from my Gmail, automatically set a Take Profit limit order on Uniswap, and log the execution result to my Google Sheets."*
+*   **Autonomous Skill Synthesizing (`skillExtractor.ts`)**: Instruct the AI to learn a new workflow, and it will autonomously write the Node.js execution logic and schema, saving it locally as a custom skill following the **`agentskills.io`** standard!
 
 ### 🧠 The Masterpiece Memory Architecture
 *   **4-Layer Air-Gapped Vault**: Nyxora features a god-tier memory system that completely isolates conversational habits from the OS Keyring. The AI can dynamically learn your behaviors without ever having physical read-paths to your private keys.
 *   **Hard-Coded Anti-Injection Shield**: We enforce a Zero-Trust memory paradigm. Before any user habit is saved to the local SQLite database, it must pass a strict RegExp-based validation layer that autonomously annihilates Private Keys, BIP-39 Seed Phrases, and Prompt Injection attempts.
+*   **Dialectic User Modeling (Honcho Daemon)**: Nyxora continuously runs an asynchronous background daemon that quietly audits your conversational history. It extracts your behavioral traits, trading style, and risk tolerance, saving them securely to `episodic.db` and injecting them dynamically into the AI's reasoning engine.
 *   **Smart Suggestion Engine**: Nyxora actively queries its Layer-2 Episodic Database to seamlessly autocomplete your repetitive Web3 routines. If you always swap on Arbitrum using USDC, the AI will proactively suggest it, slashing human-in-the-loop latency by up to 90%.
-*   **Persistent Background Reflection**: Empowered by background idle timers and message-count thresholds, Nyxora quietly transcribes your habits into a permanent profile while you step away from the keyboard, ensuring it never forgets your identity even after daemon reboots.
 
 ### AI & UI Customization
 *   **Zero-Trust Auto-Lock (Passwordless)**: A sleek glassmorphism blur overlay automatically locks the dashboard during inactivity. Unlocking requires physical local execution via the CLI (`nyxora unlock`), preventing unauthorized local access.
@@ -210,6 +212,16 @@ This acts as a master reset switch to return your environment to a clean state.
 By downloading, installing, or using the Nyxora AI Agent, you agree to our assumption of risk and liability limitations. Please ensure you review our legal policies before deploying the agent.
 
 > **🔗 [Read the Full Terms of Service Here](https://nyxoraai.github.io/Nyxora/terms)**
+
+---
+
+## 🤝 Contributing
+
+We welcome community contributions! Whether you want to fix a bug, improve documentation, or build a whole new Web3 Plugin, we'd love to have your help.
+
+Nyxora features an extensible **Plugin Architecture** that makes it incredibly easy to add new capabilities (like new DEXs, Oracles, or Chains) without modifying the core reasoning engine.
+
+> **📖 [Read the Contribution Guidelines](CONTRIBUTING.md)** to get started!
 
 ---
 
