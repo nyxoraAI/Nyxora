@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseEther, parseUnits, encodeFunctionData } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
@@ -6,6 +7,7 @@ import { submitTransaction } from '../utils/vaultClient';
 
 export async function prepareTransfer(chainName: ChainName, toAddress: `0x${string}`, amountStr: string, token?: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !toAddress || !amountStr) throw new Error("Missing required parameters for transfer (chain, recipient, or amount).");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();

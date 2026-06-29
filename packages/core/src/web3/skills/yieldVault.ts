@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
@@ -23,6 +24,7 @@ const VAULT_ABI = [
 
 export async function prepareVaultDeposit(chainName: ChainName, protocol: string, vaultAddress: `0x${string}`, tokenAddressOrSymbol: string, amountStr: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !vaultAddress || !tokenAddressOrSymbol || !amountStr) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();

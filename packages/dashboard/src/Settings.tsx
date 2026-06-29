@@ -231,7 +231,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
 
       if (res.ok) {
         onConfigChange(formData);
-        alert('Settings saved successfully!');
+        setIsSaving(false);
+        setTimeout(() => alert('Settings saved successfully!'), 50);
       } else {
         throw new Error('Failed to save main config');
       }
@@ -239,6 +240,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
       setSaveStatus('Error saving policy');
       setTimeout(() => setSaveStatus(''), 3000);
     } finally {
+      setIsSaving(false);
       setSavingPolicy(false);
     }
   };

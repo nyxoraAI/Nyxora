@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseAbi, parseEther } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
@@ -10,6 +11,7 @@ export async function prepareMintNft(
   valueEth: string = "0"
 ): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !contractAddress || !functionSignature) throw new Error("Missing required parameters to mint NFT.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();
@@ -88,6 +90,7 @@ import { submitTransaction } from '../utils/vaultClient';
 
 export async function executeMintNft(chainName: ChainName, params: any, autoApprove: boolean = false): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     const { contractAddress, dataHex, amountStr, valueWei } = params;
 
     const payload: any = {

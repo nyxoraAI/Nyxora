@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseUnits, formatUnits } from 'viem';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { getAddress, submitTransaction } from '../utils/vaultClient';
@@ -5,7 +6,8 @@ import { txManager } from '../../agent/transactionManager';
 import { resolveToken } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 import { routeTransaction } from '../aggregator/defiRouter';
-
+import { logger } from '../../memory/logger';
+import { loadConfig } from '../../config/parser';
 export async function prepareSwapToken(
   chainName: ChainName, 
   fromToken: string, 
@@ -16,6 +18,7 @@ export async function prepareSwapToken(
   slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !fromToken || !toToken || !amountStr) throw new Error("Missing required parameters for swap (chain, tokens, or amount).");
     const userAddress = await getAddress();
     
@@ -57,7 +60,20 @@ export async function prepareSwapToken(
       throw new Error(balanceCheck.message);
     }
     // --------------------------------
-    const slippage = slippagePercent || "auto";
+    // Front-to-Back Slippage Architecture
+    const userProfile = logger.getUserProfile();
+    const maxSlippage = userProfile?.max_slippage || 1.0;
+    const config = loadConfig();
+    const cfgSlippage = (config.agent as any)?.default_slippage;
+    
+    let finalSlippage = slippagePercent;
+    if (finalSlippage === undefined || finalSlippage === null || finalSlippage === "auto") {
+        finalSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage as string);
+    }
+    
+    if (typeof finalSlippage !== 'number' || isNaN(finalSlippage)) finalSlippage = 0.5;
+    if (finalSlippage > maxSlippage) finalSlippage = maxSlippage;
+    const slippage = finalSlippage;
 
     const route = await routeTransaction(
       chainName, 
@@ -93,6 +109,7 @@ export async function prepareSwapToken(
 }
 
 export async function executeSwap(chainName: string, details: any, autoApprove: boolean = false): Promise<string> {
+    chainName = normalizeChainName(chainName);
   const payload = {
     type: 'swap',
     chainName,
@@ -114,7 +131,7 @@ export const swapTokenToolDefinition = {
         toToken: { type: "string" },
         amountStr: { type: "string", description: "The amount to swap" },
         mode: { type: "string", enum: ["auto", "manual"], default: "auto" },
-        providerName: { type: "string", enum: ["auto", "1inch", "0x", "lifi", "relay", "openocean", "kyberswap"], default: "auto" },
+        providerName: { type: "string", enum: ["auto", "1inch", "0x", "lifi", "relay", "openocean", "kyberswap"], default: "auto", description: "The preferred DEX aggregator or bridge. Use 'auto' to let the system pick the best route." },
         slippagePercent: { type: "number" }
       },
       required: ["chainName", "fromToken", "toToken", "amountStr"],

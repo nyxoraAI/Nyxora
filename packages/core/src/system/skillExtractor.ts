@@ -29,11 +29,22 @@ User Intent / Logic: ${userIntent}
 Chat Traces (if any):
 ${historyTraces.join('\n')}
 
-The SKILL.md must contain a YAML frontmatter block with:
-- name: ${safeName}
-- version: 1.0.0
-- description
-- parameters (OpenAI function calling schema format)
+The SKILL.md must contain a YAML frontmatter block exactly following this structure:
+---
+name: ${safeName}
+version: 1.0.0
+description: <Your generated description>
+parameters:
+  type: object
+  properties:
+    param1:
+      type: string
+      description: ...
+  required:
+    - param1
+---
+
+CRITICAL: The 'required' array MUST be indented exactly inside the 'parameters' block as shown above. Do NOT put 'required' at the root level of the YAML.
 
 Do NOT write anything outside the frontmatter except an optional markdown description below it.
 Output ONLY the raw SKILL.md content.`;

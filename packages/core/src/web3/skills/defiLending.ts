@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
@@ -31,6 +32,7 @@ const AAVE_V3_POOLS: Record<string, `0x${string}`> = {
 
 export async function prepareAaveSupply(chainName: ChainName, tokenAddressOrSymbol: string, amountStr: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !tokenAddressOrSymbol || !amountStr) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
     const publicClient = getPublicClient(chainName);
     const userAddress = await getAddress();

@@ -151,6 +151,53 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         tool_calls: responseMessage.tool_calls,
       }, sessionId);
 
+      // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
+      if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
+        const fallbacks: any[] = [];
+        const regex = /^\/([a-zA-Z0-9_]+)\s+(.*)$/gm;
+        let match;
+        while ((match = regex.exec(responseMessage.content)) !== null) {
+          const toolName = match[1];
+          let argsStr = match[2];
+          const argsObj: any = {};
+          
+          const kvRegex = /([a-zA-Z0-9_]+)=(".*?"|'.*?'|[^\s]+)/g;
+          let kvMatch;
+          while ((kvMatch = kvRegex.exec(argsStr)) !== null) {
+            let key = kvMatch[1];
+            let val = kvMatch[2].replace(/^["']|["']$/g, '');
+            argsObj[key] = val;
+          }
+          
+          // Map generic names if needed
+          let mappedToolName = toolName;
+          if (toolName === 'transfer' && argsObj.mode === 'bridge') mappedToolName = 'bridge_token';
+          if (toolName === 'swap') mappedToolName = 'swap_token';
+          
+          fallbacks.push({
+            id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+            type: 'function',
+            function: {
+              name: mappedToolName,
+              arguments: JSON.stringify(argsObj)
+            }
+          });
+        }
+        
+        if (fallbacks.length > 0) {
+          responseMessage.tool_calls = fallbacks;
+          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').trim();
+          console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
+          // Update logger entry with the intercepted tool calls
+          logger.addEntry({
+             role: 'assistant',
+             content: responseMessage.content || "",
+             tool_calls: responseMessage.tool_calls,
+          }, sessionId);
+        }
+      }
+      // -------------------------------------------------------------
+
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         let finalContent = responseMessage.content || "No response generated.";
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/gi, '');

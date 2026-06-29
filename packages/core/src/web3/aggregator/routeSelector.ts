@@ -41,7 +41,12 @@ export async function fetchBestRoute(
   let eligibleProviders = aggregatorRegistry.resolveEligibleProviders(request);
   
   if (request.preferredProvider && request.preferredProvider !== "auto") {
-    eligibleProviders = eligibleProviders.filter(p => p.manifest.id === request.preferredProvider);
+    const filteredProviders = eligibleProviders.filter(p => p.manifest.id === request.preferredProvider);
+    if (filteredProviders.length > 0) {
+      eligibleProviders = filteredProviders;
+    } else {
+      console.warn(`[RouteSelector] LLM Hallucinated or requested an ineligible provider: '${request.preferredProvider}'. Falling back to automatic provider routing.`);
+    }
   }
 
   if (eligibleProviders.length === 0) {

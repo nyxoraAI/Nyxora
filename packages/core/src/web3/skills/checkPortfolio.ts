@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { TOKEN_MAP, ERC20_ABI } from '../utils/tokens';
@@ -8,6 +9,7 @@ const CACHE_TTL = 5000; // 5 seconds TTL
 
 export async function checkPortfolio(chainName: ChainName, address?: `0x${string}`): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     const client = getPublicClient(chainName);
     
     let targetAddress = address;

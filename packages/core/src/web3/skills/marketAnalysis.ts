@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 import { generateMarketHealthReport, MarketHealthResult } from '../utils/riskIntelligence';
@@ -89,6 +90,7 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!tokenAddressOrSymbol) throw new Error("Token symbol is invalid.");
     const cleanInput = String(tokenAddressOrSymbol || "").replace('$', '').toLowerCase();
     const isAddress = cleanInput.startsWith('0x') && cleanInput.length === 42;

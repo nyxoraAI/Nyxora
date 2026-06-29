@@ -23,69 +23,69 @@ export default defineConfig({
   themeConfig: {
     logo: '/favicon.svg',
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/introduction' }
+      { text: '🏠 Home', link: '/' },
+      { text: '📖 Guide', link: '/guide/introduction' }
     ],
 
     sidebar: [
       {
-        text: 'Introduction',
+        text: '👋 Introduction',
         items: [
-          { text: 'Overview', link: '/' },
-          { text: 'Getting Started', link: '/guide/introduction' },
-          { text: 'Installation Guide', link: '/guide/installation' },
-          { text: 'CLI Reference', link: '/guide/cli-reference' },
-          { text: 'Nyxora Ecosystem', link: '/guide/ecosystem' }
+          { text: '🌟 Overview', link: '/' },
+          { text: '🚀 Getting Started', link: '/guide/introduction' },
+          { text: '📦 Installation Guide', link: '/guide/installation' },
+          { text: '💻 CLI Reference', link: '/guide/cli-reference' },
+          { text: '🌍 Nyxora Ecosystem', link: '/guide/ecosystem' }
         ]
       },
       {
-        text: 'Developer & Architecture',
+        text: '🛠️ Developer & Architecture',
         items: [
-          { text: 'Technical Architecture', link: '/guide/architecture' },
-          { text: 'Creating Custom Plugins', link: '/guide/custom-plugins' },
-          { text: 'Custom DeFi Providers', link: '/guide/custom-defi-providers' },
-          { text: 'Cross-Chain Routing', link: '/guide/bridge-routing' },
-          { text: 'Codebase Structure', link: '/guide/structure' },
-          { text: 'Contributing Guide', link: '/guide/contributing' },
-          { text: 'MCP Integration Guide', link: '/guide/mcp-integration' },
-          { text: 'Guarded Autonomy', link: '/guide/guarded_autonomy' },
-          { text: 'Memory Architecture', link: '/guide/memory-architecture' },
-          { text: 'Nyxora Next Update', link: '/guide/roadmap' }
+          { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
+          { text: '🧩 Creating Custom Plugins', link: '/guide/custom-plugins' },
+          { text: '🔌 Custom DeFi Providers', link: '/guide/custom-defi-providers' },
+          { text: '🌉 Cross-Chain Routing', link: '/guide/bridge-routing' },
+          { text: '📂 Codebase Structure', link: '/guide/structure' },
+          { text: '🤝 Contributing Guide', link: '/guide/contributing' },
+          { text: '🤖 MCP Integration Guide', link: '/guide/mcp-integration' },
+          { text: '🧠 Guarded Autonomy', link: '/guide/guarded_autonomy' },
+          { text: '💾 Memory Architecture', link: '/guide/memory-architecture' },
+          { text: '🔮 Nyxora Next Update', link: '/guide/roadmap' }
         ]
       },
       {
-        text: 'Core Capabilities',
+        text: '⚡ Core Capabilities',
         items: [
-          { text: 'Native Skills', link: '/skills/native' },
-          { text: 'Market Intelligence', link: '/skills/market-intelligence' },
-          { text: 'Web Search & Deep Research', link: '/skills/web-search' },
-          { text: 'Google Workspace MVP', link: '/skills/google-workspace' },
+          { text: '🛠️ Native Skills', link: '/skills/native' },
+          { text: '📈 Market Intelligence', link: '/skills/market-intelligence' },
+          { text: '🔍 Web Search & Deep Research', link: '/skills/web-search' },
+          { text: '☁️ Google Workspace MVP', link: '/skills/google-workspace' },
 
-          { text: 'DeFi Configuration', link: '/skills/defi-config' },
-          { text: 'Market Oracles', link: '/skills/market-oracles' },
-          { text: 'Understanding Slippage', link: '/skills/slippage' },
-          { text: 'Chain Specifics', link: '/skills/chains' },
-          { text: 'Custom RPC Configuration', link: '/skills/rpc' },
-          { text: 'Etherscan API V2 Key', link: '/skills/etherscan' },
-          { text: 'NLP Security Policy', link: '/skills/nlp' }
+          { text: '⚙️ DeFi Configuration', link: '/skills/defi-config' },
+          { text: '🔮 Market Oracles', link: '/skills/market-oracles' },
+          { text: '📉 Understanding Slippage', link: '/skills/slippage' },
+          { text: '🔗 Chain Specifics', link: '/skills/chains' },
+          { text: '📡 Custom RPC Configuration', link: '/skills/rpc' },
+          { text: '🔑 Etherscan API V2 Key', link: '/skills/etherscan' },
+          { text: '🔒 NLP Security Policy', link: '/skills/nlp' }
         ]
       },
       {
-        text: 'Operations & Security',
+        text: '🛡️ Operations & Security',
         items: [
-          { text: 'Base Smart Contract', link: '/security/smart-contract' },
-          { text: 'Wallet Import Guide', link: '/security/wallet_import' },
-          { text: 'OS-Native Keyring Vault', link: '/security/vault' },
-          { text: 'Policy Engine', link: '/security/sandbox' },
-          { text: 'Analytics Dashboard', link: '/security/dashboard' },
-          { text: 'Troubleshooting', link: '/security/troubleshooting' }
+          { text: '📜 Base Smart Contract', link: '/security/smart-contract' },
+          { text: '👛 Wallet Import Guide', link: '/security/wallet_import' },
+          { text: '🔐 OS-Native Keyring Vault', link: '/security/vault' },
+          { text: '👮 Policy Engine', link: '/security/sandbox' },
+          { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
+          { text: '🩺 Troubleshooting', link: '/security/troubleshooting' }
         ]
       },
       {
-        text: 'Legal',
+        text: '⚖️ Legal',
         items: [
-          { text: 'Privacy Policy', link: '/privacy' },
-          { text: 'Terms of Service', link: '/terms' }
+          { text: '🕵️ Privacy Policy', link: '/privacy' },
+          { text: '📝 Terms of Service', link: '/terms' }
         ]
       }
     ],

@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { loadConfig } from '../../config/parser';
 import { getAddress, ChainName } from '../config';
 import { formatUnits } from 'viem';
@@ -18,6 +19,7 @@ const CHAIN_IDS: Record<string, number> = {
 
 export async function getTxHistory(chainName: ChainName, address?: string, days: number = 30): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     const targetAddress = address || await getAddress();
     const chainId = CHAIN_IDS[chainName];
     if (!chainId) {

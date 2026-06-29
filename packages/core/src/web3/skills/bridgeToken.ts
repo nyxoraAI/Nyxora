@@ -1,10 +1,11 @@
 import { parseUnits, formatUnits } from 'viem';
-import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
+import { ChainName, SUPPORTED_CHAIN_NAMES, normalizeChainName } from '../config';
 import { getAddress, submitTransaction } from '../utils/vaultClient';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken } from '../utils/tokens';
 import { routeTransaction } from '../aggregator/defiRouter';
-
+import { logger } from '../../memory/logger';
+import { loadConfig } from '../../config/parser';
 export async function prepareBridgeToken(
   fromChain: ChainName, 
   toChain: ChainName, 
@@ -15,8 +16,8 @@ export async function prepareBridgeToken(
   slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
-    fromChain = String(fromChain || "") as ChainName;
-    toChain = String(toChain || "") as ChainName;
+    fromChain = normalizeChainName(fromChain);
+    toChain = normalizeChainName(toChain);
     if (!fromChain || !toChain) throw new Error("Source or destination chain not provided by AI.");
     if (!amountStr) throw new Error("Bridge amount not provided by AI.");
     
@@ -52,8 +53,21 @@ export async function prepareBridgeToken(
     }
 
     const amountWei = parseUnits(amountStr, decimals).toString(); 
-    const slippage = slippagePercent || "auto"; 
-
+    
+    // Front-to-Back Slippage Architecture
+    const userProfile = logger.getUserProfile();
+    const maxSlippage = userProfile?.max_slippage || 1.0;
+    const config = loadConfig();
+    const cfgSlippage = (config.agent as any)?.default_slippage;
+    
+    let finalSlippage = slippagePercent;
+    if (finalSlippage === undefined || finalSlippage === null || finalSlippage === "auto") {
+        finalSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage as string);
+    }
+    
+    if (typeof finalSlippage !== 'number' || isNaN(finalSlippage)) finalSlippage = 0.5;
+    if (finalSlippage > maxSlippage) finalSlippage = maxSlippage;
+    const slippage = finalSlippage;
     // --- Pre-flight Balance Check ---
     const { validateTransactionBalances } = await import('../utils/balanceChecker');
     const balanceCheck = await validateTransactionBalances(fromChain, userAddress, fromTokenAddress, amountWei);
@@ -111,7 +125,7 @@ export const bridgeTokenToolDefinition = {
         tokenSymbol: { type: "string" },
         amountStr: { type: "string" },
         mode: { type: "string", enum: ["auto", "manual"], default: "auto" },
-        providerName: { type: "string", enum: ["auto", "lifi", "relay"], default: "auto" },
+        providerName: { type: "string", enum: ["auto", "lifi", "relay", "op_bridge_testnet", "arbitrum_bridge_testnet"], default: "auto", description: "The preferred provider. Use 'op_bridge_testnet' (for OP/Base Sepolia), 'arbitrum_bridge_testnet' (for Arb Sepolia), or 'relay' (testnet fallback)." },
         slippagePercent: { type: "number" }
       },
       required: ["fromChain", "toChain", "tokenSymbol", "amountStr"],

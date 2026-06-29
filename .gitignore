@@ -40,18 +40,9 @@ google-credentials.json
 .npmrc
 *.tgz
 
-# Build Caches & Test Files
+# Build Caches
 **/*.tsbuildinfo
 **/*.d.ts.map
-**/test-*.ts
-**/test_*.ts
-**/test.ts
-**/*.test.ts
-**/test-*.js
-**/test_*.js
-**/test.js
-**/*.test.js
-**/*.spec.js
 packages/core/src/utils/safeLogger.js
 launcher.js
 migrate_keys.*

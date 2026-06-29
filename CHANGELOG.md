@@ -5,7 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [26.7.2]
+## [26.7.2-alpha.1]
+### Security & Architecture
+- **Front-to-Back Slippage Architecture (MEV Protection)**: Patched a critical security vulnerability across `swapToken.ts`, `bridgeToken.ts`, `createLimitOrder.ts`, and `provideLiquidity.ts` where LLM-hallucinated slippage parameters or hardcoded aggregator defaults bypassed the user's Dashboard `max_slippage` settings. All DeFi/AMM transactions now strictly fetch and enforce `max_slippage` from the local SQLite `user_profiles` database, guaranteeing absolute protection against MEV Sandwich Attacks on Mainnet.
+
+### Core Architecture & Anti-LLM Hallucination
+- **Mass-Sanitization Chain Name**: Injected an automated whitespace sanitizer (`.trim().replace(/\s+/g, '_')`) across 15 Web3 skills. This guarantees NLP robustness, allowing users to type casual chain names like "arbitrum sepolia" without triggering RouteSelector failures.
+- **Skill Extractor YAML Strictness**: Overhauled the `skillExtractor.ts` template generation. It now strictly enforces YAML frontmatter formatting with an indented `required` array, completely eradicating the `property is not defined` Protobuf validation error in Gemini 2.5 Flash.
+- **LLM Fallback Command Parser**: Deployed an emergency regex interceptor in `web3Agent.ts`. If an open-weight LLM (like Minimax) hallucinates and outputs raw text commands (e.g., `/transfer amount=...`), the parser autonomously hijacks the text, clears the UI, and synthetically converts it into a valid JSON tool call payload to trigger the UI transaction confirmation seamlessly.
+
+### Infrastructure & Documentation
+- **Phantom Dependencies Resolution**: Systematically eliminated phantom dependencies across the monorepo architecture. Explicitly injected essential modules (e.g., `grammy`, `croner`, `viem`, `jsonwebtoken`, `picocolors`) directly into `packages/core/package.json` to ensure the core engine is fully modular, self-contained, and safe for standalone NPM publishing.
+- **Documentation Technical Accuracy**: Conducted a massive forensic audit and overhaul of the technical documentation to ensure 100% alignment with the actual codebase:
+  - Clarified LLM SDK usage (Native Fetch is used for Gemini, but official SDKs are retained for OpenAI/Anthropic).
+  - Corrected IPC Protocol claims (Policy Engine uses a combination of Unix Socket and local TCP Loopback, not exclusively Unix Sockets).
+  - Fixed outdated directory references for OS-level skills (now loaded directly from `packages/core/src/system/plugins/`).
+  - Removed false claims regarding the BIP-39 mnemonic interception in the Memory Validator.
+
+## [26.7.2-alpha]
 ### Orchestrator Architecture & Extensibility
 - **Multi-Turn Agentic Loop**: Radically overhauled the core LLM execution loop in `web3Agent.ts` and `osAgent.ts`. The engines now utilize a robust `while (turnCount < MAX_TURNS)` architecture. This definitively resolves the "lost context" bug where the AI would drop its tool schemas after a single execution turn, granting Nyxora the endurance to execute highly complex, multi-step operations (e.g., directory scanning followed by programmatic file generation) in a single uninterrupted stream.
 - **External Skill Builder (`SystemExternalPlugin`)**: Engineered a completely isolated IoC plugin dedicated solely to third-party integrations. Introduced the `create_agent_skill` tool, enabling the AI to programmatically scaffold new Node.js execution scripts (`execute.ts`) and auto-generate strict YAML frontmatter for `SKILL.md`. This transforms Nyxora into a fully autonomous Agent-Building Platform that can code and register its own tools dynamically without muddying the native OS/Web3 tool ecosystems.
@@ -28,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Acts as a smart guardrail similar to Rabby Wallet's UX. It automatically aborts transaction preparations entirely if the user lacks the required ERC20 tokens or if their Native Coin (ETH/BNB) balance is completely depleted (preventing out-of-gas failures).
   - **Human-Readable Error Feedback**: Overhauled the raw error outputs from 18-decimal Wei formats to standard units. The system now dynamically fetches token metadata (decimals and symbols) on-the-fly and applies `formatUnits` to present clean, readable error messages (e.g., *"You need at least 500 USDC"* instead of raw Wei integers), significantly reducing friction for novice users.
 
-## [26.7.1]
+## [26.7.1-alpha]
 ### Bug Fixes & Optimizations
 - **Native Coin Resolution Mass Remediation**: Fixed a systemic architectural flaw where Web3 transaction modules strictly validated against the Zero Address (`0x00...00`) for native coins (ETH/BNB/MATIC). The codebase now universally intercepts and processes the `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` pseudo-address generated by aggregators. This stabilizes critical transactional skills including:
   - **DEX Swapping**: Prevents contract decimals parsing crashes during Native to ERC20 swaps (`swapToken.ts`).
@@ -39,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Balance Queries**: Correctly routes to native balance RPC methods instead of standard ERC20 `balanceOf` (`getBalance.ts`).
 
 
-## [26.6.30]
+## [26.6.30-alpha]
 ### UI/UX & Quality of Life
 - **AI Web Platform Style Empty State**: Overhauled the default chat interface when no messages are present. The dashboard now features a sleek, centered "What's on your mind today?" greeting, automatically repositioning the input bar to the center.
 - **Dynamic Trending Tokens**: Replaced static suggestion pills with real-time Trending Tokens powered by the backend CoinGecko integration. Tokens gracefully appear under the input bar when the chat is empty.
@@ -56,12 +73,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dynamic Local-First Timezones**: Eradicated hardcoded `id-ID` and `Asia/Jakarta` parameter bindings deep within `reasoning.ts`, `osAgent.ts`, and `web3Agent.ts`. Nyxora now natively inherits the user's host OS timezone context while securely formatting dates in `en-US` for accurate LLM semantic parsing.
 - **Text-to-Speech (TTS) Accent Correction**: Repaired the Dashboard's audio synthesis module by migrating `utterance.lang` to `en-US`, completely resolving the robotic accent glitch when reading English crypto analytics aloud.
 
-## [26.6.29]
+## [26.6.29-alpha]
 ### Release & Stability
 - **Beta Phase (Reverted)**: Nyxora briefly entered the Beta phase here for wider public testing, but the status has since reverted to Alpha in `v26.7.2` to accommodate massive core architectural experiments.
 - **NPM Publishing Integrity**: Explicitly whitelisted `CHANGELOG.md` within the `package.json` files array to guarantee release notes are synchronized onto the public NPM registry.
 
-## [26.6.28]
+## [26.6.28-alpha]
 ### Features & Personalization
 - **Global Fiat Currency Converter:** Integrated a dynamic fiat currency selector in `Settings.tsx` that fetches live `supported_vs_currencies` from CoinGecko. The `Portfolio.tsx` dashboard now seamlessly converts and renders all balances in the selected global fiat (IDR, EUR, GBP, JPY, etc.) using client-side processing, while safely preserving core backend trading logic in pure USD.
 - **Episodic Memory Panic Button:** Introduced a dedicated "Wipe All Episodic Memory" trigger in the UI that routes to `DELETE /api/memory/all`. This systematically purges SQLite records and instantly resynchronizes the LLM `user.md` prompt.
@@ -102,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Reflection Engine Session Binding:** Bound `ReflectionEngine` directly to the active `sessionId` pipeline and introduced an early-return safeguard, properly restoring episodic extraction which previously failed due to NULL session targets.
 - **Relaxed Cryptographic Sanitization:** Disarmed the extremely aggressive 12-word regex heuristic in `validator.ts` that historically flagged standard conversational text inputs as security violations.
 
-## [26.6.27]
+## [26.6.27-alpha]
 ### Bug Fixes & Security
 - **Aggregator Decimal Normalization:** Fixed a critical overflow bug in `swapToken.ts` and `bridgeToken.ts` where token amounts were hardcoded to 18 decimals (`parseUnits(amountStr, 18)`). The system now strictly queries `getTokenMetadata` via `viem` to fetch the true on-chain decimals (e.g., 6 for USDC/USDT) before transaction construction.
 - **Native Token Consistency:** Standardized the Native Token fallback address inside `tokens.ts` (`TOKEN_MAP`). The application now strictly utilizes `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` across all layers instead of blending it with `0x000...`, which fixes execution anomalies with KyberSwap and 1inch resolvers.
@@ -120,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OpenOcean Precision Normalization:** Added architectural support for formatting human-readable decimals (`amountFormatted`) across the `QuoteRequest` interface to properly serve OpenOcean's API, resolving a critical logic inversion where it previously interpreted inputs as raw wei.
 - **Aggregator Endpoint Patches:** Fixed `KyberSwapProvider` payload targeting to extract calldata from `buildData.data.data`, mapped `OpenOceanProvider` requests with enforced `gasPrice` thresholds, and migrated the `RelayProvider` HTTP method from the deprecated `/quote/v2` namespace down to `/quote` (POST).
 
-## [26.6.26]
+## [26.6.26-alpha]
 ### Bug Fixes & Improvements
 - **Comprehensive Workspace Hardening**: Fixed missing workspace dependencies across `policy`, `signer`, `mcp-server`, and `dashboard` packages. Removed unused endpoints (`/sign-typed-data` in policy) and dead code (`decryptKey` in signer). Strengthened error handling by wrapping all JSON parsing of signer responses with robust `try/catch` blocks in the policy engine. Upgraded transaction IDs to use secure `crypto.randomUUID()`. Addressed critical frontend type safety by implementing optional chaining in `SwapWidget` to prevent React crashes and correcting `default_slippage` types in `Settings.tsx`. Improved Dashboard TypeScript configuration by adding `DOM.Iterable` support.
 - **LLM Architecture Refactor (Bypass Prevention)**: Extracted and centralized LLM provider instantiation (`getLLMClient` & `getOpenAI`) and generic retry logic into `llmUtils.ts`. Eliminated dangerous anti-patterns in `osAgent.ts` and `web3Agent.ts` where the `LLMProvider` adapter was being bypassed by direct OpenAI client calls, which broke multi-provider support (Gemini/Anthropic).
@@ -132,7 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CoinGecko UI Integration**: Restored the missing official CoinGecko logo inside the Market Oracles configuration dashboard. Added explicit image mapping for both `coingecko_key` and `coingecko_pro_key` directly to the static CDN.
 - **NPM Package Optimization**: Fully sterilized the distribution pipeline by automatically purging unused development testing scripts (`test_security.ts`, `test.ts`) prior to publishing.
 
-## [26.6.25]
+## [26.6.25-alpha]
 ### Architecture Updates
 - **Market Oracles & Smart Fallback Engine:** Decoupled Data Oracles (Market Intelligence) from Transaction Routers (DeFi Aggregators) into a dedicated `marketConfigManager.ts`. Upgraded the `analyzeMarket` and `getPrice` AI skills with an extreme dual-tier Smart Routing fallback architecture. Tier 1 dynamically intercepts and prioritizes premium endpoints (`pro-api.coingecko.com` & `pro-api.coinmarketcap.com`) if API keys are configured in the new Zero-Trust "Market Oracles" Dashboard. If unconfigured, Tier 2 gracefully cascades to CoinGecko Public, CoinMarketCap Public, and finally DexScreener, ensuring robust, error-free token intelligence discovery even for obscure unlisted memecoins.
 - **Extensible DeFi Liquidity-Routing Runtime (Meta-Aggregator v2):** Replaced hardcoded aggregator scripts with a highly modular `DefiAggregatorProvider` interface. Introduced an IoC registry (`AggregatorRegistry`) with Auto-Discovery for loading providers (1inch, 0x, Relay, LIFI, KyberSwap, ArbitrumBridge, OpBridge).
@@ -142,7 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Inversion of Control Plugin System:** Completely overhauled the agent execution architecture (`web3Agent.ts` and `osAgent.ts`) from a static, hardcoded `switch-case` paradigm to a dynamic `PluginManager` architecture. Successfully migrated over 30+ disparate skills into 8 distinct modular plugins (`Web3DefiPlugin`, `SystemCorePlugin`, `GoogleWorkspacePlugin`, etc.). This major refactoring dramatically improves the Developer Experience (DX) by allowing third-party developers to inject new capabilities seamlessly without modifying the core agent brains, while maintaining Zero-Trust Local Execution boundaries.
 - **Zero-Dependency Gemini Engine:** Completely removed the `@google/genai` SDK and its heavy dependency tree (`protobufjs`, `google-auth-library`, `node-fetch`, etc.) in favor of a zero-dependency, native `fetch` REST implementation. This architectural refactor definitively eradicates both the `npm warn allow-scripts` security warning and the deprecated `node-domexception` warning during global installations, resulting in a cleaner, faster, and more secure dependency footprint.
 
-## [26.6.24]
+## [26.6.24-alpha]
 ### Features & Architectural Upgrades
 - **Base Sepolia Registry Migration:** Successfully deployed and verified the `NyxoraAgentRegistry` smart contract on the Base Sepolia network. Shifted the global On-Chain Kill-Switch architecture from Arbitrum to Base. Synchronized all local Gateway configurations and VitePress documentation.
 - **Physical Tri-Core Agent Architecture:** Radically restructured the monolithic `reasoning.ts` engine into three physically isolated files (`reasoning.ts`, `web3Agent.ts`, and `osAgent.ts`). Implemented a Facade Router pattern in `reasoning.ts` to intelligently route user intents without breaking external API contracts (`server.ts`, `telegram.ts`, `cli.ts`). This guarantees True Capability Isolation where the Web3 Agent is physically incapable of accessing OS tools, and completely eliminates context and tool bleeding between domains.
@@ -161,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor CLI Port & UDS Calibration:** Updated the `nyxora doctor` utility to properly identify Port 3000 as `Core/Gateway API` and Port 3001 as `Policy Engine Fallback`. Additionally injected a UDS health-check module that proactively scans for and warns users about stale/zombie sockets (`/tmp/nyxora-*.sock`).
 - **Documentation Restructure:** Synchronized the VitePress technical documentation (`index.md`, `architecture.md`, `troubleshooting.md`) to accurately reflect the new Unix Domain Sockets (UDS) architecture, removing outdated references to Port 3001. Relocated `bridge-routing.md` to `docs/guide/` and eliminated empty artifact folders.
 
-## [26.6.23]
+## [26.6.23-alpha]
 ### Features & Architectural Upgrades
 - **Hybrid API Gateway (HTTP + WebSocket):** Upgraded the core API Gateway (`server.ts`) to operate on a dual HTTP and WebSocket architecture. UI clients now initiate asynchronous tasks via instant HTTP `POST /api/v1/trade` and receive real-time, zero-latency streaming terminal logs via WebSocket (`ws://.../ws/stream?traceId=...`). This definitively eliminates 504 Gateway Timeouts during heavy Web3 transaction analysis.
 - **WebSocket Anti-Race Condition (Ring Buffer):** Engineered a 5-second, `traceId`-bound memory Ring Buffer inside the new `WebSocketManager`. This acts as a critical guardrail, caching high-speed logs emitted by the Core Runtime and instantly flushing them to the UI upon WS handshake, guaranteeing zero dropped logs during the microsecond gap between HTTP response and WS connection.
@@ -169,11 +186,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Zero-Copy MessagePack Serialization:** Eliminated Node.js Event Loop blocking caused by massive `JSON.stringify()` operations. The UDS IPC pipeline natively encodes and decodes binary payloads at memory speed.
 - **L3 Web Search Failover (Free Built-in Search):** Reintegrated `duck-duck-scrape` as a native Layer-3 fallback safety net for the `searchWeb` skill. The CLI `nyxora setup` now offers "DuckDuckGo (Free & Built-in)" as a zero-configuration provider, enabling rapid onboarding without API keys while acting as an automatic fallback if Tavily/Brave premium keys hit rate limits (HTTP 429).
 
-## [26.6.22-1]
+## [26.6.22-1-alpha]
 ### Bug Fixes
 - **Hotfix: Missing Core Dependency:** Patched a severe global installation crash by explicitly injecting the missing `node-cron` module into the root `package.json` dependency tree. The AI Scheduler background daemon now correctly resolves its dependencies in global NPM environments, fully restoring the `nyxora dashboard` routing capability that was collateral damage from the crash.
 
-## [26.6.22]
+## [26.6.22-alpha]
 ### Features & Enhancements
 - **Intelligent First-Time Onboarding:** Introduced a dynamic AI onboarding flow. When a user installs Nyxora for the first time, the `reasoning.ts` engine automatically detects the absence of identity files and enforces an Onboarding Mode. The AI will warmly welcome the user and refuse to execute any commands until it collects 4 essential variables: User's Name, AI's Name, User's Hobbies/Job, and AI's Persona.
 - **Persistent Tracker State (Cost & Logs):** Engineered a persistent state caching mechanism for the core `tracker.ts` gateway metric system. Real-time cost, token counts, and terminal Gateway Logs are now asynchronously serialized to disk (`tracker.json`). This ensures runtime state is securely preserved across daemon reboots (`nyxora restart`). Additionally, hooked into the `nyxora stop` lifecycle event to physically purge the cache file, ensuring clean state wipes when the daemon is intentionally shut down.
@@ -191,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Search Chat & Session Filter:** Deployed a new "Search Chat" navigation menu inside the Dashboard. Users can now instantly search and filter their entire historical chat session list in real-time by title, jumping straight back into specific conversations with a single click.
 - **Dynamic Theme Integration (Light, Dark, & Auto Mode):** Added full Light Mode, Dark Mode, and Auto (System Default) theme options to the dashboard, complete with dynamic color palettes and improved contrast for terminal logs.
 
-## [26.6.21]
+## [26.6.21-alpha]
 ### Security Fixes
 - **Disabled Skill Execution Blocker:** Patched a critical vulnerability where the AI agent (e.g. Gemini) could hallucinate and illegally execute Web3 skills that were explicitly toggled off by the user. The `reasoning.ts` engine now actively intercepts and blocks unauthorized skill calls before execution.
 - **On-Chain Parameter Safeguards:** Implemented strict `undefined` parameter validation across all 10 On-Chain skills (Transfer, Swap, Bridge, Mint NFT, Custom Tx, DeFi Yield/Supply, etc.). This prevents the Node.js process from crashing with `TypeError` when the AI provides incomplete or hallucinated JSON tool payloads.
@@ -204,7 +221,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interactive CLI Chat (`nyxora chat`):** Introduced a new terminal-based interactive chat interface. Users who prefer the command line can now converse directly with the Nyxora background daemon using `@clack/prompts` without needing to open the web dashboard. Features graceful background-safe exits.
 - **Dynamic Dashboard Status Metrics:** Obliterated hardcoded mock values from the Dashboard's Overview page. The Gateway API (`/api/stats`) has been redesigned to actively calculate the total number of loaded Web3 and OS skills in real-time. Additionally, the Memory Storage directory indicator is now dynamically injected based on the user's OS architecture (e.g., `~/.nyxora/data/memory.db`).
 
-## [26.6.20]
+## [26.6.20-alpha]
 ### Features & Enhancements
 - **Unified Portfolio Scanner Redesign:** Completely overhauled the `Portfolio.tsx` Dashboard UI to provide a denser, more data-rich aesthetic. Token balances across all chains are now aggregated, flattened, and sorted globally by total USD value, replacing the old tabbed per-chain layout.
 - **Dynamic 24h Percentage Change:** Upgraded the core backend (`server.ts`) to actively fetch and cache 24-hour percentage price changes (`h24`) via the DexScreener API. The frontend now dynamically calculates and displays a live, weighted average portfolio change instead of a hardcoded placeholder.
@@ -216,23 +233,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Full-Width Fluid Dashboard Containers:** Stripped legacy `max-width` hard-limiters (1200px) from the root `overview.css` and all primary sidebar panels (`Overview`, `Portfolio`, `Web3 Skills`, `OS Skills`, `Settings`, `RPC`, `DeFi`). The dashboard now natively spans the full horizontal resolution of any monitor edge-to-edge.
 - **Flexbox Overlap Patch:** Patched a responsive layout bug in the Portfolio header where long network names (e.g., "Base Sepolia (Testnet)") would physically overlap and bleed into the "Portfolio Scanner" title. Added proper `flexWrap: 'wrap'` and flexible gap spacing to guarantee clean degradation on smaller viewports.
 
-## [26.6.19]
+## [26.6.19-alpha]
 ### Bug Fixes
 - **Dashboard Skill Toggle Sync:** Fixed a bug where disabling skills in the `setup` wizard (CLI) did not reflect on the web Dashboard UI. The wizard stored skill names in `camelCase`, but the core AI engine checked for `snake_case` definitions, bypassing the blacklist. A dictionary mapping was added to `setup.ts` to translate names correctly before saving to `disabled_skills.json`.
 - **Third-Party LLM Provider Unblocking:** Removed a legacy, hardcoded restriction block in `reasoning.ts` that artificially rejected LLM providers other than OpenAI, Gemini, Ollama, and OpenRouter. Users can now seamlessly connect Groq, xAI (Grok), Mistral, and DeepSeek via the setup wizard, utilizing their native OpenAI SDK compatibility.
 - **Google Workspace OAuth Callback Routing:** Fixed a critical bug in the core `server.ts` global authentication middleware where Express.js path mounting behavior implicitly stripped the `/api` prefix from `req.path`. This caused the Google OAuth callback whitelist exception to fail, resulting in an `Unauthorized: Invalid or missing token` error during dashboard login. The middleware now correctly utilizes `req.originalUrl` for accurate bypass verification.
 
 
-## [26.6.18]
+## [26.6.18-alpha]
 ### Bug Fixes & Build Pipeline
 - **NPM Publish Recompilation Fix:** Fixed a critical bug in the NPM `prepare` hook where `npm publish` would skip compiling the core backend TypeScript files. This caused versions `v26.6.16` and `v26.6.17` to inadvertently ship with stale, uncompiled JavaScript `dist/` artifacts. The root `tsc` build step is now explicitly injected into the pre-publish hook to ensure the CLI uses the latest codebase.
 
-## [26.6.17]
+## [26.6.17-alpha]
 ### Bug Fixes
 - **CLI Setup API Key Overwrite Bug:** Fixed a race condition during `nyxora setup` where newly entered LLM API keys were successfully written to the config file but instantly overwritten by a stale in-memory config save sequence.
 - **Removed Zombie `installSkill` CLI Option:** Removed the legacy `installSkill` selection option from the CLI setup wizard to correctly align with the new fully-native, sandbox-free architecture (introduced in v26.6.15).
 
-## [26.6.16]
+## [26.6.16-alpha]
 ### Bug Fixes & Stability
 - **Global `nyxora start` `ENOENT` Crash Fix:** Resolved a critical bug where launching the daemon on a completely fresh install (or after deleting `~/.nyxora`) would instantly crash due to missing nested log and auth directories. The CLI now gracefully auto-creates all deeply nested required structures before attempting to access them.
 - **Node.js ESM Compilation Crash (`launcher.ts`):** Stripped out legacy `import.meta.url` syntax in favor of bulletproof CommonJS `__filename` globals. This permanently eliminates the fatal `exports is not defined` parsing crash on newer Node.js versions running compiled production builds.
@@ -240,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **NPM Monorepo Resolution Fix:** Stripped the hardcoded `.ts` extension from `safeLogger` imports to prevent `MODULE_NOT_FOUND` errors on compiled production artifacts.
 - **`mcp-server` Publishing:** Wired the `mcp-server` into the root compilation step and included its `dist/` artifacts in the `files` array, ensuring the Universal Bridge is fully operational out-of-the-box for NPM installations.
 
-## [26.6.15]
+## [26.6.15-alpha]
 ### Security & Architecture
 - **Policy Engine Hard-coded Firewall**: Extracted security constraints (`whitelist_only`, `max_usd_per_tx`, `require_approval`) from `config.yaml` and implemented a fully decoupled backend `policy.yaml` evaluation engine running on a secure local port (3001). This solidifies the Zero-Trust Architecture by guaranteeing rules are enforced prior to cryptographic signing.
 - **Unified NLP Semantic Rules**: Migrated `security_policy.md` directly into the `policy.yaml` state (`custom_llm_rules`). AI native skills (`updateSecurityPolicy`) now dynamically append human-language constraints to the centralized policy module, providing a single source of truth for both hard-coded and semantic safeguards.
@@ -254,7 +271,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rapid Graceful Shutdown**: Refactored the core gateway server shutdown sequence to aggressively call `server.closeAllConnections()`. This eliminates the 10-second hang caused by persistent UI polling / SSE connections when stopping the daemon via `CTRL+C`.
 - **Market Analysis Cascade Architecture**: Rewired the AI `analyzeMarket` capability in `reasoning.ts` to correctly route through the advanced `analyzeMarketEngine`. This strictly enforces the 3-Tier Cascading Fallback logic (CoinMarketCap  CoinGecko  DexScreener), maximizing market data resilience against API rate-limits.
 
-## [26.6.14]
+## [26.6.14-alpha]
 ### Security & Privacy
 - **Isolated Private RPC Vault**: Extracted `web3.rpc_urls` from the main `config.yaml` and moved them into a highly isolated `~/.nyxora/config/rpc_key.yaml` file. This guarantees zero risk of leaking Premium Node Endpoints (Alchemy, Infura) when sharing config files or prompts.
 - **Auto-Migration Engine**: Implemented a background migration routine (`parser.ts`) that automatically detects legacy RPC setups and seamlessly extracts, transfers, and wipes them from `config.yaml` during the next daemon boot without data loss.
@@ -265,7 +282,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DeFi Configuration Refactor**: Overhauled the "DeFi Configuration" interface layout to utilize a clean, elegant horizontal list design, achieving absolute visual consistency with the new RPC module.
 - **Clean Daemon Boot (NPM Suppression)**: Refactored `launcher.ts` and `package.json` to directly invoke local binaries (`./node_modules/.bin/ts-node`), completely bypassing `npx`. This definitively eliminates the annoying `npm warn allow-scripts` console spam during the multi-service boot sequence.
 
-## [26.6.13]
+## [26.6.13-alpha]
 ### Bug Fixes & UX Hardening
 - **Telegram Reasoning Leak**: Implemented a strict Regex pre-processor within the Telegram `formatToTelegramHTML` pipeline to silently intercept and annihilate raw `<think>` and `<thought>` Chain of Thought XML tags. This guarantees a clean, distraction-free user experience when integrating reasoning models (like DeepSeek R1) via the Telegram Bot interface.
 - **Zero-LLM Fast Return (Instant UI Popups)**: Re-enabled the `fastReturnTools` bypass architecture for all transactional Web3 skills (transfer, swap, bridge, etc.). This optimization skips the redundant secondary LLM summarization phase, cutting transaction generation latency by 3-10 seconds and delivering the UI Approve/Reject popup instantly upon tool completion.
@@ -278,7 +295,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Universal OP Stack Native Bridge**: Implemented a dedicated `nativeOpBridge.ts` module hardcoded with strictly validated (EIP-55 fully lowercased) `L1StandardBridgeProxy` addresses for both Base Sepolia and OP Sepolia. Nyxora can now encode and simulate native OP Stack portal deposits without relying on external APIs.
 - **Testnet Meta-Aggregator Hierarchy**: Overhauled the logic inside `aggregatorTestnet.ts`. The router now intelligently prioritizes the `nativeOpBridge` for all OP Stack chains, gracefully degrading to `fetchRelayTestnet` for Base and `fetchArbitrumBridgeTestnet` for Arbitrum exclusively.
 
-## [26.6.12]
+## [26.6.12-alpha]
 ### Security & Web3 Routing
 - **Relay API Mainnet Fallback**: Fixed a critical routing bug for native ETH. The aggregator now precisely translates the native token identifier (`0xeeee...`) into the Zero Address (`0x0000...`) exclusively when communicating with Relay's cross-chain API. This completely neutralizes "Invalid input currency" rejections on mainnet bridges.
 
@@ -295,15 +312,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clean Agent Reasoning UI**: Restructured the frontend message rendering (`App.tsx`) to completely isolate and strip out raw `<think>` blocks from the AI's internal Chain of Thought. The user interface is now 100% focused on final outputs, keeping the conversation view clean.
 - **Strict Think Block Escaping**: Hardened the system prompt in `reasoning.ts` with a new Anti-Hallucination rule. The AI is now strictly forbidden from injecting conversational text or final answers inside the `<think>` block, completely neutralizing the bug where the UI appeared to be "stuck" due to missing output.
 
-## [26.6.11-2]
+## [26.6.11-2-alpha]
 ### Hotfixes
 - **Monorepo Dependency Resolver**: Fixed an NPM workspace bug by elevating internal package dependencies (`playwright`, `twitter-api-v2`, `@notionhq/client`) directly to the root `package.json`, completely resolving `Error: Cannot find module` crashes during daemon boot.
 
-## [26.6.11-1]
+## [26.6.11-1-alpha]
 ### Hotfixes
 - **Global Installation Path Fix**: Included the compiled `dist/` directory into the NPM tarball, preventing `ts-node` fallback crashes during `nyxora start`.
 
-## [26.6.11]
+## [26.6.11-alpha]
 ### Security
 - **Foundry Registry Migration**: Successfully migrated the `NyxoraAgentRegistry` Arbitrum Smart Contract from Hardhat to Foundry, stripping out hundreds of vulnerable NPM dependencies and drastically reducing the attack surface.
 
@@ -327,7 +344,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DeFi Keys (BYOK) Security**: Added a unified `defiConfigManager.ts` securely saving API Keys in `~/.nyxora/defi_keys.yaml` to prevent leaks. Integrated a Dashboard UI panel with `IS_SET` masking so sensitive keys never return to the browser frontend. Removed all insecure `process.env` dependencies.
 - **Unified Chain Registry**: Consolidated all supported Mainnet and Testnet network IDs into a single `chains.ts` registry, completely eliminating hardcoded chain bugs across the Dashboard UI and CLI logic.
 
-## [26.6.10] - 2026-06-09
+## [26.6.10-alpha] - 2026-06-09
 
 ### The DeFi Optimization Update
 - **DeFi Lending Engine**: Integrated native Aave V3 support across all EVM chains. The AI can now autonomously fetch dynamic `Pool` addresses via `PoolAddressesProvider` and securely draft `supply` payloads to earn yield on idle assets.
@@ -346,7 +363,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent Background Reflection**: Eliminated static interval timers. The Reflection Engine is now seamlessly triggered via 3 infallible hooks: a 3-minute Idle Timer, an N-Message threshold (every 5 messages), and a `SIGTERM` Graceful Shutdown hook, ensuring resilient memory retention across daemon lifecycles.
 - **Real-Time Memory Log Dashboard**: Exposed a robust `/api/memory` CRUD endpoint and integrated a sleek "Memory Log" panel directly into the Web Dashboard Overview tab. Users can now audit, review confidence scores, and forcefully delete false observations in real-time with zero state desynchronization.
 
-## [26.6.9]
+## [26.6.9-alpha]
 ### Security & UX Hardening
 - **Zero-Trust Auto-Lock (Passwordless)**: Implemented a robust idle timeout mechanism in the React Dashboard with an elegant glassmorphism blur overlay. The dashboard securely locks after periods of inactivity, requiring the user to authorize unlock directly via the CLI (`nyxora unlock`) to prevent unauthorized local access.
 - **Approval Replay Protection (Nonce Guard)**: Hardened the `transactionManager` to cryptographically sign all pending transaction payloads with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint now strictly enforces Nonce matching and immediately marks it as `used_` upon first validation, completely eliminating double-spending and Replay Attack vectors.
@@ -358,7 +375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Robust Path Resolution**: Eliminated hardcoded `process.cwd()` dependencies across the Gateway, Dashboard, and Plugin Manager. The CLI now utilizes robust absolute `__dirname` and `getAppDir()` traversal, guaranteeing the Dashboard UI and External Skills load flawlessly regardless of where the global CLI command is executed from.
 
 
-## [26.6.8]
+## [26.6.8-alpha]
 ### Enterprise Features & Web3 Enhancements
 - **Zero-Downtime Directory Migration**: Restructured the root `~/.nyxora` local data directory into a strict `config/`, `data/`, `auth/`, and `run/` subdirectory architecture. Implemented a Lazy Auto-Migration Engine (`getPath()`) that seamlessly relocates legacy files to their new secure zones instantly upon access, ensuring zero-downtime and zero-data-loss upgrades for existing users.
 ### Security & UX Updates
@@ -371,7 +388,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker Multi-Stage Build**: Radically refactored `Dockerfile` to a Multi-Stage architecture. The production image now exclusively installs runtime dependencies (`--omit=dev`) and leaves behind heavy build tools (`python3`, `make`, `g++`), dramatically shrinking the final container image size.
 - **Docker Security Patch**: Hardened `.dockerignore` to explicitly block local keystores (`keystore.json`), persistent memory (`memory.db`), and local credentials from accidentally leaking into Docker image layers during local builds.
 
-## [26.6.7]
+## [26.6.7-alpha]
 ### Enterprise Features & Web3 Enhancements
 - **Enterprise Portfolio Scanner**: Integrated a fully decentralized, real-time Dashboard UI (Nord Theme) to scan all native and ERC-20 token balances across 8 EVM chains natively, without relying on centralized third-party APIs.
 - **Real-Time USD Valuation**: Integrated DexScreener API into the Portfolio Scanner backend to actively compute and display USD portfolio values in real-time. Features an adaptive 2-minute memory cache system to ensure complete immunity against API rate-limits and eliminate LLM token consumption.
@@ -393,7 +410,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **NPM Monorepo Build Fix**: Fixed the `packages/core` workspace `package.json` to correctly include the `"build": "tsc"` script and aligned its internal versioning (`v26.6.7`). This resolves the NPM workspace lifecycle crash during global build triggers.
 - **NPM Optimization**: Added official keywords (`web3`, `ai`, `agent`, `crypto`, `mcp`, `automation`, `defi`, `zero-trust`) to the root `package.json` to significantly improve Nyxora's discoverability and SEO on the NPM Registry.
 
-## [26.6.6]
+## [26.6.6-alpha]
 ### Enterprise Stability Upgrades
 - **Strict LLM Output Validation**: Added robust try-catch parsing for LLM tool arguments in `reasoning.ts`. If the AI outputs malformed JSON, the error is fed back into the reasoning loop, allowing the model to autonomously self-correct without crashing the agent pipeline.
 - **Transaction Simulation (Dry-Run)**: Integrated `publicClient.estimateGas` in the Signer Vault before broadcasting transactions. This ensures all Web3 transactions are simulated at the node level, preventing users from wasting gas fees on reverted transactions (e.g., due to insufficient slippage or balance).
@@ -434,11 +451,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Core AI Engine
 - **Strict Language Matching**: Optimized CRITICAL RULE 2 in the System Prompt. The AI now completely ignores historical chat language context and strictly matches the language of the user's latest prompt.
 
-## [26.6.5] - 2026-06-04 (Hotfix Patch)
+## [26.6.5-alpha] - 2026-06-04 (Hotfix Patch)
 ### Fixed
 - **NPM Monorepo Resolution:** Synced `@inquirer/search` and `duck-duck-scrape` to root `package.json` to prevent `MODULE_NOT_FOUND` and `ERR_CONNECTION_REFUSED` on global installations.
 
-## [26.6.4]
+## [26.6.4-alpha]
 
 ### AI Engine Optimizations
 - **Semantic Keyword Router (Zero-Latency)**: Restructured the `reasoning.ts` pipeline to dynamically group tools into specific clusters (`WEB3`, `SYSTEM`, `GOOGLE`). The engine now intercepts the user's prompt using highly optimized Regex keyword-matching. This eliminates "Context Bloat" by only injecting relevant tools into the LLM payload, dramatically increasing LLM responsiveness and minimizing API token consumption.
@@ -458,7 +475,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### UI & Developer Experience
 - **CLI Memory Purge**: Introduced a new developer utility command: `nyxora clear`. It instantly and atomically resets the AI's short-term/long-term memory SQLite database. Includes a mandatory `--force` flag safeguard to prevent accidental data destruction.
-## [1.7.3]
+## [1.7.3-alpha]
 
 ### Web3 Routing & Integrations
 - **Multi-Router Selection (DeFi)**: Added a dynamic Router dropdown to the Dashboard UI, allowing users to forcefully route transactions through specific protocols natively. Supported routers include `1inch`, `CowSwap (MEV-Protected)`, `Li.Fi`, `Relay`, `Uniswap V2`, `Uniswap V3`, and `PancakeSwap`. This integration heavily relies on deep aggregator proxying (bypassing the need for complex V2/V3 ABI calldata overhead) to ensure 100% smooth, anti-fail execution without requiring additional API keys.
@@ -466,7 +483,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security & Polish
 - **Dashboard:** Redacted the sensitive Nyxora Auth Token from appearing in the Gateway Logs component on the frontend to prevent visual leakage during screen sharing or screenshots.
 
-## [1.7.2]
+## [1.7.2-alpha]
 
 ### UI/UX Enhancements
 - **Google Workspace Logout**: Users can now easily disconnect their Google Workspace accounts directly from the Dashboard (OS Skills tab). This triggers a secure token purge from both the OS Keyring and local storage, ensuring privacy and seamless account switching.
@@ -479,7 +496,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Legal Infrastructure**: Added standard `Privacy Policy` (`privacy.md`) and `Terms of Service` (`terms.md`) to the VitePress documentation to prepare for official Google OAuth App Verification.
 - **Enterprise Roadmap Evolution**: Updated the documentation roadmap to reflect our "Nyxora Next Update" vision, outlining future plans for a Rust-Native Signer, Idempotent Policy Engine, Multi-VM Architecture, and Google App Verification.
 
-## [1.7.1]
+## [1.7.1-alpha]
 
 ### CLI Enhancements
 - **Global Version Checker**: Implemented native version checking for the global CLI manager. Users can now run `nyxora -v`, `nyxora --version`, or `nyxora version` to instantly check their installed daemon version without starting the application.
@@ -494,7 +511,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual-Engine Web Search (L3 Failover)**: Completely removed the fragile `duck-duck-scrape` dependency. The `search_web` skill is now powered by a robust L3 Auto-Failover architecture. Users can configure enterprise-grade search providers (Tavily or Brave). If the primary provider hits a rate limit (429) or invalid key (401/403), Nyxora seamlessly falls back to the secondary provider, and ultimately to a Decentralized SearXNG Mesh as a final safety net, guaranteeing 100% uptime.
 
 
-## [1.7.0]
+## [1.7.0-alpha]
 
 ### Bug Fixes & Optimizations
 - **Time Sync Hallucination**: Fixed a critical issue where the AI hallucinates the current date and time. Nyxora now dynamically injects the host OS's exact `new Date().toLocaleString()` into the system prompt upon every execution.
@@ -506,7 +523,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dynamic Tx Formatter (Tap-to-Copy)**: The post-transaction approval message is now bilingual (auto-detecting English/Indonesian from chat history). Transaction Hashes and wallet addresses are wrapped in `<code>` tags for seamless tap-to-copy UX on mobile devices.
 - **CLI Setup Typography**: Updated outdated CLI prompts that falsely referenced legacy `AES-256-GCM` encryption. The CLI now correctly informs the user that Private Keys are securely locked inside the OS Native Keyring Vault.
 
-## [1.6.7]
+## [1.6.7-alpha]
 
 ### UI/UX
 - **New Nyxora Brand Logo**: Replaced the standard dashboard `Bot` icon with a native, 100% transparent SVG component of the Nyxora Cosmic Star.
@@ -530,7 +547,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security Upgrade (OS Keyring)**: Completely migrated OAuth token storage to the OS-Native Keyring Vault. Google Refresh Tokens are now securely locked and encrypted by the host OS, preventing plaintext credential theft.
 - **Performance Optimization**: Scrapped the heavy `googleapis` dependency in favor of lightweight Native `fetch`, resulting in zero NPM install warnings, smaller footprint, and faster execution.
 - **Bugfix**: Resolved TypeScript compilation errors (TS2349) related to the `pdf-parse` ESM dependency.
-## [1.6.6]
+## [1.6.6-alpha]
 
 ### Hotfix: Global Monorepo Dependencies
 
@@ -540,7 +557,7 @@ This release patches a critical bug where global installations via `npm install 
 - **Dependency Hoisting Fix**: Explicitly bundled essential runtime modules (isolated-vm, telegraf, @modelcontextprotocol/sdk) into the root package.json to support monolithic publishing.
 - **Zero-Crash Boot**: Resolves the MODULE_NOT_FOUND fatal error for isolated-vm when starting the daemon after a clean global install.
 - **Dashboard Stability**: Ensures the background API server connects flawlessly to the React Dashboard without encountering Connection Refused.
-## [1.6.5]
+## [1.6.5-alpha]
 
 ### The Universal Bridge (MCP Integration)
 
@@ -550,7 +567,7 @@ Nyxora now natively supports the Model Context Protocol (MCP). This massive upgr
 - **StdioServerTransport**: Deep integration allowing Claude Desktop to securely spawn Nyxora as a child process.
 - **Universal Bridge**: Exposes Nyxora's core crypto actions (swap, transfer, market analysis) as standard MCP Tools.
 - **Enterprise Security**: All external MCP commands are strictly routed through Nyxora's battle-tested Policy Engine, ensuring no unauthorized transactions occur.
-## [1.6.4]
+## [1.6.4-alpha]
 
 ### Added
 - **Node.js Native Database Engine**: Migrated the core `logger.ts` memory subsystem to use the built-in `node:sqlite` engine (Node 22+), maintaining ultra-fast 100% synchronous operations while dramatically reducing dependency bloat.
@@ -559,7 +576,7 @@ Nyxora now natively supports the Model Context Protocol (MCP). This massive upgr
 ### Removed
 - `better-sqlite3` and `keytar` dependencies entirely removed from the monorepo architecture.
 
-## [1.6.3]
+## [1.6.3-alpha]
 
 ### Added
 - Implemented **Zero-Click Multi-Session** for instantaneous chat creation and switching.
@@ -573,7 +590,7 @@ Nyxora now natively supports the Model Context Protocol (MCP). This massive upgr
 ### Fixed
 - Resolved deeply-nested monorepo CI/CD deployment failures by isolating `package-lock.json` and mitigating peer-dependency conflicts.
 
-## [1.4.5]
+## [1.4.5-alpha]
 
 ### Fixed
 - Re-rendered Architecture Workflow diagram as a solid-background PNG to fix dark mode visibility issues.
@@ -581,22 +598,22 @@ Nyxora now natively supports the Model Context Protocol (MCP). This massive upgr
 - Added `repository` field in `package.json` for proper GitHub link resolution on NPMJS.
 - Updated `README.md` to use the absolute raw GitHub image URL for universal rendering compatibility.
 
-## [1.4.4]
+## [1.4.4-alpha]
 
 ### Fixed
 - Fixed Architecture Workflow diagram rendering issue on NPM by replacing the `mermaid` code block with a static SVG image.
 
-## [1.4.3]
+## [1.4.3-alpha]
 
 ### Changed
 - Completely rewrote `README.md` (English) to follow the structured, security-first Web3-Ops template. 
 
-## [1.4.2]
+## [1.4.2-alpha]
 
 ### Changed
 - Updated `README.md` to highlight Web3-Ops capabilities (System Automation, NLP Security Policies, and Dynamic Plugins).
 
-## [1.4.0]
+## [1.4.0-alpha]
 
 ### Added
 - **System Automation Capabilities**: Allow Nyxora to execute shell commands, read/write local files, and browse the web autonomously.

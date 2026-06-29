@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 
@@ -16,6 +17,7 @@ const CHAIN_IDS: Record<ChainName, number> = {
 
 export async function checkTokenSecurity(chainName: ChainName, contractAddress: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     const chainId = CHAIN_IDS[chainName];
     if (chainName === 'sepolia') {
       return `Security check API (GoPlus) does not support Sepolia testnet. Try a mainnet token.`;

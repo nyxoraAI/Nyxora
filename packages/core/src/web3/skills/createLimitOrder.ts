@@ -1,6 +1,7 @@
+import { normalizeChainName } from '../utils/chains';
 import { logger } from '../../memory/logger';
 import { txManager } from '../../agent/transactionManager';
-
+import { loadConfig } from '../../config/parser';
 export async function createLimitOrder(
   tokenSymbol: string,
   tokenAddress: string,
@@ -11,6 +12,20 @@ export async function createLimitOrder(
   slippageTolerance?: number
 ): Promise<string> {
   try {
+    // Front-to-Back Slippage Architecture
+    const userProfile = logger.getUserProfile();
+    const maxSlippage = userProfile?.max_slippage || 1.0;
+    const config = loadConfig();
+    const cfgSlippage = (config.agent as any)?.default_slippage;
+    
+    let finalSlippage = slippageTolerance;
+    if (finalSlippage === undefined || finalSlippage === null) {
+        finalSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage as string);
+    }
+    
+    if (typeof finalSlippage !== 'number' || isNaN(finalSlippage)) finalSlippage = 0.5;
+    if (finalSlippage > maxSlippage) finalSlippage = maxSlippage;
+    
     const orderData = {
       token_symbol: tokenSymbol,
       token_address: tokenAddress,
@@ -18,7 +33,7 @@ export async function createLimitOrder(
       trigger_price_usd: triggerPriceUsd,
       action,
       amount_usd: amountUsd,
-      slippage_tolerance: slippageTolerance || 5.0
+      slippage_tolerance: finalSlippage
     };
 
     const orderId = logger.createLimitOrder(orderData);

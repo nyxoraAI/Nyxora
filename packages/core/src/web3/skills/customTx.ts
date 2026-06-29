@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { submitTransaction } from '../utils/vaultClient';
@@ -10,6 +11,7 @@ export async function prepareCustomTx(
   description: string = "Custom transaction"
 ): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !toAddress || !data) throw new Error("Missing required parameters for custom transaction.");
     const { getAddress } = await import('../utils/vaultClient');
     const userAddress = await getAddress();
@@ -56,6 +58,7 @@ export const customTxToolDefinition = {
 };
 
 export async function executeCustomTx(chainName: string, details: any, autoApprove: boolean = false): Promise<string> {
+    chainName = normalizeChainName(chainName);
   // Fix HMAC mismatch by guaranteeing amountWei exists to match valueWei 
   const processedDetails = {
     ...details,

@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { formatEther, formatUnits } from 'viem';
 import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { ERC20_ABI, resolveToken, getTokenMetadata } from '../utils/tokens';
@@ -5,6 +6,7 @@ import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 
 export async function getBalance(chainName: ChainName, address?: `0x${string}`, token?: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     const client = getPublicClient(chainName);
     
     let targetAddress = address;

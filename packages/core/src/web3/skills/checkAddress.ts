@@ -1,8 +1,10 @@
+import { normalizeChainName } from '../utils/chains';
 import { isAddress } from 'viem';
 import { getPublicClient, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 
 export async function checkAddress(chainName: ChainName, address: string): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!isAddress(address)) {
       return `Address validation failed: '${address}' is not a valid Web3 address format.`;
     }

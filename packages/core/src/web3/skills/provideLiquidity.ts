@@ -1,3 +1,4 @@
+import { normalizeChainName } from '../utils/chains';
 import { parseUnits } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
@@ -49,6 +50,7 @@ const POSITION_MANAGERS: Record<string, `0x${string}`> = {
 };
 
 import { loadConfig } from '../../config/parser';
+import { logger } from '../../memory/logger';
 
 export async function prepareProvideLiquidity(
     chainName: ChainName, 
@@ -62,18 +64,22 @@ export async function prepareProvideLiquidity(
     slippagePercent?: number | "auto"
 ): Promise<string> {
   try {
+    chainName = normalizeChainName(chainName);
     if (!chainName || !token0AddressOrSymbol || !token1AddressOrSymbol || !amount0Str || !amount1Str) throw new Error("Missing protocol/chain/token parameters for DeFi operation.");
-    let actualSlippage = slippagePercent;
-    if (actualSlippage === undefined || actualSlippage === null || actualSlippage === "auto") {
-      try {
-        const config = loadConfig();
-        const cfgSlippage = (config.agent as any).default_slippage;
-        actualSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage);
-      } catch (e) {
-        actualSlippage = 0.5;
-      }
+    // Front-to-Back Slippage Architecture
+    const userProfile = logger.getUserProfile();
+    const maxSlippage = userProfile?.max_slippage || 1.0;
+    const config = loadConfig();
+    const cfgSlippage = (config.agent as any)?.default_slippage;
+    
+    let finalSlippage = slippagePercent;
+    if (finalSlippage === undefined || finalSlippage === null || finalSlippage === "auto") {
+        finalSlippage = (cfgSlippage === "auto" || !cfgSlippage) ? 0.5 : parseFloat(cfgSlippage as string);
     }
-    if (typeof actualSlippage !== 'number' || isNaN(actualSlippage)) actualSlippage = 0.5;
+    
+    if (typeof finalSlippage !== 'number' || isNaN(finalSlippage)) finalSlippage = 0.5;
+    if (finalSlippage > maxSlippage) finalSlippage = maxSlippage;
+    let actualSlippage = finalSlippage;
 
     // If ticks are not provided, default to Full Range based on tickSpacing
     let tLower = tickLower;
