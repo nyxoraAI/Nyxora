@@ -41,6 +41,12 @@ security_policy.md
 # Build Caches & Test Files
 **/*.tsbuildinfo
 **/*.d.ts.map
+*test*.ts
+*test*.js
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
 **/test-*.ts
 **/test_*.ts
 **/test.ts
