@@ -593,7 +593,7 @@ function App() {
             className="sidebar-toggle-btn"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             style={isSidebarCollapsed ? {
-              position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px'
+              position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px'
             } : { 
               position: 'absolute', top: '24px', right: '12px', background: 'transparent', 
               border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' 
