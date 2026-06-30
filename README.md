@@ -13,7 +13,7 @@
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Utility-Centric dark-themed UI and strict client-side key isolation. 
 
-**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://nyxoraai.github.io/Nyxora/guide/mcp-integration)
+**Nyxora now natively supports the Model Context Protocol (MCP)**. You can transform your external AI agents (like Claude Desktop and Cursor) into secure Web3 actors that execute swaps and fetch balances using Nyxora's secure signer vault. [View the MCP Integration Guide](https://nyxoraai.github.io/Nyxora/mcp/)
 
 It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human-in-the-Loop** execution model, ensuring that Remote AIs (LLMs) never have unilateral access to your funds.
 
@@ -67,7 +67,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 ## 🔥 Key Features
 
 ### Advanced Security Architecture
-*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/security/smart-contract)
+*   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/smart-contract)
 *   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **DeFi & Market Configuration BYOK & UI Masking**: All aggregator, provider, and oracle API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into heavily guarded `~/.nyxora/defi_keys.yaml` and `~/.nyxora/market_keys.yaml` files. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
@@ -138,7 +138,7 @@ Within the AI Brain, the Web3 codebase is strictly divided to prevent the LLM fr
 
 ## 🛡️ Advanced Security & Threat Model
 
-To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security](https://nyxoraai.github.io/Nyxora/).
+To dive deeper into the technical details of our Zero-Knowledge security architecture, please visit the [Nyxora Security](https://nyxoraai.github.io/Nyxora/architecture).
 
 ---
 

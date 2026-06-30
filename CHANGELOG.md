@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
+## [26.7.2-alpha.4]
+### Bug Fixes & Stability
+- **Telegram Polling Timeout Silence**: Mitigated an issue where sudden network disconnects or API timeouts (`ETIMEDOUT`) would cause the `@grammyjs/runner` to spam the console with massive stack traces. The system now seamlessly intercepts these failures via a custom API config transformer, suppresses the default runner logs, and gracefully emits a clean, single-line reconnection warning.
+
 ## [26.7.2-alpha.3]
 ### Hotfixes
 - **Daemon Crash & Missing Dependency**: Resolved a critical crash preventing `nyxora start` from booting the daemon by properly injecting the missing `discord.js` dependency into the core package requirements.

@@ -65,6 +65,19 @@ export function startTelegramBot() {
     const throttler = apiThrottler();
     bot.api.config.use(throttler);
     
+    bot.api.config.use(async (prev, method, payload, signal) => {
+      try {
+        return await prev(method, payload, signal);
+      } catch (err: any) {
+        if (method === 'getUpdates' && err.message?.includes('ETIMEDOUT')) {
+          console.log(pc.yellow('[Telegram] API connection lost (Timeout). Retrying automatically...'));
+        } else if (method === 'getUpdates') {
+          console.log(pc.yellow(`[Telegram] Failed to fetch updates: ${err.message}`));
+        }
+        throw err; // Rethrow so the runner can gracefully backoff and retry
+      }
+    });
+    
     const isPaired = !!config.integrations?.telegram?.authorized_chat_id;
     let generatedPin = '';
     let pinExpiry = 0;
@@ -215,7 +228,9 @@ export function startTelegramBot() {
       console.error('[Telegram] Grammy error:', err);
     });
 
-    runnerInstance = run(bot);
+    runnerInstance = run(bot, {
+      runner: { silent: true }
+    });
     
     if (isPaired) {
       console.log('🤖 Telegram Bot is running and securely listening for your messages...');

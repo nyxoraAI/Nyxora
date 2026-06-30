@@ -1,6 +1,6 @@
 {
   "name": "@nyxora-sdk/signer",
-  "version": "26.7.2-alpha.3",
+  "version": "26.7.2-alpha.4",
   "publishConfig": {
     "access": "public"
   },
