@@ -4,7 +4,7 @@ import { createAgentSkillToolDefinition, createAgentSkill } from '../skills/crea
 export class SystemExternalPlugin implements Plugin {
   public name = 'SystemExternalPlugin';
   public description = 'Provides tools for creating and managing third-party external agent skills.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     createAgentSkillToolDefinition

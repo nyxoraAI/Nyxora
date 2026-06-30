@@ -18,7 +18,7 @@ Instead of hacking into complex AI prompt loops, you can simply leverage our rob
 3. **Registration**: Simply drop your new skill directory into the `packages/core/src/system/skills` or `packages/core/src/web3/skills` folder, and the dynamic Skill Extractor will automatically parse and register it on boot.
 
 > [!TIP]
-> For an in-depth tutorial on crafting plugins, please refer to the [Creating Custom Plugins](./custom-plugins) guide.
+> For an in-depth tutorial on crafting plugins, please refer to the [Creating Custom Plugins](/plugins/custom-plugins) guide.
 
 ---
 

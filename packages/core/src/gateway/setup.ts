@@ -32,8 +32,8 @@ export async function runSetupWizard() {
 `Nyxora is a Web3 Assistant that operates with full access under your control.
 
 Critical Precautions:
-- Your Private Key is the lifeblood of your assets. NEVER copy or share the keystore.json file.
-- Any instructions you provide via Telegram or Dashboard can trigger on-chain transactions.
+- Your Private Key is the lifeblood of your assets. NEVER copy or share your vault.key file or OS Keyring password.
+- Any instructions you provide via Telegram, Discord, or the Dashboard can trigger on-chain transactions.
 - It is recommended to use a smart AI model for maximum accuracy.
 
 By using Nyxora, you retain full control over your own keys.`;
@@ -311,6 +311,7 @@ Provider: ${config.llm.provider}`;
     message: '💬 Select Integration Channels to enable:',
     options: [
       { value: 'telegram', label: 'Telegram Bot', hint: 'Requires Token' },
+      { value: 'discord', label: 'Discord Bot', hint: 'Requires Token' },
       { value: 'dashboard', label: 'Local Web Dashboard', hint: 'enabled by default' },
     ],
     initialValues: ['dashboard'],
@@ -417,6 +418,15 @@ Provider: ${config.llm.provider}`;
     }
   }
 
+  const setupDiscord = activeChannels.includes('discord');
+  let discordToken = '';
+  if (setupDiscord) {
+    discordToken = (await password({
+      message: 'Enter Discord Bot Token (Leave empty if already set):',
+    })) as string;
+    if (isCancel(discordToken)) return process.exit(0);
+  }
+
 
 
   // --- SAVING ---
@@ -468,6 +478,12 @@ Provider: ${config.llm.provider}`;
     config.integrations.telegram.authorized_chat_id = authorizedChatId;
   } else if (config.integrations.telegram) {
     delete config.integrations.telegram.authorized_chat_id;
+  }
+
+  if (!config.integrations.discord) config.integrations.discord = { enabled: false };
+  config.integrations.discord.enabled = setupDiscord as boolean;
+  if (setupDiscord && discordToken) {
+    config.integrations.discord.bot_token = discordToken as string;
   }
 
   saveConfig(config);

@@ -11,10 +11,10 @@ hero:
   actions:
     - theme: brand
       text: Launch Agent
-      link: /guide/introduction
+      link: /docs
     - theme: alt
       text: Explore Runtime
-      link: /guide/architecture
+      link: /architecture
 
 features:
   - title: 🏛️ 3-Tier IPC Architecture
@@ -28,7 +28,7 @@ features:
   - title: 🤖 Multi-LLM Support
     details: Easily switch between Gemini, Anthropic, OpenAI, OpenRouter, Ollama, Groq, Mistral, xAI, and DeepSeek, including support for custom model inputs.
   - title: 🧠 Dialectic User Modeling
-    details: The internal Honcho Daemon continuously audits chat history to extract and adapt to your trading persona and risk tolerance dynamically.
+    details: The internal Nyx Daemon continuously audits chat history to extract and adapt to your trading persona and risk tolerance dynamically.
   - title: 🧩 Autonomous Skill Synthesizing
     details: Tell the AI to learn a new workflow, and it will autonomously write and save a custom modular plugin following the agentskills.io standard.
   - title: 🔌 Universal MCP Server
@@ -105,7 +105,7 @@ features:
     </div>
     <div class="why-card">
       <h3>🧠 Dialectic User Modeling</h3>
-      <p>Nyxora quietly extracts and learns your Web3 habits in the background. The asynchronous <b>Honcho Daemon</b> continuously audits your chat history to extract your persona and save it to <code>episodic.db</code>, drastically minimizing repetitive user instructions.</p>
+      <p>Nyxora quietly extracts and learns your Web3 habits in the background. The asynchronous <b>Nyx Daemon</b> continuously audits your chat history to extract your persona and save it to <code>episodic.db</code>, drastically minimizing repetitive user instructions.</p>
     </div>
     <div class="why-card">
       <h3>🧩 agentskills.io Standard</h3>

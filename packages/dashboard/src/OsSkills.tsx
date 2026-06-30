@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, Twitter, Layout, Mic, AlignLeft, Scissors } from 'lucide-react';
+import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, MessageCircle, Layout, Mic, AlignLeft, Scissors } from 'lucide-react';
 
 interface SkillParam {
   type: string;
@@ -52,7 +52,7 @@ const getSkillIcon = (skillName: string, isActive: boolean) => {
     case 'read google form responses': return <ClipboardList size={size} color={color} />;
     case 'edit local file': return <Scissors size={size} color={color} />;
     case 'execute git command': return <GitBranch size={size} color={color} />;
-    case 'manage twitter': return <Twitter size={size} color={color} />;
+    case 'manage twitter': return <MessageCircle size={size} color={color} />;
     case 'manage notion': return <Layout size={size} color={color} />;
     case 'transcribe audio': return <Mic size={size} color={color} />;
     case 'summarize text': return <AlignLeft size={size} color={color} />;

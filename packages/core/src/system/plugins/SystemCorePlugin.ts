@@ -9,7 +9,7 @@ import { forgetMemoryToolDefinition, forgetMemory } from '../skills/forgetMemory
 export class SystemCorePlugin implements Plugin {
   public name = 'SystemCorePlugin';
   public description = 'Core system identity, profile, and task scheduling operations.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     updateProfileToolDefinition,

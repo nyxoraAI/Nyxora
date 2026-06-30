@@ -1,7 +1,7 @@
 {
   "name": "nyxora-dashboard",
   "private": true,
-  "version": "26.7.2-alpha.1",
+  "version": "26.7.2-alpha.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,18 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "lucide-react": "^0.474.0",
+    "lucide-react": "^1.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "viem": "^2.51.0"
+    "viem": "^2.53.1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^6.0.2",
-    "globals": "^17.6.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.16"
+    "@types/node": "^26.0.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.3",
+    "globals": "^17.7.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.1.0"
   }
 }

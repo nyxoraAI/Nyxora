@@ -164,3 +164,23 @@
   margin-top: 24px;
   opacity: 0.6;
 }
+
+/* Light Theme Overrides */
+body.light-theme .login-card {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme .login-card-header {
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom-color: var(--glass-border);
+}
+
+body.light-theme .login-input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-theme .login-button {
+  color: #ffffff;
+}

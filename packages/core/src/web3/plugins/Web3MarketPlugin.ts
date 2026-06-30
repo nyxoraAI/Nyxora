@@ -89,7 +89,7 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
 
 export class Web3MarketPlugin implements Plugin {
   public name = 'MarketAnalysis';
-  public version = '1.0.0';
+  public version = '1.0.1';
   public description = 'Provides deep market intelligence and analysis for Web3 assets.';
 
   public tools = [

@@ -22,7 +22,10 @@ export class ArbitrumBridgeProvider implements DefiAggregatorProvider {
   }
 
   public supports(request: QuoteRequest): boolean {
-    if (request.fromChain !== 'sepolia' || request.toChain !== 'arbitrum_sepolia') return false;
+    const isL1ToL2 = request.fromChain === 'sepolia' && request.toChain === 'arbitrum_sepolia';
+    const isL2ToL1 = request.toChain === 'sepolia' && request.fromChain === 'arbitrum_sepolia';
+    
+    if (!isL1ToL2 && !isL2ToL1) return false;
     
     const isNative = request.fromToken.toLowerCase() === 'eth' || 
                      request.fromToken.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' || 
@@ -32,29 +35,45 @@ export class ArbitrumBridgeProvider implements DefiAggregatorProvider {
   }
 
   public async getQuote(request: QuoteRequest, context: ProviderExecutionContext): Promise<CanonicalRouteQuote> {
-    const inboxAddress = '0xaAe29B0366299461418F5324a79Afc425BE5ae21';
+    const isL1ToL2 = request.fromChain === 'sepolia';
     
-    const depositEthAbi = parseAbi(['function depositEth() payable returns (uint256)']);
-    const callData = encodeFunctionData({
-      abi: depositEthAbi,
-      functionName: 'depositEth'
-    });
+    let targetAddress: string;
+    let callData: string;
+    
+    if (isL1ToL2) {
+      targetAddress = '0xaAe29B0366299461418F5324a79Afc425BE5ae21'; // Delayed Inbox
+      const depositEthAbi = parseAbi(['function depositEth() payable returns (uint256)']);
+      callData = encodeFunctionData({
+        abi: depositEthAbi,
+        functionName: 'depositEth'
+      });
+    } else {
+      targetAddress = '0x0000000000000000000000000000000000000064'; // ArbSys precompile
+      const withdrawEthAbi = parseAbi(['function withdrawEth(address destination) payable returns (uint256)']);
+      callData = encodeFunctionData({
+        abi: withdrawEthAbi,
+        functionName: 'withdrawEth',
+        args: [request.userAddress as `0x${string}`]
+      });
+    }
+
+    const note = isL1ToL2 ? '100% Real L1->L2 Bridge Transaction via Arbitrum Delayed Inbox' : 'Arbitrum ArbSys L2->L1 Withdrawal (Requires ~7 day challenge period)';
 
     return {
       provider: this.manifest.name,
       routeId: `arb-bridge-${crypto.randomUUID()}`,
-      fromChainId: 11155111, // Sepolia
-      toChainId: 421614,     // Arb Sepolia
+      fromChainId: isL1ToL2 ? 11155111 : 421614,
+      toChainId: isL1ToL2 ? 421614 : 11155111,
       inputAmount: BigInt(request.amountInWei),
       outputAmount: BigInt(request.amountInWei), // 1:1 on official bridge
       executable: true,
       expiresAt: Date.now() + 86400000, // Valid for a long time as it's a fixed contract call
       execution: {
-        target: inboxAddress,
+        target: targetAddress,
         calldata: callData,
         value: BigInt(request.amountInWei)
       },
-      raw: { note: '100% Real L1->L2 Bridge Transaction via Arbitrum Delayed Inbox' }
+      raw: { note }
     };
   }
 

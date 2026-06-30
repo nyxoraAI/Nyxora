@@ -21,7 +21,7 @@ This directory contains all the main engines that power Nyxora:
 
 ## 3. Runtime Configuration Files
 These files are not committed to the Git repository. They are dynamically generated at runtime and securely stored in your local data directory (e.g., `~/.nyxora/`):
-*   **`~/.nyxora/config/episodic.db`:** The local SQLite database where the Honcho Daemon securely stores user personas, chat history (short-term/long-term memory), and contract address whitelists.
+*   **`~/.nyxora/config/episodic.db`:** The local SQLite database where the Nyx Daemon securely stores user personas, chat history (short-term/long-term memory), and contract address whitelists.
 *   **`~/.nyxora/config/policy.yaml`:** The rigid configuration file for the NLP Security Policy.
 *   **`~/.nyxora/config/disabled_skills.json`:** A state file generated if you opt to disable Web3 capabilities (Pure Assistant Mode).
 *   **`~/.nyxora/skills/`:** The directory where your custom AI-generated or community-downloaded `agentskills.io` modular skills are stored.

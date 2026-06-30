@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { getPath } from '../config/paths';
+import { logger } from '../memory/logger';
 
 export type TransactionType = 'transfer' | 'swap' | 'bridge' | 'mint' | 'custom' | 'approve' | 'revokeApproval' | 'aaveSupply' | 'vaultDeposit' | 'univ3Mint' | 'limit_order';
 
@@ -31,32 +32,39 @@ export interface PendingWithdrawal {
 }
 
 class TransactionManager {
-  private transactions: Map<string, PendingTransaction> = new Map();
-  private withdrawals: Map<string, PendingWithdrawal> = new Map();
-  private dbPath: string;
+  private activePromises: Set<Promise<any>> = new Set();
 
   constructor() {
-    this.dbPath = getPath('.nyxora_withdrawals.json');
-    this.loadWithdrawals();
+    // Migration: if .nyxora_withdrawals.json exists, we could migrate it, but the plan says we can ignore/leave it.
+    // However, a simple migration log is fine if we want to be safe.
   }
 
-  private loadWithdrawals() {
-    if (fs.existsSync(this.dbPath)) {
-      try {
-        const data = fs.readFileSync(this.dbPath, 'utf8');
-        const parsed = JSON.parse(data) as PendingWithdrawal[];
-        parsed.forEach(w => this.withdrawals.set(w.id, w));
-      } catch (e) {
-        console.error("Failed to load withdrawals DB:", e);
-      }
+  // --- PROMISE TRACKING (For Graceful Shutdown) ---
+  public trackPromise(promise: Promise<any>) {
+    this.activePromises.add(promise);
+    promise.finally(() => {
+      this.activePromises.delete(promise);
+    });
+  }
+
+  public async waitForAll(timeoutMs: number = 10000) {
+    if (this.activePromises.size === 0) return;
+    console.log(`[TransactionManager] Waiting for ${this.activePromises.size} active Web3 transactions to finish...`);
+    
+    const timeout = new Promise(resolve => setTimeout(resolve, timeoutMs));
+    await Promise.race([
+      Promise.allSettled(Array.from(this.activePromises)),
+      timeout
+    ]);
+    
+    if (this.activePromises.size > 0) {
+      console.log(`[TransactionManager] Warning: ${this.activePromises.size} transactions did not finish in time.`);
+    } else {
+      console.log(`[TransactionManager] All transactions finished cleanly.`);
     }
   }
 
-  private saveWithdrawals() {
-    const data = Array.from(this.withdrawals.values());
-    fs.writeFileSync(this.dbPath, JSON.stringify(data, null, 2));
-  }
-
+  // --- TRANSACTIONS (SQLite) ---
   createPendingTransaction(type: TransactionType, chainName: string, details: any): PendingTransaction {
     const id = crypto.randomUUID();
     const nonce = crypto.randomBytes(16).toString('hex');
@@ -69,27 +77,28 @@ class TransactionManager {
       createdAt: Date.now(),
       nonce,
     };
-    this.transactions.set(id, tx);
+    logger.savePendingTransaction(tx);
     return tx;
   }
 
   getPending(): PendingTransaction[] {
-    return Array.from(this.transactions.values()).filter(t => t.status === 'pending');
+    return logger.getPendingTransactions();
   }
 
   getTransaction(id: string): PendingTransaction | undefined {
-    return this.transactions.get(id);
+    return logger.getTransaction(id);
   }
 
   updateStatus(id: string, status: PendingTransaction['status'], result?: string) {
-    const tx = this.transactions.get(id);
+    const tx = logger.getTransaction(id);
     if (tx) {
       tx.status = status;
       if (result) tx.result = result;
+      logger.savePendingTransaction(tx);
     }
   }
 
-  // --- WITHDRAWAL LOGIC ---
+  // --- WITHDRAWALS (SQLite) ---
   createPendingWithdrawal(data: Omit<PendingWithdrawal, 'id' | 'status' | 'createdAt'>): PendingWithdrawal {
     const id = crypto.randomUUID();
     const withdrawal: PendingWithdrawal = {
@@ -98,20 +107,19 @@ class TransactionManager {
       status: 'WAITING_FOR_CHALLENGE',
       createdAt: Date.now()
     };
-    this.withdrawals.set(id, withdrawal);
-    this.saveWithdrawals();
+    logger.savePendingWithdrawal(withdrawal);
     return withdrawal;
   }
 
   getPendingWithdrawals(): PendingWithdrawal[] {
-    return Array.from(this.withdrawals.values()).filter(w => w.status !== 'COMPLETED');
+    return logger.getPendingWithdrawals();
   }
 
   updateWithdrawalStatus(id: string, status: WithdrawalStatus) {
-    const w = this.withdrawals.get(id);
+    const w = logger.getPendingWithdrawals().find(x => x.id === id);
     if (w) {
       w.status = status;
-      this.saveWithdrawals();
+      logger.savePendingWithdrawal(w);
     }
   }
 }

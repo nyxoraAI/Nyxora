@@ -8,7 +8,7 @@ import { audioTranscribeToolDefinition, transcribeAudio } from '../skills/audioT
 export class SystemWebPlugin implements Plugin {
   public name = 'SystemWebPlugin';
   public description = 'Web browsing, searching, and media analysis operations.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     browseWebsiteToolDefinition,

@@ -4,7 +4,7 @@ import { logger } from '../../agent/reasoning';
 
 export class CreateSkillPlugin implements Plugin {
   public name = 'CreateSkill';
-  public version = '1.0.0';
+  public version = '1.0.1';
   public description = 'Autonomously extracts and creates skills for Nyxora.';
 
   public tools = [

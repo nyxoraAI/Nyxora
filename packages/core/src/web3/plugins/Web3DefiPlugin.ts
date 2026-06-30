@@ -15,7 +15,7 @@ import { confirmPendingTxToolDefinition, confirmPendingTx } from '../skills/conf
 export class Web3DefiPlugin implements Plugin {
   public name = 'Web3DefiPlugin';
   public description = 'Core DeFi operations including balance checking, portfolio analysis, and token swapping.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     getBalanceToolDefinition,

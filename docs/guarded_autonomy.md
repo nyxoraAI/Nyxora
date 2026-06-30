@@ -7,7 +7,7 @@ This document outlines the conceptual blueprint of Nyxora's **"Guarded Autonomy"
 ## 1. Policy Engine Expansion (Risk Management)
 
 The policy configuration acts as the ultimate risk control center for the system. Instead of simple on/off switches, it defines:
-- **User Risk Profiles:** Tolerances for maximum allowed slippage and customized Natural Language (NLP) Rules. These are now dynamically shaped and updated by the asynchronous **Honcho Daemon** based on your conversational history, ensuring the AI's boundaries adapt securely to your changing behavior without manual file edits.
+- **User Risk Profiles:** Tolerances for maximum allowed slippage and customized Natural Language (NLP) Rules. These are now dynamically shaped and updated by the asynchronous **Nyx Daemon** based on your conversational history, ensuring the AI's boundaries adapt securely to your changing behavior without manual file edits.
 - **Strict Trading Criteria:** User-defined rules (e.g., "Never buy a token if liquidity is below $10,000") that the LLM must obey before attempting to draft a transaction.
 - **Guarded Autonomy (Auto-Approve Limits):** A mechanism that allows the agent to auto-execute small micro-trades instantly, while larger or sensitive transactions are automatically held back for explicit human approval via the Dashboard UI.
 

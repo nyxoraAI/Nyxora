@@ -7,7 +7,7 @@ import { checkRegistryStatusToolDefinition, checkRegistryStatus } from '../skill
 export class Web3SecurityPlugin implements Plugin {
   public name = 'Web3SecurityPlugin';
   public description = 'Security, analysis, and safety registry operations.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     checkSecurityToolDefinition,

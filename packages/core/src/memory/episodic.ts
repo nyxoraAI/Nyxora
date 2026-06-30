@@ -120,7 +120,7 @@ export class EpisodicMemoryDB {
   }
 
   // --- PERSONA MODELING ---
-  public updatePersonaTrait(trait: string, confidence: number = 0.5, source: string = 'honcho'): void {
+  public updatePersonaTrait(trait: string, confidence: number = 0.5, source: string = 'nyx_daemon'): void {
     const existing = this.db.prepare('SELECT id, confidence FROM user_personas WHERE trait = ?').get(trait) as any;
     
     if (existing) {

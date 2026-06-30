@@ -4,19 +4,22 @@ Under the hood, Nyxora's memory system is powered by a robust architecture desig
 
 ## Dialectic User Modeling (The Memory Engine)
 
-With the latest architecture upgrade, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `honchoDaemon.ts`.
+With the latest architecture upgrade, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `nyxDaemon.ts`.
 
 ### 1. Layer 1: Session Memory (Short-Term)
 The standard conversational context buffer. It tracks recent dialogue to maintain conversational flow and is inherently volatile.
 
 ### 2. Layer 2: Episodic Memory & Persona (`episodic.db`)
-A local SQLite database where the **Honcho Daemon** stores extracted persona traits and historical episodes. Instead of blindly trusting raw data, the daemon runs continuously in the background to audit your chat history. It extracts:
+A local SQLite database where the **Nyx Daemon** stores extracted persona traits and historical episodes. Instead of blindly trusting raw data, the daemon runs continuously in the background to audit your chat history. It extracts:
 - Trading style (e.g., Degen, Conservative)
 - Risk tolerance
 - Network/Chain preferences
 - Stylistic/Tone preferences
 
 These traits are stored securely in the `user_personas` table within `episodic.db`.
+
+### 2.5 Layer 2b: Transactional Memory (`memory.db`)
+Strictly separated from the AI's episodic persona is the **Transactional Memory**. Powered by a dedicated SQLite database (`memory.db`), this layer ensures that all floating Web3 operations—such as pending swaps or Layer 2 bridging withdrawals—are persistently tracked. It replaces outdated RAM-maps and JSON files, granting Nyxora the ability to flawlessly resume interrupted blockchain operations across sudden reboots.
 
 ### 3. Layer 3: Dynamic System Injection
 There is no manual `user.md` profile to edit anymore. The reasoning engine (`reasoning.ts`) dynamically queries `episodic.db` upon every interaction, pulling the most relevant persona traits and injecting them directly into the System Prompt. This guarantees that the LLM System Prompt remains lightweight and highly personalized.
@@ -31,10 +34,10 @@ We operate under a **Zero-Trust** paradigm. We do not rely on LLM System Prompts
 Before any candidate memory touches the SQLite database, it must pass a strict RegExp-based **Hard-Coded Validator**. This physical code barrier autonomously intercepts and annihilates patterns resembling EVM Private Keys, Telegram Bot Tokens, and `"system override"` commands.
 
 ### Air-Gapped Keyring Isolation
-The Honcho Daemon is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
+The Nyx Daemon is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
 
 ### Persistent Background Reflection
-The persona extraction process operates asynchronously in the background (`honchoDaemon.ts`) to guarantee zero impact on chat latency. 
+The persona extraction process operates asynchronously in the background (`nyxDaemon.ts`) to guarantee zero impact on chat latency. 
 
 <br>
 
@@ -59,7 +62,7 @@ Nyxora instantly registers that reprimand as a **Persona Trait**. Moving forward
 ## 3. Background Processing During Idle Time
 Have you ever had a long conversation with an AI assistant, only for it to suffer amnesia and forget everything the moment you restart your laptop? 
 
-Nyxora does not suffer from amnesia. When you finish chatting, the Honcho Daemon quietly reflects and transcribes the essence of your conversation into its SQLite "Permanent Notebook." Tomorrow, or even next month, when you boot up your laptop, it still remembers exactly who you are and what you prefer.
+Nyxora does not suffer from amnesia. When you finish chatting, the Nyx Daemon quietly reflects and transcribes the essence of your conversation into its SQLite "Permanent Notebook." Tomorrow, or even next month, when you boot up your laptop, it still remembers exactly who you are and what you prefer.
 
 ## 4. God-Tier Security (The Vault vs. The Notebook)
 You might be worried: *"If the AI gets too smart and remembers everything, could it steal my funds?"*

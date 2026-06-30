@@ -1,7 +1,65 @@
 import { defineConfig } from 'vitepress'
 
+const globalSidebar = [
+  {
+    text: 'Introduction',
+    items: [
+      { text: 'Overview', link: '/' },
+      { text: 'Getting Started', link: '/docs' },
+      { text: 'Installation Guide', link: '/installation' },
+      { text: 'Nyxora Ecosystem', link: '/ecosystem' }
+    ]
+  },
+  {
+    text: 'Developer & Architecture',
+    items: [
+      { text: 'Technical Architecture', link: '/architecture' },
+      { text: 'Cross-Chain Routing', link: '/bridge-routing' },
+      { text: 'Codebase Structure', link: '/structure' },
+      { text: 'Contributing Guide', link: '/contributing' },
+      { text: 'Guarded Autonomy', link: '/guarded_autonomy' },
+      { text: 'Memory Architecture', link: '/memory-architecture' },
+      { text: 'Nyxora Next Update', link: '/roadmap' }
+    ]
+  },
+  {
+    text: 'Core Capabilities',
+    items: [
+      { text: 'Native Skills', link: '/native' },
+      { text: 'Market Intelligence', link: '/market-intelligence' },
+      { text: 'Web Search & Deep Research', link: '/web-search' },
+      { text: 'Google Workspace MVP', link: '/google-workspace' },
+      { text: 'DeFi Configuration', link: '/defi-config' },
+      { text: 'Market Oracles', link: '/market-oracles' },
+      { text: 'Understanding Slippage', link: '/slippage' },
+      { text: 'Chain Specifics', link: '/chains' },
+      { text: 'Custom RPC Configuration', link: '/rpc' },
+      { text: 'Etherscan API V2 Key', link: '/etherscan' },
+      { text: 'NLP Security Policy', link: '/nlp' }
+    ]
+  },
+  {
+    text: 'Operations & Security',
+    items: [
+      { text: 'Base Smart Contract', link: '/smart-contract' },
+      { text: 'Wallet Import Guide', link: '/wallet_import' },
+      { text: 'OS-Native Keyring Vault', link: '/vault' },
+      { text: 'Policy Engine', link: '/sandbox' },
+      { text: 'Analytics Dashboard', link: '/dashboard' },
+      { text: 'Troubleshooting', link: '/troubleshooting' }
+    ]
+  },
+  {
+    text: 'Legal',
+    items: [
+      { text: 'Privacy Policy', link: '/privacy' },
+      { text: 'Terms of Service', link: '/terms' }
+    ]
+  }
+];
+
 export default defineConfig({
-  title: "Nyxora",
+  title: "Nyxora Protocol",
   description: "Secure AI execution framework for Web3 agents",
   base: '/Nyxora/',
   head: [
@@ -21,74 +79,65 @@ export default defineConfig({
     ]
   ],
   themeConfig: {
+    search: {
+      provider: 'local'
+    },
     logo: '/favicon.svg',
     nav: [
-      { text: '🏠 Home', link: '/' },
-      { text: '📖 Guide', link: '/guide/introduction' }
+      { text: 'Home', link: '/' },
+      { text: 'Docs', link: '/docs', activeMatch: '^/(?!$|index\\.html|cli/|mcp/|plugins/|sdk/)' },
+      { text: 'CLI Reference', link: '/cli/', activeMatch: '^/cli/' },
+      { text: 'MCP', link: '/mcp/', activeMatch: '^/mcp/' },
+      { text: 'Plugin Registry', link: '/plugins/', activeMatch: '^/plugins/' },
+      { text: 'Nyxora SDK', link: '/sdk/', activeMatch: '^/sdk/' }
     ],
 
-    sidebar: [
-      {
-        text: '👋 Introduction',
-        items: [
-          { text: '🌟 Overview', link: '/' },
-          { text: '🚀 Getting Started', link: '/guide/introduction' },
-          { text: '📦 Installation Guide', link: '/guide/installation' },
-          { text: '💻 CLI Reference', link: '/guide/cli-reference' },
-          { text: '🌍 Nyxora Ecosystem', link: '/guide/ecosystem' }
-        ]
-      },
-      {
-        text: '🛠️ Developer & Architecture',
-        items: [
-          { text: '🏗️ Technical Architecture', link: '/guide/architecture' },
-          { text: '🧩 Creating Custom Plugins', link: '/guide/custom-plugins' },
-          { text: '🔌 Custom DeFi Providers', link: '/guide/custom-defi-providers' },
-          { text: '🌉 Cross-Chain Routing', link: '/guide/bridge-routing' },
-          { text: '📂 Codebase Structure', link: '/guide/structure' },
-          { text: '🤝 Contributing Guide', link: '/guide/contributing' },
-          { text: '🤖 MCP Integration Guide', link: '/guide/mcp-integration' },
-          { text: '🧠 Guarded Autonomy', link: '/guide/guarded_autonomy' },
-          { text: '💾 Memory Architecture', link: '/guide/memory-architecture' },
-          { text: '🔮 Nyxora Next Update', link: '/guide/roadmap' }
-        ]
-      },
-      {
-        text: '⚡ Core Capabilities',
-        items: [
-          { text: '🛠️ Native Skills', link: '/skills/native' },
-          { text: '📈 Market Intelligence', link: '/skills/market-intelligence' },
-          { text: '🔍 Web Search & Deep Research', link: '/skills/web-search' },
-          { text: '☁️ Google Workspace MVP', link: '/skills/google-workspace' },
-
-          { text: '⚙️ DeFi Configuration', link: '/skills/defi-config' },
-          { text: '🔮 Market Oracles', link: '/skills/market-oracles' },
-          { text: '📉 Understanding Slippage', link: '/skills/slippage' },
-          { text: '🔗 Chain Specifics', link: '/skills/chains' },
-          { text: '📡 Custom RPC Configuration', link: '/skills/rpc' },
-          { text: '🔑 Etherscan API V2 Key', link: '/skills/etherscan' },
-          { text: '🔒 NLP Security Policy', link: '/skills/nlp' }
-        ]
-      },
-      {
-        text: '🛡️ Operations & Security',
-        items: [
-          { text: '📜 Base Smart Contract', link: '/security/smart-contract' },
-          { text: '👛 Wallet Import Guide', link: '/security/wallet_import' },
-          { text: '🔐 OS-Native Keyring Vault', link: '/security/vault' },
-          { text: '👮 Policy Engine', link: '/security/sandbox' },
-          { text: '📊 Analytics Dashboard', link: '/security/dashboard' },
-          { text: '🩺 Troubleshooting', link: '/security/troubleshooting' }
-        ]
-      },
-      {
-        text: '⚖️ Legal',
-        items: [
-          { text: '🕵️ Privacy Policy', link: '/privacy' },
-          { text: '📝 Terms of Service', link: '/terms' }
-        ]
-      }
-    ],
+    sidebar: {
+      '/sdk/': [
+        {
+          text: 'Nyxora SDK Framework',
+          items: [
+            { text: 'Overview & Architecture', link: '/sdk/' },
+            { text: 'Umbrella Package', link: '/sdk/umbrella' },
+            { text: 'Core SDK', link: '/sdk/core' },
+            { text: 'Policy SDK', link: '/sdk/policy' },
+            { text: 'Signer SDK', link: '/sdk/signer' }
+          ]
+        }
+      ],
+      '/plugins/': [
+        {
+          text: 'Plugin Registry',
+          items: [
+            { text: 'System Overview', link: '/plugins/' },
+            { text: 'Creating Custom Plugins', link: '/plugins/custom-plugins' },
+            { text: 'Custom DeFi Providers', link: '/plugins/defi-providers' }
+          ]
+        }
+      ],
+      '/cli/': [
+        {
+          text: 'CLI Reference',
+          items: [
+            { text: 'Overview & Flags', link: '/cli/' },
+            { text: 'Daemon & Interface', link: '/cli/daemon' },
+            { text: 'Setup & Diagnostics', link: '/cli/setup' }
+          ]
+        }
+      ],
+      '/mcp/': [
+        {
+          text: 'MCP Integration',
+          items: [
+            { text: 'Overview & Setup', link: '/mcp/' },
+            { text: 'Claude Desktop', link: '/mcp/claude' },
+            { text: 'Cursor IDE', link: '/mcp/cursor' },
+            { text: 'Available Capabilities', link: '/mcp/capabilities' }
+          ]
+        }
+      ],
+      '/': globalSidebar
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/nyxoraAI/Nyxora' },

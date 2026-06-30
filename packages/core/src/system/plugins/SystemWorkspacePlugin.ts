@@ -10,7 +10,7 @@ import { createCognitiveSkillToolDefinition, createCognitiveSkill } from '../ski
 export class SystemWorkspacePlugin implements Plugin {
   public name = 'SystemWorkspacePlugin';
   public description = 'Local system operations including file management, terminal execution, and Git.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     readLocalFileToolDefinition,

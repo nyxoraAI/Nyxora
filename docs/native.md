@@ -16,7 +16,7 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 > **Pure Assistant Mode:** If you do not wish to use Web3 features, you can opt out during `nyxora setup`. This cleanly disables all Wallet, DEX, and Blockchain functionality, turning Nyxora into a lightweight OS/Coding assistant.
 
 ### Wallet & Key Management
-*   **Secure Signing:** The AI does not hold your private keys in its memory. It generates a cryptographic payload and requests the [OS-Native Keyring Vault](/security/vault) to sign the transaction. 
+*   **Secure Signing:** The AI does not hold your private keys in its memory. It generates a cryptographic payload and requests the [OS-Native Keyring Vault](/vault) to sign the transaction. 
 *   **Address Awareness:** The AI always knows its own public address (`Agent Address`) and the currently active network (e.g., Ethereum Mainnet, Base, Sepolia).
 
 ### Portfolio & Balance Tracking
@@ -74,8 +74,8 @@ These skills are loaded natively from the core engine via `packages/core/src/sys
 
 ## 3. Autonomous Skill & Persona Engine
 
-### Dialectic User Modeling (Honcho Daemon)
-The days of manually editing a `user.md` file are over. Nyxora now runs an asynchronous **Honcho Daemon** in the background. It continuously audits your conversational history to infer your trading style, risk tolerance, and tone preferences. These are securely saved to your local `episodic.db` and dynamically injected into the AI's reasoning engine in real-time.
+### Dialectic User Modeling (Nyx Daemon)
+The days of manually editing a `user.md` file are over. Nyxora now runs an asynchronous **Nyx Daemon** in the background. It continuously audits your conversational history to infer your trading style, risk tolerance, and tone preferences. These are securely saved to your local `episodic.db` and dynamically injected into the AI's reasoning engine in real-time.
 
 ### Autonomous Skill Synthesizing
 Nyxora possesses the meta-ability to expand its own capabilities via `skillExtractor.ts`.

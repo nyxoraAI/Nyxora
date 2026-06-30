@@ -3,7 +3,15 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [26.7.2-alpha.2]
+- **Core Stability & Graceful Shutdown**: Engineered a robust `Graceful Shutdown` hook in the Gateway API (`server.ts`) to actively track floating Web3 transaction promises. Nyxora now intelligently waits up to 10 seconds for on-chain transactions to finalize before shutting down, completely eradicating dangling transactions and fund loss during SIGINT/SIGTERM.
+- **SQLite Transaction Persistence**: Overhauled `transactionManager.ts` to migrate away from volatile RAM Maps and JSON files (`.nyxora_withdrawals.json`). All pending transactions and L2 withdrawals are now persistently written to `memory.db` via `logger.ts`, guaranteeing 100% state recovery and ACID compliance across sudden power losses or daemon reboots.
+- **Atomic File Operations**: Fortified configuration write operations (`config.yaml` and Google Credentials) in `parser.ts` using OS-level atomic renames (`fs.renameSync`). This mechanically eliminates the possibility of 0-byte file corruption during sudden server crashes.
+- **Unified Message Bus (Multi-Platform Integration)**: Radically expanded Nyxora's gateway architecture beyond Telegram and the Web Dashboard. Successfully engineered and deployed a unified multi-platform message bus:
+  - **Discord Integration**: Engineered `discordAdapter.ts` using `discord.js` to allow Nyxora to natively join Discord servers, intercept mentions, and stream Markdown-rich responses via WebSockets in real-time.
+  - **Multi-Identity Tracking**: Overhauled the core `logger.ts` memory architecture to persistently track user dialects across multiple platforms by dynamically segmenting SQLite session IDs (`discord_<id>`, `telegram_<id>`).
+- **Light Theme Login Readability**: Resolved a severe contrast issue on the Dashboard Login screen. In Light Mode, the dark text was practically invisible against the hardcoded dark card. Appended strict `body.light-theme` overrides in `Login.css` to seamlessly transition the card into a readable "glass" background without polluting or breaking the existing Dark Mode aesthetics.
+- **Background Daemon Identity Integration**: Officially formalized the naming convention of the Dialectic User Modeling background process to **Nyx Daemon**. Realigned all core TypeScript files (`nyxDaemon.ts`), internal system logging prefixes, and public documentation to reflect this unified system identity, ensuring a seamless aesthetic and conceptual integration with the broader Nyxora ecosystem.
 
 ## [26.7.2-alpha.1]
 ### Security & Architecture

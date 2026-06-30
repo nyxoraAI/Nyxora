@@ -22,7 +22,7 @@ const installPluginDefinition = {
 export class SystemPluginInstallerPlugin implements Plugin {
   public name = 'SystemPluginInstallerPlugin';
   public description = 'Autonomous package manager for installing and auto-healing dynamic plugins.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [installPluginDefinition];
 

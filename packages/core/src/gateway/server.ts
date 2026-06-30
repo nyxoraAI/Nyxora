@@ -52,6 +52,7 @@ import { executeCustomTx } from '../web3/skills/customTx';
 import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { startTelegramBot } from './telegram';
+import { startDiscordBot } from './discordAdapter';
 import { startBridgeWatcher } from '../agent/bridgeWatcher';
 import { eventListener } from '../web3/eventListener';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
@@ -60,16 +61,19 @@ import { generatePrivacyPolicyHtml, generateTosHtml } from './legalGenerator';
 import { episodicDB } from '../memory/episodic';
 import { ReflectionEngine } from '../memory/reflection';
 
-import { honchoDaemon } from '../agent/honchoDaemon';
+import { nyxDaemon } from '../agent/nyxDaemon';
 
 // Initialize Google Auth
 initGoogleAuth();
 
-// Start Background Honcho Daemon
-honchoDaemon.start();
+// Start Background Nyx Daemon
+nyxDaemon.start();
 
 // Synchronize all active skills to config.yaml on startup
 syncAllSkillsToConfig();
+
+// Start messaging adapters
+startDiscordBot();
 
 import util from 'util';
 
@@ -198,7 +202,9 @@ app.post('/api/upload-google-credentials', (req, res) => {
     // The format needs to wrap it in "web" or "installed"
     const finalPayload = credentials.client_id ? { installed: credentials } : credentials;
     
-    fs.writeFileSync(credsPath, JSON.stringify(finalPayload, null, 2));
+    const tempPath = credsPath + '.tmp.' + Date.now();
+    fs.writeFileSync(tempPath, JSON.stringify(finalPayload, null, 2));
+    fs.renameSync(tempPath, credsPath);
     
     // Re-initialize google auth module
     initGoogleAuth();
@@ -672,7 +678,7 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
     res.json({ success: true, status: 'processing', message: 'Transaction submitted to background processing.' });
 
     // Execute in background
-    (async () => {
+    const txPromise = (async () => {
       try {
         let result = '';
         if (tx.type === 'transfer') {
@@ -744,6 +750,8 @@ app.post('/api/transactions/:id/approve', async (req, res) => {
         logger.addEntry({ role: 'assistant', content: `❌ **Transaction Failed**\n\n${err.message}` }, sessionId);
       }
     })();
+    
+    txManager.trackPromise(txPromise);
   } catch (err: any) {
     txManager.updateStatus(req.params.id, 'failed', err.message);
     res.status(500).json({ error: err.message });
@@ -1241,10 +1249,13 @@ export async function startServer() {
   });
 
   let isShuttingDown = false;
-  const gracefulShutdown = () => {
+  const gracefulShutdown = async () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
     console.log('[Nyxora Gateway] Received shutdown signal. Closing server...');
+    
+    // Wait for active transactions
+    await txManager.waitForAll(10000);
     
     if (server.closeAllConnections) {
       server.closeAllConnections();

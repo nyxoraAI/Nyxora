@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.2-alpha.1",
+  "version": "26.7.2-alpha.2",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -48,7 +48,10 @@
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
     "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
-    "test": "npm run test --workspace=packages/core"
+    "test": "npm run test --workspace=packages/core",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

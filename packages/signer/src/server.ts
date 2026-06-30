@@ -1,15 +1,11 @@
-import { initSafeLogger } from '../../core/src/utils/safeLogger';
-import { loadConfig } from '../../core/src/config/parser';
-initSafeLogger();
+// Removed safeLogger for standalone SDK server wrapper
 
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import jwt from 'jsonwebtoken';
-import { privateKeyToAccount } from 'viem/accounts';
-import { createWalletClient, http, publicActions } from 'viem';
-import * as chains from 'viem/chains';
+import { NyxoraSigner } from './NyxoraSigner';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
@@ -33,69 +29,25 @@ try {
 const app = express();
 app.use(express.json());
 
-import { Entry } from '@napi-rs/keyring';
-
-let vaultPrivateKey: `0x${string}` | null = null;
-let vaultAddress: string | null = null;
-
-// Auto-unlock from OS Keyring or fallback .env
-async function loadPrivateKey() {
+// Simple local config parser to avoid depending on @nyxora/core
+function getLocalConfig() {
   try {
-    const entry = new Entry('nyxora', 'wallet');
-    const pk = await entry.getPassword();
-    if (pk) {
-      vaultPrivateKey = pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
-      const account = privateKeyToAccount(vaultPrivateKey);
-      vaultAddress = account.address;
-      console.log(`✅ [Signer] Vault unlocked securely from OS Keyring. Agent Address: ${vaultAddress}`);
-      return;
+    const p = path.join(os.homedir(), '.nyxora', 'config.json');
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
     }
-  } catch (e) {
-    console.warn(`⚠️ [Signer] OS Keyring failed (module mismatch or headless). Using fallback.`);
-  }
-
-  // Fallback to vault.key
-  const vaultPath = path.join(os.homedir(), '.nyxora', 'auth', 'vault.key');
-  if (fs.existsSync(vaultPath)) {
-    const stats = fs.statSync(vaultPath);
-    const mode = stats.mode & 0o777;
-    if (os.platform() !== 'win32' && mode !== 0o600) {
-      console.error(`\n======================================================`);
-      console.error(`FATAL: Insecure permissions detected on vault.key`);
-      console.error(`File permissions must be strictly 0600 (-rw-------)`);
-      console.error(`Current permissions: 0${mode.toString(8)}`);
-      console.error(`Refusing to start. Please run: chmod 600 ${vaultPath}`);
-      console.error(`======================================================\n`);
-      process.exit(1);
-    }
-
-    const content = fs.readFileSync(vaultPath, 'utf8');
-    const match = content.match(/PRIVATE_KEY=(.+)/);
-    if (match && match[1]) {
-      const pk = match[1].trim();
-      vaultPrivateKey = pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
-      const account = privateKeyToAccount(vaultPrivateKey);
-      vaultAddress = account.address;
-      console.log(`✅ [Signer] Vault unlocked from vault.key fallback. Agent Address: ${vaultAddress}`);
-    }
-  } else {
-    console.log(`❌ [Signer] No Private Key found in OS Keyring or vault.key. Web3 features will fail.`);
-  }
+  } catch (e) {}
+  return {};
 }
 
-// Load it immediately
-loadPrivateKey();
+// Initialize the SDK
+const config = getLocalConfig();
+const signer = new NyxoraSigner({
+  customRpcUrls: config.web3?.rpc_urls as Record<string, string | string[]>
+});
 
-// Nonce Management
-const nonceLocks: Record<number, Promise<void>> = {};
-const nonceCache: Record<number, number> = {};
-
-function getChain(chainName: string) {
-  const normalized = chainName.toLowerCase().replace(/_/g, '-');
-  const normalizedSpace = chainName.toLowerCase().replace(/_/g, ' ');
-  // @ts-ignore
-  return Object.values(chains).find(c => c.name.toLowerCase() === normalizedSpace || c.name.toLowerCase() === normalized || (c as any).network === normalized) || chains.mainnet;
-}
+// Unlock on startup
+signer.unlock().catch(console.error);
 
 app.use((req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -111,81 +63,21 @@ app.use((req, res, next) => {
 });
 
 app.get('/address', (req, res) => {
-  if (!vaultAddress) return res.status(403).json({ error: 'Vault is locked' });
-  res.json({ address: vaultAddress });
+  const address = signer.getAddress();
+  if (!address) return res.status(403).json({ error: 'Vault is locked' });
+  res.json({ address });
 });
 
 app.post('/sign-transaction', async (req, res) => {
   const { txPayload } = req.body;
-  if (!vaultPrivateKey) return res.status(403).json({ error: 'Vault is locked. Unlock first.' });
-  if (!txPayload || !txPayload.chainName) return res.status(400).json({ error: 'Invalid payload' });
-  
   try {
-     const account = privateKeyToAccount(vaultPrivateKey);
-     const chain = getChain(txPayload.chainName);
-     
-     const config = loadConfig();
-     const customRpcRaw = config.web3?.rpc_urls?.[txPayload.chainName.toLowerCase()];
-     let customRpc = undefined;
-     if (customRpcRaw) {
-       if (Array.isArray(customRpcRaw) && customRpcRaw.length > 0) customRpc = customRpcRaw[0];
-       else if (typeof customRpcRaw === 'string' && customRpcRaw.trim()) customRpc = customRpcRaw.trim();
-     }
-     
-     const client = createWalletClient({ account, chain, transport: http(customRpc, { timeout: 15000 }) }).extend(publicActions);
-     const chainId = chain.id;
-
-     // Mutex lock for nonce management
-     if (!nonceLocks[chainId]) nonceLocks[chainId] = Promise.resolve();
-     
-     const result = await new Promise((resolve, reject) => {
-       nonceLocks[chainId] = nonceLocks[chainId].then(async () => {
-         try {
-           const rpcNonce = await client.getTransactionCount({ address: account.address, blockTag: 'pending' });
-           let nextNonce = Math.max(rpcNonce, nonceCache[chainId] || 0);
-           
-           const txRequest = txPayload.details?.txRequest || txPayload.details?.txData || txPayload;
-           const toAddress = txRequest.to || txRequest.target;
-           const txDataStr = txRequest.data || txRequest.calldata;
-           
-           // Phase 2: Transaction Simulation (Dry-Run / Anti-Fail)
-           try {
-              await client.estimateGas({
-                account,
-                to: toAddress,
-                data: txDataStr,
-                value: txRequest.value ? BigInt(txRequest.value) : 0n
-              });
-           } catch (simError: any) {
-              throw new Error(`Simulation failed: ${simError.shortMessage || simError.message}`);
-           }
-           
-           // @ts-ignore
-           const hash = await client.sendTransaction({
-             account,
-             to: toAddress,
-             data: txDataStr,
-             value: txRequest.value ? BigInt(txRequest.value) : 0n,
-             nonce: nextNonce,
-             gas: txRequest.gas ? BigInt(txRequest.gas) : undefined,
-             maxFeePerGas: txRequest.maxFeePerGas ? BigInt(txRequest.maxFeePerGas) : undefined,
-             maxPriorityFeePerGas: txRequest.maxPriorityFeePerGas ? BigInt(txRequest.maxPriorityFeePerGas) : undefined,
-           });
-           nonceCache[chainId] = nextNonce + 1;
-           resolve(hash);
-         } catch (err: any) {
-           reject(err);
-         }
-       }).catch(reject);
-     });
-     
-     res.json({ hash: result });
+     const hash = await signer.signTransaction(txPayload);
+     res.json({ hash });
   } catch (e: any) {
-     res.status(500).json({ error: e.message });
+     const status = e.message.includes('locked') ? 403 : (e.message.includes('Invalid payload') ? 400 : 500);
+     res.status(status).json({ error: e.message });
   }
 });
-
-
 
 if (fs.existsSync(SOCKET_PATH)) {
   try {
@@ -204,11 +96,9 @@ app.listen(SOCKET_PATH, () => {
   }
 });
 
-// Phase 3: Graceful Shutdown (Local Keyring Security)
+// Graceful Shutdown
 const gracefulShutdown = () => {
-  console.log('[Signer Vault] Received shutdown signal. Locking vault...');
-  // @ts-ignore
-  if (typeof vaultPrivateKey !== 'undefined') vaultPrivateKey = null; // Zero out memory reference
+  signer.lock();
   try {
     if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
   } catch {}

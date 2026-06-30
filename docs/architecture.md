@@ -64,6 +64,9 @@ The Policy Engine communicates with the Signer Vault over a highly secure local 
 Once broadcasted, the Signer Vault returns the Transaction Hash (TxHash) back down the pipeline to the Policy Engine.
 Because Web3 transactions can be slow, Nyxora executes them **asynchronously in the background**. This ensures the UI never freezes while waiting for block confirmations. Once finalized, the Policy Engine delivers a strict **English-language** success or failure response back to the User Interface, regardless of the user's primary conversational language.
 
+### 6. Transaction State Persistence
+Unlike standard crypto bots that store pending transactions in volatile RAM or scattered JSON files (`.nyxora_withdrawals.json`), Nyxora relies on an enterprise-grade SQLite database (`memory.db`). All pending Web3 executions, approval queues, and cross-chain L2 withdrawals are centrally persisted via `logger.ts`. This provides robust ACID guarantees, ensuring your pending operations survive sudden power losses or daemon restarts completely intact.
+
 ---
 
 ## Background Daemon Lifecycle
@@ -78,7 +81,12 @@ Nyxora runs as a true "Local-First" background service, similar to a database da
 ### Graceful Shutdown & Zombie Prevention
 When you execute `nyxora stop` or `nyxora restart`, the CLI manager sends a `SIGTERM` signal to the process group leader. 
 
-The orchestrator intercepts this signal and performs a cascading cleanup—terminating the Core, Policy, and Signer children precisely, and automatically clearing any stale Unix Sockets to prevent `EADDRINUSE` zombie lockups.
+The orchestrator intercepts this signal and performs a cascading cleanup—terminating the Core, Policy, and Signer children precisely, and automatically clearing any stale Unix Sockets to prevent `EADDRINUSE` zombie lockups. 
+
+**Web3 Promise Tracking:** Additionally, the Gateway API (`server.ts`) utilizes a Promise Tracking engine via `txManager.waitForAll()`. Before terminating the HTTP server, Nyxora intelligently waits up to 10 seconds for any active on-chain Web3 transactions to finish broadcasting. This eradicates the risk of dangling transactions and protects your funds during forced restarts.
+
+### Atomic File Operations
+Configuration write operations (such as `config.yaml` and Google Credentials in `parser.ts`) are fortified using OS-level atomic renames (`fs.renameSync`). This mechanically eliminates the possibility of 0-byte file corruption during sudden server crashes.
 
 ### System Autostart
 Nyxora integrates natively with your OS boot sequence using `nyxora autostart enable`.

@@ -79,7 +79,9 @@ export function loadRpcConfig(): Record<string, string | string[]> {
 export function saveRpcConfig(rpcUrls: Record<string, string | string[]>): void {
   const rpcPath = getPath('rpc_key.yaml');
   try {
-    fs.writeFileSync(rpcPath, yaml.stringify(rpcUrls), 'utf8');
+    const tempPath = rpcPath + '.tmp.' + Date.now();
+    fs.writeFileSync(tempPath, yaml.stringify(rpcUrls), 'utf8');
+    fs.renameSync(tempPath, rpcPath);
   } catch (error) {
     console.error('Failed to save rpc_key.yaml', error);
   }
@@ -140,6 +142,11 @@ export interface NyxoraConfig {
       enabled: boolean;
       bot_token?: string;
       authorized_chat_id?: number;
+    };
+    discord?: {
+      enabled: boolean;
+      bot_token?: string;
+      client_id?: string;
     };
   };
   security?: {
@@ -248,7 +255,8 @@ export function loadConfig(): NyxoraConfig {
       memory: parsed.memory || { type: 'file', path: './memory.json' },
       web3: { ...parsed.web3, rpc_urls: rpcUrls },
       integrations: parsed.integrations || {
-        telegram: { enabled: false }
+        telegram: { enabled: false },
+        discord: { enabled: false }
       },
       security: parsed.security || { dashboard_password: '123456' },
       skills: parsed.skills
@@ -287,7 +295,8 @@ export function loadConfig(): NyxoraConfig {
       memory: { type: 'file', path: './memory.json' },
       web3: { rpc_urls: rpcUrls },
       integrations: {
-        telegram: { enabled: false }
+        telegram: { enabled: false },
+        discord: { enabled: false }
       }
     };
     
@@ -310,7 +319,9 @@ export function saveConfig(newConfig: NyxoraConfig): void {
     // Keys are no longer encrypted before saving. They are stored in plain text.
 
     const yamlStr = yaml.stringify(configToSave);
-    fs.writeFileSync(configPath, yamlStr, 'utf8');
+    const tempPath = configPath + '.tmp.' + Date.now();
+    fs.writeFileSync(tempPath, yamlStr, 'utf8');
+    fs.renameSync(tempPath, configPath);
   } catch (error) {
     console.error('Failed to save config.yaml', error);
   }

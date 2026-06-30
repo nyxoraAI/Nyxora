@@ -15,7 +15,7 @@ import {
 export class GoogleWorkspacePlugin implements Plugin {
   public name = 'GoogleWorkspacePlugin';
   public description = 'Google Workspace operations including Gmail, Calendar, Docs, and Sheets.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     readGmailInboxToolDefinition,

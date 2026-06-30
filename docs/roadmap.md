@@ -29,7 +29,7 @@ The SDK will be split into 4 distinct packages, perfectly mirroring our Zero-Tru
 1. **`@nyxora/sdk` (The Umbrella Package):** A plug-and-play bundle designed for hackathons and rapid prototyping. It combines the core, policy, and signer with default safe settings for an immediate, robust out-of-the-box experience.
 2. **`@nyxora/core-sdk`:** The AI brain module for NLP processing, API connections, and tool execution.
 3. **`@nyxora/policy-sdk`:** The rigid security middleware. Developers can define custom dynamic rules that intercept the core's transactions.
-4. **`@nyxora/signer-sdk`:** The isolated cryptographic vault. 
+
 
 **Why it matters:**
 This modularity allows enterprise developers to build true Microservices. For example, an exchange could install `@nyxora/core-sdk` on their public-facing web server, while locking `@nyxora/signer-sdk` deep inside an air-gapped, internet-free Cold Server. This grants developers the flexibility to innovate without ever compromising their private keys.

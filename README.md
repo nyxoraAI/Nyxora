@@ -100,7 +100,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 ### 🧠 The Masterpiece Memory Architecture
 *   **4-Layer Air-Gapped Vault**: Nyxora features a god-tier memory system that completely isolates conversational habits from the OS Keyring. The AI can dynamically learn your behaviors without ever having physical read-paths to your private keys.
 *   **Hard-Coded Anti-Injection Shield**: We enforce a Zero-Trust memory paradigm. Before any user habit is saved to the local SQLite database, it must pass a strict RegExp-based validation layer that autonomously annihilates Private Keys, BIP-39 Seed Phrases, and Prompt Injection attempts.
-*   **Dialectic User Modeling (Honcho Daemon)**: Nyxora continuously runs an asynchronous background daemon that quietly audits your conversational history. It extracts your behavioral traits, trading style, and risk tolerance, saving them securely to `episodic.db` and injecting them dynamically into the AI's reasoning engine.
+*   **Dialectic User Modeling (Nyx Daemon)**: Nyxora continuously runs an asynchronous background daemon that quietly audits your conversational history. It extracts your behavioral traits, trading style, and risk tolerance, saving them securely to `episodic.db` and injecting them dynamically into the AI's reasoning engine.
 *   **Smart Suggestion Engine**: Nyxora actively queries its Layer-2 Episodic Database to seamlessly autocomplete your repetitive Web3 routines. If you always swap on Arbitrum using USDC, the AI will proactively suggest it, slashing human-in-the-loop latency by up to 90%.
 
 ### AI & UI Customization

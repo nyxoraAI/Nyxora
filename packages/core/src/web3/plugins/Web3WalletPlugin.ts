@@ -10,7 +10,7 @@ import { transferToolDefinition, prepareTransfer } from '../skills/transfer';
 export class Web3WalletPlugin implements Plugin {
   public name = 'Web3WalletPlugin';
   public description = 'Core wallet and transaction operations including transfer, custom tx, and history.';
-  public version = '1.0.0';
+  public version = '1.0.1';
 
   public tools = [
     transferToolDefinition,

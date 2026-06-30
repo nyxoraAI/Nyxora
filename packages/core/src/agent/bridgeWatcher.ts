@@ -7,7 +7,8 @@ import { loadConfig } from '../config/parser';
 // For the scope of this architecture prototype, we simulate the Challenge Period
 // watcher by using a time-delay, representing the exact asynchronous behavior.
 
-const CHALLENGE_PERIOD_MS = 2 * 60 * 1000; // Simulating a 2-minute challenge period for testnet demo
+// Actual 7-day challenge period for OP Stack and Arbitrum withdrawals
+const CHALLENGE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function startBridgeWatcher() {
   console.log('[Bridge Watcher] Started background daemon for asynchronous L2 withdrawals');
@@ -35,5 +36,5 @@ export function startBridgeWatcher() {
         }
       }
     }
-  }, 30000); // Check every 30 seconds
+  }, 12 * 60 * 60 * 1000); // Check every 12 hours
 }

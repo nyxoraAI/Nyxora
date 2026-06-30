@@ -56,6 +56,13 @@ security_policy.md
 **/test.js
 **/*.test.js
 **/*.spec.js
+*test*.mjs
+*.test.mjs
+*.spec.mjs
+**/test-*.mjs
+**/test_*.mjs
+**/test.mjs
+**/*.test.mjs
 packages/core/src/utils/safeLogger.js
 /launcher.ts
 migrate_keys.*

@@ -109,6 +109,34 @@ export class Logger {
       )
     `);
 
+    // V4: Transaction Persistence
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pending_transactions (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        chain_name TEXT NOT NULL,
+        details TEXT NOT NULL,
+        status TEXT NOT NULL,
+        result TEXT,
+        nonce TEXT,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pending_withdrawals (
+        id TEXT PRIMARY KEY,
+        l2_tx_hash TEXT NOT NULL,
+        l1_chain TEXT NOT NULL,
+        l2_chain TEXT NOT NULL,
+        portal_address TEXT NOT NULL,
+        user_address TEXT NOT NULL,
+        amount TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
 
     // Ensure session_id exists for older DBs
     try {
@@ -195,7 +223,7 @@ export class Logger {
     `).all(term, term);
   }
 
-  public getHistory(sessionId?: string, limit: number = 40): MemoryEntry[] {
+  public getHistory(sessionId?: string, limit: number = 70): MemoryEntry[] {
     let rows;
     // Phase 2: Sliding Window Algorithm (LLM Context Limit)
     // Fetch only the last X messages, then order them chronologically
@@ -238,7 +266,9 @@ export class Logger {
       try {
         const sessionExists = this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId);
         if (!sessionExists) {
-          const title = sessionId.startsWith('telegram_') ? `Telegram Chat` : 'New Session';
+          let title = 'New Session';
+          if (sessionId.startsWith('telegram_')) title = 'Telegram Chat';
+          else if (sessionId.startsWith('discord_')) title = 'Discord Chat';
           this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(sessionId, title);
         }
       } catch {}
@@ -348,6 +378,89 @@ export class Logger {
   public activateLimitOrder(orderId: string): boolean {
     const result = this.db.prepare(`UPDATE limit_orders SET status = 'ACTIVE' WHERE id = ?`).run(orderId);
     return result.changes > 0;
+  }
+
+  // V4: Transaction Persistence Methods
+  public savePendingTransaction(tx: any) {
+    this.db.prepare(`
+      INSERT INTO pending_transactions (id, type, chain_name, details, status, result, nonce, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        status = excluded.status,
+        result = excluded.result,
+        nonce = excluded.nonce
+    `).run(
+      tx.id,
+      tx.type,
+      tx.chainName,
+      JSON.stringify(tx.details),
+      tx.status,
+      tx.result || null,
+      tx.nonce || null,
+      tx.createdAt || Date.now()
+    );
+  }
+
+  public getPendingTransactions(): any[] {
+    const rows = this.db.prepare(`SELECT * FROM pending_transactions WHERE status = 'pending'`).all() as any[];
+    return rows.map(r => ({
+      id: r.id,
+      type: r.type,
+      chainName: r.chain_name,
+      details: JSON.parse(r.details),
+      status: r.status,
+      result: r.result,
+      nonce: r.nonce,
+      createdAt: r.created_at
+    }));
+  }
+
+  public getTransaction(id: string): any {
+    const r = this.db.prepare(`SELECT * FROM pending_transactions WHERE id = ?`).get(id) as any;
+    if (!r) return undefined;
+    return {
+      id: r.id,
+      type: r.type,
+      chainName: r.chain_name,
+      details: JSON.parse(r.details),
+      status: r.status,
+      result: r.result,
+      nonce: r.nonce,
+      createdAt: r.created_at
+    };
+  }
+
+  public savePendingWithdrawal(w: any) {
+    this.db.prepare(`
+      INSERT INTO pending_withdrawals (id, l2_tx_hash, l1_chain, l2_chain, portal_address, user_address, amount, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET status = excluded.status
+    `).run(
+      w.id,
+      w.l2TxHash,
+      w.l1Chain,
+      w.l2Chain,
+      w.portalAddress,
+      w.userAddress,
+      w.amount,
+      w.status,
+      w.createdAt || Date.now()
+    );
+  }
+
+  public getPendingWithdrawals(): any[] {
+    const rows = this.db.prepare(`SELECT * FROM pending_withdrawals WHERE status != 'COMPLETED'`).all() as any[];
+    return rows.map(r => ({
+      id: r.id,
+      l2TxHash: r.l2_tx_hash,
+      l1Chain: r.l1_chain,
+      l2Chain: r.l2_chain,
+      portalAddress: r.portal_address,
+      userAddress: r.user_address,
+      amount: r.amount,
+      status: r.status,
+      createdAt: r.created_at
+    }));
   }
 }
 

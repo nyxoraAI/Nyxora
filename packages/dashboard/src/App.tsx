@@ -856,7 +856,7 @@ function App() {
                 </div>
                 <textarea
                   className="chat-input styled-scroll"
-                  placeholder={isVoiceMode ? "Listening..." : "Message Nyxora Agent (Enter to send, Shift+Enter for new line)..."}
+                  placeholder={isVoiceMode ? "Listening..." : "Ask Nyxora"}
                   value={input}
                   onChange={(e) => {
                     setInput(e.target.value);
