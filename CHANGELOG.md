@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
+## [26.7.2-alpha.3]
+### Hotfixes
+- **Daemon Crash & Missing Dependency**: Resolved a critical crash preventing `nyxora start` from booting the daemon by properly injecting the missing `discord.js` dependency into the core package requirements.
+- **MCP Server TypeScript Rigidity**: Fixed a severe TypeScript compilation failure on the MCP Server caused by an un-asserted `type: "text"` field within the JSON-RPC return shape, ensuring `alpha.3` builds securely and passes strict compilation checks before deployment.
+
 ## [26.7.2-alpha.2]
 - **Core Stability & Graceful Shutdown**: Engineered a robust `Graceful Shutdown` hook in the Gateway API (`server.ts`) to actively track floating Web3 transaction promises. Nyxora now intelligently waits up to 10 seconds for on-chain transactions to finalize before shutting down, completely eradicating dangling transactions and fund loss during SIGINT/SIGTERM.
 - **SQLite Transaction Persistence**: Overhauled `transactionManager.ts` to migrate away from volatile RAM Maps and JSON files (`.nyxora_withdrawals.json`). All pending transactions and L2 withdrawals are now persistently written to `memory.db` via `logger.ts`, guaranteeing 100% state recovery and ACID compliance across sudden power losses or daemon reboots.
