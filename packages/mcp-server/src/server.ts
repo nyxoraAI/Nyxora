@@ -90,12 +90,12 @@ server.tool(
     try {
       const response = await callPolicyEngine('/address', 'GET');
       return {
-        content: [{ type: "text", text: `Wallet Address: ${response.address}` }]
+        content: [{ type: "text" as const, text: `Wallet Address: ${response.address}` }]
       };
     } catch (e: any) {
       return {
         isError: true,
-        content: [{ type: "text", text: e.message }]
+        content: [{ type: "text" as const, text: e.message }]
       };
     }
   }
@@ -108,18 +108,22 @@ server.tool(
   {
     type: z.enum(['transfer', 'swap', 'bridge', 'mint', 'custom']).describe("The type of transaction"),
     chainName: z.string().describe("The target blockchain network (e.g. 'ethereum', 'base', 'arbitrum')"),
-    details: z.any().describe("Detailed payload. For 'transfer': { to: string, amountWei: string }. For 'swap': { tokenIn: string, tokenOut: string, amountInWei: string }.")
-  },
-  async (args) => {
+    details: z.string().describe("JSON string payload. For 'transfer': { to: string, amountWei: string }. For 'swap': { tokenIn: string, tokenOut: string, amountInWei: string }.")
+  } as any,
+  async (args: any) => {
     try {
+      // Parse details back to object since it's passed as string
+      if (typeof args.details === 'string') {
+        args.details = JSON.parse(args.details);
+      }
       const response = await callPolicyEngine('/request-tx', 'POST', args);
       return {
-        content: [{ type: "text", text: `Transaction requested successfully. Transaction ID: ${response.id}. Status: ${response.status}` }]
+        content: [{ type: "text" as const, text: `Transaction requested successfully. Transaction ID: ${response.id}. Status: ${response.status}` }]
       };
     } catch (e: any) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Transaction Request Failed! ${e.message}` }]
+        content: [{ type: "text" as const, text: `Transaction Request Failed! ${e.message}` }]
       };
     }
   }
