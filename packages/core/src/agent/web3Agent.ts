@@ -313,3 +313,137 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     return errorMsg;
   }
 }
+
+export async function processWeb3IntentStream(
+  input: string,
+  onChunk: (text: string) => void,
+  onProgress?: (msg: string) => void,
+  sessionId?: string
+): Promise<string> {
+  const config = loadConfig();
+  logger.addEntry({ role: 'user', content: input }, sessionId);
+
+  const pluginTools = pluginManager.getAllToolDefinitions();
+  let activeTools = [...pluginTools].filter(t => isSkillActive(t.function.name));
+
+  const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
+
+  try {
+    let turnCount = 0;
+    const MAX_TURNS = 10;
+    let fullResponse = '';
+
+    while (turnCount < MAX_TURNS) {
+      turnCount++;
+      const currentHistory = logger.getHistory(sessionId);
+      const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      const messages: any[] = [
+        { role: 'system', content: getSystemPrompt('web3', input) },
+        ...sanitizedHistory
+      ];
+
+      let streamedContent = '';
+      const response = await executeWithRetry(async (client) => {
+        return await client.stream(
+          { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools },
+          (chunk: string) => {
+            streamedContent += chunk;
+            onChunk(chunk);
+          }
+        );
+      });
+
+      const responseMessage = response.message;
+
+      if (turnCount === 1) Tracker.addMessage();
+      if (response.usage?.total_tokens) Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
+      Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
+
+      logger.addEntry({
+        role: 'assistant',
+        content: responseMessage.content || '',
+        tool_calls: responseMessage.tool_calls,
+      }, sessionId);
+
+      if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
+        let finalContent = responseMessage.content || 'No response generated.';
+        finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
+        fullResponse = finalContent;
+        break;
+      }
+
+      // Tool calls detected — pause stream visually and execute tools
+      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'];
+      let canFastReturnAll = true;
+      const accumulatedResults: string[] = [];
+
+      for (const _toolCall of responseMessage.tool_calls) {
+        const toolCall = _toolCall as any;
+        const toolName = toolCall.function.name;
+        let result = '';
+        let args: any = {};
+
+        console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
+        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
+
+        try {
+          let argStr = toolCall.function.arguments;
+          if (argStr && !argStr.trim().endsWith('}')) argStr += '}';
+          args = JSON.parse(argStr);
+        } catch (parseError: any) {
+          result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
+          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          continue;
+        }
+
+        if (!isSkillActive(toolName)) {
+          result = `[System Error] Access denied: Skill '${toolName}' is currently disabled.`;
+          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          continue;
+        }
+
+        try {
+          const pluginResult = await pluginManager.executeTool(toolName, args, { sessionId });
+          result = pluginResult !== null ? pluginResult : `Error: Tool ${toolName} is not implemented.`;
+          if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {
+            console.log(pc.red(`[❌ Failed] Tool ${toolName} returned an error or was blocked.`));
+          } else {
+            console.log(pc.green(`[✅ Success] Tool ${toolName} executed successfully.`));
+          }
+        } catch (toolError: any) {
+          result = `Error executing ${toolName}: ${toolError.message}`;
+          console.error(pc.red(`[❌ Error Crash] Execution of ${toolName} failed: ${toolError.message}`));
+        }
+
+        logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, name: toolName, content: result }, sessionId);
+        accumulatedResults.push(result);
+        if (!fastReturnTools.includes(toolName)) canFastReturnAll = false;
+      }
+
+      if (canFastReturnAll && accumulatedResults.length > 0) {
+        const finalContent = accumulatedResults.join('\n\n---\n\n');
+        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
+        onChunk(finalContent);
+        fullResponse = finalContent;
+        break;
+      }
+    }
+
+    if (!fullResponse) {
+      const maxTurnMsg = '⚠️ Reached maximum interaction limit (10 turns). Please be more specific.';
+      logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
+      fullResponse = maxTurnMsg;
+    }
+
+    return fullResponse;
+  } catch (error: any) {
+    console.error('LLM Stream Error:', error);
+    const status = error?.status || error?.response?.status;
+    let errorMsg = '⚠️ All models are temporarily rate-limited. Please try again in a few minutes.';
+    if (status === 400 || (error.message && error.message.toLowerCase().includes('invalid'))) {
+      errorMsg = '⚠️ Failed to parse instruction. Please describe your command more specifically.';
+    }
+    logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
+    return errorMsg;
+  }
+}

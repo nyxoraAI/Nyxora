@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 ## [26.7.2-alpha.4]
+### Features & Platform Integrations
+- **Telegram Native Streaming (Bot API 9.3+)**: Radically overhauled the Telegram bot integration to completely bypass the standard 1-second `editMessageText` API rate limit. The engine now natively implements the modern `sendMessageDraft` method, streaming ephemeral hardware-accelerated "Typing..." animations directly to the Telegram client at 100ms intervals. This fully resolves UI stuttering and achieves ultra-smooth, real-time typewriter effects matching premium web interfaces.
+
 ### Bug Fixes & Stability
 - **Telegram Polling Timeout Silence**: Mitigated an issue where sudden network disconnects or API timeouts (`ETIMEDOUT`) would cause the `@grammyjs/runner` to spam the console with massive stack traces. The system now seamlessly intercepts these failures via a custom API config transformer, suppresses the default runner logs, and gracefully emits a clean, single-line reconnection warning.
 

@@ -21,12 +21,15 @@ export const forgetMemoryToolDefinition = {
 
 export async function forgetMemory(keyword: string): Promise<string> {
   try {
-    const changes = episodicDB.deleteMemoryByFact(keyword);
-    if (changes > 0) {
+    const memoryChanges = episodicDB.deleteMemoryByFact(keyword);
+    const personaChanges = episodicDB.deletePersonaByTrait(keyword);
+    const totalChanges = memoryChanges + personaChanges;
+
+    if (totalChanges > 0) {
       await PromotionEngine.runPromotionAndDecay();
-      return `[Success] Deleted ${changes} memory records containing the keyword '${keyword}'. The user.md profile has been synchronized.`;
+      return `[Success] Deleted ${memoryChanges} memory record(s) and ${personaChanges} persona trait(s) containing '${keyword}'. Profile synchronized.`;
     } else {
-      return `[Info] No memories found containing the keyword '${keyword}'.`;
+      return `[Info] No memories or persona traits found containing the keyword '${keyword}'.`;
     }
   } catch (error: any) {
     return `[Error] Failed to forget memory: ${error.message}`;

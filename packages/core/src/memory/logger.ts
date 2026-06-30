@@ -260,6 +260,33 @@ export class Logger {
     });
   }
 
+  /**
+   * Returns the N most recent messages across ALL sessions (including Telegram, Discord, and NULL sessions).
+   * Used by NyxDaemon to analyze conversation history from every channel.
+   */
+  public getRecentMessagesAllSessions(limit: number = 30): MemoryEntry[] {
+    const rows = this.db.prepare(`
+      SELECT * FROM (
+        SELECT role, content, name, tool_call_id, tool_calls, session_id, id
+        FROM messages
+        ORDER BY id DESC LIMIT ?
+      ) ORDER BY id ASC
+    `).all(limit);
+
+    return rows.map((row: any) => {
+      const entry: MemoryEntry = {
+        role: row.role,
+        content: row.content,
+      };
+      if (row.name) entry.name = row.name;
+      if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
+      if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
+      if (row.session_id) entry.session_id = row.session_id;
+      return entry;
+    });
+  }
+
+
   public addEntry(entry: MemoryEntry, sessionId?: string) {
     if (sessionId) {
       // Auto-create session if it doesn't exist (e.g. for Telegram integration)

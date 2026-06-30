@@ -32,8 +32,8 @@ export class SystemWorkspacePlugin implements Plugin {
     ['edit_local_file']: async (args: any) => {
       return await editLocalFile(args.filePath, args.searchString, args.replacementString);
     },
-    ['generate_excel_report']: async (args: any) => {
-      return await generateExcelFile(args.data, args.filename);
+    ['generate_excel_file']: async (args: any) => {
+      return await generateExcelFile(args.data, args.filePath);
     },
     ['run_terminal_command']: async (args: any) => {
       return await runTerminalCommand(args.command);

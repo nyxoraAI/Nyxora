@@ -44,8 +44,21 @@ export class NyxDaemon {
     try {
       console.log(pc.magenta('[Nyx] Running dialectic user modeling...'));
       
-      const history = logger.getHistory(undefined, 20);
-      if (history.length < 5) {
+      // Fix A: Use getRecentMessagesAllSessions so Telegram/Discord history is included.
+      // Previously getHistory(undefined) only read session_id IS NULL — Telegram sessions have a session_id.
+      const history = logger.getRecentMessagesAllSessions(30);
+
+      // Fix B: Filter noise — only send plain user & assistant text messages to the LLM.
+      // Skip tool messages, system messages, and assistant entries that only contain tool_calls.
+      const conversationOnly = history.filter(m =>
+        (m.role === 'user' || m.role === 'assistant') &&
+        m.content &&
+        m.content.trim().length > 0 &&
+        !m.tool_calls
+      );
+
+      if (conversationOnly.length < 5) {
+        console.log(pc.magenta('[Nyx] Not enough conversation messages to analyze, skipping.'));
         this.isProcessing = false;
         return;
       }
@@ -54,12 +67,18 @@ export class NyxDaemon {
       
       const prompt = `You are Nyx, Nyxora's background Persona Auditor.
 Analyze the following recent conversation between the USER and Nyxora.
-Identify any persistent user traits, behavioral preferences, or trading styles.
+Identify any persistent user traits, behavioral preferences, trading styles, AND language preferences.
 Output your findings AS A STRICT JSON ARRAY of strings. If no strong traits are found, output an empty array [].
-Examples of valid traits: "Prefers concise answers", "Aggressive trader", "Risk-averse", "Polite", "Often trades on Arbitrum".
+Examples of valid traits:
+- Behavior: "Prefers concise answers", "Aggressive trader", "Risk-averse", "Polite", "Often trades on Arbitrum"
+- Language: "Primarily speaks Indonesian", "Uses English for technical terms", "Communicates in casual/informal tone", "Mixes Indonesian and English (code-switching)"
+IMPORTANT: Always include a language preference trait if the user's language or communication style is identifiable.
 DO NOT output markdown, just the JSON array.`;
 
-      const messages = history.map((m: any) => `${m.role === 'user' ? 'USER' : 'NYXORA'}: ${m.content}`).join('\n');
+      const messages = conversationOnly
+        .map((m: any) => `${m.role === 'user' ? 'USER' : 'NYXORA'}: ${m.content}`)
+        .join('\n');
+
 
       const response = await executeWithRetry(async (client) => {
         return await client.chat({
@@ -81,7 +100,9 @@ DO NOT output markdown, just the JSON array.`;
         const traits = JSON.parse(content);
         if (Array.isArray(traits) && traits.length > 0) {
           for (const trait of traits) {
-            episodicDB.updatePersonaTrait(trait, 0.8, 'nyx_daemon');
+            // Fix C: Start confidence at 0.4 (not 0.8) so traits build up gradually across audits.
+            // updatePersonaTrait has upsert logic: repeated traits gain +0.4 * 0.2 per audit cycle.
+            episodicDB.updatePersonaTrait(trait, 0.4, 'nyx_daemon');
             console.log(pc.magenta(`[Nyx] Discovered new trait: ${trait}`));
           }
         }

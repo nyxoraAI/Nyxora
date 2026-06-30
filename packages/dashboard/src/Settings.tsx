@@ -711,7 +711,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     style={{ width: '100%', resize: 'vertical' }}
                     placeholder="e.g. Never buy a token if liquidity is below $10,000&#10;Do not touch drive E" 
                     value={policyConfig.custom_llm_rules.join('\n')}
-                    onChange={e => setPolicyConfig({ ...policyConfig, custom_llm_rules: e.target.value.split('\n') })}
+                    onChange={e => setPolicyConfig({ ...policyConfig, custom_llm_rules: e.target.value.split('\n').filter(r => r.trim().length > 0) })}
                   />
                 </div>
               </div>

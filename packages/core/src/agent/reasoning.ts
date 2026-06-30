@@ -174,6 +174,8 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
 
 import { processWeb3Intent } from './web3Agent';
 import { processOsIntent } from './osAgent';
+import { processWeb3IntentStream } from './web3Agent';
+import { processOsIntentStream } from './osAgent';
 
 export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string): Promise<string> {
   const lowerInput = input.toLowerCase();
@@ -186,44 +188,102 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
     .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || "" }));
   
-  const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
+  // ── Opsi B: Keyword Pre-Check (Deterministik, tanpa LLM) ──────────────────
+  // Cek keyword OS terlebih dahulu. Jika cocok, langsung route ke 'os'
+  // tanpa memanggil LLM router untuk hemat latency & mencegah misklasifikasi.
+  const OS_KEYWORDS = [
+    // File & Dokumen
+    'excel', 'xlsx', 'spreadsheet', 'laporan excel', 'generate excel', 'buat excel',
+    'file', 'folder', 'direktori', 'directory', 'baca file', 'tulis file', 'edit file',
+    'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
+    // Terminal & Git
+    'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
+    'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
+    // Web & Search
+    'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
+    'cuaca', 'weather', 'berita', 'news',
+    // Email & Workspace
+    'email', 'gmail', 'google docs', 'google sheets', 'notion',
+    'kalender', 'calendar',
+    // Social & Media
+    'twitter', 'tweet', 'x post', 'transcribe', 'audio', 'rekaman',
+    // AI Settings
+    'ganti nama', 'ubah nama', 'rename agent', 'ubah persona', 'change persona',
+    'update profile', 'update identity', 'setting', 'pengaturan',
+    // Summarize
+    'ringkas', 'summarize', 'rangkum',
+  ];
+
+  // Keyword Web3 yang eksplisit — dipastikan tidak salah route ke 'os'
+  const WEB3_KEYWORDS = [
+    // Transaksi
+    'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
+    'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
+    // Aset & Wallet
+    'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address', 'alamat',
+    'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
+    // DeFi & Market
+    'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
+    'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
+    'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
+    // Chain
+    'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
+    'on-chain', 'blockchain',
+  ];
+
+  let context: 'web3' | 'os' | 'general' = 'general';
+  let preCheckMatched = false;
+
+  // Cek OS keywords dulu (prioritas lebih tinggi untuk mencegah misklasifikasi)
+  if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    context = 'os';
+    preCheckMatched = true;
+  } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    context = 'web3';
+    preCheckMatched = true;
+  }
+
+  if (preCheckMatched) {
+    console.log(pc.cyan(`[Orchestrator] Intent pre-classified (keyword match) as: ${context.toUpperCase()}`));
+  } else {
+    // ── Fallback: LLM Router (untuk intent ambigu / percakapan umum) ─────────
+    const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations (e.g., 'tf', 'wd', 'buy', 'sell'). Translate their core intent logically.
 3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, or transactions, reply 'web3'.
-4. If the core intent involves OS automation, web search, weather, emails, files, terminal, or changing AI settings, reply 'os'.
+4. If the core intent involves OS automation, web search, weather, emails, files, excel, terminal, or changing AI settings, reply 'os'.
 5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
 Reply with EXACTLY ONE WORD: web3, os, or general.`;
 
-  const routerMessages = [
-      { role: 'system', content: routerPrompt },
-      ...textOnlyHistory.slice(-10),
-      { role: 'user', content: input }
-  ];
+    const routerMessages = [
+        { role: 'system', content: routerPrompt },
+        ...textOnlyHistory.slice(-10),
+        { role: 'user', content: input }
+    ];
 
-  let context: 'web3' | 'os' | 'general' = 'general';
-  
-  try {
-      const routerResponse = await executeWithRetry(async (client) => {
-          return await client.chat({
-              model: config.llm.model,
-              messages: routerMessages as any,
-              temperature: 0.1,
-              max_tokens: 1000
-          });
-      }, 3); // 3 retries for transient 503/429 errors
-      
-      let contextResponse = (routerResponse.message.content || 'general').toLowerCase().trim();
-      
-      if (contextResponse.includes('web3')) context = 'web3';
-      else if (contextResponse.includes('os')) context = 'os';
-      else context = 'general';
-  } catch (e) {
-      console.warn(`[Orchestrator] Router LLM failed, falling back to general. Error:`, e);
-      context = 'general';
+    try {
+        const routerResponse = await executeWithRetry(async (client) => {
+            return await client.chat({
+                model: config.llm.model,
+                messages: routerMessages as any,
+                temperature: 0.1,
+                max_tokens: 1000
+            });
+        }, 3); // 3 retries for transient 503/429 errors
+        
+        let contextResponse = (routerResponse.message.content || 'general').toLowerCase().trim();
+        
+        if (contextResponse.includes('web3')) context = 'web3';
+        else if (contextResponse.includes('os')) context = 'os';
+        else context = 'general';
+    } catch (e) {
+        console.warn(`[Orchestrator] Router LLM failed, falling back to general. Error:`, e);
+        context = 'general';
+    }
+
+    console.log(pc.magenta(`[Orchestrator] Intent classified as: ${context.toUpperCase()}`));
   }
-  
-  console.log(pc.magenta(`[Orchestrator] Intent classified as: ${context.toUpperCase()}`));
   
   if (context === 'web3') {
       return await processWeb3Intent(input, role, onProgress, sessionId);
@@ -276,5 +336,119 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
           logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
           return errorMsg;
       }
+  }
+}
+
+/**
+ * Streaming variant of processUserInput().
+ * Calls onChunk() for each LLM token as it arrives.
+ * Falls back to onChunk() with full response if streaming is not supported.
+ */
+export async function processUserInputStream(
+  input: string,
+  onChunk: (text: string) => void,
+  onProgress?: (msg: string) => void,
+  sessionId?: string
+): Promise<string> {
+  const lowerInput = input.toLowerCase();
+  const config = loadConfig();
+  const history = logger.getHistory(sessionId);
+
+  const textOnlyHistory = history
+    .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
+    .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || '' }));
+
+  // Reuse keyword pre-check from processUserInput()
+  const OS_KEYWORDS = [
+    'excel', 'xlsx', 'spreadsheet', 'file', 'folder', 'direktori', 'directory',
+    'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
+    'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
+    'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
+    'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
+    'cuaca', 'weather', 'berita', 'news',
+    'email', 'gmail', 'google docs', 'google sheets', 'notion', 'kalender', 'calendar',
+    'twitter', 'tweet', 'transcribe', 'audio',
+    'ganti nama', 'ubah nama', 'rename agent', 'setting', 'pengaturan',
+    'ringkas', 'summarize', 'rangkum',
+  ];
+
+  const WEB3_KEYWORDS = [
+    'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
+    'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
+    'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address',
+    'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
+    'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
+    'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
+    'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
+    'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
+    'on-chain', 'blockchain',
+  ];
+
+  let context: 'web3' | 'os' | 'general' = 'general';
+  let preCheckMatched = false;
+
+  if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    context = 'os';
+    preCheckMatched = true;
+  } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    context = 'web3';
+    preCheckMatched = true;
+  }
+
+  if (!preCheckMatched) {
+    // Fallback LLM router for ambiguous intents
+    const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Reply with EXACTLY ONE WORD.`;
+    const routerMessages = [
+      { role: 'system', content: routerPrompt },
+      ...textOnlyHistory.slice(-10),
+      { role: 'user', content: input }
+    ];
+    try {
+      const routerResponse = await executeWithRetry(async (client) =>
+        client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 10 })
+      , 3);
+      const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
+      if (cr.includes('web3')) context = 'web3';
+      else if (cr.includes('os')) context = 'os';
+      else context = 'general';
+    } catch {
+      context = 'general';
+    }
+  }
+
+  console.log(pc.cyan(`[Stream Orchestrator] Intent classified as: ${context.toUpperCase()}`));
+
+  if (context === 'web3') {
+    return await processWeb3IntentStream(input, onChunk, onProgress, sessionId);
+  } else if (context === 'os') {
+    return await processOsIntentStream(input, onChunk, onProgress, sessionId);
+  } else {
+    // General: stream directly without tools
+    logger.addEntry({ role: 'user', content: input }, sessionId);
+    const messages = [
+      { role: 'system', content: getSystemPrompt('general') },
+      ...textOnlyHistory,
+      { role: 'user', content: input }
+    ];
+    try {
+      let streamedContent = '';
+      const response = await executeWithRetry(async (client) =>
+        client.stream(
+          { model: config.llm.model, messages: messages as any },
+          (chunk: string) => { streamedContent += chunk; onChunk(chunk); }
+        )
+      );
+      let finalContent = response.message?.content || streamedContent || '';
+      finalContent = finalContent
+        .replace(/<(think|thought)[\s\S]*?<\/\1>\n?/gi, '')
+        .trim();
+      if (!finalContent) finalContent = '⚠️ The LLM returned an empty response. Please try again.';
+      logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
+      return finalContent;
+    } catch (error: any) {
+      const errorMsg = '⚠️ The system is experiencing LLM API rate limits. Please try again.';
+      logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
+      return errorMsg;
+    }
   }
 }

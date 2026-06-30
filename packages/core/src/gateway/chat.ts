@@ -49,13 +49,15 @@ export async function chatInteractive() {
     s.start('Thinking...');
 
     try {
-      const response = await fetch('http://localhost:3000/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-nyxora-token': token,
-        },
-        body: JSON.stringify({ message: messageStr, session_id: 'cli-chat' })
+      // Use SSE streaming endpoint for real-time token output
+      const params = new URLSearchParams({
+        message: messageStr,
+        session_id: 'cli-chat',
+        token,
+      });
+
+      const response = await fetch(`http://localhost:3000/api/chat/stream?${params}`, {
+        headers: { 'x-nyxora-token': token },
       });
 
       if (!response.ok) {
@@ -69,14 +71,54 @@ export async function chatInteractive() {
         continue;
       }
 
-      const data = await response.json();
-      s.stop(pc.green('Nyxora:'));
-      
-      let finalReply = data.response || '';
-      // Strip <think> tags for clean UI
-      finalReply = finalReply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      
-      console.log(finalReply + '\n');
+      let firstChunk = true;
+      let finalReply = '';
+
+      // Read SSE stream line by line
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (raw === '[DONE]') break;
+            try {
+              const data = JSON.parse(raw);
+              if (data.progress) {
+                // Show tool progress on same line, overwriting previous
+                if (firstChunk) {
+                  s.stop(pc.cyan('Nyxora:'));
+                  firstChunk = false;
+                }
+                process.stdout.write(`\r${pc.italic(pc.gray(data.progress))}   `);
+              }
+              if (data.chunk) {
+                if (firstChunk) {
+                  s.stop(pc.green('Nyxora:'));
+                  process.stdout.write('\n');
+                  firstChunk = false;
+                }
+                // Clear progress line if any, then write chunk
+                finalReply += data.chunk;
+                process.stdout.write(data.chunk);
+              }
+            } catch {}
+          }
+        }
+      }
+
+      // Newline after streaming completes
+      if (!firstChunk) process.stdout.write('\n\n');
+
+
 
       // Check for pending transactions
       try {

@@ -113,6 +113,11 @@ export class EpisodicMemoryDB {
     stmt.run();
   }
 
+  public clearAllPersonas(): void {
+    const stmt = this.db.prepare('DELETE FROM user_personas');
+    stmt.run();
+  }
+
   public close(): void {
     try {
       this.db.close();
@@ -136,6 +141,12 @@ export class EpisodicMemoryDB {
   public getPersonas(): any[] {
     const stmt = this.db.prepare('SELECT * FROM user_personas ORDER BY confidence DESC');
     return stmt.all() as any[];
+  }
+
+  public deletePersonaByTrait(keyword: string): number {
+    const stmt = this.db.prepare('DELETE FROM user_personas WHERE trait LIKE ?');
+    const result = stmt.run(`%${keyword}%`);
+    return (result as any).changes || 0;
   }
 }
 

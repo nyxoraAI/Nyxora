@@ -429,20 +429,85 @@ function App() {
           await fetchSessions();
         }
       } catch (err) {
-        console.error("Failed to auto-create session", err);
+        console.error('Failed to auto-create session', err);
       }
     }
 
+    // Add user message optimistically
     setMessages(prev => [...prev, { role: 'user', content: userMsg, isOptimistic: true }]);
 
+    // Add a streaming placeholder for the assistant message
+    const streamingId = `streaming-${Date.now()}`;
+    setMessages(prev => [...prev, { role: 'assistant', content: '', id: streamingId, isStreaming: true } as any]);
+
+    let fullResponse = '';
+    let renderedResponse = '';
+    let intervalId: NodeJS.Timeout | null = null;
+
     try {
-      const res = await apiFetch(`/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, session_id: currentSessionId }),
+      const token = localStorage.getItem('nyxora_token') || '';
+      const params = new URLSearchParams({
+        message: userMsg,
+        session_id: currentSessionId || '',
+        token,
       });
-      const data = await res.json();
-      await fetchHistory();
+
+      await new Promise<void>((resolve, reject) => {
+        const source = new EventSource(`/api/chat/stream?${params}`);
+        let isSourceClosed = false;
+
+        // Artificial Smoothing (Typewriter Effect)
+        intervalId = setInterval(() => {
+          if (renderedResponse.length < fullResponse.length) {
+            const charsToAdd = fullResponse.slice(renderedResponse.length, renderedResponse.length + 3);
+            renderedResponse += charsToAdd;
+            setMessages(prev => prev.map((m: any) =>
+              m.id === streamingId ? { ...m, content: renderedResponse } : m
+            ));
+          } else if (isSourceClosed) {
+            // Buffer is fully drained AND stream is closed
+            if (intervalId) clearInterval(intervalId);
+            resolve();
+          }
+        }, 30);
+
+        source.onmessage = (event) => {
+          if (event.data === '[DONE]') {
+            source.close();
+            isSourceClosed = true;
+            // Let the interval finish draining the buffer and resolve
+            return;
+          }
+          try {
+            const data = JSON.parse(event.data);
+            if (data.chunk) {
+              fullResponse += data.chunk;
+            }
+            if (data.progress) {
+              setMessages(prev => prev.map((m: any) =>
+                m.id === streamingId ? { ...m, progress: data.progress } : m
+              ));
+            }
+            if (data.error) {
+              source.close();
+              isSourceClosed = true;
+              if (intervalId) clearInterval(intervalId);
+              reject(new Error(data.error));
+            }
+          } catch {}
+        };
+
+        source.onerror = () => {
+          source.close();
+          isSourceClosed = true;
+          // Let the interval finish draining what we have
+        };
+      });
+
+      // Mark streaming as done and clean up placeholder field
+      setMessages(prev => prev.map((m: any) =>
+        m.id === streamingId ? { ...m, isStreaming: false, progress: undefined } : m
+      ));
 
       // Auto-rename on first prompt
       if (messages.length === 0 && currentSessionId) {
@@ -450,21 +515,25 @@ function App() {
         renameSession(currentSessionId, autoTitle);
       }
 
+      // Sync history from server to get clean persisted state
+      await fetchHistory();
+
       // Trigger TTS if in voice mode
-      if (isVoiceModeRef.current && data.response) {
-        speak(data.response);
+      if (isVoiceModeRef.current && fullResponse) {
+        speak(fullResponse);
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove streaming placeholder on failure
+      setMessages(prev => prev.filter((m: any) => m.id !== streamingId));
     } finally {
       setIsLoading(false);
-      // Reset textarea height after sending
       const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.style.height = 'auto';
-      }
+      if (textarea) textarea.style.height = 'auto';
     }
   };
+
+
 
   // Determine active widget for Canvas based on the latest tool call result
   let activeWidget: React.ReactNode = null;

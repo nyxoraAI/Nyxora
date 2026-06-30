@@ -1,7 +1,7 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { run } from '@grammyjs/runner';
 import { apiThrottler } from '@grammyjs/transformer-throttler';
-import { processUserInput, logger } from '../agent/reasoning';
+import { processUserInput, processUserInputStream, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig } from '../config/parser';
 import { txManager } from '../agent/transactionManager';
 import { executeTransfer } from '../web3/skills/transfer';
@@ -144,35 +144,65 @@ export function startTelegramBot() {
       if (text.startsWith('/')) return;
 
       console.log(`[Telegram] Received from ${ctx.from?.first_name || 'User'}: ${text}`);
-      
       await ctx.replyWithChatAction('typing');
 
-      try {
-        let progressMsgId: number | null = null;
-        const onProgress = async (progressText: string) => {
+      // No need for a placeholder message anymore! We use ephemeral drafts.
+      const draft_id = Math.floor(Math.random() * 100000000) + 1;
+      let buffer = '';
+      let lastDraftAt = 0;
+      let isDrafting = false;
+      const THROTTLE_MS = 100; // Native drafts can be streamed incredibly fast
+
+      const onChunk = async (chunk: string) => {
+        buffer += chunk;
+        const now = Date.now();
+        if (!isDrafting && now - lastDraftAt >= THROTTLE_MS) {
+          isDrafting = true;
           try {
-            if (!progressMsgId) {
-              const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
-              progressMsgId = sent.message_id;
-            } else {
-              await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
-            }
+            await ctx.api.sendMessageDraft(
+              ctx.chat.id, draft_id,
+              formatToTelegramHTML(buffer),
+              { parse_mode: 'HTML' } as any
+            );
           } catch {}
-        };
-
-        const response = await processUserInput(text, 'user', onProgress, `telegram_${ctx.chat?.id}`);
-
-        if (progressMsgId) {
-          await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
+          lastDraftAt = Date.now();
+          isDrafting = false;
         }
+      };
 
-        // Transactions will now use conversational approval (Zero-Latency text prompts) instead of InlineKeyboards.
-        await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
+      const onProgress = async (msg: string) => {
+        if (!isDrafting) {
+          isDrafting = true;
+          try {
+            await ctx.api.sendMessageDraft(
+              ctx.chat.id, draft_id,
+              `<i>${msg.replace(/_/g, '')}</i>`,
+              { parse_mode: 'HTML' } as any
+            );
+          } catch {}
+          isDrafting = false;
+        }
+      };
+
+      try {
+        const response = await processUserInputStream(
+          text, onChunk, onProgress, `telegram_${ctx.chat?.id}`
+        );
+
+        // Finalize by sending the permanent message (which replaces the draft)
+        await ctx.reply(
+          formatToTelegramHTML(response),
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
-        await ctx.reply('❌ Sorry, I encountered an error while processing your message.');
+        await ctx.reply(
+          '❌ Sorry, I encountered an error while processing your message.',
+          {}
+        ).catch(() => {});
       }
     });
+
 
     bot.on('message:document', async (ctx) => {
       const doc = ctx.message.document;

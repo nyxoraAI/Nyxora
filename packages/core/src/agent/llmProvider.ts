@@ -30,6 +30,7 @@ export interface NormalizedChatResponse {
 
 export interface LLMProvider {
   chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse>;
+  stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse>;
 }
 
 export class OpenAIAdapter implements LLMProvider {
@@ -44,6 +45,44 @@ export class OpenAIAdapter implements LLMProvider {
       },
       usage: response.usage ? { total_tokens: response.usage.total_tokens } : undefined
     };
+  }
+
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+    try {
+      const streamRes = await this.client.chat.completions.create({ ...(request as any), stream: true }) as any as AsyncIterable<any>;
+      let fullContent = '';
+      const toolCallsMap: Record<number, any> = {};
+
+      for await (const chunk of streamRes) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) {
+          fullContent += delta.content;
+          onChunk(delta.content);
+        }
+        if (delta?.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            if (!toolCallsMap[tc.index]) {
+              toolCallsMap[tc.index] = { id: tc.id || '', type: 'function', function: { name: tc.function?.name || '', arguments: tc.function?.arguments || '' } };
+            } else {
+              if (tc.id) toolCallsMap[tc.index].id = tc.id;
+              if (tc.function?.name) toolCallsMap[tc.index].function.name += tc.function.name;
+              if (tc.function?.arguments) toolCallsMap[tc.index].function.arguments += tc.function.arguments;
+            }
+          }
+        }
+      }
+
+      const toolCalls = Object.values(toolCallsMap);
+      return {
+        message: {
+          content: fullContent || null,
+          tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+        }
+      };
+    } catch {
+      // Fallback to non-streaming if streaming fails
+      return this.chat(request);
+    }
   }
 }
 
@@ -153,6 +192,70 @@ export class AnthropicAdapter implements LLMProvider {
       },
       usage: response.usage ? { total_tokens: response.usage.input_tokens + response.usage.output_tokens } : undefined
     };
+  }
+
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+    try {
+      // Build the same message format as chat()
+      let systemPrompt = '';
+      const anthropicMessages: any[] = [];
+      for (const m of request.messages) {
+        if (m.role === 'system') { systemPrompt = m.content; continue; }
+        if (m.role === 'user') {
+          anthropicMessages.push({ role: 'user', content: m.content });
+        } else if (m.role === 'assistant') {
+          const blocks: any[] = [];
+          if (m.content) blocks.push({ type: 'text', text: m.content });
+          if (m.tool_calls) m.tool_calls.forEach((tc: any) => {
+            try { blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments) }); } catch {}
+          });
+          anthropicMessages.push({ role: 'assistant', content: blocks.length > 0 ? blocks : m.content });
+        } else if (m.role === 'tool') {
+          anthropicMessages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: m.tool_call_id, content: m.content }] });
+        }
+      }
+      const mergedAnthropic: any[] = [];
+      for (const m of anthropicMessages) {
+        const last = mergedAnthropic[mergedAnthropic.length - 1];
+        if (last && last.role === m.role) {
+          if (Array.isArray(last.content) && Array.isArray(m.content)) last.content.push(...m.content);
+          else if (typeof last.content === 'string' && typeof m.content === 'string') last.content += '\n\n' + m.content;
+          else if (Array.isArray(last.content) && typeof m.content === 'string') last.content.push({ type: 'text', text: m.content });
+          else last.content = [{ type: 'text', text: typeof last.content === 'string' ? last.content : '' }, ...m.content];
+        } else { mergedAnthropic.push(m); }
+      }
+      const anthropicTools = request.tools?.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
+
+      const stream = this.client.messages.stream({
+        model: request.model,
+        system: systemPrompt,
+        messages: mergedAnthropic,
+        tools: anthropicTools,
+        temperature: request.temperature,
+        max_tokens: request.max_tokens || 4096
+      });
+
+      let fullContent = '';
+      const toolCalls: any[] = [];
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          fullContent += event.delta.text;
+          onChunk(event.delta.text);
+        }
+        if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
+          toolCalls.push({ id: event.content_block.id, type: 'function', function: { name: event.content_block.name, arguments: '' } });
+        }
+        if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
+          const last = toolCalls[toolCalls.length - 1];
+          if (last) last.function.arguments += event.delta.partial_json;
+        }
+      }
+
+      return { message: { content: fullContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined } };
+    } catch {
+      return this.chat(request);
+    }
   }
 }
 
@@ -300,5 +403,117 @@ export class GeminiAdapter implements LLMProvider {
       },
       usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
     };
+  }
+
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+    let systemInstruction = '';
+    const contents: any[] = [];
+    
+    for (const m of request.messages) {
+      if (m.role === 'system') {
+        systemInstruction = m.content;
+        continue;
+      }
+      if (m.role === 'user') {
+        contents.push({ role: 'user', parts: [{ text: m.content }] });
+      } else if (m.role === 'assistant') {
+        const parts: any[] = [];
+        if (m.content) parts.push({ text: m.content });
+        if (m.tool_calls) {
+          m.tool_calls.forEach((tc: any) => {
+            try { parts.push({ functionCall: { name: tc.function.name, args: JSON.parse(tc.function.arguments) } }); } catch {}
+          });
+        }
+        if (parts.length > 0) contents.push({ role: 'model', parts });
+      } else if (m.role === 'tool') {
+        contents.push({ role: 'user', parts: [{ functionResponse: { name: m.name || 'unknown_tool', response: { result: m.content } } }] });
+      }
+    }
+
+    const mergedContents: any[] = [];
+    for (const m of contents) {
+      const last = mergedContents[mergedContents.length - 1];
+      if (last && last.role === m.role) last.parts.push(...m.parts);
+      else mergedContents.push(m);
+    }
+
+    let tools: any = undefined;
+    if (request.tools && request.tools.length > 0) {
+      tools = [{ functionDeclarations: request.tools.map(t => ({ name: t.function.name, description: t.function.description, parameters: t.function.parameters })) }];
+    }
+
+    const payload: any = {
+      contents: mergedContents,
+      generationConfig: { temperature: request.temperature || 0.7 },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' }
+      ]
+    };
+
+    if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    if (tools) payload.tools = tools;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${request.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) return this.chat(request);
+
+      let contentStr = '';
+      const toolCalls: any[] = [];
+      let totalTokens = 0;
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw || raw === '[DONE]') continue;
+            try {
+              const data = JSON.parse(raw);
+              if (data.candidates && data.candidates.length > 0) {
+                const candidate = data.candidates[0];
+                if (candidate.content && candidate.content.parts) {
+                  for (const part of candidate.content.parts) {
+                    if (part.text) {
+                      contentStr += part.text;
+                      onChunk(part.text);
+                    } else if (part.functionCall) {
+                      toolCalls.push({
+                        id: `call_${Math.random().toString(36).substring(7)}`,
+                        type: 'function',
+                        function: { name: part.functionCall.name, arguments: JSON.stringify(part.functionCall.args || {}) }
+                      });
+                    }
+                  }
+                }
+              }
+              if (data.usageMetadata?.totalTokenCount) totalTokens = data.usageMetadata.totalTokenCount;
+            } catch {}
+          }
+        }
+      }
+
+      return {
+        message: { content: contentStr || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined },
+        usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
+      };
+    } catch {
+      return this.chat(request);
+    }
   }
 }

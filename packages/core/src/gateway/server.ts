@@ -27,7 +27,7 @@ import { validateToken, getSessionToken } from '../utils/state';
 import { initWebSocket } from './WebSocketManager';
 import fs from 'fs';
 import yaml from 'yaml';
-import { processUserInput, logger } from '../agent/reasoning';
+import { processUserInput, processUserInputStream, logger } from '../agent/reasoning';
 import { loadConfig, saveConfig, loadRpcConfig, saveRpcConfig } from '../config/parser';
 import { loadDefiKeys, saveDefiKeys } from '../config/defiConfigManager';
 import { loadMarketKeys, saveMarketKeys } from '../config/marketConfigManager';
@@ -133,7 +133,7 @@ app.use('/api', (req, res, next) => {
     return next();
   }
 
-  const token = req.headers['x-nyxora-token'] as string;
+  const token = (req.headers['x-nyxora-token'] as string) || (req.query.token as string);
   const validation = validateToken(token);
   
   if (!validation.valid) {
@@ -1057,7 +1057,51 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// --- Memory API Endpoints ---
+// --- Streaming Chat Endpoint (SSE) ---
+// Sends LLM tokens to the client as they arrive via Server-Sent Events.
+// The old /api/chat endpoint remains untouched for backward compatibility.
+app.get('/api/chat/stream', async (req, res) => {
+  const { message, session_id } = req.query as Record<string, string>;
+  if (!message) {
+    res.status(400).json({ error: 'Message is required' });
+    return;
+  }
+
+  // Setup SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+  res.flushHeaders();
+
+  const sendEvent = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const onChunk = (text: string) => sendEvent({ chunk: text });
+  const onProgress = (msg: string) => sendEvent({ progress: msg });
+
+  try {
+    await processUserInputStream(message, onChunk, onProgress, session_id);
+    // Trigger memory mechanisms after response completes
+    resetIdleTimer(session_id);
+    messageCounter++;
+    if (messageCounter >= 5) {
+      messageCounter = 0;
+      ReflectionEngine.runReflection(session_id).then(() => {
+        const { PromotionEngine } = require('../memory/promotionEngine');
+        PromotionEngine.runPromotionAndDecay();
+      }).catch(console.error);
+    }
+  } catch (err: any) {
+    sendEvent({ error: err.message });
+  } finally {
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
+});
+
+
 app.get('/api/memory', (req, res) => {
   try {
     const memories = episodicDB.getMemories();
@@ -1070,9 +1114,10 @@ app.get('/api/memory', (req, res) => {
 app.delete('/api/memory/all', (req, res) => {
   try {
     episodicDB.clearAllMemories();
+    episodicDB.clearAllPersonas();
     const { PromotionEngine } = require('../memory/promotionEngine');
     PromotionEngine.runPromotionAndDecay();
-    res.json({ success: true, message: "Episodic memory wiped completely." });
+    res.json({ success: true, message: "Episodic memory and persona traits wiped completely." });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
