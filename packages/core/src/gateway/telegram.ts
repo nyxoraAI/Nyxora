@@ -190,9 +190,16 @@ export function startTelegramBot() {
         );
 
         // Finalize by sending the permanent message (which replaces the draft)
+        let replyMarkup: any = undefined;
+        if (/Reply \*\*Yes\*\*/i.test(response) && /\*\*No\*\* to cancel/i.test(response)) {
+          replyMarkup = new InlineKeyboard()
+            .text('✅ Approve', 'tx_approve')
+            .text('❌ Reject', 'tx_reject');
+        }
+
         await ctx.reply(
           formatToTelegramHTML(response),
-          { parse_mode: 'HTML' }
+          { parse_mode: 'HTML', reply_markup: replyMarkup }
         ).catch(() => {});
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
@@ -200,6 +207,55 @@ export function startTelegramBot() {
           '❌ Sorry, I encountered an error while processing your message.',
           {}
         ).catch(() => {});
+      }
+    });
+
+    bot.on('callback_query:data', async (ctx) => {
+      const data = ctx.callbackQuery.data;
+      if (data === 'tx_approve' || data === 'tx_reject') {
+        await ctx.answerCallbackQuery().catch(() => {});
+        await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+        
+        const simulatedText = data === 'tx_approve' ? 'yes' : 'no';
+        console.log(`[Telegram] User clicked ${simulatedText.toUpperCase()} via Inline Keyboard`);
+        
+        if (!ctx.chat) return;
+        await ctx.replyWithChatAction('typing');
+        
+        const draft_id = Math.floor(Math.random() * 100000000) + 1;
+        let buffer = '';
+        let lastDraftAt = 0;
+        let isDrafting = false;
+        
+        const onChunk = async (chunk: string) => {
+          buffer += chunk;
+          const now = Date.now();
+          if (!isDrafting && now - lastDraftAt >= 100) {
+            isDrafting = true;
+            try { await ctx.api.sendMessageDraft(ctx.chat.id, draft_id, formatToTelegramHTML(buffer), { parse_mode: 'HTML' } as any); } catch {}
+            lastDraftAt = Date.now();
+            isDrafting = false;
+          }
+        };
+
+        const onProgress = async (msg: string) => {
+          if (!isDrafting) {
+            isDrafting = true;
+            try { await ctx.api.sendMessageDraft(ctx.chat.id, draft_id, `<i>${msg.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' } as any); } catch {}
+            isDrafting = false;
+          }
+        };
+
+        try {
+          const response = await processUserInputStream(simulatedText, onChunk, onProgress, `telegram_${ctx.chat.id}`);
+          let replyMarkup: any = undefined;
+          if (/Reply \*\*Yes\*\*/i.test(response) && /\*\*No\*\* to cancel/i.test(response)) {
+            replyMarkup = new InlineKeyboard().text('✅ Approve', 'tx_approve').text('❌ Reject', 'tx_reject');
+          }
+          await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML', reply_markup: replyMarkup }).catch(() => {});
+        } catch (error) {
+          await ctx.reply('❌ Sorry, I encountered an error.', {}).catch(() => {});
+        }
       }
     });
 

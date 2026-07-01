@@ -49,6 +49,7 @@ function App() {
   const [chatWidth, setChatWidth] = useState(70);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -272,6 +273,12 @@ function App() {
         const data = await res.json();
         setMessages(prev => {
           const optimisticMsgs = prev.filter(m => m.isOptimistic);
+          const nonOptimisticPrev = prev.filter(m => !m.isOptimistic);
+          
+          if (JSON.stringify(nonOptimisticPrev) === JSON.stringify(data)) {
+            return prev;
+          }
+
           if (optimisticMsgs.length > 0) {
             const missingOptimistic = optimisticMsgs.filter(opt => !data.some((d: any) => d.role === 'user' && d.content === opt.content));
             if (missingOptimistic.length > 0) {
@@ -391,7 +398,9 @@ function App() {
   }, [activeSessionId]);
 
   usePolling(() => {
-    fetchHistory();
+    if (!isLoading) {
+      fetchHistory();
+    }
     fetchSessions();
     fetchTrendingTokens();
   }, 5000);
@@ -399,9 +408,14 @@ function App() {
   useEffect(() => {
     // Adding a slight timeout to ensure DOM is fully rendered before scrolling
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      const isStreaming = messages.some(m => m.isStreaming);
+      if (isStreaming && chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }, 10);
-  }, [messages.length, isLoading, currentView]);
+  }, [messages, isLoading, currentView]);
 
   const handleSend = async (e: React.FormEvent, customMsg?: string) => {
     e?.preventDefault();
@@ -848,12 +862,46 @@ function App() {
                   </div>
                 )}
 
-                <div className="chat-container" style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
+                <div className="chat-container" ref={chatContainerRef} style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
                   <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-                {messages.map((msg, idx) => {
-                const handleCopy = () => {
-                navigator.clipboard.writeText(msg.content);
+                {(() => {
+                  const getMergedMessages = (msgs: any[]) => {
+                    const merged: any[] = [];
+                    let currentAssistantMsg: any = null;
+                    
+                    for (const m of msgs) {
+                      if (m.role === 'user') {
+                        if (currentAssistantMsg) {
+                          merged.push(currentAssistantMsg);
+                          currentAssistantMsg = null;
+                        }
+                        merged.push(m);
+                      } else if (m.role === 'assistant') {
+                        if (currentAssistantMsg) {
+                          if (m.tool_calls) {
+                            currentAssistantMsg.tool_calls = [...(currentAssistantMsg.tool_calls || []), ...m.tool_calls];
+                          }
+                          if (m.content && m.content.trim() !== '') {
+                            currentAssistantMsg.content = (currentAssistantMsg.content && currentAssistantMsg.content.trim() !== '')
+                              ? currentAssistantMsg.content.trim() + '\n\n' + m.content.trim() 
+                              : m.content.trim();
+                          }
+                          currentAssistantMsg.isStreaming = currentAssistantMsg.isStreaming || m.isStreaming;
+                        } else {
+                          currentAssistantMsg = { ...m };
+                        }
+                      }
+                      // Ignored roles (e.g., 'tool') to maintain exact same array indices (keys) between streaming and history states.
+                    }
+                    if (currentAssistantMsg) {
+                      merged.push(currentAssistantMsg);
+                    }
+                    return merged;
+                  };
+                  return getMergedMessages(messages).map((msg, idx) => {
+                  const handleCopy = () => {
+                  navigator.clipboard.writeText(msg.content);
                 setCopiedIndex(idx);
                 setTimeout(() => setCopiedIndex(null), 2000);
               };
@@ -868,30 +916,37 @@ function App() {
                   </div>
                 );
               }
-              if (msg.role === 'assistant' && (msg.content || msg.tool_calls)) {
+              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progress)) {
                 return (
-                  <div key={idx} className="message-wrapper agent">
-                    {msg.content && (
-                      <>
-                        <div className="message-bubble">{renderMessageContent(msg.content)}</div>
-                        <button className="copy-btn" onClick={handleCopy} title="Copy message">
-                          {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
-                        </button>
-                      </>
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignSelf: 'flex-start', maxWidth: '95%' }}>
+                    {msg.progress && (
+                      <div className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
+                        <Activity size={16} color="#22c55e" />
+                        <span dangerouslySetInnerHTML={{ __html: msg.progress.replace(/_([^_]+)_/g, '<i>$1</i>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
+                      </div>
                     )}
                     {msg.tool_calls && msg.tool_calls.map((tool: any, tIdx: number) => (
-                      <div key={`t-${tIdx}`} className="tool-call">
+                      <div key={`t-${tIdx}`} className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
                         <Activity size={16} color="#22c55e" />
                         Executing: <code>{tool.function.name}</code>
                       </div>
                     ))}
+                    {msg.content && msg.content.trim() !== '' && (
+                      <div className="message-wrapper agent" style={{ maxWidth: '100%', margin: 0 }}>
+                        <div className="message-bubble">{renderMessageContent(msg.content)}</div>
+                        <button className="copy-btn" onClick={handleCopy} title="Copy message">
+                          {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               }
               return null;
-            })}
+            });
+            })()}
 
-            {isLoading && (
+            {isLoading && !messages.some(m => m.isStreaming && (m.content || m.progress)) && (
               <div className="typing-indicator">
                 <div className="dot"></div>
                 <div className="dot"></div>

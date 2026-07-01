@@ -7,7 +7,7 @@ import { loadConfig, loadApiKeys } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
-
+import { createSmartStreamWrapper } from '../utils/streamSimulator';
 
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
@@ -17,8 +17,7 @@ export const logger = new Logger();
 
 
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
-
-
+import { txManager } from './transactionManager';
 function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general'): string {
     const config = loadConfig();
     const currentDateTime = new Date().toLocaleString('en-US');
@@ -346,109 +345,120 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
  */
 export async function processUserInputStream(
   input: string,
-  onChunk: (text: string) => void,
+  originalOnChunk: (text: string) => void,
   onProgress?: (msg: string) => void,
   sessionId?: string
 ): Promise<string> {
-  const lowerInput = input.toLowerCase();
-  const config = loadConfig();
-  const history = logger.getHistory(sessionId);
+  const smartStream = createSmartStreamWrapper(originalOnChunk);
+  const onChunk = smartStream.onChunk;
 
-  const textOnlyHistory = history
-    .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
-    .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || '' }));
+  try {
+    const lowerInput = input.toLowerCase();
+    const config = loadConfig();
+    const history = logger.getHistory(sessionId);
 
-  // Reuse keyword pre-check from processUserInput()
-  const OS_KEYWORDS = [
-    'excel', 'xlsx', 'spreadsheet', 'file', 'folder', 'direktori', 'directory',
-    'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
-    'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
-    'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
-    'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
-    'cuaca', 'weather', 'berita', 'news',
-    'email', 'gmail', 'google docs', 'google sheets', 'notion', 'kalender', 'calendar',
-    'twitter', 'tweet', 'transcribe', 'audio',
-    'ganti nama', 'ubah nama', 'rename agent', 'setting', 'pengaturan',
-    'ringkas', 'summarize', 'rangkum',
-  ];
+    const textOnlyHistory = history
+      .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
+      .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || '' }));
 
-  const WEB3_KEYWORDS = [
-    'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
-    'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
-    'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address',
-    'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
-    'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-    'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
-    'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
-    'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-    'on-chain', 'blockchain',
-  ];
-
-  let context: 'web3' | 'os' | 'general' = 'general';
-  let preCheckMatched = false;
-
-  if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
-    context = 'os';
-    preCheckMatched = true;
-  } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
-    context = 'web3';
-    preCheckMatched = true;
-  }
-
-  if (!preCheckMatched) {
-    // Fallback LLM router for ambiguous intents
-    const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Reply with EXACTLY ONE WORD.`;
-    const routerMessages = [
-      { role: 'system', content: routerPrompt },
-      ...textOnlyHistory.slice(-10),
-      { role: 'user', content: input }
+    const OS_KEYWORDS = [
+      'excel', 'xlsx', 'spreadsheet', 'file', 'folder', 'direktori', 'directory',
+      'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
+      'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
+      'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
+      'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
+      'cuaca', 'weather', 'berita', 'news',
+      'email', 'gmail', 'google docs', 'google sheets', 'notion', 'kalender', 'calendar',
+      'twitter', 'tweet', 'transcribe', 'audio',
+      'ganti nama', 'ubah nama', 'rename agent', 'setting', 'pengaturan',
+      'ringkas', 'summarize', 'rangkum',
     ];
-    try {
-      const routerResponse = await executeWithRetry(async (client) =>
-        client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 10 })
-      , 3);
-      const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
-      if (cr.includes('web3')) context = 'web3';
-      else if (cr.includes('os')) context = 'os';
-      else context = 'general';
-    } catch {
-      context = 'general';
-    }
-  }
 
-  console.log(pc.cyan(`[Stream Orchestrator] Intent classified as: ${context.toUpperCase()}`));
-
-  if (context === 'web3') {
-    return await processWeb3IntentStream(input, onChunk, onProgress, sessionId);
-  } else if (context === 'os') {
-    return await processOsIntentStream(input, onChunk, onProgress, sessionId);
-  } else {
-    // General: stream directly without tools
-    logger.addEntry({ role: 'user', content: input }, sessionId);
-    const messages = [
-      { role: 'system', content: getSystemPrompt('general') },
-      ...textOnlyHistory,
-      { role: 'user', content: input }
+    const WEB3_KEYWORDS = [
+      'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
+      'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
+      'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address',
+      'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
+      'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
+      'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
+      'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
+      'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
+      'on-chain', 'blockchain',
     ];
-    try {
-      let streamedContent = '';
-      const response = await executeWithRetry(async (client) =>
-        client.stream(
-          { model: config.llm.model, messages: messages as any },
-          (chunk: string) => { streamedContent += chunk; onChunk(chunk); }
-        )
-      );
-      let finalContent = response.message?.content || streamedContent || '';
-      finalContent = finalContent
-        .replace(/<(think|thought)[\s\S]*?<\/\1>\n?/gi, '')
-        .trim();
-      if (!finalContent) finalContent = '⚠️ The LLM returned an empty response. Please try again.';
-      logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
-      return finalContent;
-    } catch (error: any) {
-      const errorMsg = '⚠️ The system is experiencing LLM API rate limits. Please try again.';
-      logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
-      return errorMsg;
+
+    let context: 'web3' | 'os' | 'general' = 'general';
+    let preCheckMatched = false;
+
+    const pendingTxs = txManager.getPending();
+    if (pendingTxs.length > 0) {
+      context = 'web3';
+      preCheckMatched = true;
+    } else if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+      context = 'os';
+      preCheckMatched = true;
+    } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+      context = 'web3';
+      preCheckMatched = true;
     }
+
+    if (!preCheckMatched) {
+      const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Reply with EXACTLY ONE WORD.`;
+      const routerMessages = [
+        { role: 'system', content: routerPrompt },
+        ...textOnlyHistory.slice(-10),
+        { role: 'user', content: input }
+      ];
+      try {
+        const routerResponse = await executeWithRetry(async (client) =>
+          client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 10 })
+        , 3);
+        const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
+        if (cr.includes('web3')) context = 'web3';
+        else if (cr.includes('os')) context = 'os';
+        else context = 'general';
+      } catch {
+        context = 'general';
+      }
+    }
+
+    console.log(pc.cyan(`[Stream Orchestrator] Intent classified as: ${context.toUpperCase()}`));
+
+    let finalResult = '';
+    if (context === 'web3') {
+      finalResult = await processWeb3IntentStream(input, onChunk, onProgress, sessionId);
+    } else if (context === 'os') {
+      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId);
+    } else {
+      logger.addEntry({ role: 'user', content: input }, sessionId);
+      const messages = [
+        { role: 'system', content: getSystemPrompt('general') },
+        ...textOnlyHistory,
+        { role: 'user', content: input }
+      ];
+      try {
+        let streamedContent = '';
+        const response = await executeWithRetry(async (client) =>
+          client.stream(
+            { model: config.llm.model, messages: messages as any },
+            (chunk: string) => { streamedContent += chunk; onChunk(chunk); }
+          )
+        );
+        let finalContent = response.message?.content || streamedContent || '';
+        finalContent = finalContent
+          .replace(/<(think|thought)[\s\S]*?<\/\1>\n?/gi, '')
+          .trim();
+        if (!finalContent) finalContent = '⚠️ The LLM returned an empty response. Please try again.';
+        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
+        finalResult = finalContent;
+      } catch (error: any) {
+        const errorMsg = '⚠️ The system is experiencing LLM API rate limits. Please try again.';
+        logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
+        finalResult = errorMsg;
+      }
+    }
+    
+    return finalResult;
+  } finally {
+    await smartStream.wait();
   }
 }
