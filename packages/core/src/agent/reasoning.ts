@@ -213,40 +213,36 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   // Cek keyword OS terlebih dahulu. Jika cocok, langsung route ke 'os'
   // tanpa memanggil LLM router untuk hemat latency & mencegah misklasifikasi.
   const OS_KEYWORDS = [
-    // File & Dokumen
-    'excel', 'xlsx', 'spreadsheet', 'laporan excel', 'generate excel', 'buat excel',
-    'file', 'folder', 'direktori', 'directory', 'baca file', 'tulis file', 'edit file',
-    'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
+    // File & Documents
+    'excel', 'xlsx', 'spreadsheet', 'generate excel',
+    'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
     // Terminal & Git
-    'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
+    'terminal', 'command', 'shell', 'bash', 'script', 'run command',
     'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
     // Web & Search
-    'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
-    'cuaca', 'weather', 'berita', 'news',
+    'search web', 'google', 'browse', 'scrape', 'weather', 'news',
     // Email & Workspace
-    'email', 'gmail', 'google docs', 'google sheets', 'notion',
-    'kalender', 'calendar',
+    'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
     // Social & Media
-    'twitter', 'tweet', 'x post', 'transcribe', 'audio', 'rekaman',
+    'twitter', 'tweet', 'x post', 'transcribe', 'audio',
     // AI Settings
-    'ganti nama', 'ubah nama', 'rename agent', 'ubah persona', 'change persona',
-    'update profile', 'update identity', 'setting', 'pengaturan',
+    'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
     // Summarize
-    'ringkas', 'summarize', 'rangkum',
+    'summarize',
   ];
 
   // Keyword Web3 yang eksplisit — dipastikan tidak salah route ke 'os'
   const WEB3_KEYWORDS = [
     // Transaksi
-    'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
+    'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
     'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
     // Aset & Wallet
-    'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address', 'alamat',
+    'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
     'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
     // DeFi & Market
     'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-    'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
-    'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
+    'price', 'chart', 'market', 'portfolio', 'balance',
+    'gas', 'fee', 'slippage', 'transaction', 'tx',
     // Chain
     'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
     'on-chain', 'blockchain',
@@ -273,9 +269,9 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
-2. The user may speak in ANY language, including casual slang, idioms, or abbreviations (e.g., 'tf', 'wd', 'buy', 'sell'). Translate their core intent logically.
-3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat (e.g., 'to usd', 'to eur', 'in idr'), reply 'web3'.
-4. If the core intent involves OS automation, web search, weather, emails, files, excel, terminal, or changing AI settings, reply 'os'.
+2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
+3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
+4. If the core intent involves OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
 5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
 Reply with EXACTLY ONE WORD: web3, os, or general.`;
 
@@ -386,28 +382,28 @@ export async function processUserInputStream(
       .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || '' }));
 
     const OS_KEYWORDS = [
-      'excel', 'xlsx', 'spreadsheet', 'file', 'folder', 'direktori', 'directory',
-      'read file', 'write file', 'pdf', 'word', 'docx', 'dokumen', 'document',
-      'terminal', 'command', 'shell', 'bash', 'script', 'run command', 'jalankan',
+      'excel', 'xlsx', 'spreadsheet', 'generate excel',
+      'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
+      'terminal', 'command', 'shell', 'bash', 'script', 'run command',
       'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
-      'cari di web', 'search web', 'google', 'browse', 'scrape', 'web search',
-      'cuaca', 'weather', 'berita', 'news',
-      'email', 'gmail', 'google docs', 'google sheets', 'notion', 'kalender', 'calendar',
-      'twitter', 'tweet', 'transcribe', 'audio',
-      'ganti nama', 'ubah nama', 'rename agent', 'setting', 'pengaturan',
-      'ringkas', 'summarize', 'rangkum',
+      'search web', 'google', 'browse', 'scrape', 'weather', 'news',
+      'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
+      'twitter', 'tweet', 'x post', 'transcribe', 'audio',
+      'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
+      'summarize',
     ];
 
     const WEB3_KEYWORDS = [
-      'swap', 'bridge', 'transfer', 'kirim', 'send', 'buy', 'sell', 'beli', 'jual',
+      'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
       'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
-      'token', 'crypto', 'coin', 'nft', 'wallet', 'dompet', 'address',
+      'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
       'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
       'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-      'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
-      'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
+      'price', 'chart', 'market', 'portfolio', 'balance',
+      'gas', 'fee', 'slippage', 'transaction', 'tx',
       'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-      'on-chain', 'blockchain', 'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
+      'on-chain', 'blockchain',
+      'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
     ];
 
     let context: 'web3' | 'os' | 'general' = 'general';
@@ -426,7 +422,14 @@ export async function processUserInputStream(
     }
 
     if (!preCheckMatched) {
-      const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Rule: Price conversions (e.g., '1 manta to usd', 'to eur') MUST be 'web3'. Reply with EXACTLY ONE WORD.`;
+      const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
+Rules:
+1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
+2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
+3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
+4. If the core intent involves OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
+5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+Reply with EXACTLY ONE WORD: web3, os, or general.`;
       const routerMessages = [
         { role: 'system', content: routerPrompt },
         ...textOnlyHistory.slice(-10),
@@ -434,7 +437,7 @@ export async function processUserInputStream(
       ];
       try {
         const routerResponse = await executeWithRetry(async (client) =>
-          client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 10 })
+          client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 1000 })
         , 3);
         const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
         if (cr.includes('web3')) context = 'web3';
