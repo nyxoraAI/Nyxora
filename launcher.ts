@@ -39,9 +39,9 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
     const spawnOpts: any = { env, stdio: inheritStdio ? 'inherit' : 'pipe' };
     if (cwd) spawnOpts.cwd = cwd;
     child = spawn(command, args, spawnOpts);
-    
     child.on('error', (err) => {
       console.error(`[Launcher] Failed to spawn ${name}:`, err.message);
+      isShuttingDown = true; // Prevent retry loop if spawn fails
     });
 
     if (!inheritStdio) {
