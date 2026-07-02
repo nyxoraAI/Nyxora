@@ -15,7 +15,7 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ## Option 1: One-Line Installation (Recommended)
 
-The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry.
+The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry. *(Note: You must have Python 3.10+ pre-installed on your system, as this script only handles Node.js dependencies).*
 
 **Linux & macOS:**
 ```bash

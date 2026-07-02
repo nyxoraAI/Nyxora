@@ -153,7 +153,7 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 Nyxora requires **Node.js 18+** and **Python 3.10+** (for the ML Cognitive Engine) to be installed on your system.
 
 ### Option 1: One-Line Installation (Recommended)
-The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry.
+The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry. *(Note: You must have Python 3.10+ pre-installed on your system, as this script only handles Node.js dependencies).*
 
 **Linux & macOS:**
 ```bash
