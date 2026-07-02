@@ -39,6 +39,10 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
     const spawnOpts: any = { env, stdio: inheritStdio ? 'inherit' : 'pipe' };
     if (cwd) spawnOpts.cwd = cwd;
     child = spawn(command, args, spawnOpts);
+    
+    child.on('error', (err) => {
+      console.error(`[Launcher] Failed to spawn ${name}:`, err.message);
+    });
 
     if (!inheritStdio) {
       child.stdout?.on('data', (data) => process.stdout.write(`[${name}] ${data}`));
@@ -139,14 +143,14 @@ setTimeout(() => {
   
   setTimeout(() => {
     // Spawn ML Engine (Python Sidecar)
-    const uvicornPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', 'bin', 'uvicorn');
-    if (fs.existsSync(uvicornPath)) {
+    const pythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', 'bin', 'python');
+    if (fs.existsSync(pythonPath)) {
       const mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
-      const mlArgs = ['main:app', '--host', '127.0.0.1', '--port', '8000'];
-      const mlEngine = spawnService('ML Engine', uvicornPath, mlArgs, env, false, mlDir);
+      const mlArgs = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'];
+      const mlEngine = spawnService('ML Engine', pythonPath, mlArgs, env, false, mlDir);
       children.push(mlEngine);
     } else {
-      console.warn('[Launcher] Warning: ML Engine virtual environment not found. Did you run setup-ml?');
+      console.warn('[Launcher] Warning: Python virtual environment not found. Did you run setup?');
     }
 
     setTimeout(() => {
