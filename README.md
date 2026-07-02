@@ -172,7 +172,8 @@ If you already have Node.js installed, you can natively install Nyxora globally 
 # Install globally
 npm install -g nyxora
 
-# Run the interactive setup wizard (Configures API Keys, Wallet, and Python ML Environment)
+# Run the interactive setup wizard 
+# (Automatically validates Node.js & Python 3.10+ requirements, configures API Keys, Wallet, and ML Environment)
 nyxora setup
 
 # Start the background daemon

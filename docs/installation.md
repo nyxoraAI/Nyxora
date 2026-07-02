@@ -47,7 +47,7 @@ nyxora start
 nyxora dashboard
 ```
 
-The interactive command-line wizard (`nyxora setup`) will guide you through:
+The interactive command-line wizard (`nyxora setup`) acts as a smart system doctor that automatically validates your Node.js and Python 3.10+ installations before guiding you through:
 1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, DeepSeek, xAI, etc.) and your preferred Web Search provider (Tavily, Brave, DuckDuckGo, SearXNG). Input your API keys securely.
 2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
 3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).
