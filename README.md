@@ -58,6 +58,9 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://viem.sh/"><img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://www.langchain.com/"><img src="https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white" alt="LangChain"></a>
 </p>
 
 <br/>
@@ -68,7 +71,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ### Advanced Security Architecture
 *   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/smart-contract)
-*   **3-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (LLM Runtime), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
+*   **4-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (Node.js LLM Runtime), **ML Engine** (Python Cognitive Sidecar on port 8000), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
 *   **DeFi & Market Configuration BYOK & UI Masking**: All aggregator, provider, and oracle API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into heavily guarded `~/.nyxora/defi_keys.yaml` and `~/.nyxora/market_keys.yaml` files. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Native Asset Parameter Tampering Protection**: The internal cryptographic HMAC signature rigorously binds `toAddress`, `txData`, and `valueWei`, rendering the system mathematically immune to Native Token (ETH/BNB) destination or amount hijacking via Indirect Prompt Injections.
@@ -121,10 +124,11 @@ The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, sho
 
 ![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
 
-*Nyxora separates its duties into 3 independent layers for absolute security:*
-1. **🧠 Core (The AI Brain)**: The intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
-2. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
-3. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring (GNOME Keyring / macOS Keychain / Windows Credential Manager). It only signs transactions after they pass all rigorous security checks.
+*Nyxora separates its duties into 4 independent layers for absolute security and cognitive depth:*
+1. **🧠 Core (The AI Brain)**: The Node.js intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
+2. **🧬 ML Engine (Cognitive Sidecar)**: A local Python/FastAPI sidecar running LangChain and HuggingFace models for hyper-fast Semantic RAG memory and Pandas-based technical market analysis.
+3. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
+4. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring. It only signs transactions after they pass all rigorous security checks.
 
 ### Web3 Separation of Concerns (Zero-Trust Routing)
 Within the AI Brain, the Web3 codebase is strictly divided to prevent the LLM from hallucinating or maliciously manipulating low-level routing paths:
@@ -143,6 +147,9 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 ---
 
 ## 🚀 Quick Start & Installation
+
+### Prerequisites
+Nyxora requires **Node.js 18+** and **Python 3.10+** (for the ML Cognitive Engine) to be installed on your system.
 
 ### Option 1: One-Line Installation (Recommended)
 The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry.
@@ -164,7 +171,7 @@ If you already have Node.js installed, you can natively install Nyxora globally 
 # Install globally
 npm install -g nyxora
 
-# Run the interactive setup wizard (API Keys, Wallet, Telegram)
+# Run the interactive setup wizard (Configures API Keys, Wallet, and Python ML Environment)
 nyxora setup
 
 # Start the background daemon
@@ -187,10 +194,10 @@ npm install
 # 2. Build the Core, MCP Server, and Dashboard UI
 npm run build
 
-# 3. Interactive Setup Wizard
+# 3. Interactive Setup Wizard (Will also install Python ML requirements via pip)
 npm run setup
 
-# 4. Start the Application
+# 4. Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
 npm start
 ```
 
