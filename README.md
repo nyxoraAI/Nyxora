@@ -120,7 +120,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ## 📐 Architecture Workflow
 
-The following diagram illustrates Nyxora's **3-Tier Monorepo Architecture**, showing the isolated communication channels (REST API and Unix Socket).
+The following diagram illustrates Nyxora's **4-Tier Hybrid Architecture**, showing the isolated communication channels (REST API and Unix Socket).
 
 ![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
 
