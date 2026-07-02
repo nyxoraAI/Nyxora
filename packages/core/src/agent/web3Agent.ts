@@ -8,6 +8,8 @@ import { episodicDB } from '../memory/episodic';
 import { isSkillActive } from '../utils/skillManager';
 import { pluginManager } from '../plugin/registry';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
+import { ReasoningScratchpad } from './reasoningScratchpad';
+import { compressHistory, needsCompression } from '../utils/contextSummarizer';
 
 const EXECUTION_DISCIPLINE = `
 
@@ -134,34 +136,41 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
   // Add input to memory
   logger.addEntry({ role, content: input }, sessionId);
 
-  const history = logger.getHistory(sessionId);
-  
-  // Format messages for OpenAI
-  // Inject Plugin Tools dynamically
   const pluginTools = pluginManager.getAllToolDefinitions();
-  
   let activeTools = [...pluginTools];
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
-  const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
-  const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools, config.llm.provider);
+  // P1: Init reasoning scratchpad for this request
+  const scratchpad = new ReasoningScratchpad();
 
-  let messages: any[] = [
-    { role: 'system', content: await getSystemPrompt('web3', input) },
-    ...sanitizedHistory
-  ];
+  // P3: Build system prompt ONCE per request — not per turn
+  const cachedSystemPrompt = await getSystemPrompt('web3', input);
+
+  const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
 
   try {
-    const context = 'web3';
     let turnCount = 0;
     const MAX_TURNS = 10;
+    let consecutiveToolErrors = 0;
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       const currentHistory = logger.getHistory(sessionId);
-      const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+
+      // P6: Compress history if conversation is too long
+      const historyToUse = needsCompression(currentHistory)
+        ? await compressHistory(currentHistory)
+        : currentHistory;
+
+      const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
+
+      // P1: Inject scratchpad into system prompt for turns > 1
+      const sysPrompt = turnCount === 1
+        ? cachedSystemPrompt
+        : cachedSystemPrompt + scratchpad.getInjection();
+
       const messages: any[] = [
-        { role: 'system', content: await getSystemPrompt('web3', input) },
+        { role: 'system', content: sysPrompt },
         ...sanitizedHistory
       ];
 
@@ -185,9 +194,12 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       }
       Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
+      // P1: Capture <think> blocks for scratchpad, get clean content
+      const cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
+
       logger.addEntry({
         role: 'assistant',
-        content: responseMessage.content || "",
+        content: cleanedContent || '',
         tool_calls: responseMessage.tool_calls,
       }, sessionId);
 
@@ -236,13 +248,10 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           }, sessionId);
         }
       }
-      // -------------------------------------------------------------
+      // -----------------------------------------------------
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
-        let finalContent = responseMessage.content || "No response generated.";
-        finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/gi, '');
-        finalContent = finalContent.trim();
-        return finalContent;
+        return cleanedContent || 'No response generated.';
       }
 
       let canFastReturnAll = true;
@@ -326,8 +335,29 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         }
       }
 
-      // V2 Optimization (Expanded in v1.7.4): Zero-LLM Fast Return for data-heavy and read-only tools
-      // If all tools already return perfectly formatted markdown, skip the second LLM call to save 5-10s latency!
+      // P4: Self-reflection — if ALL tools failed, inject reflection before next turn
+      const allFailed = accumulatedResults.length > 0 && accumulatedResults.every(
+        r => r.startsWith('Error') || r.includes('[System Error]') || r.includes('[Security Blocked]')
+      );
+      if (allFailed) {
+        consecutiveToolErrors++;
+        const reflection = `[SELF-REFLECTION] All ${accumulatedResults.length} tool call(s) failed (attempt ${consecutiveToolErrors}). ` +
+          `Errors: ${accumulatedResults.join(' | ')}. ` +
+          `Analyze WHY each failed. Options: (1) retry with corrected params, (2) use alternative tool, (3) inform user clearly. ` +
+          `Do NOT repeat the exact same failed call.`;
+        logger.addEntry({ role: 'system' as any, content: reflection }, sessionId);
+        console.log(pc.magenta(`[Self-Reflection] Turn ${turnCount}: all tools failed, injecting reflection.`));
+
+        if (consecutiveToolErrors >= 2) {
+          const errorSummary = `⚠️ Unable to complete this request after multiple attempts.\n${accumulatedResults.join('\n')}`;
+          logger.addEntry({ role: 'assistant', content: errorSummary }, sessionId);
+          return errorSummary;
+        }
+      } else {
+        consecutiveToolErrors = 0;
+      }
+
+      // V2 Optimization: Zero-LLM Fast Return for transaction tools
       if (canFastReturnAll && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
         logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);

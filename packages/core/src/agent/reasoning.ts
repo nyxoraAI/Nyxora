@@ -8,6 +8,7 @@ import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
 import { createSmartStreamWrapper } from '../utils/streamSimulator';
+import { needsCompression, compressHistory } from '../utils/contextSummarizer';
 
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
@@ -191,7 +192,119 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
   return basePrompt;
 }
 
+// ──────────────────────────────────────────────────────────────────
+// Module-level routing keyword constants
+// Defined here once and shared by both processUserInput() and processUserInputStream()
+// to ensure consistent routing across sync and streaming paths.
+//
+// NOTE: Arrays are intentionally multilingual. Nyxora targets a global user base.
+// Indonesian terms are included as the primary non-English locale.
+// To add another language, extend these arrays — no other changes required.
+// ──────────────────────────────────────────────────────────────────
+const OS_KEYWORDS: string[] = [
+  // Files & Documents
+  'excel', 'xlsx', 'spreadsheet', 'generate excel',
+  'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
+  // Terminal & Git
+  'terminal', 'command', 'shell', 'bash', 'script', 'run command',
+  'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
+  // Web & Search
+  'search web', 'google', 'browse', 'scrape', 'weather', 'news',
+  // Email & Workspace
+  'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
+  // Social & Media
+  'twitter', 'tweet', 'x post', 'transcribe', 'audio',
+  // AI Settings
+  'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
+  // Summarization
+  'summarize',
+];
 
+const WEB3_KEYWORDS: string[] = [
+  // Transactions
+  'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
+  'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
+  // Assets & Wallets
+  'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
+  'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
+  // DeFi & Market
+  'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
+  'price', 'chart', 'market', 'portfolio', 'balance',
+  'gas', 'fee', 'slippage', 'transaction', 'tx',
+  // Chains
+  'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
+  'on-chain', 'blockchain',
+  // Fiat & Currency
+  'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
+];
+
+
+
+// ── P2: Multi-Intent Decomposer ─────────────────────────────────────────────
+/**
+ * Detects if the user message contains BOTH web3 AND os intents.
+ * Returns 'compound' when both are present so we can route to both agents.
+ */
+function detectCompoundIntent(
+  lowerInput: string,
+  osKeywords: string[],
+  web3Keywords: string[]
+): { hasOs: boolean; hasWeb3: boolean } {
+  return {
+    hasOs: osKeywords.some(kw => lowerInput.includes(kw)),
+    hasWeb3: web3Keywords.some(kw => lowerInput.includes(kw)),
+  };
+}
+
+// ── P7: Task Planner ─────────────────────────────────────────────────────────
+// Trigger keywords for complex requests that benefit from a planning step first.
+// Intentionally multilingual: includes common terms from Indonesian (id), English (en),
+// and universal finance/trading vocabulary to support Nyxora's global user base.
+const PLAN_TRIGGER_KEYWORDS = [
+  // Indonesian
+  'buatkan', 'buat rencana', 'rencanakan', 'strategi', 'gimana cara', 'bagaimana cara',
+  'langkah', 'optimasi', 'apa yang harus',
+  // English
+  'strategy', 'plan', 'planning', 'step by step', 'breakdown', 'optimize',
+  'rebalance', 'what should i do', 'help me decide', 'how do i',
+  // Universal finance terms
+  'roadmap', 'approach', 'framework',
+];
+
+function shouldPlan(input: string): boolean {
+  const lower = input.toLowerCase();
+  return PLAN_TRIGGER_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+async function runTaskPlanner(input: string, context: string): Promise<string> {
+  const config = loadConfig();
+  try {
+    const planRes = await executeWithRetry(async (client) =>
+      client.chat({
+        model: config.llm.model,
+        temperature: 0.2,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a task planning assistant for a crypto AI agent.
+The user has a complex request that needs structured execution.
+Break it down into a clear, ordered execution plan with 3-6 concrete steps.
+Each step should map to a specific action or tool call.
+Be concise. Use bullet points. No fluff.
+Context domain: ${context}`
+          },
+          { role: 'user', content: `Create an execution plan for: ${input}` }
+        ]
+      })
+    );
+    const plan = planRes.message?.content?.trim() || '';
+    if (!plan) return '';
+    console.log(pc.blue('[TaskPlanner] Plan generated, injecting into agent context.'));
+    return `\n\n--- 📋 TASK EXECUTION PLAN (follow this order) ---\n${plan}\n--- END PLAN ---\n`;
+  } catch {
+    return ''; // planning is best-effort, never block the agent
+  }
+}
 
 import { processWeb3Intent } from './web3Agent';
 import { processOsIntent } from './osAgent';
@@ -209,55 +322,35 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
     .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || "" }));
   
-  // ── Opsi B: Keyword Pre-Check (Deterministik, tanpa LLM) ──────────────────
-  // Cek keyword OS terlebih dahulu. Jika cocok, langsung route ke 'os'
-  // tanpa memanggil LLM router untuk hemat latency & mencegah misklasifikasi.
-  const OS_KEYWORDS = [
-    // File & Documents
-    'excel', 'xlsx', 'spreadsheet', 'generate excel',
-    'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
-    // Terminal & Git
-    'terminal', 'command', 'shell', 'bash', 'script', 'run command',
-    'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
-    // Web & Search
-    'search web', 'google', 'browse', 'scrape', 'weather', 'news',
-    // Email & Workspace
-    'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
-    // Social & Media
-    'twitter', 'tweet', 'x post', 'transcribe', 'audio',
-    // AI Settings
-    'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
-    // Summarize
-    'summarize',
-  ];
+  // Uses module-level OS_KEYWORDS and WEB3_KEYWORDS constants defined above.
+  // Routing logic: deterministic keyword check first (no LLM call needed),
+  // with LLM router as fallback for ambiguous inputs.
 
-  // Keyword Web3 yang eksplisit — dipastikan tidak salah route ke 'os'
-  const WEB3_KEYWORDS = [
-    // Transaksi
-    'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
-    'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
-    // Aset & Wallet
-    'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
-    'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
-    // DeFi & Market
-    'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-    'price', 'chart', 'market', 'portfolio', 'balance',
-    'gas', 'fee', 'slippage', 'transaction', 'tx',
-    // Chain
-    'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-    'on-chain', 'blockchain',
-    // Global Fiat & Exchange
-    'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
-  ];
 
   let context: 'web3' | 'os' | 'general' = 'general';
   let preCheckMatched = false;
 
-  // Cek OS keywords dulu (prioritas lebih tinggi untuk mencegah misklasifikasi)
-  if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+  const compound = detectCompoundIntent(lowerInput, OS_KEYWORDS, WEB3_KEYWORDS);
+
+  // P2: Handle compound web3+os intent — run both agents and merge results
+  if (compound.hasWeb3 && compound.hasOs) {
+    console.log(pc.cyan('[Orchestrator] Compound intent detected (web3 + os). Running both agents sequentially.'));
+    logger.addEntry({ role, content: input }, sessionId);
+    const [web3Result, osResult] = await Promise.allSettled([
+      processWeb3Intent(input, role, onProgress, sessionId),
+      processOsIntent(input, role, onProgress, sessionId),
+    ]);
+    const parts: string[] = [];
+    if (web3Result.status === 'fulfilled' && web3Result.value) parts.push(web3Result.value);
+    if (osResult.status === 'fulfilled' && osResult.value) parts.push(osResult.value);
+    return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+  }
+
+  // Single-intent routing
+  if (compound.hasOs) {
     context = 'os';
     preCheckMatched = true;
-  } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+  } else if (compound.hasWeb3) {
     context = 'web3';
     preCheckMatched = true;
   }
@@ -305,8 +398,18 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
   }
   
   if (context === 'web3') {
+      // P7: Inject task plan for complex requests
+      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'web3') : '';
+      if (planInjection) {
+        // Prepend plan as a system note in the input so agent sees it
+        return await processWeb3Intent(planInjection + '\n\nUSER REQUEST: ' + input, role, onProgress, sessionId);
+      }
       return await processWeb3Intent(input, role, onProgress, sessionId);
   } else if (context === 'os') {
+      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'os') : '';
+      if (planInjection) {
+        return await processOsIntent(planInjection + '\n\nUSER REQUEST: ' + input, role, onProgress, sessionId);
+      }
       return await processOsIntent(input, role, onProgress, sessionId);
   } else {
       // General Agent: Use osAgent logic but without execution tools to save tokens.
@@ -381,42 +484,35 @@ export async function processUserInputStream(
       .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content)
       .map(m => ({ role: m.role === 'system' ? 'user' : m.role, content: m.content || '' }));
 
-    const OS_KEYWORDS = [
-      'excel', 'xlsx', 'spreadsheet', 'generate excel',
-      'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
-      'terminal', 'command', 'shell', 'bash', 'script', 'run command',
-      'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
-      'search web', 'google', 'browse', 'scrape', 'weather', 'news',
-      'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
-      'twitter', 'tweet', 'x post', 'transcribe', 'audio',
-      'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
-      'summarize',
-    ];
-
-    const WEB3_KEYWORDS = [
-      'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
-      'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
-      'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
-      'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
-      'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-      'price', 'chart', 'market', 'portfolio', 'balance',
-      'gas', 'fee', 'slippage', 'transaction', 'tx',
-      'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-      'on-chain', 'blockchain',
-      'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
-    ];
+    // Use module-level keyword constants for consistent routing across sync and stream paths.
+    // detectCompoundIntent and shouldPlan are also shared from the module scope.
 
     let context: 'web3' | 'os' | 'general' = 'general';
     let preCheckMatched = false;
+
+    // P2: Compound intent detection (stream path)
+    const streamCompound = detectCompoundIntent(lowerInput, OS_KEYWORDS, WEB3_KEYWORDS);
 
     const pendingTxs = txManager.getPending();
     if (pendingTxs.length > 0) {
       context = 'web3';
       preCheckMatched = true;
-    } else if (OS_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    } else if (streamCompound.hasWeb3 && streamCompound.hasOs) {
+      // Compound: stream both agents and concatenate
+      console.log(pc.cyan('[Stream Orchestrator] Compound intent detected (web3 + os).'));
+      logger.addEntry({ role: 'user', content: input }, sessionId);
+      const [web3R, osR] = await Promise.allSettled([
+        processWeb3IntentStream(input, onChunk, onProgress, sessionId),
+        processOsIntentStream(input, onChunk, onProgress, sessionId),
+      ]);
+      const parts: string[] = [];
+      if (web3R.status === 'fulfilled' && web3R.value) parts.push(web3R.value);
+      if (osR.status === 'fulfilled' && osR.value) parts.push(osR.value);
+      return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+    } else if (streamCompound.hasOs) {
       context = 'os';
       preCheckMatched = true;
-    } else if (WEB3_KEYWORDS.some(kw => lowerInput.includes(kw))) {
+    } else if (streamCompound.hasWeb3) {
       context = 'web3';
       preCheckMatched = true;
     }
@@ -452,9 +548,14 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
 
     let finalResult = '';
     if (context === 'web3') {
-      finalResult = await processWeb3IntentStream(input, onChunk, onProgress, sessionId);
+      // P7: Inject task plan for complex stream requests
+      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'web3') : '';
+      const streamInput = planInjection ? planInjection + '\n\nUSER REQUEST: ' + input : input;
+      finalResult = await processWeb3IntentStream(streamInput, onChunk, onProgress, sessionId);
     } else if (context === 'os') {
-      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId);
+      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'os') : '';
+      const streamInput = planInjection ? planInjection + '\n\nUSER REQUEST: ' + input : input;
+      finalResult = await processOsIntentStream(streamInput, onChunk, onProgress, sessionId);
     } else {
       logger.addEntry({ role: 'user', content: input }, sessionId);
       const messages = [

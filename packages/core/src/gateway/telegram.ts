@@ -29,17 +29,23 @@ export function formatToTelegramHTML(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
     
-  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-  html = html.replace(/(?<!^|\n)\*(?!\s)(.*?)(?<!\s)\*/g, '<i>$1</i>');
-  html = html.replace(/_(.*?)_/g, '<i>$1</i>');
-  
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  
   html = html.replace(/&lt;thought&gt;[\s\S]*?&lt;\/thought&gt;\n?/g, '');
   html = html.replace(/<thought>[\s\S]*?<\/thought>\n?/g, '');
   html = html.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;\n?/g, '');
   html = html.replace(/<think>[\s\S]*?<\/think>\n?/g, '');
+
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+  html = html.replace(/\*\*(.*?)\*\*/g, (match, p1) => {
+    if (p1.includes('<pre>') || p1.includes('<code>')) return match;
+    return `<b>${p1}</b>`;
+  });
+  
+  html = html.replace(/(?<!^|\n)\*(?!\s)(.*?)(?<!\s)\*/g, (match, p1) => {
+    if (p1.includes('<b>') || p1.includes('</b>') || p1.includes('<pre>') || p1.includes('<code>')) return match;
+    return `<i>${p1}</i>`;
+  });
   
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
   html = html.replace(tableRegex, (match) => {
@@ -200,7 +206,9 @@ export function startTelegramBot() {
         await ctx.reply(
           formatToTelegramHTML(response),
           { parse_mode: 'HTML', reply_markup: replyMarkup }
-        ).catch(() => {});
+        ).catch((e) => {
+          console.error("[Telegram] CRITICAL: ctx.reply failed in text handler:", e.message);
+        });
       } catch (error: any) {
         console.error('[Telegram] Error processing message:', error);
         await ctx.reply(
@@ -252,7 +260,9 @@ export function startTelegramBot() {
           if (/Reply \*\*Yes\*\*/i.test(response) && /\*\*No\*\* to cancel/i.test(response)) {
             replyMarkup = new InlineKeyboard().text('✅ Approve', 'tx_approve').text('❌ Reject', 'tx_reject');
           }
-          await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML', reply_markup: replyMarkup }).catch(() => {});
+          await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML', reply_markup: replyMarkup }).catch((e) => {
+             console.error("[Telegram] CRITICAL: ctx.reply failed in callback:", e.message);
+          });
         } catch (error) {
           await ctx.reply('❌ Sorry, I encountered an error.', {}).catch(() => {});
         }

@@ -54,16 +54,30 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
     }
   };
 
+  let accumulatedRaw = '';
+  let sentLength = 0;
+
   return {
     onChunk: (chunk: string) => {
-      if (chunk.length > 30) {
-        queue += chunk;
-        processQueue();
-      } else {
-        if (isSimulating) {
-          queue += chunk;
+      accumulatedRaw += chunk;
+      
+      // Strip any <think> or <thought> block. 
+      // The (<\/\1>|$) part matches up to the closing tag, or up to the END of the string if it's unclosed.
+      const cleanText = accumulatedRaw.replace(/<(think|thought)[\s\S]*?(<\/\1>|$)/gi, '');
+      
+      if (cleanText.length > sentLength) {
+        const newText = cleanText.substring(sentLength);
+        sentLength = cleanText.length;
+        
+        if (newText.length > 30) {
+          queue += newText;
+          processQueue();
         } else {
-          originalOnChunk(chunk);
+          if (isSimulating) {
+            queue += newText;
+          } else {
+            originalOnChunk(newText);
+          }
         }
       }
     },
