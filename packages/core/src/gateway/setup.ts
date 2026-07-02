@@ -25,6 +25,28 @@ export async function runSetupWizard() {
   console.log(pc.cyan(logo));
   intro(pc.inverse(' Nyxora CLI Setup '));
 
+  try {
+    const nodeVersion = parseInt(process.versions.node.split('.')[0], 10);
+    if (nodeVersion < 18) {
+      console.error(pc.red(`\n❌ Unsupported Node.js version. Nyxora requires Node.js 18 or higher. You are running v${process.versions.node}`));
+      process.exit(1);
+    }
+    
+    const { execSync } = require('child_process');
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const pyVersionStr = execSync(`${pythonCmd} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const [major, minor] = pyVersionStr.split('.').map(Number);
+    
+    if (major < 3 || (major === 3 && minor < 10)) {
+       console.error(pc.red(`\n❌ Unsupported Python version. Nyxora ML Engine requires Python 3.10+. You are running v${pyVersionStr}`));
+       process.exit(1);
+    }
+    note(`Node.js: v${process.versions.node}\nPython: v${pyVersionStr}`, 'System Requirements Met');
+  } catch (error) {
+    console.error(pc.red(`\n❌ Python 3 is not installed or not in your PATH. Nyxora requires Python 3.10+ for the ML Engine.`));
+    process.exit(1);
+  }
+
   const appDir = getAppDir();
   const config = loadConfig();
 
