@@ -15,7 +15,7 @@ export interface CronJob {
 class CronManager {
   private jobs: Map<string, CronJob> = new Map();
 
-  public addJob(expression: string, prompt: string): string {
+  public addJob(expression: string, prompt: string, sessionId?: string): string {
     const id = randomUUID();
     
     // Validate expression
@@ -32,7 +32,7 @@ class CronManager {
         const { processUserInput } = await import('./reasoning');
         
         // Execute the prompt as a background system task
-        const response = await processUserInput(prompt, 'system', undefined, `cron-${id}`);
+        const response = await processUserInput(prompt, 'system', undefined, sessionId || `cron-${id}`);
         
         // Push notification to Telegram if configured
         const config = loadConfig();

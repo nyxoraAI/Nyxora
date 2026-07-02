@@ -638,11 +638,12 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 
 .input-form {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--glass-border);
-  border-radius: 9999px;
-  padding: 6px 10px;
+  border-radius: 24px;
+  padding: 10px 14px;
   transition: all 0.2s;
   width: 100%;
   max-width: 900px;

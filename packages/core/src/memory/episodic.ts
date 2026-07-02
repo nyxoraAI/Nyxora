@@ -46,11 +46,17 @@ export class EpisodicMemoryDB {
       CREATE TABLE IF NOT EXISTS user_personas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         trait TEXT UNIQUE NOT NULL,
+        category TEXT DEFAULT 'general',
         confidence REAL DEFAULT 0.1,
         source TEXT,
         lastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Migration: add category column if missing (for older DBs)
+    try {
+      this.db.prepare('ALTER TABLE user_personas ADD COLUMN category TEXT DEFAULT \'general\'').run();
+    } catch {}
   }
 
   public addCandidateFact(fact: string, confidenceScore: number = 0.5, category: string = 'general', ruleType: 'temporary' | 'permanent' | 'observation' = 'observation', keyTopic?: string): void {
@@ -125,6 +131,11 @@ export class EpisodicMemoryDB {
   }
 
   // --- PERSONA MODELING ---
+
+  /**
+   * Legacy method: upsert by exact trait string.
+   * Kept for backward compatibility but prefer upsertPersonaByCategory.
+   */
   public updatePersonaTrait(trait: string, confidence: number = 0.5, source: string = 'nyx_daemon'): void {
     const existing = this.db.prepare('SELECT id, confidence FROM user_personas WHERE trait = ?').get(trait) as any;
     
@@ -133,14 +144,53 @@ export class EpisodicMemoryDB {
       const stmt = this.db.prepare('UPDATE user_personas SET confidence = ?, source = ?, lastUpdated = CURRENT_TIMESTAMP WHERE id = ?');
       stmt.run(newConfidence, source, existing.id);
     } else {
-      const stmt = this.db.prepare('INSERT INTO user_personas (trait, confidence, source) VALUES (?, ?, ?)');
-      stmt.run(trait, confidence, source);
+      const stmt = this.db.prepare('INSERT INTO user_personas (trait, category, confidence, source) VALUES (?, ?, ?, ?)');
+      stmt.run(trait, 'general', confidence, source);
+    }
+  }
+
+  /**
+   * Category-based upsert: each category (language, tone, trading_style, behavior)
+   * has exactly ONE row in user_personas, identified by category.
+   * This ensures confidence accumulates correctly across audit cycles
+   * instead of creating duplicate rows with slightly different phrasing.
+   */
+  public upsertPersonaByCategory(
+    category: string,
+    value: string,
+    confidence: number = 0.5,
+    source: string = 'nyx_daemon'
+  ): void {
+    if (!value || !value.trim()) return;
+    const existing = this.db.prepare(
+      'SELECT id, confidence FROM user_personas WHERE category = ?'
+    ).get(category) as any;
+
+    if (existing) {
+      const newConfidence = Math.min(1.0, existing.confidence + (confidence * 0.2));
+      this.db.prepare(
+        'UPDATE user_personas SET trait = ?, confidence = ?, source = ?, lastUpdated = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(value.trim(), newConfidence, source, existing.id);
+    } else {
+      this.db.prepare(
+        'INSERT INTO user_personas (trait, category, confidence, source) VALUES (?, ?, ?, ?)'
+      ).run(value.trim(), category, confidence, source);
     }
   }
 
   public getPersonas(): any[] {
     const stmt = this.db.prepare('SELECT * FROM user_personas ORDER BY confidence DESC');
     return stmt.all() as any[];
+  }
+
+  /**
+   * Get personas filtered by minimum confidence threshold.
+   */
+  public getStrongPersonas(minConfidence: number = 0.5): any[] {
+    const stmt = this.db.prepare(
+      'SELECT * FROM user_personas WHERE confidence >= ? ORDER BY confidence DESC'
+    );
+    return stmt.all(minConfidence) as any[];
   }
 
   public deletePersonaByTrait(keyword: string): number {

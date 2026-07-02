@@ -78,7 +78,7 @@ export const confirmPendingTxToolDefinition = {
   type: "function",
   function: {
     name: "confirm_pending_tx",
-    description: "Approve or reject a pending transaction. Use this tool when a transaction has been queued and the user replies with a confirmation (like 'Yes' or 'Ya') or a rejection (like 'No' or 'Tidak').",
+    description: "Approve or reject a pending transaction. Use this tool when a transaction has been queued and the user replies with a confirmation (like 'Yes' or 'Ya') or a rejection (like 'No' or 'Tidak'). CRITICAL RULE: DO NOT call any other tool (like write_local_file) simultaneously with this one. Output ONLY this tool.",
     parameters: {
       type: "object",
       properties: {

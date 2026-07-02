@@ -155,6 +155,16 @@ export class AgentSkills {
       throw new Error(`Execution script not found for skill '${name}' at path: ${scriptPath}`);
     }
 
+    // Automatically load .env for the skill if it exists
+    const envPath = path.join(this.skillsDir, name, '.env');
+    if (fs.existsSync(envPath)) {
+      try {
+        require('dotenv').config({ path: envPath });
+      } catch (e) {
+        console.warn(`[AgentSkills] Failed to load .env for skill '${name}':`, e);
+      }
+    }
+
     try {
       // Dynamic import of the TS/JS module
       const module = await import(scriptPath);

@@ -25,23 +25,26 @@ const env = {
   ...process.env,
   INTERNAL_AUTH_TOKEN,
   SIGNER_SOCKET_PATH: '/tmp/nyxora-signer.sock',
-  TS_NODE_CACHE: 'false'
+  TS_NODE_CACHE: 'false',
+  PYTHONUNBUFFERED: '1'
 };
 
-const spawnService = (name: string, command: string, args: string[], env: any, inheritStdio: boolean = false) => {
+const spawnService = (name: string, command: string, args: string[], env: any, inheritStdio: boolean = false, cwd?: string) => {
   let child: ReturnType<typeof spawn>;
   let crashCount = 0;
   let crashWindowStart = Date.now();
   let isShuttingDown = false;
 
   const startProcess = () => {
-    child = spawn(command, args, { env, stdio: inheritStdio ? 'inherit' : 'pipe' });
+    const spawnOpts: any = { env, stdio: inheritStdio ? 'inherit' : 'pipe' };
+    if (cwd) spawnOpts.cwd = cwd;
+    child = spawn(command, args, spawnOpts);
 
     if (!inheritStdio) {
       child.stdout?.on('data', (data) => process.stdout.write(`[${name}] ${data}`));
       child.stderr?.on('data', (data) => {
         const msg = data.toString();
-        if (msg.toLowerCase().includes('warn')) {
+        if (msg.toLowerCase().includes('warn') || msg.toLowerCase().includes('info')) {
           process.stderr.write(`[${name}] ${msg}`);
         } else {
           process.stderr.write(`[${name}] ERROR: ${msg}`);
@@ -135,10 +138,23 @@ setTimeout(() => {
   children.push(policy);
   
   setTimeout(() => {
-    const corePath = path.join(__dirnameResolved, `packages/core/src/gateway/cli${ext}`);
-    const args = process.argv.slice(2);
-    const core = spawnService('Core', cmd, [...baseArgs, corePath, ...args], env, true);
-    children.push(core);
+    // Spawn ML Engine (Python Sidecar)
+    const uvicornPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', 'bin', 'uvicorn');
+    if (fs.existsSync(uvicornPath)) {
+      const mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
+      const mlArgs = ['main:app', '--host', '127.0.0.1', '--port', '8000'];
+      const mlEngine = spawnService('ML Engine', uvicornPath, mlArgs, env, false, mlDir);
+      children.push(mlEngine);
+    } else {
+      console.warn('[Launcher] Warning: ML Engine virtual environment not found. Did you run setup-ml?');
+    }
+
+    setTimeout(() => {
+      const corePath = path.join(__dirnameResolved, `packages/core/src/gateway/cli${ext}`);
+      const args = process.argv.slice(2);
+      const core = spawnService('Core', cmd, [...baseArgs, corePath, ...args], env, true);
+      children.push(core);
+    }, 1000);
   }, 1000);
 }, 1000);
 

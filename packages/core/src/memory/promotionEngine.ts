@@ -39,21 +39,35 @@ export class PromotionEngine {
       const uniquePermanent = [...new Set(permanentPreferences)];
       const uniqueRecent = [...new Set(recentObservations)];
 
-      // 4. Rewrite user.md (The Golden Profile)
-      this.rewriteUserProfile(uniquePermanent, uniqueRecent);
+      // 4. Fetch Persona Traits
+      const personas = episodicDB.getStrongPersonas(0.4);
+      const personaStrings: string[] = [];
+      for (const p of personas) {
+        personaStrings.push(`- [${p.category.toUpperCase()}] ${p.trait}`);
+      }
+
+      // 5. Rewrite user.md (The Golden Profile)
+      this.rewriteUserProfile(uniquePermanent, uniqueRecent, personaStrings);
 
     } catch (error) {
       console.error('[PromotionEngine] Error running promotion engine:', error);
     }
   }
 
-  private static rewriteUserProfile(permanent: string[], recent: string[]): void {
+  private static rewriteUserProfile(permanent: string[], recent: string[], personas: string[] = []): void {
     const userMdPath = getPath('user.md');
 
     let newContent = `Write custom instructions, special rules, user profiles, or the persona you want for Nyxora AI in this file.\n\n`;
     newContent += `<!-- AUTOMANAGED BY PROMOTION ENGINE. MANUAL EDITS MAY BE OVERWRITTEN -->\n\n`;
 
-    newContent += `# Permanent Preferences\n`;
+    newContent += `# User Persona & Identity\n`;
+    if (personas.length === 0) {
+      newContent += `*(No specific persona traits identified yet)*\n`;
+    } else {
+      newContent += personas.join('\n') + '\n';
+    }
+
+    newContent += `\n# Permanent Preferences\n`;
     if (permanent.length === 0) {
       newContent += `*(No permanent preferences recorded yet)*\n`;
     } else {
@@ -68,6 +82,6 @@ export class PromotionEngine {
     }
 
     fs.writeFileSync(userMdPath, newContent, 'utf-8');
-    console.log(`[PromotionEngine] user.md successfully synchronized with Layer 2 Episodic Memory.`);
+    console.log(`[PromotionEngine] user.md successfully synchronized with Layer 2 Episodic Memory and Personas.`);
   }
 }

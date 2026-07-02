@@ -26,10 +26,6 @@ export class CognitiveManager {
         keywords: ['plan', 'architecture', 'design', 'structure', 'blueprint'],
         file: 'software-development/plan.md'
       },
-      {
-        keywords: ['binance', 'spot trading', 'exchange trading', 'cex trading', 'api key'],
-        file: 'autonomous/binance-trading-integration.md'
-      }
     ];
 
     for (const mapping of skillMappings) {

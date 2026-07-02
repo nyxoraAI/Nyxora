@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
+
+## [26.7.2-alpha.5]
+### Features & Architecture (Python ML Engine)
+- **Local Python ML Engine Integration**: Successfully integrated a local Python-based Machine Learning Engine (FastAPI + LangChain + Pandas) alongside the core Node.js gateway. This massively enhances Nyxora's analytical and cognitive capabilities.
+- **Cognitive Memory & RAG**: Shifted Persona Dialectic Reasoning and Episodic Memory Semantic Search (RAG) to the new Python Engine. Integrated `langchain_huggingface` using the local `all-MiniLM-L6-v2` embedding model for ultra-fast, offline vector processing without API costs.
+- **Market Intelligence Delegation**: Completely refactored `marketPlugin.ts` (Node.js) to delegate deep market analysis and momentum calculations directly to the Python ML Engine (`/web3/analyze`), significantly reducing redundant API calls and code overlap.
+
 ## [26.7.2-alpha.4]
 ### Features & Platform Integrations
 - **Telegram Native Streaming (Bot API 9.3+)**: Radically overhauled the Telegram bot integration to completely bypass the standard 1-second `editMessageText` API rate limit. The engine now natively implements the modern `sendMessageDraft` method, streaming ephemeral hardware-accelerated "Typing..." animations directly to the Telegram client at 100ms intervals. This fully resolves UI stuttering and achieves ultra-smooth, real-time typewriter effects matching premium web interfaces.

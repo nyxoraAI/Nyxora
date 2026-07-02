@@ -18,7 +18,7 @@ export const logger = new Logger();
 
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 import { txManager } from './transactionManager';
-function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general'): string {
+async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general', userInput: string = ''): Promise<string> {
     const config = loadConfig();
     const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = "";
@@ -33,7 +33,7 @@ IMPORTANT: The <think> block is strictly for internal monologue. Your final answ
 
 [WEB3 EXECUTION WORKFLOW]
 CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
 CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified.
 CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
 CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
@@ -50,7 +50,7 @@ IMPORTANT: The <think> block is strictly for internal monologue. Your final answ
 
 [OS EXECUTION WORKFLOW]
 CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
 CRITICAL RULE 3: FILE SYSTEM SAFETY. You are STRICTLY FORBIDDEN from modifying config.yaml, rpc_key.yaml, or policy.yaml using terminal commands like sed or echo.
 CRITICAL RULE 4: CRON JOBS VS LIMIT ORDERS. Do NOT use schedule_task for price-based trading triggers. Use schedule_task for time-based recurring tasks.
 CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outputs.`;
@@ -62,7 +62,7 @@ CRITICAL: You MUST use a Chain of Thought approach for every response. Enclose y
 IMPORTANT: The <think> block is strictly for internal monologue. Your final answer must be OUTSIDE and AFTER the </think> tag.
 
 [GENERAL WORKFLOW]
-CRITICAL RULE 1: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE 1: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
 CRITICAL RULE 2: BE HELPFUL AND CONCISE. You do not have Web3 or OS tools in this context. If the user asks for Web3 or OS tasks, politely inform them to rephrase using clear keywords like 'transfer', 'harga', 'file', 'email', etc.`;
     }
 
@@ -128,41 +128,63 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
     console.error('Failed to read policy.yaml:', error);
   }
 
-  // Inject Episodic Memories (Smart Suggestions Context)
+  // Inject Episodic Memories via Python RAG
   try {
-    const recentMemories = episodicDB.getMemories().slice(0, 10);
-    if (recentMemories.length > 0) {
-      basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\nUse these recent observations to proactively suggest or autocomplete parameters (like networks or tokens) without asking the user if they align with the current request:\n`;
-      recentMemories.forEach(mem => {
-        basePrompt += `- [${mem.category.toUpperCase()}] ${mem.fact} (Confidence: ${(mem.confidence * 100).toFixed(0)}%)\n`;
-      });
+    const ragRes = await fetch('http://localhost:8000/memory/rag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: userInput, top_k: 5 })
+    });
+    if (ragRes.ok) {
+      const ragData = await ragRes.json();
+      if (ragData.memories && ragData.memories.length > 0) {
+        basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n`;
+        ragData.memories.forEach((mem: string) => {
+          basePrompt += `- ${mem}\n`;
+        });
+      }
     }
-  } catch {}
+  } catch (e) {
+    // Fallback or ignore if Python ML engine is down
+  }
 
   // V3: Inject Personalized Risk Profile
   try {
     const profile = logger.getUserProfile();
-    const personas = episodicDB.getPersonas();
     
-    if (profile || personas.length > 0) {
+    if (profile) {
       basePrompt += `\n\n--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
-      if (profile) {
-        basePrompt += `Risk Level: ${profile.risk_level}\n`;
-        basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
-        basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
-        if (profile.custom_rules) {
-          basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
-        }
-        basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
+      basePrompt += `Risk Level: ${profile.risk_level}\n`;
+      basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
+      basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
+      if (profile.custom_rules) {
+        basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
       }
+      basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
+    }
+  } catch {}
+
+  // HIGHEST PRIORITY: Inject observed user communication style.
+  // This section is placed LAST so it overrides any default tone rules above (including IDENTITY.md).
+  try {
+    // Only use traits with confidence >= 0.5 (confirmed by multiple audit cycles)
+    const strongPersonas = episodicDB.getStrongPersonas(0.5);
+    
+    if (strongPersonas.length > 0) {
+      basePrompt += `\n\n--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
+      basePrompt += `CRITICAL: These are CONFIRMED user preferences observed across multiple conversations. You MUST apply them IMMEDIATELY and CONSISTENTLY, overriding any default tone or style instructions above.\n\n`;
       
-      if (personas.length > 0) {
-        basePrompt += `\nObserved Traits (Dialectic Modeling):\n`;
-        personas.forEach(p => {
-          basePrompt += `- ${p.trait} (Confidence: ${(p.confidence * 100).toFixed(0)}%)\n`;
-        });
-        basePrompt += `Adapt your tone, vocabulary, and suggestions to align with these observed user traits.\n`;
-      }
+      strongPersonas.forEach(p => {
+        const label = p.category ? `[${p.category.toUpperCase()}]` : '[PREFERENCE]';
+        basePrompt += `${label} ${p.trait}\n`;
+      });
+      
+      basePrompt += `\nMANDATORY ENFORCEMENT:\n`;
+      basePrompt += `- You MUST adapt your tone, language, and style to match the detected user preferences above.\n`;
+      basePrompt += `- If the user communicates informally or casually → respond casually. Do NOT be formal or robotic.\n`;
+      basePrompt += `- If the user communicates in a specific language or dialect → respond in that same language/style.\n`;
+      basePrompt += `- If the user uses slang or informal words → mirror that vocabulary naturally.\n`;
+      basePrompt += `- This is a HARD RULE. It overrides any default tone in IDENTITY.md or other instructions above.\n`;
     }
   } catch {}
 
@@ -295,7 +317,7 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
       logger.addEntry({ role, content: input }, sessionId);
       
       const messages = [
-        { role: 'system', content: getSystemPrompt('general') },
+        { role: 'system', content: await getSystemPrompt('general', input) },
         ...textOnlyHistory,
         { role: 'user', content: input }
       ];
@@ -431,7 +453,7 @@ export async function processUserInputStream(
     } else {
       logger.addEntry({ role: 'user', content: input }, sessionId);
       const messages = [
-        { role: 'system', content: getSystemPrompt('general') },
+        { role: 'system', content: await getSystemPrompt('general', input) },
         ...textOnlyHistory,
         { role: 'user', content: input }
       ];

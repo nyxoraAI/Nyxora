@@ -53,3 +53,6 @@ vitest.config.*
 
 # Unreleased Strategy Documents
 GOVERNANCE.md
+
+# Foundry Smart Contracts
+packages/registry-contract/

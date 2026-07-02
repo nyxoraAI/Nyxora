@@ -78,34 +78,73 @@ async function start() {
   });
 
   child.unref();
+  
+  // Spawn Python ML Engine (Sidecar) if venv exists
+  const pythonVenv = path.join(os.homedir(), '.nyxora', 'ml-engine', 'venv', 'bin', 'python');
+  const mlEngineDir = path.join(projectRoot, 'packages', 'ml-engine');
+  let pyChild = null;
+  
+  if (fs.existsSync(pythonVenv) && fs.existsSync(mlEngineDir)) {
+    console.log('Starting Python ML Engine sidecar...');
+    const pyOut = fs.openSync(path.join(appDir, 'run', 'ml-engine.log'), 'a');
+    const pyErr = fs.openSync(path.join(appDir, 'run', 'ml-engine.log'), 'a');
+    
+    pyChild = spawn(pythonVenv, ['-m', 'uvicorn', 'main:app', '--port', '8000'], {
+      cwd: mlEngineDir,
+      detached: true,
+      stdio: ['ignore', pyOut, pyErr]
+    });
+    pyChild.unref();
+  }
 
   if (child.pid) {
     fs.writeFileSync(pidFile, child.pid.toString());
+    if (pyChild && pyChild.pid) {
+        fs.writeFileSync(path.join(appDir, 'run', 'ml-engine.pid'), pyChild.pid.toString());
+    }
     console.log(`Nyxora daemon started (PID: ${child.pid}).`);
+    if (pyChild) console.log(`Python ML Engine started (PID: ${pyChild.pid}).`);
     console.log(`Logs are available at: ${logFile}`);
   }
 }
 
 async function stop(preserveTracker = false) {
   const pid = await getDaemonPid();
-  if (pid) {
-    console.log(`Stopping Nyxora daemon (PID: ${pid})...`);
-    try {
-      process.kill(-pid, 'SIGTERM');
-      
-      // Wait for process to exit to avoid race condition with flushState
-      let attempts = 0;
-      while (isDaemonRunning(pid.toString()) && attempts < 20) {
-        await new Promise(r => setTimeout(r, 100));
-        attempts++;
+  const pyPidFile = path.join(appDir, 'run', 'ml-engine.pid');
+  let pyPid = null;
+  
+  if (fs.existsSync(pyPidFile)) {
+      pyPid = parseInt(fs.readFileSync(pyPidFile, 'utf8').trim(), 10);
+  }
+
+  if (pid || pyPid) {
+    if (pid) {
+      console.log(`Stopping Nyxora daemon (PID: ${pid})...`);
+      try {
+        process.kill(-pid, 'SIGTERM');
+        let attempts = 0;
+        while (isDaemonRunning(pid.toString()) && attempts < 20) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        console.log('Nyxora stopped gracefully.');
+      } catch (e) {
+        console.error('Failed to kill Nyxora process:', e.message);
       }
-      
-      console.log('Nyxora stopped gracefully.');
-    } catch (e) {
-      console.error('Failed to kill process:', e.message);
     }
+    
+    if (pyPid) {
+        console.log(`Stopping Python ML Engine (PID: ${pyPid})...`);
+        try {
+            process.kill(-pyPid, 'SIGTERM');
+        } catch(e) {
+            try { process.kill(pyPid, 'SIGTERM'); } catch(err) {}
+        }
+    }
+
     try {
-      fs.unlinkSync(pidFile);
+      if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile);
+      if (fs.existsSync(pyPidFile)) fs.unlinkSync(pyPidFile);
       if (!preserveTracker) {
         const trackerFile = path.join(appDir, 'run', 'tracker.json');
         if (fs.existsSync(trackerFile)) fs.unlinkSync(trackerFile);

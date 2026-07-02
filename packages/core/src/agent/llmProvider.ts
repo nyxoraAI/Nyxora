@@ -79,9 +79,13 @@ export class OpenAIAdapter implements LLMProvider {
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined
         }
       };
-    } catch {
+    } catch (e) {
       // Fallback to non-streaming if streaming fails
-      return this.chat(request);
+      const chatRes = await this.chat(request);
+      if (chatRes.message.content) {
+        onChunk(chatRes.message.content);
+      }
+      return chatRes;
     }
   }
 }

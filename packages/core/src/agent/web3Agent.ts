@@ -42,7 +42,7 @@ export const logger = new Logger();
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
 
-function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3', userInput: string = ''): string {
+async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3', userInput: string = ''): Promise<string> {
     const config = loadConfig();
     const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = `You are Nyxora's Web3 Agent (DeFi Specialist).
@@ -53,7 +53,7 @@ Reason internally. Never reveal private reasoning. Provide only concise conclusi
 
 [WEB3 EXECUTION WORKFLOW]
 CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt.
+CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
 CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified.
 CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
 CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
@@ -65,27 +65,57 @@ CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' 
 ${EXECUTION_DISCIPLINE}
 `;
 
-  // Inject Episodic Memories
+  // Inject Episodic Memories via Python RAG
   try {
-    const recentMemories = episodicDB.getMemories().slice(0, 10);
-    if (recentMemories.length > 0) {
-      basePrompt += `
-
---- EPISODIC MEMORIES (SMART SUGGESTIONS) ---
-`;
-      recentMemories.forEach(mem => {
-        basePrompt += `- [${mem.category.toUpperCase()}] ${mem.fact} (Confidence: ${(mem.confidence * 100).toFixed(0)}%)
-`;
-      });
+    const ragRes = await fetch('http://localhost:8000/memory/rag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: userInput, top_k: 5 })
+    });
+    if (ragRes.ok) {
+      const ragData = await ragRes.json();
+      if (ragData.memories && ragData.memories.length > 0) {
+        basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n`;
+        ragData.memories.forEach((mem: string) => {
+          basePrompt += `- ${mem}\n`;
+        });
+      }
     }
-  } catch {}
+  } catch (e) {
+    // Fallback or ignore if Python ML engine is down
+  }
 
   // Inject Active Cognitive Skills
   const activeSOP = cognitiveManager.loadActiveCognitiveSkills(userInput);
   if (activeSOP) {
     basePrompt += `\n\n[ACTIVE COGNITIVE SKILLS]\n${activeSOP}\n`;
   }
+  // Inject User Information & Personas from user.md
+  try {
+    const userMdPath = getPath('user.md');
+    if (fs.existsSync(userMdPath)) {
+      const userInstructions = fs.readFileSync(userMdPath, 'utf8');
+      basePrompt += `\n\n--- USER INFORMATION & PREFERENCES ---\n${userInstructions}\n`;
+    }
+  } catch (e) {
+    // Ignore error
+  }
   
+  // HIGHEST PRIORITY: Inject observed user communication style (NyxDaemon)
+  try {
+    const strongPersonas = episodicDB.getStrongPersonas(0.5);
+    if (strongPersonas.length > 0) {
+      basePrompt += `\n\n--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
+      basePrompt += `CRITICAL: These are CONFIRMED user preferences observed across multiple conversations. You MUST apply them IMMEDIATELY and CONSISTENTLY, overriding any default tone or style instructions above.\n\n`;
+      strongPersonas.forEach(p => {
+        const label = p.category ? `[${p.category.toUpperCase()}]` : '[PREFERENCE]';
+        basePrompt += `${label} ${p.trait}\n`;
+      });
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   return basePrompt;
 }
 
@@ -107,7 +137,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
   const sanitizedHistory = sanitizeHistoryForLLM(history, activeTools, config.llm.provider);
 
   let messages: any[] = [
-    { role: 'system', content: getSystemPrompt('web3', input) },
+    { role: 'system', content: await getSystemPrompt('web3', input) },
     ...sanitizedHistory
   ];
 
@@ -121,7 +151,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       const currentHistory = logger.getHistory(sessionId);
       const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
       const messages: any[] = [
-        { role: 'system', content: getSystemPrompt('web3', input) },
+        { role: 'system', content: await getSystemPrompt('web3', input) },
         ...sanitizedHistory
       ];
 
@@ -211,7 +241,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -338,7 +368,7 @@ export async function processWeb3IntentStream(
       const currentHistory = logger.getHistory(sessionId);
       const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
       const messages: any[] = [
-        { role: 'system', content: getSystemPrompt('web3', input) },
+        { role: 'system', content: await getSystemPrompt('web3', input) },
         ...sanitizedHistory
       ];
 
@@ -373,7 +403,7 @@ export async function processWeb3IntentStream(
       }
 
       // Tool calls detected — pause stream visually and execute tools
-      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'];
+      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
 

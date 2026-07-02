@@ -12,10 +12,10 @@ export class NyxDaemon {
   public start() {
     if (this.interval) return;
     
-    // Initial run after 5 minutes
+    // Initial run after 30 seconds (faster persona availability for new sessions)
     this.initialTimeout = setTimeout(() => {
       this.runAudit();
-    }, 5 * 60 * 1000);
+    }, 30 * 1000);
     
     // Audit memory every 30 minutes
     this.interval = setInterval(() => {
@@ -62,52 +62,35 @@ export class NyxDaemon {
         this.isProcessing = false;
         return;
       }
-      
-      const config = loadConfig();
-      
-      const prompt = `You are Nyx, Nyxora's background Persona Auditor.
-Analyze the following recent conversation between the USER and Nyxora.
-Identify any persistent user traits, behavioral preferences, trading styles, AND language preferences.
-Output your findings AS A STRICT JSON ARRAY of strings. If no strong traits are found, output an empty array [].
-Examples of valid traits:
-- Behavior: "Prefers concise answers", "Aggressive trader", "Risk-averse", "Polite", "Often trades on Arbitrum"
-- Language: "Primarily speaks Indonesian", "Uses English for technical terms", "Communicates in casual/informal tone", "Mixes Indonesian and English (code-switching)"
-IMPORTANT: Always include a language preference trait if the user's language or communication style is identifiable.
-DO NOT output markdown, just the JSON array.`;
-
-      const messages = conversationOnly
-        .map((m: any) => `${m.role === 'user' ? 'USER' : 'NYXORA'}: ${m.content}`)
-        .join('\n');
-
-
-      const response = await executeWithRetry(async (client) => {
-        return await client.chat({
-          model: config.llm.model,
-          messages: [
-            { role: 'system', content: prompt },
-            { role: 'user', content: messages }
-          ],
-          temperature: 0.2
-        });
+      // Kirim riwayat percakapan ke Python ML Engine untuk diproses oleh LangChain
+      const res = await fetch('http://localhost:8000/cognitive/reason', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: conversationOnly })
       });
-      
-      let content = response.message.content || '[]';
-      
-      // Clean markdown if any
-      content = content.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+
+      if (!res.ok) {
+        throw new Error(`Python ML Engine returned ${res.status}: ${await res.text()}`);
+      }
+
+      const traits = await res.json();
       
       try {
-        const traits = JSON.parse(content);
-        if (Array.isArray(traits) && traits.length > 0) {
-          for (const trait of traits) {
-            // Fix C: Start confidence at 0.4 (not 0.8) so traits build up gradually across audits.
-            // updatePersonaTrait has upsert logic: repeated traits gain +0.4 * 0.2 per audit cycle.
-            episodicDB.updatePersonaTrait(trait, 0.4, 'nyx_daemon');
-            console.log(pc.magenta(`[Nyx] Discovered new trait: ${trait}`));
+        if (traits && typeof traits === 'object' && !Array.isArray(traits)) {
+          const categories = ['language', 'tone', 'trading_style', 'behavior'] as const;
+          for (const cat of categories) {
+            const value = traits[cat];
+            if (value && typeof value === 'string' && value.trim()) {
+              // Category-based upsert: confidence accumulates correctly per category
+              episodicDB.upsertPersonaByCategory(cat, value.trim(), 0.5, 'nyx_daemon');
+              console.log(pc.magenta(`[Nyx] Updated persona [${cat}]: ${value.trim()}`));
+            }
           }
+        } else {
+          console.log(pc.magenta('[Nyx] No strong traits found in this audit cycle.'));
         }
       } catch (e) {
-        console.error(pc.red('[Nyx] Failed to parse JSON traits'), content);
+        console.error(pc.red('[Nyx] Failed to process traits from Python'), traits);
       }
       
     } catch (e: any) {
