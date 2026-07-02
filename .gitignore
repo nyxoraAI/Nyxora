@@ -56,3 +56,7 @@ GOVERNANCE.md
 
 # Foundry Smart Contracts
 packages/registry-contract/
+
+# Python Cache
+__pycache__/
+*.py[cod]
