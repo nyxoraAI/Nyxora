@@ -6,7 +6,7 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
 
 ---
 
-## The 3-Tier Defense System
+## The 4-Tier Hybrid Architecture
 
 ![Nyxora Security Flow](/security-flow.png)
 
@@ -24,12 +24,18 @@ The Core is the front-facing gateway. It serves the Dashboard UI, connects to th
 *   **Time-Based AI Scheduler (CronManager):** The Core Runtime operates an internal Cron engine (`croner`). It can schedule recurring AI tasks entirely decoupled from the active chat session. When a background task fires, the result is natively pushed directly to your smartphone via the Telegram Gateway API.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
-### 2. Policy Engine (The Guard) - Unix Socket
+### 2. ML Engine (Cognitive Sidecar) - Port 8000
+The ML Engine is a local Python FastAPI backend dedicated to heavy cognitive and analytical tasks.
+*   **Role:** Executes Semantic Search (RAG) and performs deterministic market calculations without clogging the Node.js event loop.
+*   **Semantic Memory & RAG:** Operates `langchain_huggingface` using the `all-MiniLM-L6-v2` embedding model. It synchronizes the SQLite episodic memory into a fast local ChromaDB vector store, enabling lightning-fast semantic context retrieval.
+*   **Market Intelligence Delegation:** Utilizes Pandas (`pandas-ta`) to calculate advanced technical indicators (RSI, MA50) directly from Binance K-Lines, feeding deterministic market scores back to the Core Runtime to prevent LLM hallucinations.
+
+### 3. Policy Engine (The Guard) - Unix Socket
 The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It communicates via a combination of Hyper-Optimized IPC (Unix Socket) at `/tmp/nyxora-policy.sock` and local TCP Loopback (`127.0.0.1`) for secure internal routing.
 *   **Role:** Receives transaction drafts from the Core. It parses the payload and checks it against immutable rules defined in `policy.yaml` (e.g., maximum daily spend, whitelisted addresses).
 *   **Security:** If a transaction exceeds the allowed risk parameters, the Policy Engine drops it immediately.
 
-### 3. Signer Vault (The Safe) - Unix Socket
+### 4. Signer Vault (The Safe) - Unix Socket
 The Signer Vault is an ultra-secure, isolated process that holds your Private Key in active volatile memory (RAM).
 *   **Role:** Receives validated transactions from the Policy Engine, signs them cryptographically, and broadcasts them directly to the Blockchain RPC.
 *   **Isolation:** The Signer Vault does not expose any TCP ports. It listens exclusively on an Inter-Process Communication (IPC) Unix Socket (`/tmp/nyxora-signer.sock`). This guarantees that no external network traffic can ever reach the Vault directly.

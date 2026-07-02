@@ -25,7 +25,7 @@ Nyxora synthesizes the aggregated data into a 0-10 Market Health Score, heavily 
 1. **Liquidity Risk**: Evaluates the ratio of actual Liquidity to Fully Diluted Valuation (FDV). A low ratio implies the token cannot handle significant sell pressure.
 2. **Smart Money Flow**: Checks 7-Day TVL changes (via DefiLlama) and 24h Volume to determine if smart money is accumulating or fleeing.
 3. **Holder Concentration**: Evaluates how many tokens are held by the top 10 wallets (Etherscan logic). High concentration flags extreme manipulation risks.
-4. **CEX Momentum**: Analyzes daily K-lines (Moving Averages and RSI proxies) to gauge if the asset is overbought, oversold, or in a healthy uptrend.
+4. **CEX Momentum (Pandas Technical Analysis)**: Analyzes daily K-lines directly using the Python **Pandas** library (`pandas-ta`). It computes deterministic Moving Averages (MA50) and RSI proxies locally within the ML Engine to gauge if the asset is overbought, oversold, or in a healthy uptrend, completely bypassing LLM hallucination risk.
 
 ::: tip Why Deterministic Risk Scoring?
 LLMs are prone to hallucinating financial advice or misinterpreting raw numbers. By injecting a deterministic 0-10 health score calculated purely by code *before* it reaches the LLM context window, Nyxora acts as a highly disciplined and objective financial analyst.

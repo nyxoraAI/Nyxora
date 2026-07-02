@@ -7,8 +7,9 @@ Nyxora is designed for a frictionless onboarding experience. We provide a CLI-ba
 ## Prerequisites
 Before installing Nyxora, ensure your system meets the following requirements:
 1. **Node.js** (Version 18 or higher).
-2. A minimum of 2GB RAM.
-3. A valid API Key from one of the supported providers (OpenAI, Gemini, Anthropic, OpenRouter, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
+2. **Python 3.10+** (Required for the ML Cognitive Engine).
+3. A minimum of 2GB RAM.
+4. A valid API Key from one of the supported providers (OpenAI, Gemini, Anthropic, OpenRouter, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
 
 ---
 
@@ -79,7 +80,10 @@ npm run build
 ### 4. Setup and Launch
 Once built, run the setup wizard and start the application:
 ```bash
+# Interactive Setup Wizard (Also installs Python ML dependencies via pip)
 npm run setup
+
+# Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
 npm start
 ```
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*

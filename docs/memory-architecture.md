@@ -9,14 +9,14 @@ With the latest architecture upgrade, Nyxora transitioned from a rigid, file-bas
 ### 1. Layer 1: Session Memory (Short-Term)
 The standard conversational context buffer. It tracks recent dialogue to maintain conversational flow and is inherently volatile.
 
-### 2. Layer 2: Episodic Memory & Persona (`episodic.db`)
-A local SQLite database where the **Nyx Daemon** stores extracted persona traits and historical episodes. Instead of blindly trusting raw data, the daemon runs continuously in the background to audit your chat history. It extracts:
+### 2. Layer 2: Episodic Memory & Persona (ChromaDB RAG)
+A powerful hybrid storage system where the **Nyx Daemon** stores extracted persona traits and historical episodes. Instead of blindly trusting raw data, the daemon runs continuously in the background to audit your chat history. It extracts:
 - Trading style (e.g., Degen, Conservative)
 - Risk tolerance
 - Network/Chain preferences
 - Stylistic/Tone preferences
 
-These traits are stored securely in the `user_personas` table within `episodic.db`.
+These traits are stored securely in the `user_personas` table within `episodic.db` (SQLite). For ultra-fast semantic retrieval, this data is continuously synchronized into a local **ChromaDB** vector store powered by the Python ML Engine (`langchain_huggingface` via the `all-MiniLM-L6-v2` model). This guarantees zero-latency RAG (Retrieval-Augmented Generation) without any expensive cloud embedding API costs.
 
 ### 2.5 Layer 2b: Transactional Memory (`memory.db`)
 Strictly separated from the AI's episodic persona is the **Transactional Memory**. Powered by a dedicated SQLite database (`memory.db`), this layer ensures that all floating Web3 operations—such as pending swaps or Layer 2 bridging withdrawals—are persistently tracked. It replaces outdated RAM-maps and JSON files, granting Nyxora the ability to flawlessly resume interrupted blockchain operations across sudden reboots.

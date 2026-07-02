@@ -55,6 +55,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 **💻 Core Technologies**
 <p align="center">
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://viem.sh/"><img src="https://img.shields.io/badge/Viem-1E1E2E?style=for-the-badge&logo=v&logoColor=white" alt="Viem"></a>
