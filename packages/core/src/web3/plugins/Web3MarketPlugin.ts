@@ -87,27 +87,15 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
     }
 }
 
+import { marketAnalysisToolDefinition } from '../skills/marketAnalysis';
+
 export class Web3MarketPlugin implements Plugin {
   public name = 'MarketAnalysis';
   public version = '1.0.1';
   public description = 'Provides deep market intelligence and analysis for Web3 assets.';
 
   public tools = [
-    {
-      type: 'function',
-      function: {
-        name: 'analyze_market',
-        description: 'Analyzes the market health of a token (Price, FDV, TVL, Holders, Momentum) by fetching from CEX, DEX, CoinGecko, and DefiLlama. Returns a full intelligence report.',
-        parameters: {
-          type: 'object',
-          properties: {
-            tokenAddressOrSymbol: { type: 'string', description: 'The token symbol (e.g. BTC, ETH) or Contract Address.' },
-            chainName: { type: 'string', description: 'Optional chain name (e.g. ethereum, solana) if searching by address.' }
-          },
-          required: ['tokenAddressOrSymbol']
-        }
-      }
-    }
+    marketAnalysisToolDefinition
   ];
 
   public handlers = {

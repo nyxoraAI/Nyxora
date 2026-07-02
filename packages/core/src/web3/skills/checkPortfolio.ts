@@ -141,9 +141,28 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       try {
         const data = await safeFetchJson<any>(url);
         if (data.pairs) {
+          data.pairs.sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+          const chainMatched = new Set<string>();
+
           data.pairs.forEach((p: any) => {
-            if (!priceMap[String(p.baseToken.address).toLowerCase()]) {
-               priceMap[String(p.baseToken.address).toLowerCase()] = parseFloat(p.priceUsd);
+            const baseAddr = String(p.baseToken?.address || "").toLowerCase();
+            const quoteAddr = String(p.quoteToken?.address || "").toLowerCase();
+            const priceUsd = parseFloat(p.priceUsd || "0");
+            const priceNative = parseFloat(p.priceNative || "0");
+
+            if (baseAddr && priceUsd > 0) {
+               if (!priceMap[baseAddr] || (!chainMatched.has(baseAddr) && p.chainId === chainName)) {
+                 priceMap[baseAddr] = priceUsd;
+                 if (p.chainId === chainName) chainMatched.add(baseAddr);
+               }
+            }
+            
+            if (quoteAddr && priceUsd > 0 && priceNative > 0) {
+               const quotePriceUsd = priceUsd / priceNative;
+               if (!priceMap[quoteAddr] || (!chainMatched.has(quoteAddr) && p.chainId === chainName)) {
+                 priceMap[quoteAddr] = quotePriceUsd;
+                 if (p.chainId === chainName) chainMatched.add(quoteAddr);
+               }
             }
           });
         }

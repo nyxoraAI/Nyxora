@@ -7,7 +7,31 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
   const cleanSymbol = tokenAddressOrSymbol.replace('$', '').toLowerCase();
   const keys = loadMarketKeys();
 
-  // Tier 1 & 2: CoinGecko (Pro if key exists, else Public)
+  // Tier 1: CoinMarketCap (Pro if key exists)
+  if (keys.cmc_key) {
+    try {
+      const data = await safeFetchJson<any>(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol.toUpperCase()}`, {
+        headers: { 'X-CMC_PRO_API_KEY': keys.cmc_key }
+      });
+      const coin = data.data?.[cleanSymbol.toUpperCase()]?.[0];
+      if (coin) {
+        let report = `📈 **Market Analysis for ${coin.name} (${coin.symbol})** [Global via CoinMarketCap Pro]\n\n`;
+        report += `**Price:** $${coin.quote.USD.price.toFixed(6)}\n`;
+        report += `**Market Cap:** $${Number(coin.quote.USD.market_cap).toLocaleString()}\n`;
+        report += `**24h Volume:** $${Number(coin.quote.USD.volume_24h).toLocaleString()}\n\n`;
+        report += `**Price Change:**\n`;
+        report += `- 1h:  ${coin.quote.USD.percent_change_1h.toFixed(2)}% \n`;
+        report += `- 24h: ${coin.quote.USD.percent_change_24h.toFixed(2)}% \n`;
+        report += `- 7d:  ${coin.quote.USD.percent_change_7d.toFixed(2)}% \n\n`;
+        report += `**Rank:** #${coin.cmc_rank}\n`;
+        return report;
+      }
+    } catch (e: any) {
+      console.warn("CMC analysis failed, falling back to CoinGecko...", e.message);
+    }
+  }
+
+  // Tier 2: CoinGecko (Pro if key exists, else Public)
   try {
     const isPro = !!keys.coingecko_key;
     const baseUrl = isPro ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
@@ -29,38 +53,8 @@ export async function analyzeMarketEngine(chainName: ChainName, tokenAddressOrSy
       report += `**Rank:** #${coinData.market_cap_rank || 'N/A'}\n`;
       return report;
     }
-  } catch (e) {
-    if (keys.cmc_key) {
-      console.warn("CoinGecko analysis failed, falling back to CMC...", e.message);
-    } else {
-      console.warn("CoinGecko analysis failed, falling back to DexScreener...", e.message);
-    }
-  }
-
-  // Tier 1 & 2: CoinMarketCap (Pro if key exists)
-  // Note: CMC doesn't have a truly open public endpoint like CG without keys, 
-  // but if the user provided the key, we prioritize it here.
-  if (keys.cmc_key) {
-    try {
-      const data = await safeFetchJson<any>(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol.toUpperCase()}`, {
-        headers: { 'X-CMC_PRO_API_KEY': keys.cmc_key }
-      });
-      const coin = data.data?.[cleanSymbol.toUpperCase()]?.[0];
-      if (coin) {
-        let report = `📈 **Market Analysis for ${coin.name} (${coin.symbol})** [Global via CoinMarketCap Pro]\n\n`;
-        report += `**Price:** $${coin.quote.USD.price.toFixed(6)}\n`;
-        report += `**Market Cap:** $${Number(coin.quote.USD.market_cap).toLocaleString()}\n`;
-        report += `**24h Volume:** $${Number(coin.quote.USD.volume_24h).toLocaleString()}\n\n`;
-        report += `**Price Change:**\n`;
-        report += `- 1h:  ${coin.quote.USD.percent_change_1h.toFixed(2)}% \n`;
-        report += `- 24h: ${coin.quote.USD.percent_change_24h.toFixed(2)}% \n`;
-        report += `- 7d:  ${coin.quote.USD.percent_change_7d.toFixed(2)}% \n\n`;
-        report += `**Rank:** #${coin.cmc_rank}\n`;
-        return report;
-      }
-    } catch (e) {
-      console.warn("CMC analysis failed, falling back to DexScreener...", e.message);
-    }
+  } catch (e: any) {
+    console.warn("CoinGecko analysis failed, falling back to DexScreener...", e.message);
   }
 
   // Tier 2: Ultimate Fallback Engine: DexScreener Cross-Chain Search

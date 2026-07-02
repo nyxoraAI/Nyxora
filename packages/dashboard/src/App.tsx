@@ -69,6 +69,7 @@ function App() {
 
 
   useEffect(() => {
+    document.title = "Nyxora Dashboard";
     if (activeSessionId) {
       localStorage.setItem('nyxora_active_session_id', activeSessionId);
     } else {

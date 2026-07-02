@@ -250,6 +250,8 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     // Chain
     'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
     'on-chain', 'blockchain',
+    // Global Fiat & Exchange
+    'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
   ];
 
   let context: 'web3' | 'os' | 'general' = 'general';
@@ -272,7 +274,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations (e.g., 'tf', 'wd', 'buy', 'sell'). Translate their core intent logically.
-3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, or transactions, reply 'web3'.
+3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat (e.g., 'to usd', 'to eur', 'in idr'), reply 'web3'.
 4. If the core intent involves OS automation, web search, weather, emails, files, excel, terminal, or changing AI settings, reply 'os'.
 5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
 Reply with EXACTLY ONE WORD: web3, os, or general.`;
@@ -405,7 +407,7 @@ export async function processUserInputStream(
       'harga', 'price', 'chart', 'market', 'portfolio', 'balance', 'saldo',
       'gas', 'fee', 'slippage', 'transaction', 'transaksi', 'tx',
       'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-      'on-chain', 'blockchain',
+      'on-chain', 'blockchain', 'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
     ];
 
     let context: 'web3' | 'os' | 'general' = 'general';
@@ -424,7 +426,7 @@ export async function processUserInputStream(
     }
 
     if (!preCheckMatched) {
-      const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Reply with EXACTLY ONE WORD.`;
+      const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into: 'web3', 'os', or 'general'. Rule: Price conversions (e.g., '1 manta to usd', 'to eur') MUST be 'web3'. Reply with EXACTLY ONE WORD.`;
       const routerMessages = [
         { role: 'system', content: routerPrompt },
         ...textOnlyHistory.slice(-10),

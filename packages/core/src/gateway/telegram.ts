@@ -135,7 +135,7 @@ export function startTelegramBot() {
     });
 
     bot.command('clear', async (ctx) => {
-      logger.clear(ctx.chat?.id.toString());
+      logger.clear(`telegram_${ctx.chat?.id}`);
       await ctx.reply("✅ AI memory has been cleared. Let's start a new chat!");
     });
 

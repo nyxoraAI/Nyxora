@@ -565,7 +565,7 @@ Provider: ${config.llm.provider}`;
     getBalance: 'get_balance',
     getMyAddress: 'get_my_address',
     checkPortfolio: 'check_portfolio',
-    getPrice: 'get_price',
+    getPrice: 'get_price_and_fiat_value',
     marketAnalysis: 'analyze_market',
     getTxHistory: 'get_tx_history',
     checkSecurity: 'check_token_security',

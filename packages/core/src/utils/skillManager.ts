@@ -42,7 +42,7 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'analyze_market': { category: 'web3', name: 'marketAnalysis' },
   'get_trending_tokens': { category: 'web3', name: 'getTrendingTokens' },
   'manage_custom_tokens': { category: 'web3', name: 'manageCustomTokens' },
-  'get_price': { category: 'web3', name: 'getPrice' },
+  'get_price_and_fiat_value': { category: 'web3', name: 'getPrice' },
   'supply_aave': { category: 'web3', name: 'aaveSupply' },
   'revoke_approval': { category: 'web3', name: 'revokeApproval' },
   'deposit_yield_vault': { category: 'web3', name: 'vaultDeposit' },

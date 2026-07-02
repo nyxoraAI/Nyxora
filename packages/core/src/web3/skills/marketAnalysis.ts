@@ -92,7 +92,7 @@ export const marketAnalysisToolDefinition = {
   type: "function",
   function: {
     name: "analyze_market",
-    description: "MUST be used whenever the user asks for 'analisis', 'analysis', 'market intelligence', or a deep dive into a token. Fetches live, expert-level Web3 market data including Liquidity Risk, Smart Money Flow (TVL), Holder Concentration, and Momentum.",
+    description: "MUST be used whenever the user asks for 'analisis', 'analysis', 'market intelligence', or a deep dive into a token. Fetches live, expert-level Web3 market data including Liquidity Risk, Smart Money Flow (TVL), Holder Concentration, and Momentum. DO NOT use this tool for simple price checks, balance fiat conversions, or if the user just asks 'cek saldo dirupiahin'. For simple price/fiat math, ALWAYS use 'get_price'.",
     parameters: {
       type: "object",
       properties: {

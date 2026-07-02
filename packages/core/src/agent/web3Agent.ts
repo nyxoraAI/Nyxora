@@ -10,6 +10,8 @@ import { pluginManager } from '../plugin/registry';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
 
 const EXECUTION_DISCIPLINE = `
+
+
 <tool_persistence>
 Use tools whenever they can increase the accuracy, completeness, or factual correctness of your response.
 Do NOT stop early if another tool call would materially improve the result.
@@ -18,11 +20,20 @@ Continue using tools until the task is completely finished and verified.
 
 <mandatory_tool_use>
 NEVER answer the following using only your internal memory — ALWAYS use the relevant tool:
+- Cryptocurrency prices, market data, and portfolio values (e.g., use get_price_and_fiat_value)
+- Fiat exchange rates or currency conversions (fetch live rates, never guess)
 - Arithmetic, math, calculations
 - System State: OS version, RAM, processes
 - File contents, file sizes
 - Real-world current events
 </mandatory_tool_use>
+
+<fiat_conversion_rule>
+CRITICAL: If the user asks for the total fiat value of a certain amount of crypto (e.g., "3821 jrny to idr", "2 eth in usd", "cek saldo gue dirupiahin"), you MUST pass that amount into the 'get_price_and_fiat_value' tool's 'amount' parameter.
+You MUST also set the 'currency' parameter in 'get_price_and_fiat_value' ONLY IF the user explicitly requests a specific currency. If no specific currency is requested, LEAVE THE 'currency' PARAMETER BLANK so the system can use the user's default.
+NEVER fetch the price and then manually multiply it by the amount in your head. The LLM is prohibited from performing fiat multiplication. ALWAYS use the 'amount' parameter in 'get_price_and_fiat_value' to guarantee mathematical precision.
+NEVER use the 'analyze_market' tool if the user is only asking to check their balance in fiat/rupiah. 'analyze_market' does not do fiat conversion.
+</fiat_conversion_rule>
 
 <act_dont_ask>
 When a user's request has a clear, standard interpretation, take immediate ACTION instead of asking for clarification.
@@ -44,9 +55,8 @@ import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 
 async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3', userInput: string = ''): Promise<string> {
     const config = loadConfig();
-    const currentDateTime = new Date().toLocaleString('en-US');
     let basePrompt = `You are Nyxora's Web3 Agent (DeFi Specialist).
-The current real-world date and time is: ${currentDateTime}.
+Current Time: ${new Date().toISOString()}
 Default Chain: ${config.agent.default_chain}
 
 Reason internally. Never reveal private reasoning. Provide only concise conclusions, assumptions, and actionable steps.
