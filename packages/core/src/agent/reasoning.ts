@@ -131,7 +131,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
 
   // Inject Episodic Memories via Python RAG
   try {
-    const ragRes = await fetch('http://localhost:8000/memory/rag', {
+    const ragRes = await fetch('http://127.0.0.1:8000/memory/rag', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: userInput, top_k: 5 })

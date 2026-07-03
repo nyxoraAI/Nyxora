@@ -248,3 +248,112 @@ export const readGoogleFormResponsesToolDefinition = {
     },
   },
 };
+
+export async function sendEmail(to: string, subject: string, body: string): Promise<string> {
+  const isAuth = await isAuthenticated();
+  if (!isAuth) return "Google Auth not configured. Please link your Google account in the dashboard.";
+  const token = await getAccessToken();
+  if (!token) return "Failed to retrieve access token.";
+
+  try {
+    const messageParts = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `Content-Type: text/plain; charset=utf-8`,
+      '',
+      body
+    ];
+    const message = messageParts.join('\n');
+    const encodedMessage = Buffer.from(message).toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/send`, {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw: encodedMessage })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      return `Failed to send email: ${data.error?.message || JSON.stringify(data)}`;
+    }
+    
+    return `Successfully sent email to ${to} with Message ID: ${data.id}`;
+  } catch (err: any) {
+    return `Error sending email: ${err.message}`;
+  }
+}
+
+export async function addCalendarEvent(summary: string, description: string, startTime: string, endTime: string): Promise<string> {
+  const isAuth = await isAuthenticated();
+  if (!isAuth) return "Google Auth not configured. Please link your Google account in the dashboard.";
+  const token = await getAccessToken();
+  if (!token) return "Failed to retrieve access token.";
+
+  try {
+    const event = {
+      summary,
+      description,
+      start: { dateTime: startTime },
+      end: { dateTime: endTime }
+    };
+
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events`, {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      return `Failed to add calendar event: ${data.error?.message || JSON.stringify(data)}`;
+    }
+    
+    return `Successfully added event '${summary}'. Event link: ${data.htmlLink}`;
+  } catch (err: any) {
+    return `Error adding calendar event: ${err.message}`;
+  }
+}
+
+export const sendEmailToolDefinition = {
+  type: "function",
+  function: {
+    name: "send_email",
+    description: "Sends an email using the user's Gmail account.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "The recipient's email address." },
+        subject: { type: "string", description: "The subject of the email." },
+        body: { type: "string", description: "The plain text body of the email." }
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+};
+
+export const addCalendarEventToolDefinition = {
+  type: "function",
+  function: {
+    name: "add_calendar_event",
+    description: "Adds a new event to the user's primary Google Calendar.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "The title or summary of the event." },
+        description: { type: "string", description: "A description of the event." },
+        startTime: { type: "string", description: "Start time of the event in ISO 8601 format (e.g. 2026-07-03T09:00:00+07:00)." },
+        endTime: { type: "string", description: "End time of the event in ISO 8601 format (e.g. 2026-07-03T10:00:00+07:00)." }
+      },
+      required: ["summary", "description", "startTime", "endTime"],
+    },
+  },
+};

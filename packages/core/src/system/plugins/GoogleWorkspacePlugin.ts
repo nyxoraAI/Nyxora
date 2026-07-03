@@ -9,7 +9,11 @@ import {
   listCalendarEventsToolDefinition,
   appendRowToSheetsToolDefinition,
   readGoogleDocsToolDefinition,
-  readGoogleFormResponsesToolDefinition
+  readGoogleFormResponsesToolDefinition,
+  sendEmail,
+  addCalendarEvent,
+  sendEmailToolDefinition,
+  addCalendarEventToolDefinition
 } from '../skills/googleWorkspace';
 
 export class GoogleWorkspacePlugin implements Plugin {
@@ -22,7 +26,9 @@ export class GoogleWorkspacePlugin implements Plugin {
     listCalendarEventsToolDefinition,
     appendRowToSheetsToolDefinition,
     readGoogleDocsToolDefinition,
-    readGoogleFormResponsesToolDefinition
+    readGoogleFormResponsesToolDefinition,
+    sendEmailToolDefinition,
+    addCalendarEventToolDefinition
   ];
 
   public handlers = {
@@ -40,6 +46,12 @@ export class GoogleWorkspacePlugin implements Plugin {
     },
     ['read_google_form_responses']: async (args: any) => {
       return await readGoogleFormResponses(args.formId);
+    },
+    ['send_email']: async (args: any) => {
+      return await sendEmail(args.to, args.subject, args.body);
+    },
+    ['add_calendar_event']: async (args: any) => {
+      return await addCalendarEvent(args.summary, args.description, args.startTime, args.endTime);
     }
   };
 }

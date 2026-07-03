@@ -162,19 +162,31 @@ export class EpisodicMemoryDB {
     source: string = 'nyx_daemon'
   ): void {
     if (!value || !value.trim()) return;
+    
     const existing = this.db.prepare(
       'SELECT id, confidence FROM user_personas WHERE category = ?'
     ).get(category) as any;
 
-    if (existing) {
-      const newConfidence = Math.min(1.0, existing.confidence + (confidence * 0.2));
-      this.db.prepare(
-        'UPDATE user_personas SET trait = ?, confidence = ?, source = ?, lastUpdated = CURRENT_TIMESTAMP WHERE id = ?'
-      ).run(value.trim(), newConfidence, source, existing.id);
-    } else {
-      this.db.prepare(
-        'INSERT INTO user_personas (trait, category, confidence, source) VALUES (?, ?, ?, ?)'
-      ).run(value.trim(), category, confidence, source);
+    try {
+      if (existing) {
+        const newConfidence = Math.min(1.0, existing.confidence + (confidence * 0.2));
+        this.db.prepare(
+          'UPDATE user_personas SET trait = ?, confidence = ?, source = ?, lastUpdated = CURRENT_TIMESTAMP WHERE id = ?'
+        ).run(value.trim(), newConfidence, source, existing.id);
+      } else {
+        this.db.prepare(
+          'INSERT INTO user_personas (trait, category, confidence, source) VALUES (?, ?, ?, ?)'
+        ).run(value.trim(), category, confidence, source);
+      }
+    } catch (e: any) {
+      // Handle UNIQUE constraint collision if the trait already exists in the database (e.g. from an older version with category 'general')
+      if (e.message && e.message.includes('UNIQUE constraint failed')) {
+        this.db.prepare(
+          'UPDATE user_personas SET category = ?, confidence = ?, source = ?, lastUpdated = CURRENT_TIMESTAMP WHERE trait = ?'
+        ).run(category, confidence, source, value.trim());
+      } else {
+        throw e;
+      }
     }
   }
 

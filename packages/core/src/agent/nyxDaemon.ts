@@ -63,7 +63,7 @@ export class NyxDaemon {
         return;
       }
       // Kirim riwayat percakapan ke Python ML Engine untuk diproses oleh LangChain
-      const res = await fetch('http://localhost:8000/cognitive/reason', {
+      const res = await fetch('http://127.0.0.1:8000/cognitive/reason', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversationOnly })

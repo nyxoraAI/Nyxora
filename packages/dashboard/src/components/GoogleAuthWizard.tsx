@@ -102,8 +102,11 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
               <li>Search for and enable the following APIs:
                 <ul style={{ marginTop: '8px', marginBottom: '8px', color: '#a3be8c' }}>
                   <li>Gmail API</li>
+                  <li>Google Calendar API</li>
                   <li>Google Drive API</li>
+                  <li>Google Docs API</li>
                   <li>Google Sheets API</li>
+                  <li>Google Forms API</li>
                 </ul>
               </li>
             </ol>
@@ -123,13 +126,19 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
             </ol>
             
             <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Privacy Policy URL:</span>
-                <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/privacy</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>https://nyxoraai.github.io/privacy</span>
+                  <button onClick={() => copyToClipboard('https://nyxoraai.github.io/privacy')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '2px' }}><Copy size={13} /></button>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Terms of Service URL:</span>
-                <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>http://localhost:3001/tos</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>https://nyxoraai.github.io/terms</span>
+                  <button onClick={() => copyToClipboard('https://nyxoraai.github.io/terms')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '2px' }}><Copy size={13} /></button>
+                </div>
               </div>
             </div>
 

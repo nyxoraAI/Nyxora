@@ -228,8 +228,10 @@ export class AnthropicAdapter implements LLMProvider {
           else last.content = [{ type: 'text', text: typeof last.content === 'string' ? last.content : '' }, ...m.content];
         } else { mergedAnthropic.push(m); }
       }
-      const anthropicTools = request.tools?.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
-
+      let anthropicTools: any = undefined;
+      if (request.tools && request.tools.length > 0) {
+        anthropicTools = request.tools.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
+      }
       const stream = this.client.messages.stream({
         model: request.model,
         system: systemPrompt,

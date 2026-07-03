@@ -25,15 +25,43 @@ NEVER answer the following using only your internal memory — ALWAYS use the re
 - Real-world current events
 </mandatory_tool_use>
 
+<web_search_accuracy>
+When using the search_web tool to look up news, current events, or factual data:
+1. NEVER pass casual, conversational, or highly localized queries directly to the tool (e.g. do not pass "hasil piala dunia tadi pagi").
+2. ALWAYS translate and optimize the query into an absolute, highly specific, and globally-understood English search query (e.g. "World Cup 2026 match results June 25 2026").
+3. Use depth: 2 (deep research) for anything that requires high factual accuracy, such as sports scores, news, or complex topics.
+</web_search_accuracy>
+
 <act_dont_ask>
 When a user's request has a clear, standard interpretation, take immediate ACTION instead of asking for clarification.
+NEVER show a command as a markdown code block and wait. CALL the tool directly.
+NEVER ask "do you want me to run this?" — just run it.
+NEVER say "you need to run this yourself" — you have direct shell access.
+If a command requires sudo and may need a password, just run it and report what happens.
+Only report failure AFTER actually attempting the tool call and receiving an error.
 </act_dont_ask>
+
+<anti_hallucination_execution>
+CRITICAL: It is STRICTLY FORBIDDEN to write a bash/shell command in a markdown code block (e.g. \`\`\`bash ... \`\`\`) as a substitute for calling the run_terminal_command tool.
+Writing a code block does NOT execute anything. It is a lie to the user.
+If you write \`\`\`bash\nsudo apt install steam\n\`\`\` instead of calling run_terminal_command, you are hallucinating execution.
+The ONLY way to run a command is to emit a proper tool_call for run_terminal_command.
+If the tool is available, USE IT. Do not simulate or describe running it.
+</anti_hallucination_execution>
 
 <task_completion>
 The deliverable must be a working artifact backed by real tool output — not just a description or a plan of how you would do it.
 NEVER fabricate, hallucinate, or forge tool outputs.
 </task_completion>
+
+<self_correction>
+Before providing a final answer to the user (especially regarding dates, events, news, or factual data), you MUST evaluate your tool results inside a <think> block.
+Ask yourself: "Is my answer based on absolute facts, or circumstantial evidence (e.g., guessing a registration date based on a video upload date)?"
+If the evidence is circumstantial or incomplete, you MUST NOT answer the user. Instead, call the search_web tool again with a highly optimized query and depth=2.
+</self_correction>
 `;
+
+
 
 
 import { pluginManager } from '../plugin/registry';
@@ -53,6 +81,8 @@ async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userIn
     let basePrompt = `You are Nyxora's OS Agent (System & Automation Specialist).
 The current real-world date and time is: ${currentDateTime}.
 
+You are running LOCALLY on the user's own computer — NOT on a remote cloud server. The 'run_terminal_command' tool executes shell commands directly on this machine, the same physical machine the user is sitting at. You have FULL local shell access. When asked to install software, manage files, or perform any OS task, you MUST use run_terminal_command immediately. NEVER claim you cannot access the user's system.
+
 Reason internally. Never reveal private reasoning. Provide only concise conclusions, assumptions, and actionable steps.
 
 [OS EXECUTION WORKFLOW]
@@ -62,8 +92,19 @@ CRITICAL RULE 3: FILE SYSTEM SAFETY. You are STRICTLY FORBIDDEN from modifying c
 CRITICAL RULE 4: CRON JOBS VS LIMIT ORDERS. Do NOT use schedule_task for price-based trading triggers. Use schedule_task for time-based recurring tasks.
 CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outputs.
 
+[SUDO & PACKAGE INSTALL STRATEGY]
+This tool runs in a NON-INTERACTIVE shell (no TTY). Therefore:
+- ALWAYS prefix apt/apt-get commands with: DEBIAN_FRONTEND=noninteractive
+- ALWAYS use the -y flag for package installations to auto-confirm.
+- If a command fails with "sudo: a password is required" or similar, DO NOT promise to retry without actually retrying. Instead:
+  1. First retry with: echo 'USER_PASSWORD' | sudo -S <command> — but since you don't know the password, skip this.
+  2. Instead, try running the command WITHOUT sudo if possible (e.g. for user-space tools).
+  3. If sudo is truly required and unavailable, clearly tell the user EXACTLY what command to run manually in their terminal, with a copy-paste ready command. Do not just say it failed without providing a solution.
+- NEVER promise to retry ("let me try again", "I'll run it again", etc.) without immediately making another tool_call in the same response.
+
 ${EXECUTION_DISCIPLINE}
 `;
+
 
   // Inject Active Cognitive Skills
   const activeSOP = cognitiveManager.loadActiveCognitiveSkills(userInput);
@@ -73,7 +114,7 @@ ${EXECUTION_DISCIPLINE}
 
   // Inject Episodic Memories via Python RAG
   try {
-    const ragRes = await fetch('http://localhost:8000/memory/rag', {
+    const ragRes = await fetch('http://127.0.0.1:8000/memory/rag', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: userInput, top_k: 5 })
@@ -124,6 +165,31 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
   // Add input to memory
   logger.addEntry({ role, content: input }, sessionId);
 
+  // --- MULTILINGUAL USER CORRECTION DETECTION ---
+  const correctionSignals = [
+    // ID
+    'salah', 'ngawur', 'keliru', 'bukan', 'tidak benar', 'perbaiki', 'coba lagi',
+    // EN
+    'wrong', 'incorrect', 'mistake', 'not right', 'false', 'bad', 'fix', 'try again',
+    // ES & FR
+    'incorrecto', 'mal', 'equivocado', 'error', 'falso', 'faux', 'erreur', 'mauvais',
+    // DE & RU
+    'falsch', 'inkorrekt', 'fehler', 'ошибка', 'неправильно', 'неверно',
+    // JP & ZH
+    '違う', '間違い', 'やり直して', '错误', '不对'
+  ];
+  if (role === 'user' && correctionSignals.some(s => input.toLowerCase().includes(s))) {
+    logger.addEntry({
+      role: 'system' as any,
+      content: `[USER CORRECTION DETECTED] The user indicated your previous answer was WRONG, STALE, or INACCURATE.
+CRITICAL INSTRUCTIONS:
+1. Do NOT just apologize and repeat the same data from your memory.
+2. The data in your training memory or previous tool calls is likely stale/incorrect.
+3. You MUST call a tool (like search_web or others) NOW to verify the facts with FRESH data.
+4. Base your new answer strictly on the NEW tool results.`
+    }, sessionId);
+  }
+
   let activeTools = [...pluginManager.getAllToolDefinitions()];
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
 
@@ -139,6 +205,7 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
     let turnCount = 0;
     const MAX_TURNS = 10;
     let consecutiveToolErrors = 0;
+    let criticHasFired = false; // Critic Pass hanya aktif 1x per request
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
@@ -192,6 +259,34 @@ export async function processOsIntent(input: string, role: 'user' | 'system' = '
       }, sessionId);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
+        // --- CRITIC PASS (Self-Improvement) ---
+        const isLongResponse = (cleanedContent?.length ?? 0) > 100;
+        if (isLongResponse && !criticHasFired) {
+          criticHasFired = true;
+          try {
+            const criticRes = await fetch('http://127.0.0.1:8000/cognitive/critic', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_input: input, draft_answer: cleanedContent, current_utc_datetime: new Date().toISOString() })
+            });
+            if (criticRes.ok) {
+              const evaluation = await criticRes.json();
+              if (evaluation.needs_revision) {
+                console.log(pc.cyan(`[🧠 Critic] Revision needed. Confidence: ${evaluation.factual_confidence?.toFixed(2)}. Completeness: ${evaluation.completeness?.toFixed(2)}. Re-generating...`));
+                logger.addEntry({
+                  role: 'system' as any,
+                  content: `[SELF-CRITIQUE — MANDATORY REVISION] Your previous answer was REJECTED. Issues:\n${evaluation.revision_instructions}\n\nCRITICAL REVISION RULES:\n1. Look at the tool results (search_web, etc.) ALREADY in this conversation history above.\n2. Base your revised answer EXCLUSIVELY on those tool results — NEVER use training data memory for facts, dates, or events.\n3. If tool results contain the answer, state it directly and confidently. Do NOT say an event hasn't happened if the tool results show it has.\n4. Do NOT call any tools again — the results are already in your history. USE THEM NOW.`
+                }, sessionId);
+                continue; // Loop kembali ke Generator untuk revisi
+              } else {
+                console.log(pc.green(`[🧠 Critic] Passed. Confidence: ${evaluation.factual_confidence?.toFixed(2)}, Completeness: ${evaluation.completeness?.toFixed(2)}.`));
+              }
+            }
+          } catch {
+            // Python ML Engine tidak aktif — skip Critic, lanjut seperti biasa
+          }
+        }
+        // --- END CRITIC PASS ---
         return cleanedContent || 'No response generated.';
       }
 
@@ -335,6 +430,31 @@ export async function processOsIntentStream(
   const config = loadConfig();
   logger.addEntry({ role: 'user', content: input }, sessionId);
 
+  // --- MULTILINGUAL USER CORRECTION DETECTION ---
+  const correctionSignals = [
+    // ID
+    'salah', 'ngawur', 'keliru', 'bukan', 'tidak benar', 'perbaiki', 'coba lagi',
+    // EN
+    'wrong', 'incorrect', 'mistake', 'not right', 'false', 'bad', 'fix', 'try again',
+    // ES & FR
+    'incorrecto', 'mal', 'equivocado', 'error', 'falso', 'faux', 'erreur', 'mauvais',
+    // DE & RU
+    'falsch', 'inkorrekt', 'fehler', 'ошибка', 'неправильно', 'неверно',
+    // JP & ZH
+    '違う', '間違い', 'やり直して', '错误', '不对'
+  ];
+  if (correctionSignals.some(s => input.toLowerCase().includes(s))) {
+    logger.addEntry({
+      role: 'system' as any,
+      content: `[USER CORRECTION DETECTED] The user indicated your previous answer was WRONG, STALE, or INACCURATE.
+CRITICAL INSTRUCTIONS:
+1. Do NOT just apologize and repeat the same data from your memory.
+2. The data in your training memory or previous tool calls is likely stale/incorrect.
+3. You MUST call a tool (like search_web or others) NOW to verify the facts with FRESH data.
+4. Base your new answer strictly on the NEW tool results.`
+    }, sessionId);
+  }
+
   const pluginTools = pluginManager.getAllToolDefinitions();
   let activeTools = [...pluginTools].filter(t => isSkillActive(t.function.name));
 
@@ -344,6 +464,7 @@ export async function processOsIntentStream(
     let turnCount = 0;
     const MAX_TURNS = 10;
     let fullResponse = '';
+    let criticHasFiredStream = false; // Critic Pass hanya aktif 1x per request
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
@@ -380,6 +501,36 @@ export async function processOsIntentStream(
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         let finalContent = responseMessage.content || 'No response generated.';
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
+
+        // --- CRITIC PASS (Self-Improvement) ---
+        const isLongResponseStream = finalContent.length > 100;
+        if (isLongResponseStream && !criticHasFiredStream) {
+          criticHasFiredStream = true;
+          try {
+            const criticRes = await fetch('http://127.0.0.1:8000/cognitive/critic', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_input: input, draft_answer: finalContent, current_utc_datetime: new Date().toISOString() })
+            });
+            if (criticRes.ok) {
+              const evaluation = await criticRes.json();
+              if (evaluation.needs_revision) {
+                console.log(pc.cyan(`[🧠 Critic] Revision needed. Confidence: ${evaluation.factual_confidence?.toFixed(2)}. Completeness: ${evaluation.completeness?.toFixed(2)}. Re-generating...`));
+                logger.addEntry({
+                  role: 'system' as any,
+                  content: `[SELF-CRITIQUE — MANDATORY REVISION] Your previous answer was REJECTED. Issues:\n${evaluation.revision_instructions}\n\nCRITICAL REVISION RULES:\n1. Look at the tool results (search_web, etc.) ALREADY in this conversation history above.\n2. Base your revised answer EXCLUSIVELY on those tool results — NEVER use training data memory for facts, dates, or events.\n3. If tool results contain the answer, state it directly and confidently. Do NOT say an event hasn't happened if the tool results show it has.\n4. Do NOT call any tools again — the results are already in your history. USE THEM NOW.`
+                }, sessionId);
+                continue; // Loop kembali ke Generator untuk revisi
+              } else {
+                console.log(pc.green(`[🧠 Critic] Passed. Confidence: ${evaluation.factual_confidence?.toFixed(2)}, Completeness: ${evaluation.completeness?.toFixed(2)}.`));
+              }
+            }
+          } catch {
+            // Python ML Engine tidak aktif — skip Critic, lanjut seperti biasa
+          }
+        }
+        // --- END CRITIC PASS ---
+
         fullResponse = finalContent;
         break;
       }

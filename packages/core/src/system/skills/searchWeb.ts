@@ -155,7 +155,7 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
   const config = loadConfig();
   const provider = config.web_search?.provider || 'mesh';
   const vaultKeys = await loadApiKeys();
-  const creds = Object.keys(vaultKeys).length > 0 ? vaultKeys : (config.credentials || {});
+  const creds = { ...(config.credentials || {}), ...vaultKeys };
   
   let results: SearchQueryResult[] = [];
   
@@ -230,10 +230,16 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
         results = await searchSearxng(finalQuery, depth);
       }
     } else {
-      results = await searchSearxng(finalQuery, depth);
+      // Default 'mesh' provider - Prioritize DuckDuckGo as it's more reliable than public SearXNG instances
+      try {
+        results = await searchDuckDuckGo(finalQuery, depth);
+      } catch (e: any) {
+        console.warn('[WebSearch] Mesh: DuckDuckGo failed. Falling back to SearXNG...');
+        results = await searchSearxng(finalQuery, depth);
+      }
     }
   } catch (e: any) {
-    return `Failed to search the web: ${e.message}`;
+    return `[Search Failed] The web search failed due to an error: ${e.message}. CRITICAL INSTRUCTION: You MUST inform the user that the web search failed. Do NOT hallucinate or guess the answer.`;
   }
   
   if (results.length > 0) {
@@ -265,17 +271,17 @@ export const searchWebToolDefinition = {
   type: "function",
   function: {
     name: "search_web",
-    description: "Searches the internet for information using a search engine. Returns top titles, snippets, and URLs. Use this to find current events, documentation, or general facts. If the user asks for deep/comprehensive research, pass depth: 2 or 3.",
+    description: "Searches the internet for information using a search engine. Returns top titles, snippets, and URLs. CRITICAL: If the user asks for news, sports scores, current events, or factual dates, you MUST set depth: 2 to extract the full article content. Do not use depth 1 for facts.",
     parameters: {
       type: "object",
       properties: {
         query: {
           type: "string",
-          description: "The search query to look up.",
+          description: "The highly optimized search query to look up (translate to English for global events).",
         },
         depth: {
           type: "number",
-          description: "Depth of the search (1 for basic, 2 or 3 for deep comprehensive research). Default is 1.",
+          description: "Depth of the search (1 for basic snippets, 2 for deep scraping of top 3 sites). MUST be 2 for news/scores/facts.",
         }
       },
       required: ["query"],

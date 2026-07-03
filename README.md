@@ -2,8 +2,8 @@
 **Your Personal Web3 Assistant.**
 
 
-[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg)](#)
-[![Built on Base](https://img.shields.io/badge/Built_on-Base-0052FF?style=flat&logo=base&logoColor=white)](https://base.org/)
+[![Status: Prototype](https://img.shields.io/badge/Status-Prototype-orange.svg)](#)
+
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg)](#️-advanced-security-threat-model)
@@ -241,11 +241,6 @@ For complete technical deep-dives into our Cryptographic Architecture, please vi
 > **🔗 [Read the Full Nyxora Documentation Here](https://nyxoraai.github.io/Nyxora/)**
 
 ---
-
-**❤️ Support the Project**
-
-Building and maintaining a highly secure, zero-trust architecture takes significant time and resources. If you love what we are building, you can help us keep Nyxora open, secure, and constantly evolving by sending a coffee our way:
-- **EVM :** `0x18a30D5DB50D287dbA669c5672CD71246CC4c4c6`
 
 ---
 **License:** MIT License

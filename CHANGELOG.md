@@ -4,7 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
-## [26.7.2-alpha.5]
+## [26.7.4]
+### Features & Architecture
+- **Cognitive Critic Engine Enhancements (Staleness Detection)**: Added a multilingual time-sensitive detection rule to the Critic Engine (`critic.py`). By injecting the current UTC datetime, the Critic now explicitly flags answers containing time-sensitive keywords (e.g., "today", "kemarin", "now") if they rely on stale training memory rather than fresh tool execution.
+- **Multilingual Scolding Detection (Teguran-Aware Mechanism)**: Nyxora now detects if the user scolds or corrects its output (e.g., "salah", "ngawur", "wrong") across multiple languages. It automatically injects an internal system prompt to force the LLM to discard stale assumptions and immediately trigger a fresh `search_web` or relevant tool call to verify facts.
+
+### Bug Fixes & Improvements
+- **Nyx Daemon SQLite Constraints**: Fixed a `UNIQUE constraint failed` crash in the background persona auditor (`episodicDB.upsertPersonaByCategory`). It now gracefully catches the constraint collision and shifts existing persona traits to their new dedicated categories without interrupting the daemon cycle.
+- **Critic Engine LangChain Parsing**: Escaped raw JSON curly braces in `critic.py`'s system prompt example to prevent LangChain from misinterpreting them as missing template variables (`INVALID_PROMPT_INPUT`).
+- **Documentation**: Replaced the "Alpha" status badge with "Prototype" and removed the "Built on Base" badge in `README.md`.
+
+### Features & Google Workspace
+- **Gmail Send Capability**: Extended the Google Workspace integration beyond read-only access. The AI agent can now natively compose and send emails via the Gmail API (`POST /gmail/v1/users/me/messages/send`) using RFC 2822 base64url-encoded payloads. The new `send_email` tool accepts `to`, `subject`, and `body` parameters.
+- **Google Calendar Write Access**: Added the `add_calendar_event` tool, enabling the AI to autonomously create new events in the user's primary Google Calendar via the Calendar API. Accepts ISO 8601 `startTime`/`endTime` for precise scheduling.
+- **OAuth Scope Expansion**: Added `gmail.send` and `calendar.events` scopes to `googleAuthModule.ts`. Users must re-authenticate to grant the new permissions.
+- **Setup Wizard Accuracy Fix**: Updated the `GoogleAuthWizard.tsx` (Step 1) to include all required APIs: **Google Calendar API**, **Google Docs API**, and **Google Forms API**, which were previously missing from the setup instructions.
+- **OAuth Consent Screen URL Fix**: Replaced unreachable `localhost:3001` Privacy Policy and Terms of Service placeholder URLs in the setup wizard with publicly accessible `nyxoraai.github.io` URLs, preventing `Error 400: unknownerror` during Google OAuth consent screen validation.
+
+## [26.7.3]
+### Bug Fixes & Improvements
+- **Daemon Graceful Shutdown (Port 8000)**: Improved the `npm run stop` behavior by injecting a `forceKill` (`SIGKILL`) method within `launcher.ts`, explicitly terminating detached ML Engine processes (`uvicorn`) and `ts-node` instances that were previously hanging and preventing clean reboots.
+- **Telegram Connectivity Timeout**: Resolved a persistent `Network request for 'getUpdates' failed!` issue in the Telegram integration. Enforced `dns.setDefaultResultOrder('ipv4first')` in `cli.ts` to bypass dual-stack IPv6 conflicts and ensure stable grammatical API fetching.
+
 ### Features & Architecture (Python ML Engine)
 - **Local Python ML Engine Integration**: Successfully integrated a local Python-based Machine Learning Engine (FastAPI + LangChain + Pandas) alongside the core Node.js gateway. This massively enhances Nyxora's analytical and cognitive capabilities.
 - **Cognitive Memory & RAG**: Shifted Persona Dialectic Reasoning and Episodic Memory Semantic Search (RAG) to the new Python Engine. Integrated `langchain_huggingface` using the local `all-MiniLM-L6-v2` embedding model for ultra-fast, offline vector processing without API costs.

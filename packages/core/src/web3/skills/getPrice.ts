@@ -103,7 +103,7 @@ export async function getPrice(coinId: string, currency?: string, amount?: numbe
   // TIER 3: Nyxora Python ML Engine (For obscure/low-cap DEX tokens)
   if (tokenUsdPrice === 0) {
     try {
-      const mlData = await safeFetchJson<any>(`http://localhost:8000/web3/analyze?query=${coinId}&chain=ethereum`);
+      const mlData = await safeFetchJson<any>(`http://127.0.0.1:8000/web3/analyze?query=${coinId}&chain=ethereum`);
       if (mlData && mlData.currentPrice) {
         tokenUsdPrice = mlData.currentPrice;
         change24h = mlData.priceChange24h || 0;

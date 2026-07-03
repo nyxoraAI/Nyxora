@@ -4,6 +4,7 @@ from typing import List, Optional
 from routers.llm import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 import json
+import re
 
 router = APIRouter()
 
@@ -47,7 +48,7 @@ RULES:
 
 OUTPUT FORMAT: You MUST return ONLY valid JSON matching this schema:
 {{"language": "...", "tone": "...", "trading_style": "...", "behavior": "..."}}
-Do not include any conversational text or markdown blocks, ONLY the raw JSON string.
+CRITICAL: Do NOT wrap the JSON in ```json ... ``` markdown blocks. Return the raw '{{' character immediately.
 """),
         ("user", "Conversation History:\n{history}")
     ])
@@ -67,8 +68,9 @@ Do not include any conversational text or markdown blocks, ONLY the raw JSON str
                 chain = prompt | llm
                 raw_result = chain.invoke({"history": history_str})
                 content = raw_result.content
-                if content.startswith("```json"):
-                    content = content.replace("```json", "").replace("```", "").strip()
+                # Clean markdown with robust regex
+                content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.IGNORECASE)
+                content = re.sub(r"\s*```$", "", content).strip()
                 try:
                     data = json.loads(content)
                     return PersonaResponse(**data)
@@ -80,9 +82,9 @@ Do not include any conversational text or markdown blocks, ONLY the raw JSON str
             raw_result = chain.invoke({"history": history_str})
             content = raw_result.content
             
-            # Clean markdown
-            if content.startswith("```json"):
-                content = content.replace("```json", "").replace("```", "").strip()
+            # Clean markdown with robust regex
+            content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.IGNORECASE)
+            content = re.sub(r"\s*```$", "", content).strip()
             
             try:
                 data = json.loads(content)

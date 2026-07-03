@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.3",
+  "version": "26.7.4",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -31,7 +31,8 @@
     "packages/mcp-server/dist",
     "packages/mcp-server/package.json",
     "packages/dashboard/dist",
-    "packages/dashboard/package.json"
+    "packages/dashboard/package.json",
+    "packages/ml-engine"
   ],
   "bin": {
     "nyxora": "bin/nyxora.mjs"

@@ -168,7 +168,7 @@ export function startTelegramBot() {
             await ctx.api.sendMessageDraft(
               ctx.chat.id, draft_id,
               formatToTelegramHTML(buffer),
-              { parse_mode: 'HTML' } as any
+              { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } } as any
             );
           } catch {}
           lastDraftAt = Date.now();
@@ -183,7 +183,7 @@ export function startTelegramBot() {
             await ctx.api.sendMessageDraft(
               ctx.chat.id, draft_id,
               `<i>${msg.replace(/_/g, '')}</i>`,
-              { parse_mode: 'HTML' } as any
+              { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } } as any
             );
           } catch {}
           isDrafting = false;
@@ -205,7 +205,7 @@ export function startTelegramBot() {
 
         await ctx.reply(
           formatToTelegramHTML(response),
-          { parse_mode: 'HTML', reply_markup: replyMarkup }
+          { parse_mode: 'HTML', reply_markup: replyMarkup, reply_parameters: { message_id: ctx.message.message_id } }
         ).catch((e) => {
           console.error("[Telegram] CRITICAL: ctx.reply failed in text handler:", e.message);
         });
@@ -213,7 +213,7 @@ export function startTelegramBot() {
         console.error('[Telegram] Error processing message:', error);
         await ctx.reply(
           '❌ Sorry, I encountered an error while processing your message.',
-          {}
+          { reply_parameters: { message_id: ctx.message.message_id } }
         ).catch(() => {});
       }
     });
@@ -297,7 +297,7 @@ export function startTelegramBot() {
         const onProgress = async (progressText: string) => {
           try {
             if (!progressMsgId) {
-              const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
+              const sent = await ctx.reply(`<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message?.message_id } as any });
               progressMsgId = sent.message_id;
             } else {
               await ctx.api.editMessageText(ctx.chat.id, progressMsgId, `<i>${progressText.replace(/_/g, '')}</i>`, { parse_mode: 'HTML' });
@@ -311,10 +311,10 @@ export function startTelegramBot() {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
         }
 
-        await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML' });
+        await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message?.message_id } as any });
       } catch (error: any) {
         console.error('[Telegram] Error processing document:', error);
-        await ctx.reply('❌ Sorry, I failed to download or analyze the document.');
+        await ctx.reply('❌ Sorry, I failed to download or analyze the document.', { reply_parameters: { message_id: ctx.message?.message_id } as any });
       }
     });
 
