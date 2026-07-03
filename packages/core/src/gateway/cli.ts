@@ -3,6 +3,10 @@
 import { initSafeLogger } from '../utils/safeLogger';
 initSafeLogger();
 
+import dns from 'dns';
+// Fix Node 18+ native fetch randomly failing on dual-stack VPS (IPv6 issues)
+dns.setDefaultResultOrder('ipv4first');
+
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

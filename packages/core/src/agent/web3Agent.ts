@@ -150,7 +150,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 10;
+    const MAX_TURNS = 20;
     let consecutiveToolErrors = 0;
 
     while (turnCount < MAX_TURNS) {
@@ -367,7 +367,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       // Loop continues, sending tool results in the next turn
     }
     
-    const maxTurnMsg = "⚠️ Reached maximum interaction limit (10 turns). Please be more specific.";
+    const maxTurnMsg = "⚠️ Reached maximum interaction limit (20 turns). Please be more specific.";
     logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
     return maxTurnMsg;
   } catch (error: any) {
@@ -400,7 +400,7 @@ export async function processWeb3IntentStream(
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 10;
+    const MAX_TURNS = 20;
     let fullResponse = '';
 
     while (turnCount < MAX_TURNS) {
@@ -500,7 +500,7 @@ export async function processWeb3IntentStream(
     }
 
     if (!fullResponse) {
-      const maxTurnMsg = '⚠️ Reached maximum interaction limit (10 turns). Please be more specific.';
+      const maxTurnMsg = '⚠️ Reached maximum interaction limit (20 turns). Please be more specific.';
       logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
       fullResponse = maxTurnMsg;
     }

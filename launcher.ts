@@ -110,6 +110,11 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
       if (child && !child.killed && child.pid) {
         try { process.kill(child.pid, 'SIGTERM'); } catch(e) {}
       }
+    },
+    forceKill: () => {
+      if (child && !child.killed && child.pid) {
+        try { process.kill(child.pid, 'SIGKILL'); } catch(e) {}
+      }
     }
   };
 };
@@ -122,7 +127,7 @@ if (fs.existsSync(socketPath)) {
   fs.unlinkSync(socketPath);
 }
 
-const children: { kill: () => void }[] = [];
+const children: { kill: () => void; forceKill: () => void; }[] = [];
 
 const __filenameResolved = __filename;
 const __dirnameResolved = __dirname;
@@ -171,8 +176,12 @@ const cleanup = () => {
   children.forEach(c => c.kill());
   // Give them a moment to cleanup
   setTimeout(() => {
+    children.forEach(c => {
+      try { c.forceKill(); } catch(e) {}
+    });
     try {
       require('child_process').execSync('pkill -f ts-node');
+      require('child_process').execSync('pkill -f uvicorn');
     } catch (e) {}
     process.exit(0);
   }, 1000);
