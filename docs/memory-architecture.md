@@ -1,8 +1,8 @@
-# The Technical Architecture (For Developers)
+# 🏗️ The Technical Architecture (For Developers)
 
 Under the hood, Nyxora's memory system is powered by a robust architecture designed specifically for high-stakes Web3 environments. This architecture eliminates memory pollution (hallucinations), slashes LLM token consumption, and completely sandboxes sensitive cryptographic data.
 
-## Dialectic User Modeling (The Memory Engine)
+## 💾 Dialectic User Modeling (The Memory Engine)
 
 With the latest architecture upgrade, Nyxora transitioned from a rigid, file-based memory system to **Dialectic User Modeling**, powered by the asynchronous `nyxDaemon.ts`.
 
@@ -27,16 +27,16 @@ There is no manual `user.md` profile to edit anymore. The reasoning engine (`rea
 ### 4. Layer 4: Web3 Knowledge Profile
 Unlike generic AI agents, Nyxora also maps behavioral signatures to public blockchain addresses. It learns the functionality of your assets (e.g., *Wallet A is a cold vault, Wallet B is a burner address*), making cross-chain routing suggestions contextually brilliant.
 
-## Defense-in-Depth Security & Triggers
+## 🛡️ Defense-in-Depth Security & Triggers
 
-### Hard-Coded Memory Validator (Anti-Injection Shield)
+### 💾 Hard-Coded Memory Validator (Anti-Injection Shield)
 We operate under a **Zero-Trust** paradigm. We do not rely on LLM System Prompts as the primary defense against Prompt Injection. 
 Before any candidate memory touches the SQLite database, it must pass a strict RegExp-based **Hard-Coded Validator**. This physical code barrier autonomously intercepts and annihilates patterns resembling EVM Private Keys, Telegram Bot Tokens, and `"system override"` commands.
 
-### Air-Gapped Keyring Isolation
+### 🔹 Air-Gapped Keyring Isolation
 The Nyx Daemon is entirely **air-gapped** from the `packages/signer` module. The Memory System has zero read-paths to the OS Keyring. Even in the event of a catastrophic hallucination, the AI cannot leak what it physically cannot access.
 
-### Persistent Background Reflection
+### 🔸 Persistent Background Reflection
 The persona extraction process operates asynchronously in the background (`nyxDaemon.ts`) to guarantee zero impact on chat latency. 
 
 <br>

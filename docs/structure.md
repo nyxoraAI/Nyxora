@@ -1,4 +1,4 @@
-# Codebase Structure
+# 🏗️ Codebase Structure
 
 This document provides a comprehensive map of the Nyxora monorepo, detailing the purpose and responsibility of each directory and core file.
 
@@ -20,7 +20,7 @@ This directory contains all the main engines that power Nyxora:
 *   **`launcher.ts` & `bin/nyxora.mjs`:** The entry points for the CLI. These files launch the background daemon, handle the interactive setup process (`nyxora setup`), and serve the Terminal integration.
 *   **`SECURITY.md`:** The documentation detailing Nyxora's cryptography standards and Threat Model mitigation strategies.
 
-## 3. Runtime Configuration Files
+## ⚙️ 3. Runtime Configuration Files
 These files are not committed to the Git repository. They are dynamically generated at runtime and securely stored in your local data directory (e.g., `~/.nyxora/`):
 *   **`~/.nyxora/config/episodic.db`:** The local SQLite database where the Nyx Daemon securely stores user personas, chat history (short-term/long-term memory), and contract address whitelists.
 *   **`~/.nyxora/config/policy.yaml`:** The rigid configuration file for the NLP Security Policy.

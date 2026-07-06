@@ -4,13 +4,13 @@ We warmly welcome community contributions! Whether you want to fix a bug, improv
 
 ---
 
-## The Plugin Architecture
+## 🏗️ The Plugin Architecture
 
 Nyxora features an extensible **Plugin Architecture** that makes it incredibly easy to add new capabilities (like new DEXs, Oracles, Chains, or external integrations) *without* modifying the core reasoning engine. 
 
 Instead of hacking into complex AI prompt loops, you can simply leverage our robust IoC (Inversion of Control) containers. All third-party capabilities are cleanly sandboxed via our dedicated **`SystemExternalPlugin`** and **`Web3MarketPlugin`** classes.
 
-### How to Build a New Plugin / Skill
+### ✨ How to Build a New Plugin / Skill
 1. **Scaffold with AI**: You don't even have to start from scratch! You can prompt Nyxora's CLI to scaffold a plugin for you using the native `create_agent_skill` tool.
 2. **Standardization**: Every skill consists of two files:
    - `execute.ts`: The actual Node.js runtime code for your logic.
@@ -22,7 +22,7 @@ Instead of hacking into complex AI prompt loops, you can simply leverage our rob
 
 ---
 
-## Finding an Issue
+## ✨ Finding an Issue
 
 If you're looking for a way to contribute but aren't sure where to start, check out the [Issues page](https://github.com/nyxoraAI/Nyxora/issues) on our GitHub repository.
 - Look for issues tagged with `good first issue` for great beginner-friendly tasks.
@@ -31,7 +31,7 @@ If you're looking for a way to contribute but aren't sure where to start, check 
 
 ---
 
-## Pull Request Workflow
+## 💡 Pull Request Workflow
 
 We use a standard Git workflow for all contributions:
 
@@ -56,20 +56,20 @@ We use a standard Git workflow for all contributions:
 
 ---
 
-## Running the System Locally
+## 📌 Running the System Locally
 
 To verify your changes before submitting a PR, you need to compile and run the Nyxora Monorepo locally.
 
-### Prerequisites
+### ✨ Prerequisites
 - Node.js (v22+)
 - Docker (optional, for isolated sandbox testing)
 
-### Build Steps
+### ✨ Build Steps
 ```bash
 # 1. Install all dependencies across the workspaces
 npm install
 
-# 2. Compile the core engine and dashboard
+# 🖥️ 2. Compile the core engine and dashboard
 npm run build
 
 # 3. Start the local daemon and frontend services

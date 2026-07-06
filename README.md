@@ -72,7 +72,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ### Advanced Security Architecture
 *   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/smart-contract)
-*   **4-Tier IPC Architecture**: Nyxora is split into isolated processes: **Core** (Node.js LLM Runtime), **ML Engine** (Python Cognitive Sidecar on port 8000), **Policy Engine** (Guardrails on port 3001), and **Signer Vault** (Isolated Key Manager on Unix Sockets).
+*   **6-Tier Hybrid Architecture**: Nyxora is split into isolated microservices: **Dashboard** (Port 5173), **MCP Server** (Port 3001), **Core LLM** (Port 3000), **ML Engine** (Python Sidecar on Port 8000), **Policy Engine** (Unix Socket), and **Signer Vault** (Unix Socket).
 *   **DeFi & Market Configuration BYOK & UI Masking**: All aggregator, provider, and oracle API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into heavily guarded `~/.nyxora/defi_keys.yaml` and `~/.nyxora/market_keys.yaml` files. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Native Asset Parameter Tampering Protection**: The internal cryptographic HMAC signature rigorously binds `toAddress`, `txData`, and `valueWei`, rendering the system mathematically immune to Native Token (ETH/BNB) destination or amount hijacking via Indirect Prompt Injections.
@@ -121,15 +121,54 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ## 📐 Architecture Workflow
 
-The following diagram illustrates Nyxora's **4-Tier Hybrid Architecture**, showing the isolated communication channels (REST API and Unix Socket).
+The following diagram illustrates Nyxora's **6-Tier Hybrid Architecture**, showing the isolated communication channels across the ecosystem.
 
-![Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.svg)
+```text
++-------------------------------------------------------------+
+|                     Nyxora 6-Tier Architecture              |
++-------------------------------------------------------------+
 
-*Nyxora separates its duties into 4 independent layers for absolute security and cognitive depth:*
-1. **🧠 Core (The AI Brain)**: The Node.js intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
-2. **🧬 ML Engine (Cognitive Sidecar)**: A local Python/FastAPI sidecar running LangChain and HuggingFace models for hyper-fast Semantic RAG memory and Pandas-based technical market analysis.
-3. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
-4. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring. It only signs transactions after they pass all rigorous security checks.
+    [ User / External Client ]
+               |
+               v
++-----------------------------+       +-------------------------+
+|     Dashboard (UI)          |       |      MCP Server         |
+|        Port 5173            |       |       Port 3001         |
++-----------------------------+       +-------------------------+
+               |                                  |
+               +---------------+------------------+
+                               |
+                               v
+                    +--------------------+
+                    |   Core LLM Runtime | <--- (NLP Parsing, Routing,
+                    |      Port 3000     |       Agent Logic)
+                    +--------------------+
+                      ^                |
+       (RAG & Math)   |                |  (Draft Transaction)
+                      v                v
++-------------------------+   +-------------------------------+
+|       ML Engine         |   |    Policy Engine (Guard)      |
+|       Port 8000         |   |  Unix Socket (IPC) / Loopback |
++-------------------------+   +-------------------------------+
+                                               |
+                                               | (Approved Payload)
+                                               v
+                              +-------------------------------+
+                              |    Signer Vault (Safe)        |
+                              |       Unix Socket (IPC)       |
+                              +-------------------------------+
+                                               |
+                                               v
+                                      [ Blockchain RPC ]
+```
+
+*Nyxora separates its duties into 6 independent layers for absolute security and cognitive depth:*
+1. **🖥️ Dashboard (UI)**: A premium local React interface for real-time monitoring and conversational execution.
+2. **🔌 MCP Server (Context Provider)**: An open standard interface to connect Nyxora with external AI environments like Claude Desktop natively.
+3. **🧠 Core (The AI Brain)**: The Node.js intelligent assistant that strategizes and plans transactions, but **never** holds your funds.
+4. **🧬 ML Engine (Cognitive Sidecar)**: A local Python/FastAPI sidecar running LangChain and HuggingFace models for hyper-fast Semantic RAG memory and Pandas-based technical market analysis.
+5. **🛡️ Policy Engine (The Guard)**: The security guard that verifies the Brain's plans. If the AI attempts to send funds exceeding your set limits, this engine automatically blocks it.
+6. **🔒 Signer Vault (The Safe)**: The offline vault where your Private Keys **and highly sensitive 3rd-party tokens (e.g., Google Workspace OAuth)** are securely locked natively in your OS Keyring. It only signs transactions after they pass all rigorous security checks.
 
 ### Web3 Separation of Concerns (Zero-Trust Routing)
 Within the AI Brain, the Web3 codebase is strictly divided to prevent the LLM from hallucinating or maliciously manipulating low-level routing paths:

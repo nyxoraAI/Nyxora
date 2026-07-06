@@ -1,10 +1,10 @@
-# Terms of Service
+# ⚖️ Terms of Service
 
 **Effective Date: June 2026**
 
 Welcome to Nyxora! By downloading, installing, or using the Nyxora AI Agent ("Service"), you agree to be bound by these Terms of Service.
 
-## 1. Acceptance of Terms
+## ⚖️ 1. Acceptance of Terms
 By using Nyxora, you acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree with any part of these Terms, you may not use the Service.
 
 ## 2. Description of Service

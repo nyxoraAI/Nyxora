@@ -4,13 +4,13 @@ Nyxora is designed as a highly secure, Zero-Trust platform. Therefore, all aggre
 
 Nyxora implements a strictly isolated **Bring Your Own Keys (BYOK)** system.
 
-## How to Configure DeFi API Keys
+## 🏦 How to Configure DeFi API Keys
 
 You can set your private API keys via the **Dashboard > DeFi Configuration**.
 
 Nyxora utilizes a **Dynamic Provider Integration Schema**. The input fields you see on this page are NOT hardcoded. Instead, they are auto-generated dynamically based on the specific `ProviderManifest` of the DeFi Aggregators you currently have installed (such as 1inch, 0x, LI.FI, Relay, etc.). If you install a new provider plugin in the future, its API key requirement will instantly appear here without any UI updates!
 
-### Step-by-Step: Obtaining and Installing API Keys
+### 🔌 Step-by-Step: Obtaining and Installing API Keys
 
 #### 1. Obtaining the Keys
 Here is how you can obtain private API keys for the natively supported Meta-Aggregators:
@@ -31,7 +31,7 @@ Once you have obtained your keys, follow these steps to securely inject them int
 4. Click the **Save** button next to each key.
 5. The backend will immediately encrypt and store them locally, and the UI will mask the inputs to `***********` and tag them as `CONFIGURED`.
 
-## UI Masking Security Architecture
+## 🏗️ UI Masking Security Architecture
 
 To protect your API keys from theft by malware, keyloggers, or malicious browser extensions, Nyxora implements **UI Masking**.
 
@@ -41,7 +41,7 @@ To protect your API keys from theft by malware, keyloggers, or malicious browser
 
 This architecture guarantees that once a secret is injected into Nyxora, it can **never be read back** through any visual interface.
 
-## Benefits of Private API Keys
+## 🔌 Benefits of Private API Keys
 
 Although Nyxora supports using DeFi services without API keys (Free Public Routing), registering and using your private API keys provides significant advantages:
 

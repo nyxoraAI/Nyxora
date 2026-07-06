@@ -1,19 +1,19 @@
-# NLP Security Policy
+# 🗣️ NLP Security Policy
 
 Nyxora introduces a revolutionary approach to system security and transaction limits: **The NLP (Natural Language Processing) Security Policy**.
 
 Instead of writing complex JSON schemas, YAML configurations, or hard-coded rule scripts, you can enforce security constraints using **plain human language**. Nyxora's LLM Core understands these constraints and acts as an autonomous firewall.
 
-## How It Works
+## ✨ How It Works
 
 Every time you launch Nyxora, the Core Runtime reads a configuration file containing your security rules written in plain English. 
 
 When the AI receives a prompt from you (e.g., *"Swap 10 ETH to USDC"*), it evaluates its intended action against your NLP policy. If the action violates any of your predefined rules, the AI will autonomously **block** the execution and refuse to sign the transaction or modify the system.
 
-## Configuring Your Policy
+## ⚙️ Configuring Your Policy
 
 To set up your security rules, simply configure them directly from your Nyxora Dashboard under the **Settings -> Policy Engine (Hard-coded Firewall)** section, or manually edit the `policy.yaml` file in your `~/.nyxora/config/` directory by modifying the `custom_llm_rules` array. You can write constraints as simple human language sentences, and the LLM's reasoning engine will rigorously adhere to them.
-### Examples of NLP Security Rules
+### 🗣️ Examples of NLP Security Rules
 
 *   **File System Protection:**
     > *"Never modify, delete, or read any files inside the `/etc/` or `C:/Windows` directories under any circumstances."*
@@ -32,7 +32,7 @@ To set up your security rules, simply configure them directly from your Nyxora D
 *   **Strict Exactness (Rule 8):**
     > *"NEVER hallucinate or guess missing transaction parameters (like destination chains, tokens, or amounts). If ambiguous, HALT and explicitly ask the user for clarification."*
 
-## The Power of Semantic Evaluation
+## 🔹 The Power of Semantic Evaluation
 
 Unlike traditional Regex or exact-match firewalls, the NLP Security Policy relies on **Semantic Evaluation**. 
 

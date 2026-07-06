@@ -2,7 +2,7 @@
 
 A **Skill** in Nyxora is a discrete, single-purpose action that the AI Agent can invoke. Instead of wrapping them in complex Zod-schema plugins, Nyxora uses raw, standard OpenAI Tool Definitions for maximum compatibility and minimal overhead.
 
-## The Anatomy of a Nyxora Skill
+## ⚡ The Anatomy of a Nyxora Skill
 
 Unlike other frameworks that force you to learn proprietary schema builders (like Zod) or complex class inheritance, Nyxora is designed to be as close to the metal as possible. Every custom skill is built using the **Native OpenAI Tool Definition standard**.
 
@@ -12,7 +12,7 @@ To create a new skill, you only need to export two things from a single TypeScri
 
 ---
 
-## Step-by-Step: Building a "Get Balance" Skill
+## ✨ Step-by-Step: Building a "Get Balance" Skill
 
 Let's build a simple custom skill that allows the AI to check the native token balance of a specific address.
 
@@ -83,7 +83,7 @@ export const checkBalanceToolDefinition = {
 
 ---
 
-## Registration & Auto-Discovery
+## 📌 Registration & Auto-Discovery
 
 Nyxora features an autonomous **Skill Auto-Discovery Engine**. You do not need to manually import or register your new skill in any central `index.ts` file!
 

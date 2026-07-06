@@ -1,4 +1,4 @@
-# Nyxora Next Update: The Advanced Security Vision
+# 🛡️ Nyxora Next Update: The Advanced Security Vision
 
 As Nyxora continues to establish itself as the premier zero-trust framework for Web3 AI Agents, our engineering team is constantly anticipating the future of decentralized security. While our current architecture provides a robust 3-Tier Defense System, the upcoming **future major releases** will push the boundaries of operational security to unprecedented heights.
 
@@ -6,7 +6,7 @@ Here is an exclusive look at the next-generation architectural innovations we ar
 
 ---
 
-## 1. Rust-Native Signer (Ultra-High Security)
+## 🛡️ 1. Rust-Native Signer (Ultra-High Security)
 
 In the current ecosystem, most JavaScript/Node.js applications rely on the V8 Engine's Garbage Collector to manage memory. While we successfully isolate our keys using OS-Native Keyrings via Rust N-API bindings, the ultimate goal for a true Zero-Trust architecture is **Absolute Low-Level Memory Control**.
 

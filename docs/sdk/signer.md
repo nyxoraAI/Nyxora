@@ -6,13 +6,13 @@ The Signer SDK manages cryptographic operations and OS-native key storage. It is
 
 *(Note: While the current stable release operates via Node.js bindings, the upcoming pure Rust-Native iteration is in active development, as detailed in our Roadmap).*
 
-## Installation
+## 🚀 Installation
 
 ```bash
 npm install @nyxora-sdk/signer
 ```
 
-## True Air-Gapped Security
+## 🛡️ True Air-Gapped Security
 
 In an enterprise deployment, the Signer SDK should be running on a separate, heavily firewalled server (or a hardware enclave). It listens for verified, policy-approved payloads, signs them locally, and returns the raw hex signature.
 

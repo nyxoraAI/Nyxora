@@ -1,4 +1,4 @@
-# Technical Architecture
+# 🏗️ Technical Architecture
 
 Nyxora operates on a highly secure, modular **Monorepo** architecture designed to strictly separate the intelligence (LLM) from the cryptography (Wallet). 
 
@@ -6,11 +6,48 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
 
 ---
 
-## The 4-Tier Hybrid Architecture
+## 🏗️ The 6-Tier Hybrid Architecture
 
-![Nyxora Security Flow](/security-flow.png)
+```text
++-------------------------------------------------------------+
+|                     Nyxora 6-Tier Architecture              |
++-------------------------------------------------------------+
 
-When you launch Nyxora via the background daemon (`nyxora start`), the launcher orchestrates three independent Node.js processes that communicate internally.
+    [ User / External Client ]
+               |
+               v
++-----------------------------+       +-------------------------+
+|     Dashboard (UI)          |       |      MCP Server         |
+|        Port 5173            |       |       Port 3001         |
++-----------------------------+       +-------------------------+
+               |                                  |
+               +---------------+------------------+
+                               |
+                               v
+                    +--------------------+
+                    |   Core LLM Runtime | <--- (NLP Parsing, Routing,
+                    |      Port 3000     |       Agent Logic)
+                    +--------------------+
+                      ^                |
+       (RAG & Math)   |                |  (Draft Transaction)
+                      v                v
++-------------------------+   +-------------------------------+
+|       ML Engine         |   |    Policy Engine (Guard)      |
+|       Port 8000         |   |  Unix Socket (IPC) / Loopback |
++-------------------------+   +-------------------------------+
+                                               |
+                                               | (Approved Payload)
+                                               v
+                              +-------------------------------+
+                              |    Signer Vault (Safe)        |
+                              |       Unix Socket (IPC)       |
+                              +-------------------------------+
+                                               |
+                                               v
+                                      [ Blockchain RPC ]
+```
+
+When you launch Nyxora via the background daemon (`nyxora start`), the launcher orchestrates multiple independent microservices that communicate internally across your local system.
 
 ### 1. Core Runtime (The Brain) - Port 3000
 The Core is the front-facing gateway. It serves the Dashboard UI, connects to the Telegram Bot API, and houses the LLM orchestration logic. 
@@ -29,20 +66,31 @@ The ML Engine is a local Python FastAPI backend dedicated to heavy cognitive and
 *   **Role:** Executes Semantic Search (RAG) and performs deterministic market calculations without clogging the Node.js event loop.
 *   **Semantic Memory & RAG:** Operates `langchain_huggingface` using the `all-MiniLM-L6-v2` embedding model. It synchronizes the SQLite episodic memory into a fast local ChromaDB vector store, enabling lightning-fast semantic context retrieval.
 *   **Market Intelligence Delegation:** Utilizes Pandas (`pandas-ta`) to calculate advanced technical indicators (RSI, MA50) directly from Binance K-Lines, feeding deterministic market scores back to the Core Runtime to prevent LLM hallucinations.
+*   **Reinforcement Learning (RL):** Menjalankan PPOAgent untuk mengevaluasi strategi eksekusi token.
 
-### 3. Policy Engine (The Guard) - Unix Socket
+### 3. MCP Server (Context Provider) - Port 3001
+The MCP (Model Context Protocol) Server acts as an open standard interface between Nyxora and external environments.
+*   **Role:** Allows Nyxora to read files, execute terminal commands, and search local knowledge bases natively.
+*   **Extensibility:** Developers can plug in any standard MCP tool into Nyxora seamlessly.
+
+### 4. Analytical Dashboard - Port 5173
+A beautiful, highly interactive React (Vite) interface tailored for real-time monitoring and conversational execution.
+*   **Role:** Visualizes Web3 portfolios, handles real-time WebSockets, and provides the chat interface for interacting with the Core Runtime.
+*   **Local First:** Served locally directly from the Nyxora daemon.
+
+### 5. Policy Engine (The Guard) - Unix Socket
 The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It communicates via a combination of Hyper-Optimized IPC (Unix Socket) at `/tmp/nyxora-policy.sock` and local TCP Loopback (`127.0.0.1`) for secure internal routing.
 *   **Role:** Receives transaction drafts from the Core. It parses the payload and checks it against immutable rules defined in `policy.yaml` (e.g., maximum daily spend, whitelisted addresses).
 *   **Security:** If a transaction exceeds the allowed risk parameters, the Policy Engine drops it immediately.
 
-### 4. Signer Vault (The Safe) - Unix Socket
+### 6. Signer Vault (The Safe) - Unix Socket
 The Signer Vault is an ultra-secure, isolated process that holds your Private Key in active volatile memory (RAM).
 *   **Role:** Receives validated transactions from the Policy Engine, signs them cryptographically, and broadcasts them directly to the Blockchain RPC.
 *   **Isolation:** The Signer Vault does not expose any TCP ports. It listens exclusively on an Inter-Process Communication (IPC) Unix Socket (`/tmp/nyxora-signer.sock`). This guarantees that no external network traffic can ever reach the Vault directly.
 
 ---
 
-## Transaction Lifecycle (End-to-End)
+## 🔹 Transaction Lifecycle (End-to-End)
 
 The overarching flow is: **User/Core ➔ Policy Engine (Rules & Approval) ➔ Signer Vault (Key Access & Signing) ➔ Blockchain Network.**
 
@@ -75,25 +123,25 @@ Unlike standard crypto bots that store pending transactions in volatile RAM or s
 
 ---
 
-## Background Daemon Lifecycle
+## 🔹 Background Daemon Lifecycle
 
 Nyxora runs as a true "Local-First" background service, similar to a database daemon or a web server.
 
-### Boot Sequence
+### ⚡ Boot Sequence
 1. **OS-Native Key Retrieval:** When the `Signer Vault` boots up, it automatically queries the `GNOME Keyring` (Linux), `Keychain` (macOS), or `Credential Manager` (Windows) to retrieve the Private Key securely.
 2. **Token Generation:** The launcher generates a random 64-byte `INTERNAL_AUTH_TOKEN` and passes it to the three processes via environment variables. This ensures the processes only trust communication from each other.
 3. **Dashboard Access:** The launcher also writes a session token to `~/.nyxora/auth.token`. When you run `nyxora dashboard`, the CLI reads this token to grant you seamless access to the UI without requiring a password.
 
-### Graceful Shutdown & Zombie Prevention
+### ⚡ Graceful Shutdown & Zombie Prevention
 When you execute `nyxora stop` or `nyxora restart`, the CLI manager sends a `SIGTERM` signal to the process group leader. 
 
 The orchestrator intercepts this signal and performs a cascading cleanup—terminating the Core, Policy, and Signer children precisely, and automatically clearing any stale Unix Sockets to prevent `EADDRINUSE` zombie lockups. 
 
 **Web3 Promise Tracking:** Additionally, the Gateway API (`server.ts`) utilizes a Promise Tracking engine via `txManager.waitForAll()`. Before terminating the HTTP server, Nyxora intelligently waits up to 10 seconds for any active on-chain Web3 transactions to finish broadcasting. This eradicates the risk of dangling transactions and protects your funds during forced restarts.
 
-### Atomic File Operations
+### 🚀 Atomic File Operations
 Configuration write operations (such as `config.yaml` and Google Credentials in `parser.ts`) are fortified using OS-level atomic renames (`fs.renameSync`). This mechanically eliminates the possibility of 0-byte file corruption during sudden server crashes.
 
-### System Autostart
+### 💡 System Autostart
 Nyxora integrates natively with your OS boot sequence using `nyxora autostart enable`.
 Instead of relying on clunky `.bashrc` terminal hacks, the CLI generates native OS hooks (e.g., XDG `.desktop` files on Linux or LaunchAgent `.plist` files on macOS), guaranteeing the AI is awake and monitoring your portfolio the moment your computer turns on.

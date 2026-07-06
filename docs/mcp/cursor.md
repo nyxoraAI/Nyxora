@@ -1,4 +1,4 @@
-# Cursor IDE Configuration
+# ⚙️ Cursor IDE Configuration
 
 If you are using the Cursor IDE and want its AI features to interact with Nyxora:
 

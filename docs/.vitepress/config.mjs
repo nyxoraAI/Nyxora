@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 const globalSidebar = [
   {
-    text: 'Introduction',
+    text: '👋 INTRODUCTION',
     items: [
       { text: 'Overview', link: '/' },
       { text: 'Getting Started', link: '/docs' },
@@ -11,7 +11,7 @@ const globalSidebar = [
     ]
   },
   {
-    text: 'Developer & Architecture',
+    text: '🏗️ DEVELOPER & ARCHITECTURE',
     items: [
       { text: 'Technical Architecture', link: '/architecture' },
       { text: 'Cross-Chain Routing', link: '/bridge-routing' },
@@ -23,9 +23,10 @@ const globalSidebar = [
     ]
   },
   {
-    text: 'Core Capabilities',
+    text: '✨ CORE CAPABILITIES',
     items: [
       { text: 'Native Skills', link: '/native' },
+      { text: 'Python ML Engine', link: '/ml-engine' },
       { text: 'Market Intelligence', link: '/market-intelligence' },
       { text: 'Web Search & Deep Research', link: '/web-search' },
       { text: 'Google Workspace MVP', link: '/google-workspace' },
@@ -39,7 +40,7 @@ const globalSidebar = [
     ]
   },
   {
-    text: 'Operations & Security',
+    text: '🛡️ OPERATIONS & SECURITY',
     items: [
       { text: 'Base Smart Contract', link: '/smart-contract' },
       { text: 'Wallet Import Guide', link: '/wallet_import' },
@@ -50,7 +51,7 @@ const globalSidebar = [
     ]
   },
   {
-    text: 'Legal',
+    text: '⚖️ LEGAL',
     items: [
       { text: 'Privacy Policy', link: '/privacy' },
       { text: 'Terms of Service', link: '/terms' }
@@ -84,18 +85,18 @@ export default defineConfig({
     },
     logo: '/favicon.svg',
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Docs', link: '/docs', activeMatch: '^/(?!$|index\\.html|cli/|mcp/|plugins/|sdk/)' },
-      { text: 'CLI Reference', link: '/cli/', activeMatch: '^/cli/' },
-      { text: 'MCP', link: '/mcp/', activeMatch: '^/mcp/' },
-      { text: 'Plugin Registry', link: '/plugins/', activeMatch: '^/plugins/' },
-      { text: 'Nyxora SDK', link: '/sdk/', activeMatch: '^/sdk/' }
+      { text: '🏠 Home', link: '/' },
+      { text: '📖 Docs', link: '/docs', activeMatch: '^/(?!$|index\\.html|cli/|mcp/|plugins/|sdk/)' },
+      { text: '💻 CLI Reference', link: '/cli/', activeMatch: '^/cli/' },
+      { text: '⚙️ MCP', link: '/mcp/', activeMatch: '^/mcp/' },
+      { text: '🔌 Plugin Registry', link: '/plugins/', activeMatch: '^/plugins/' },
+      { text: '🧩 Nyxora SDK', link: '/sdk/', activeMatch: '^/sdk/' }
     ],
 
     sidebar: {
       '/sdk/': [
         {
-          text: 'Nyxora SDK Framework',
+          text: '🧩 NYXORA SDK FRAMEWORK',
           items: [
             { text: 'Overview & Architecture', link: '/sdk/' },
             { text: 'Umbrella Package', link: '/sdk/umbrella' },
@@ -107,7 +108,7 @@ export default defineConfig({
       ],
       '/plugins/': [
         {
-          text: 'Plugin Registry',
+          text: '🔌 PLUGIN REGISTRY',
           items: [
             { text: 'System Overview', link: '/plugins/' },
             { text: 'Creating Custom Plugins', link: '/plugins/custom-plugins' },
@@ -117,7 +118,7 @@ export default defineConfig({
       ],
       '/cli/': [
         {
-          text: 'CLI Reference',
+          text: '💻 CLI REFERENCE',
           items: [
             { text: 'Overview & Flags', link: '/cli/' },
             { text: 'Daemon & Interface', link: '/cli/daemon' },
@@ -127,7 +128,7 @@ export default defineConfig({
       ],
       '/mcp/': [
         {
-          text: 'MCP Integration',
+          text: '⚙️ MCP INTEGRATION',
           items: [
             { text: 'Overview & Setup', link: '/mcp/' },
             { text: 'Claude Desktop', link: '/mcp/claude' },
@@ -147,6 +148,10 @@ export default defineConfig({
         }, 
         link: 'https://x.com/Nyxora_AI' 
       }
-    ]
+    ],
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2026 Nyxora Protocol'
+    }
   }
 })

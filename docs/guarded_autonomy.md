@@ -1,6 +1,6 @@
-# Guarded Autonomy Architecture
+# 🏗️ Guarded Autonomy Architecture
 
-This document outlines the conceptual blueprint of Nyxora's **"Guarded Autonomy"**—a paradigm that balances the free-thinking reasoning of an AI Agent with strict, unbreakable security policies.
+This document outlines the operational architecture of Nyxora's "Guarded Autonomy"—an advanced paradigm that balances the free-thinking generative reasoning of the Core LLM and the predictive analytics of the ML Engine with strict, unbreakable Zero-Trust security policies. Operating within a 6-Tier Hybrid Architecture, this system empowers the AI to act autonomously while remaining mathematically confined by the isolated Policy Gatekeeper.
 
 ---
 
@@ -15,10 +15,11 @@ The policy configuration acts as the ultimate risk control center for the system
 
 ## 2. The Policy Gatekeeper (Transaction Interceptor)
 
-Before any transaction reaches the OS-Native Secure Vault for signing, it must pass through the local **Policy Gatekeeper**. 
-Even if the AI hallucinates and tries to execute a trade that violates your settings (e.g., setting a slippage of 50% when your limit is 2%), the Gatekeeper physically intercepts the Web3 payload. It rejects the transaction outright, effectively sandboxing the AI's execution power within your predefined limits.
+Before any transaction reaches the OS-Native Secure Vault for signing, it must pass through the local **Policy Gatekeeper** (berjalan sebagai layanan mikro terpisah di `packages/policy`). 
 
-By separating the language generation (LLM) from the cryptographic execution (Signer Vault), Nyxora achieves robust, Zero-Trust reliability, allowing users to trust the agent with autonomous operations within strictly guarded boundaries.
+Gatekeeper ini berkomunikasi melalui *Hyper-Optimized IPC Unix Socket*. Bahkan jika AI mengalami halusinasi atau diserang melalui *Prompt Injection* dan mencoba mengeksekusi perdagangan yang melanggar pengaturan Anda (misal: mengatur *slippage* 50% padahal batas maksimal Anda 2%), Gatekeeper akan secara fisik mencegat muatan Web3 tersebut. Ia akan langsung menolak transaksi, secara efektif mengunci kekuatan eksekusi AI di dalam batas yang telah Anda tentukan.
+
+Dengan memisahkan pembangkitan bahasa (LLM di Core) dari verifikasi keamanan (*Policy Engine*) dan eksekusi kriptografi (*Signer Vault*), Nyxora mencapai keandalan **Zero-Trust** yang mutlak.
 
 <br>
 

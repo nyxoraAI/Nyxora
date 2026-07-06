@@ -2,7 +2,7 @@
 
 The **Market Intelligence** skill empowers Nyxora with expert-level, real-time analytics to assess the risk and health of any crypto asset across multiple ecosystems. Instead of relying purely on large language model approximations, Nyxora uses deterministic math and a sophisticated **Dual-Routing API Waterfall** to aggregate data from Global CEXs, Decentralized Exchanges (DEXs), and On-Chain trackers.
 
-## Dual-Routing Engine
+## 🔀 Dual-Routing Engine
 
 To prevent "Ticker Spoofing" (where malicious tokens mimic the ticker of a legitimate large-cap coin on DEXs) and to ensure accurate proxy metrics, Nyxora intelligently routes API queries based on the user's input type:
 
@@ -18,7 +18,7 @@ When querying by an exact Contract Address (CA), Nyxora assumes the user is look
 * **Benefit**: Pinpoints the exact token regardless of chain, capturing live decentralized volume and liquidity depth.
 * **Momentum Checks**: After resolving the DEX pair, Nyxora attempts to cross-reference the extracted symbol with CEX APIs to see if it has broader market momentum (RSI, MA50).
 
-## Market Health Score
+## 📈 Market Health Score
 
 Nyxora synthesizes the aggregated data into a 0-10 Market Health Score, heavily penalizing high-risk configurations. The report highlights:
 

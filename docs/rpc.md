@@ -1,8 +1,8 @@
-# Custom RPC Configuration
+# ⚙️ Custom RPC Configuration
 
 While Nyxora comes pre-configured to use default public Remote Procedure Call (RPC) nodes for all supported blockchains, advanced users executing high-frequency or time-sensitive trades are highly encouraged to configure **Private / Custom RPCs**.
 
-## Why Use a Private RPC?
+## 🔌 Why Use a Private RPC?
 
 Public RPCs are shared among thousands of users. During times of high network congestion (e.g., a hyped token launch), public nodes often enforce strict **rate limits** or suffer from high latency. This can cause your AI's transaction to drop or fail.
 
@@ -21,18 +21,18 @@ You can obtain a free or paid Private RPC endpoint from several top-tier infrast
 
 ---
 
-## 2. Installation & Configuration
+## ⚙️ 2. Installation & Configuration
 
 Nyxora offers two ways to configure your RPC URLs: via the intuitive Web Dashboard, or by manually editing the configuration file.
 
-### Method A: Via Web Dashboard (Recommended)
+### 🖥️ Method A: Via Web Dashboard (Recommended)
 
 1. Open your Nyxora Web Dashboard (`nyxora dashboard` for global installation, or `npm run dev` for local source).
 2. Navigate to the **Settings** or **Networks** tab in the sidebar.
 3. Select the specific blockchain (e.g., Ethereum).
 4. Paste your newly acquired RPC URL into the **Custom RPC** field and hit Save. The daemon will automatically update the configuration without needing a restart.
 
-### Method B: Manual File Edit
+### 🚀 Method B: Manual File Edit
 
 If you prefer to edit files directly, open your project's configuration file (e.g., `nyxora.config.json` or equivalent setup file) and locate the `web3.rpc_urls` block.
 
@@ -71,7 +71,7 @@ You can provide an *Array* (list) of multiple RPC URLs from different providers 
 }
 ```
 
-### The Ultimate Safety Net: Public Auto-Fallback
+### 📌 The Ultimate Safety Net: Public Auto-Fallback
 
 As a final layer of defense, you never have to manually include public RPCs in your fallback array. Nyxora's core engine (`packages/core/src/web3/config.ts`) is designed to **always append the default public RPC as the last resort**. 
 

@@ -6,7 +6,7 @@ Because of the **Auto-Discovery** mechanism in the `AggregatorRegistry`, you do 
 
 ---
 
-## Step-by-Step Integration Guide
+## ✨ Step-by-Step Integration Guide
 
 ### 1. Create a New TypeScript File
 Navigate to the providers directory in the core package:
@@ -107,7 +107,7 @@ Upon boot:
 
 ---
 
-## Zero-Trust Architecture
+## 🏗️ Zero-Trust Architecture
 
 You might be wondering: **Why is `walletAccess: 'sign'` strictly blocked?**
 
@@ -121,7 +121,7 @@ This Zero-Trust sandbox guarantees that even if a user installs a malicious comm
 
 ---
 
-## Dynamic UI Integration
+## ✨ Dynamic UI Integration
 
 If your provider requires a private API key (to bypass rate limits), simply declare it in your manifest:
 
@@ -138,7 +138,7 @@ requiredApiKeys: [
 
 **Magic:** You do NOT need to write any React code for the form itself. Nyxora's Dashboard reads the active manifests via `/api/defi-keys` and will dynamically render a new password input field titled **"Jupiter Premium API Key"** on the **DeFi Configuration** page!
 
-### Adding Your Custom Logo
+### 🔸 Adding Your Custom Logo
 By default, custom providers will render without a logo. To display a beautiful icon next to your custom DeFi configuration field:
 1. Place your transparent icon file (e.g., `jupiter.png`) inside `packages/dashboard/public/routers/`.
 2. Open `packages/dashboard/src/utils/logos.ts`.
@@ -150,14 +150,14 @@ By default, custom providers will render without a logo. To display a beautiful 
 
 ---
 
-## Autonomous Installation (Self-Upgrading AI)
+## 🔹 Autonomous Installation (Self-Upgrading AI)
 
 Don't want to deal with manual file creation? Nyxora's Local Agent comes equipped with the `install_defi_provider` skill.
 
 You can simply tell your Nyxora Agent in the chat:
 > *"Hey Nyxora, please install the Jupiter DEX provider from this Github link: https://github.com/nyxoraAI/plugins/blob/main/JupiterProvider.ts"*
 
-### How the Autonomous Installer Works:
+### 🚀 How the Autonomous Installer Works:
 1. **URL Translation:** Nyxora automatically converts standard Github web URLs into `raw.githubusercontent.com` direct download links.
 2. **Security Scan:** Nyxora downloads the code into memory and performs a Regex scan. If the developer maliciously requested `walletAccess: 'sign'`, Nyxora's firewall will immediately block the file from being saved.
 3. **LLM Self-Healing:** If the downloaded code is blocked because it is simply missing the `walletAccess: 'none'` string, the skill won't crash. Instead, it throws a textual error back to the LLM. Nyxora will read the code in its memory, *inject the missing security policy*, and seamlessly try saving it again.

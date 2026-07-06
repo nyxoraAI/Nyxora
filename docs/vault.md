@@ -26,7 +26,7 @@ Nyxora anticipates this and gracefully falls back to a strict file-based vault:
 *   The fallback file is saved to `~/.nyxora/vault.key` or read via `.env`.
 *   **Mandatory Permissions:** Nyxora programmatically enforces `chmod 0600` permissions (Read/Write for owner only). If the permissions are looser, the daemon will refuse to boot, preventing access by other malicious users on the same shared system.
 
-## 3. The Isolated Vault Architecture
+## 🏗️ 3. The Isolated Vault Architecture
 
 Nyxora completely isolates the transaction signing process from the LLM execution process.
 *   **Core Runtime (LLM):** Has zero access to memory or disk locations containing private keys.

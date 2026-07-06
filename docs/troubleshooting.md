@@ -33,7 +33,7 @@ Nyxora attempts to securely store your Web3 Private Keys in your Operating Syste
 
 ---
 
-## 3. Web Dashboard Not Updating (Stuck on Old Version)
+## 🖥️ 3. Web Dashboard Not Updating (Stuck on Old Version)
 
 **Symptoms:**
 You updated Nyxora or modified the source code, but the changes do not appear on `http://localhost:3000`.
@@ -115,7 +115,7 @@ rm ~/.local/bin/nyxora
 # 2. Delete the old original directory
 rm -rf ~/.local/lib/node_modules/nyxora
 
-# 3. Refresh your terminal's path cache
+# ⚖️ 3. Refresh your terminal's path cache
 hash -r
 ```
 After executing those commands, `nyxora -v` will point to the correct, newly installed version.

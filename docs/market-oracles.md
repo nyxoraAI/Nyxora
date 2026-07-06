@@ -1,8 +1,8 @@
-# Market Oracles Configuration (Optional)
+# ⚙️ Market Oracles Configuration (Optional)
 
 By default, Nyxora's **Market Intelligence** and price fetching capabilities operate fully without requiring any configuration. However, for advanced users or high-frequency traders, configuring Private API Keys is highly recommended.
 
-## Public vs. Private API Routing
+## 🔀 Public vs. Private API Routing
 
 Nyxora is built with a **Cascading Oracle Fallback** system. Here is how the system handles data requests:
 
@@ -17,7 +17,7 @@ By registering and entering a paid or private API key (such as a **CoinGecko Pro
 * **Rate Limit Immunity**: Nyxora can perform mass scans on hundreds of Smart Contracts in seconds without fear of being blocked.
 * **Real-Time Data**: Certain providers (like CoinGecko) offer significantly faster data updates (cache refreshes) for Pro users compared to public users.
 
-## How to Configure Oracle Keys
+## ⚙️ How to Configure Oracle Keys
 
 You can set your Private API Keys through the provided graphical interface:
 
@@ -30,6 +30,6 @@ You can set your Private API Keys through the provided graphical interface:
 Just like other secret keys, Nyxora **never** transmits your Oracle keys to our external servers. When you click Save, the key is immediately isolated and saved statically to your local hard drive at `~/.nyxora/config/market_keys.yaml`. This key is only transmitted directly (`direct ping`) to the data provider's server when the AI agent requires it.
 :::
 
-## Key Deletion
+## 🔸 Key Deletion
 
 If your API Key expires, or you wish to revert to using the Free Public API, simply return to the Dashboard page and click the **Delete** button. The system will automatically purge your key from memory and gracefully fallback to the public routing system.

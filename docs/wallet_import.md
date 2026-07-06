@@ -2,7 +2,7 @@
 
 If you chose **"Manual Input"** during the Nyxora Setup Wizard, you will need to provide a raw Private Key (a 64-character hex string starting with `0x`).
 
-## How to Export your Private Key from MetaMask
+## 🚀 How to Export your Private Key from MetaMask
 
 ::: warning EXTREME CAUTION
 Never share your Private Key with anyone. Anyone with your Private Key has full control over all funds in your wallet. Nyxora encrypts this key locally and never sends it to the internet.

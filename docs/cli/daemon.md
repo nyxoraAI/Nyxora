@@ -2,28 +2,28 @@
 
 Nyxora runs as a background process (daemon) and provides multiple interfaces for interaction.
 
-## `nyxora start`
+## 🔸 `nyxora start`
 Starts the Nyxora daemon in the background, initializing the Core, Policy Engine, and Signer Vault.
 
 ```bash
 nyxora start
 ```
 
-## `nyxora stop`
+## 🔸 `nyxora stop`
 Gracefully halts the background daemon, releasing ports and cleanly shutting down active transactions.
 
 ```bash
 nyxora stop
 ```
 
-## `nyxora restart`
+## 🔹 `nyxora restart`
 Restarts the daemon process (useful for applying new configuration changes).
 
 ```bash
 nyxora restart
 ```
 
-## `nyxora dashboard`
+## 🖥️ `nyxora dashboard`
 Automatically opens the local web-based React dashboard in your default browser. 
 
 This isn't just a static monitoring tool—**it features a fully interactive, web-based chat interface** allowing you to converse directly with your Nyxora AI Agent. From the dashboard, you can:
@@ -36,7 +36,7 @@ This isn't just a static monitoring tool—**it features a fully interactive, we
 nyxora dashboard
 ```
 
-## `nyxora chat`
+## ⚡ `nyxora chat`
 Launches a direct Terminal-based chat interface to interact with the Nyxora AI Agent right from your command line.
 
 ```bash

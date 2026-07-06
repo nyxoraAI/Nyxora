@@ -1,4 +1,4 @@
-# 🚧 Under Development
+# Under Development
 
 This section is currently under development. Stay tuned for updates!
 

@@ -4,7 +4,7 @@
 
 This Privacy Policy describes how Nyxora ("we", "us", or "our") collects, uses, and shares your information when you use the Nyxora AI Agent and its associated services (the "Service").
 
-## 1. Local-First Architecture
+## 🏗️ 1. Local-First Architecture
 Nyxora is fundamentally designed as a local-first application. 
 - All data, including API keys, Google Workspace tokens, and conversational history, are stored locally on your device in the `~/.nyxora` directory.
 - We do not host central databases, nor do we harvest or collect your personal data or cryptographic private keys.
@@ -16,7 +16,7 @@ To provide AI and Web3 capabilities, Nyxora must communicate with third-party pr
 - **Google Workspace:** If you connect your Google account, Nyxora will access your Gmail, Calendar, or Docs strictly to perform tasks you explicitly request. We do not store this data centrally.
 - **RPC Nodes & Blockchains:** Transaction details are broadcast to public blockchain networks (Ethereum, Polygon, Base, etc.) via RPC endpoints.
 
-## 3. Data Security
+## 🛡️ 3. Data Security
 We employ OS-native security mechanisms (such as the OS Keyring via `@napi-rs/keyring`) to encrypt and securely store your sensitive tokens and private keys locally. It is your responsibility to secure the physical access to your device.
 
 ## 4. Changes to This Policy

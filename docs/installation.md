@@ -4,18 +4,18 @@ Nyxora is designed for a frictionless onboarding experience. We provide a CLI-ba
 
 ---
 
-## Prerequisites
+## 🛠️ Prerequisites
 Before installing Nyxora, ensure your system meets the following requirements:
 1. **Node.js** (Version 18 or higher).
-2. **Python 3.10+** (Required for the ML Cognitive Engine).
+2. **Python 3.10+** (Optional. Nyxora will automatically download a sandboxed Portable Python runtime if missing).
 3. A minimum of 2GB RAM.
-4. A valid API Key from one of the supported providers (OpenAI, Gemini, Anthropic, OpenRouter, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
+4. A valid API Key from one of the supported providers (OpenAI, Gemini, Anthropic, OpenRouter, 9Router, Custom Provider, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
 
 ---
 
-## Option 1: One-Line Installation (Recommended)
+## ⚡ Option 1: One-Line Installation (Recommended)
 
-The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry. *(Note: You must have Python 3.10+ pre-installed on your system, as this script only handles Node.js dependencies).*
+The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry.
 
 **Linux & macOS:**
 ```bash
@@ -29,7 +29,7 @@ iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
 
 ---
 
-## Option 2: Global Installation (NPM)
+## 📦 Option 2: Global Installation (NPM)
 
 If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
 
@@ -37,25 +37,25 @@ If you already have Node.js installed, you can natively install Nyxora globally 
 # Install globally
 npm install -g nyxora
 
-# Run the interactive setup wizard
+# ⚙️ Run the interactive setup wizard
 nyxora setup
 
 # Start the background daemon
 nyxora start
 
-# Open the interactive UI dashboard
+# 🖥️ Open the interactive UI dashboard
 nyxora dashboard
 ```
 
-The interactive command-line wizard (`nyxora setup`) acts as a smart system doctor that automatically validates your Node.js and Python 3.10+ installations before guiding you through:
-1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, DeepSeek, xAI, etc.) and your preferred Web Search provider (Tavily, Brave, DuckDuckGo, SearXNG). Input your API keys securely.
+The interactive command-line wizard (`nyxora setup`) acts as a smart system doctor that automatically validates your Node.js installation (and automatically downloads an isolated Portable Python runtime if missing) before guiding you through:
+1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, 9Router, Custom Provider, DeepSeek, etc.) and your preferred Web Search provider. Input your API keys or Base URLs securely.
 2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
 3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).
-4. **Integration:** Configure optional integrations like the Telegram Bot.
+4. **Integration:** Configure dynamic generic channels (Telegram, Discord, Dashboard, and other community plugins).
 
 ---
 
-## Option 3: Local Development (Source Code)
+## 💻 Option 3: Local Development (Source Code)
 
 Nyxora operates on a Monorepo architecture using NPM Workspaces. If you want to run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
 
@@ -77,10 +77,10 @@ Compile the core engine, MCP server, and the React Dashboard by running the buil
 npm run build
 ```
 
-### 4. Setup and Launch
+### ⚙️ 4. Setup and Launch
 Once built, run the setup wizard and start the application:
 ```bash
-# Interactive Setup Wizard (Also installs Python ML dependencies via pip)
+# ⚙️ Interactive Setup Wizard (Also installs Python ML dependencies via pip)
 npm run setup
 
 # Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
@@ -92,7 +92,7 @@ npm start
 
 ---
 
-## Uninstallation & Reset
+## 🔹 Uninstallation & Reset
 
 If you ever need to securely wipe the AI's episodic memory, delete your API keys, and completely remove Nyxora's configuration from your operating system, simply run:
 

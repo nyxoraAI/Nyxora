@@ -6,7 +6,7 @@ Our zero-trust architecture allows the core brain to securely interface with doz
 
 ---
 
-## Supported Blockchain Networks
+## ⛓️ Supported Blockchain Networks
 Nyxora natively supports EVM-compatible chains through `viem`. Agents can read data, estimate gas, and execute transactions across:
 - **Ethereum (L1):** The primary layer for high-value transactions and ENS resolution.
 - **Base (L2):** Coinbase's ultra-fast rollup for low-fee trading and micro-transactions.
@@ -15,7 +15,7 @@ Nyxora natively supports EVM-compatible chains through `viem`. Agents can read d
 
 ---
 
-## DeFi, Cross-Chain, & Security Integrations
+## ⛓️ DeFi, Cross-Chain, & Security Integrations
 To protect users from malicious contracts and provide the best trading routes, Nyxora is plugged into top-tier Web3 infrastructure:
 - **1inch Network & CowSwap:** Deep liquidity aggregation and MEV-protected batch auctions for secure, Zero-Trust execution.
 - **0x, OpenOcean & KyberSwap:** Integrated Meta-Aggregators that dynamically detect chains and route deep liquidity without requiring user-side API keys.
@@ -26,7 +26,7 @@ To protect users from malicious contracts and provide the best trading routes, N
 
 ---
 
-## Supported AI & LLM Engines
+## ✨ Supported AI & LLM Engines
 Nyxora is fundamentally **Model-Agnostic**. You are not locked into a single provider. The agent can switch its "Brain" on the fly:
 - **Google Gemini:** Optimized support for `gemini-1.5-pro` and `gemini-2.5-flash` for high-speed reasoning.
 - **Anthropic (Claude):** Natively supported through the Unified LLM Adapter for Claude 3.5 Sonnet and Claude 4.6.
@@ -39,7 +39,7 @@ Nyxora is fundamentally **Model-Agnostic**. You are not locked into a single pro
 
 ---
 
-## Web2 & Productivity Extensions
+## 📌 Web2 & Productivity Extensions
 Nyxora excels beyond the blockchain, capable of automating your daily Web2 workflows:
 - **Google Workspace MVP:** Read and manage your Gmail, summarize Google Docs, or schedule Google Calendar events entirely through conversational AI.
 - **Telegram Bot API:** Control your Nyxora agent remotely through a secure, encrypted Telegram Chat interface, complete with inline Push Notification approvals.
@@ -48,5 +48,5 @@ Nyxora excels beyond the blockchain, capable of automating your daily Web2 workf
 
 ---
 
-## Extensibility (MCP)
+## ✨ Extensibility (MCP)
 The ecosystem is exponentially expanding. With active **Model Context Protocol (MCP)** native support, developers can securely inject thousands of standardized third-party tools (like Postgres databases, Slack integration, or Notion APIs) directly into the agent's memory.

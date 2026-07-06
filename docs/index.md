@@ -17,8 +17,8 @@ hero:
       link: /architecture
 
 features:
-  - title: 🏛️ 3-Tier IPC Architecture
-    details: Complete process isolation between Core LLM (port 3000), Policy Engine (Unix Socket), and Signer Vault (Unix Socket).
+  - title: 🏛️ 6-Tier Hybrid Architecture
+    details: Complete process isolation between Core LLM (Port 3000), ML Engine (Port 8000), MCP Server, Dashboard, Policy Engine, and Signer Vault.
   - title: 🛡️ Replay Protection & Nonce Guard
     details: UI approvals are strictly cryptographically bound by 16-byte challenge nonces to eliminate Double-Spending and Replay Attacks.
   - title: 🖥️ Resilient UI & Auto-Lock

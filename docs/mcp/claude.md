@@ -1,4 +1,4 @@
-# Claude Desktop Configuration
+# ⚙️ Claude Desktop Configuration
 
 To connect Claude Desktop to Nyxora, you need to add Nyxora as an MCP Server in your Claude configuration file.
 

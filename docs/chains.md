@@ -1,4 +1,4 @@
-# Chain Specifics
+# ⛓️ Chain Specifics
 
 Nyxora's core engine is designed to be highly interoperable. While the initial release focuses heavily on the Ethereum Virtual Machine (EVM) ecosystem due to its immense liquidity and developer adoption, the architecture is built to eventually support diverse Virtual Machines.
 
@@ -6,7 +6,7 @@ Here is the current state of blockchain support in Nyxora.
 
 ---
 
-## Fully Supported Networks (EVM)
+## 🌐 Fully Supported Networks (EVM)
 
 Nyxora currently has 100% native support for the following EVM-compatible networks. The agent can seamlessly read balances, transfer assets, swap tokens, and check security across any of these chains.
 

@@ -1,33 +1,34 @@
-/* Light Mode (Warm Cream / Vintage) */
+/* Light Mode (Apple macOS Clean) */
 :root {
-  --vp-c-bg: #fdfbf6 !important;
-  --vp-c-bg-alt: #f4f1e1 !important;
-  --vp-c-bg-soft: #eef0e5 !important;
-  --vp-c-text-1: #1a2b2b !important;
-  --vp-c-text-2: #5c6b6b !important;
-  --vp-c-text-3: #8a9a86 !important;
-  --vp-c-brand-1: #8a9a86 !important;
-  --vp-c-brand-2: #72826e !important;
-  --vp-c-brand-3: #5b6956 !important;
-  --vp-c-divider: rgba(26, 43, 43, 0.08) !important;
-  --vp-sidebar-bg-color: #fdfbf6 !important;
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  --vp-c-bg: #ffffff !important;
+  --vp-c-bg-alt: #f5f5f7 !important;
+  --vp-c-bg-soft: #f5f5f7 !important;
+  --vp-c-text-1: #1d1d1f !important;
+  --vp-c-text-2: #86868b !important;
+  --vp-c-text-3: #86868b !important;
+  --vp-c-brand-1: #88c0d0 !important;
+  --vp-c-brand-2: #81a1c1 !important;
+  --vp-c-brand-3: #5e81ac !important;
+  --vp-c-divider: rgba(0, 0, 0, 0.08) !important;
+  --vp-sidebar-bg-color: transparent !important;
   --vp-c-gutter: var(--vp-c-divider) !important;
   --vp-c-border: var(--vp-c-divider) !important;
 }
 
-/* Dark Mode (Nord Theme) */
+/* Dark Mode (Apple macOS Dark) */
 .dark {
-  --vp-c-bg: #2e3440 !important;
-  --vp-c-bg-alt: #3b4252 !important;
-  --vp-c-bg-soft: #434c5e !important;
-  --vp-c-text-1: #eceff4 !important;
-  --vp-c-text-2: #d8dee9 !important;
-  --vp-c-text-3: #81a1c1 !important;
+  --vp-c-bg: #000000 !important;
+  --vp-c-bg-alt: #1c1c1e !important;
+  --vp-c-bg-soft: #1c1c1e !important;
+  --vp-c-text-1: #f5f5f7 !important;
+  --vp-c-text-2: #98989d !important;
+  --vp-c-text-3: #98989d !important;
   --vp-c-brand-1: #88c0d0 !important;
   --vp-c-brand-2: #81a1c1 !important;
   --vp-c-brand-3: #5e81ac !important;
-  --vp-c-divider: rgba(216, 222, 233, 0.1) !important;
-  --vp-sidebar-bg-color: #2e3440 !important;
+  --vp-c-divider: rgba(255, 255, 255, 0.15) !important;
+  --vp-sidebar-bg-color: transparent !important;
   --vp-c-gutter: var(--vp-c-divider) !important;
   --vp-c-border: var(--vp-c-divider) !important;
 }
@@ -84,6 +85,24 @@
 /* Fix navbar border to sync with the theme */
 .VPNav, .VPNavBar {
   border-bottom: 1px solid var(--vp-c-divider) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+}
+
+.dark .VPNav, .dark .VPNavBar {
+  background-color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.VPSidebar {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-right: 1px solid var(--vp-c-divider) !important;
+}
+
+.dark .VPSidebar {
+  background-color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* =========================================
@@ -101,7 +120,6 @@
   }
 
   .VPNav, .VPNavBar {
-    background-color: var(--vp-c-bg) !important;
     z-index: 100 !important;
   }
 
@@ -130,7 +148,9 @@
     border-bottom: none !important;
     
     /* Solid background is required to block out the sidebar border behind it */
-    background-color: var(--vp-c-bg) !important;
+    background-color: rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
     z-index: 100 !important;
     
     /* Align with Vitepress container: max-width is usually 1376px 
@@ -357,4 +377,63 @@ body:has(.VPHome)::-webkit-scrollbar-track {
 :root:has(.VPHome) .VPNavBar .wrapper {
   padding-left: 2vw !important;
   padding-right: 2vw !important;
+}
+
+/* =========================================
+   Sidebar Styling Overrides
+   ========================================= */
+
+/* Make top-level sidebar group titles smaller and styled like Mintlify/GitBook */
+.VPSidebarItem.level-0 > .item .text {
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  opacity: 0.9 !important;
+}
+
+/* Make sidebar sub-items (links) smaller for a cleaner look */
+.VPSidebarItem.level-1 .item .text,
+.VPSidebarItem.level-2 .item .text,
+.VPSidebarItem.level-3 .item .text,
+.VPSidebarItem .link .text {
+  font-size: 13px !important;
+}
+
+/* Apple Pill-Style Sidebar Items (Ultra Tight Layout) */
+.VPSidebarItem {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.VPSidebarItem .item {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.VPSidebarItem.level-0 {
+  padding-bottom: 8px !important; /* Minimal space between main sections */
+}
+
+.VPSidebarItem .link {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  padding: 0px 12px !important;
+  margin: 0px 8px !important;
+  line-height: 1.1 !important;
+  min-height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.VPSidebarItem .link:hover {
+  background-color: rgba(136, 192, 208, 0.1) !important;
+}
+
+.VPSidebarItem .item.is-active > .link {
+  background-color: rgba(136, 192, 208, 0.15) !important;
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 500 !important;
+}
+
+.dark .VPNavBarMenu {
+  background-color: rgba(0, 0, 0, 0.88) !important;
 }

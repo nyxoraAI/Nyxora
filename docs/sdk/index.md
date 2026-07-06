@@ -6,7 +6,7 @@ This architecture allows developers to build autonomous Web3 AI applications wit
 > **FUTURE ROADMAP FEATURE**
 > The 4-Tier Distribution and the packages listed below are currently under active Research & Development (R&D). With the exception of the **Signer SDK**, they are **not yet available** for public installation via NPM. This documentation serves as an architectural preview of Nyxora's future direction.
 
-## The 4-Tier Architecture
+## 🏗️ The 4-Tier Architecture
 
 Nyxora's SDK is split into 4 distinct packages, allowing you to build true Microservices:
 

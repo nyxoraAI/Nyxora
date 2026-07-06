@@ -6,9 +6,9 @@ Built with **Node.js** for the backend and **React** for the dashboard interface
 
 ---
 
-## Key Features & Advantages
+## ✨ Key Features & Advantages
 
-### 1. Zero-Knowledge Security & Local Cryptography
+### 🛡️ 1. Zero-Knowledge Security & Local Cryptography
 Nyxora ensures that your Private Key is never transmitted to external AI models like OpenAI, Anthropic, or Gemini. All cryptographic transaction signing occurs **locally and in complete isolation** using your OS-native Keyring architecture.
 
 ### 2. Multi-LLM Support
@@ -44,13 +44,50 @@ Nyxora goes beyond simple token transfers. It is equipped with pro-trader tools:
 
 ---
 
-## Architecture Workflow
+## 🏗️ Architecture Workflow
 
 This architecture is designed to enforce maximum security while maintaining seamless automation. 
 
-![Nyxora Architecture Workflow](https://raw.githubusercontent.com/perasyudha/Nyxora/main/assets/architecture.png)
+```text
++-------------------------------------------------------------+
+|                     Nyxora 6-Tier Architecture              |
++-------------------------------------------------------------+
 
-### The Execution Flow (Outflow Explanation)
+    [ User / External Client ]
+               |
+               v
++-----------------------------+       +-------------------------+
+|     Dashboard (UI)          |       |      MCP Server         |
+|        Port 5173            |       |       Port 3001         |
++-----------------------------+       +-------------------------+
+               |                                  |
+               +---------------+------------------+
+                               |
+                               v
+                    +--------------------+
+                    |   Core LLM Runtime | <--- (NLP Parsing, Routing,
+                    |      Port 3000     |       Agent Logic)
+                    +--------------------+
+                      ^                |
+       (RAG & Math)   |                |  (Draft Transaction)
+                      v                v
++-------------------------+   +-------------------------------+
+|       ML Engine         |   |    Policy Engine (Guard)      |
+|       Port 8000         |   |  Unix Socket (IPC) / Loopback |
++-------------------------+   +-------------------------------+
+                                               |
+                                               | (Approved Payload)
+                                               v
+                              +-------------------------------+
+                              |    Signer Vault (Safe)        |
+                              |       Unix Socket (IPC)       |
+                              +-------------------------------+
+                                               |
+                                               v
+                                      [ Blockchain RPC ]
+```
+
+### 📌 The Execution Flow (Outflow Explanation)
 
 1. **Input & NLP Parsing:** It all starts when a user sends a natural language command via the Web Dashboard or Telegram Bot (e.g., *"Buy 1 ETH"* or *"Read my system logs"*). This text is routed directly to the **Nyxora LLM Core**.
    - **Context Overrides Defaults:** If the command contains specific routing details (e.g., *"Swap on Arbitrum using Li.Fi"*), the NLP engine dynamically overrides any global Dashboard defaults, executing the specific intent without permanently altering your background configurations.
