@@ -10,7 +10,8 @@ import { loadConfig, saveConfig } from '../config/parser';
 const appDir = path.join(os.homedir(), '.nyxora');
 const mlEngineDir = path.join(appDir, 'ml-engine');
 const venvDir = path.join(mlEngineDir, 'venv');
-const sourceReqPath = path.join(process.cwd(), 'packages', 'ml-engine', 'requirements.txt');
+let sourceReqPath = path.join(__dirname, '..', '..', '..', '..', 'packages', 'ml-engine', 'requirements.txt');
+if (!fs.existsSync(sourceReqPath)) sourceReqPath = path.join(__dirname, '..', '..', '..', 'packages', 'ml-engine', 'requirements.txt');
 
 function runCommand(command: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
