@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.5]
+### Reasoning & Agent Engine Architecture
+- **Event-Driven Tool Execution**: Fully refactored the core agent loop (`osAgent.ts`) from a linear synchronous executor to a highly scalable, event-driven architecture using Lifecycle Hooks (`beforeToolCall`, `afterToolCall`). This completely decouples security guardrails and domain-specific logic from the core loop.
+- **Parallel Execution Concurrency**: Supercharged the agent's data gathering capabilities by upgrading the execution engine to support parallel processing (`Promise.all`), allowing multiple safe tools to run concurrently for massive speed improvements.
+- **Deferred Tool Resolution (MCP Ready)**: Built-in support for dynamic tool resolution, allowing the agent to request and execute external tools (e.g., via Model Context Protocol servers) on-the-fly even if they aren't loaded in the initial context.
+- **Partial Streaming Feedback**: Long-running tools can now stream partial updates (`"⏳ Processing..."`) to the user interface (Telegram/Dashboard) before the execution is fully complete, significantly enhancing UX and transparency.
+- **Advanced Guardrails**: The strict `Reasoning Gate` and `Web3 Fast Return` logic have been cleanly migrated into standalone middleware hooks, ensuring the main executor remains agnostic and maintainable.
+- **Dynamic Reasoning Mapper**: Injected seamless support for `reasoning_effort` across the entire Unified Mapper API, making it universally compatible with both OpenAI and OpenRouter native reasoning models.
+- **UX Sanitizer**: Implemented intelligent regex filtering to intercept and strip raw LLM `<think>` tags before they are broadcast to user-facing channels, keeping chat interfaces clean and elegant.
+
+### UI/UX & Design System Overhaul
+- **Modern UI Aesthetic**: Executed a comprehensive overhaul of the dashboard interface. Introduced advanced glassmorphism (`backdrop-filter: blur(20px)`) to the sidebar, softened structural corners (`border-radius: 18px`), and applied modern micro-animations and subtle drop-shadows across chat bubbles and input forms.
+- **Color Harmony & Contrast**: Refined the Dark Mode palette by shifting the primary accent color to a sleek Cyan (`#32ADE6`). Adjusted typography across UI pills (Network Selectors, Trending Tokens) from harsh contrast to a harmonious, translucent off-white (`rgba(255, 255, 255, 0.85)`) for optimal readability without eye strain.
+- **Chat Experience**: Redesigned the chat bubbles to distinctly separate user and agent messages using vibrant colored backgrounds for the user and elegant dark-glass styling for the agent, significantly improving spatial distinction.
+
+### Native Channel Engine (Omni-Channel Integration)
+- **Massive Architecture Overhaul**: Replaced the legacy hardcoded Telegram/Discord gateway with a highly scalable `ChannelManager`. Nyxora now natively and dynamically supports 19 distinct messaging platforms without requiring external sidecars.
+- **Dynamic CLI Configuration**: Overhauled `setup.ts` to dynamically detect and register available channels, allowing users to select and configure credentials seamlessly via `nyxora start`.
+- **19 Native SDK Implementations**: Successfully integrated and compiled native event listeners, Webhooks, and Socket Modes for WhatsApp (Baileys), Slack (Bolt Socket Mode), LINE, Microsoft Teams, Mattermost, Matrix, Google Chat, Synology, Nextcloud, Zalo, Twitch, iMessage, IRC, QQ Bot, Nostr, SMS, and Voice.
+
+### Playbook Ecosystem & Automation
+- **Playbook Recorder (Auto-Learn)**: Introduced a powerful Auto-Learn capability (CRITICAL RULE 7) allowing the OS Agent to dynamically record terminal workflows, abstract them into markdown instructions, and autonomously generate new reusable SOPs (Playbooks) based on chat history.
+- **Skill Store Dashboard (Split-Pane UI)**: Built a brand-new native Skill Store interface in the dashboard (`Playbooks.tsx`), enabling users to browse, edit, and manage their local AI playbooks seamlessly via a modern split-pane editor without touching the terminal.
+
+### Features & Architecture
+- **Self-Learning & Continuous Improvement**: Transformed Nyxora into a continuously evolving AI. The OS Agent (`osAgent.ts`) now natively injects narrative profiles (`MEMORY.md` and `USER.md`) directly into the system prompt at the start of every session.
+- **Asynchronous Background Review**: Engineered a non-blocking background auditor (`triggerBackgroundReview`) that executes silently after every interaction. The agent uses LangChain to evaluate recent conversations, autonomously identifying user preferences, extracting reusable workflows, and dynamically creating or patching its own skills (`skill_manager.py`) without user intervention.
+
+### Bug Fixes & Improvements
+- **Streaming UI Text Duplication & Glitch Fix**: Resolved a critical issue in the multi-turn streaming architecture where LLM "thought process" text (generated before a tool call) would leak and concatenate with the final answer on Telegram. Implemented a robust `[CLEAR_STREAM]` control signal that gracefully resets the message draft and displays a universal `⏳ Processing...` placeholder, completely eradicating message bubble collapse and visual jitter during tool execution.
+
 ## [26.7.4]
 ### Features & Architecture
 - **Cognitive Critic Engine Enhancements (Staleness Detection)**: Added a multilingual time-sensitive detection rule to the Critic Engine (`critic.py`). By injecting the current UTC datetime, the Critic now explicitly flags answers containing time-sensitive keywords (e.g., "today", "kemarin", "now") if they rely on stale training memory rather than fresh tool execution.

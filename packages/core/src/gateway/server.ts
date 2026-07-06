@@ -38,8 +38,10 @@ import { txManager } from '../agent/transactionManager';
 import multer from 'multer';
 
 import { isSkillActive, toggleSkill, syncAllSkillsToConfig } from '../utils/skillManager';
+import { ensurePlaybookDir } from '../system/skills/playbookManager';
 import { getUserWhitelist, saveTokenToWhitelist, removeTokenFromWhitelist } from '../utils/userWhitelistManager';
 import { pluginManager, initializePlugins } from '../plugin/registry';
+import { verifyFileToken } from '../utils/fileLinker';
 import { cronManager } from '../agent/cronManager';
 import { ChainName } from '../web3/config';
 import { getTokenMetadata } from '../web3/utils/tokens';
@@ -51,8 +53,9 @@ import { executeMintNft } from '../web3/skills/mintNft';
 import { executeCustomTx } from '../web3/skills/customTx';
 import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Mint } from '../web3/skills/executeDefi';
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
-import { startTelegramBot } from './telegram';
-import { startDiscordBot } from './discordAdapter';
+import { startTelegramBot } from '../channels/telegram';
+import { startDiscordBot } from '../channels/discordAdapter';
+import { channelManager } from '../channels/index';
 import { startBridgeWatcher } from '../agent/bridgeWatcher';
 import { eventListener } from '../web3/eventListener';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
@@ -68,6 +71,9 @@ initGoogleAuth();
 
 // Start Background Nyx Daemon
 nyxDaemon.start();
+
+// Synchronize playbooks using Smart Sync Engine (Hermes Parity)
+ensurePlaybookDir();
 
 // Synchronize all active skills to config.yaml on startup
 syncAllSkillsToConfig();
@@ -122,12 +128,14 @@ const apiLimiter = rateLimit({
   max: 10000, // Increased from 100 to 10000 to prevent breaking dashboard polling (which polls every 2s)
   message: 'Too many requests from this IP, please try again after 15 minutes'
 });
+// Trust the first proxy (Cloudflare/Ngrok) so rate limiter doesn't complain about X-Forwarded-For
+app.set('trust proxy', 1);
 app.use('/api/', apiLimiter);
 
 // API Auth Middleware
 app.use('/api', (req, res, next) => {
   // Bypass auth for Google OAuth callback and URLs since they are handled externally or by the browser
-  const allowedPaths = ['/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google'];
+  const allowedPaths = ['/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google', '/api/download'];
   const currentPath = req.originalUrl.split('?')[0];
   if (allowedPaths.includes(currentPath) || allowedPaths.includes(currentPath.replace(/\/$/, ''))) {
     return next();
@@ -158,6 +166,35 @@ app.get('/', (req, res) => {
 
 app.get('/privacy', (req, res) => {
   res.send(generatePrivacyPolicyHtml());
+});
+
+app.get('/api/download', (req, res) => {
+  try {
+    const token = req.query.token as string;
+    if (!token) return res.status(401).send('Missing download token');
+
+    const filePath = verifyFileToken(token);
+    if (!filePath) return res.status(403).send('Invalid or expired download link');
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send('File no longer exists');
+    }
+
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      return res.status(400).send('Cannot download a directory');
+    }
+
+    // Set correct headers to force download for arbitrary files, but allow viewing for txt/md/images
+    const ext = path.extname(filePath).toLowerCase();
+    if (!['.txt', '.md', '.json', '.png', '.jpg', '.jpeg', '.gif'].includes(ext)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+    }
+
+    res.sendFile(filePath, { dotfiles: 'allow' });
+  } catch (error: any) {
+    res.status(500).send('Error downloading file');
+  }
 });
 
 app.get('/tos', (req, res) => {
@@ -634,6 +671,18 @@ app.get('/api/auth/google/status', async (req, res) => {
 app.delete('/api/auth/google', async (req, res) => {
   const success = await logoutGoogle();
   res.json({ success });
+});
+
+app.post('/api/auth/google/submit-code', async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'No code provided' });
+  const { processCallbackCLI } = require('./googleAuthModule');
+  const success = await processCallbackCLI(code);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ error: 'Authentication failed' });
+  }
 });
 
 let lastUnlockRequest = 0;
@@ -1196,6 +1245,86 @@ app.post('/api/profile', (req, res) => {
   }
 });
 
+// --- Playbooks Endpoints ---
+app.get('/api/playbooks', (req, res) => {
+  try {
+    const userDir = path.join(os.homedir(), '.nyxora', 'playbooks');
+    let defaultDir = path.join(__dirname, '..', '..', 'playbooks'); // Dev
+    if (!fs.existsSync(defaultDir)) {
+      defaultDir = path.join(__dirname, '..', '..', '..', '..', '..', 'packages', 'core', 'playbooks'); // Compiled
+    }
+    
+    const playbooksMap = new Map<string, string>();
+
+    const getAllFiles = (dir: string, relativePrefix = '') => {
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const relPath = path.join(relativePrefix, file);
+        if (fs.statSync(filePath).isDirectory()) {
+          getAllFiles(filePath, relPath);
+        } else {
+          const ext = path.extname(file).toLowerCase();
+          const allowedExts = ['.md', '.py', '.sh', '.json', '.tex', '.sty', '.bib', '.txt', '.js', '.ts', '.ini', '.xsd'];
+          if (allowedExts.includes(ext) || file === 'Makefile') {
+            const content = fs.readFileSync(filePath, 'utf8');
+            // User files (read second) will override system files (read first)
+            playbooksMap.set(relPath, content);
+          }
+        }
+      }
+    };
+    
+    // 1. Load System Playbooks (Read-Only Defaults)
+    getAllFiles(defaultDir);
+    
+    // 2. Load User Playbooks (Overrides)
+    getAllFiles(userDir);
+    
+    const playbooks = Array.from(playbooksMap.entries()).map(([filename, content]) => ({
+      filename,
+      content
+    }));
+    
+    res.json(playbooks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/playbooks', (req, res) => {
+  try {
+    const { filename, content } = req.body;
+    if (!filename || !content) throw new Error("filename and content required");
+    const playbooksDir = path.join(os.homedir(), '.nyxora', 'playbooks');
+    const safeFilename = path.normalize(filename).replace(/^(\.\.(\/|\\|$))+/, '');
+    const filePath = path.join(playbooksDir, safeFilename);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, content, 'utf8');
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/playbooks', (req, res) => {
+  try {
+    const { filename } = req.query;
+    if (!filename) throw new Error("filename required");
+    const playbooksDir = path.join(os.homedir(), '.nyxora', 'playbooks');
+    const safeFilename = path.normalize(filename as string).replace(/^(\.\.(\/|\\|$))+/, '');
+    const filePath = path.join(playbooksDir, safeFilename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Fallback for React Router (Single Page Application)
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
@@ -1259,6 +1388,13 @@ export async function startServer() {
     
     // Start the Telegram bot listener
     startTelegramBot();
+    
+    // Start Native Channel Engine (New Architecture)
+    const config = require('../config/parser').loadConfig();
+    const activeChannels = config.channels?.active || [];
+    channelManager.startAll(activeChannels).catch((e: any) => {
+        console.error('[ChannelManager] Error starting channels:', e);
+    });
     
     // Start Asynchronous Bridge Watcher
     startBridgeWatcher();

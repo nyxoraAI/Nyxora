@@ -16,7 +16,8 @@ export const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey
   mistral: { baseURL: 'https://api.mistral.ai/v1', requiresApiKey: true },
   xai: { baseURL: 'https://api.x.ai/v1', requiresApiKey: true },
   deepseek: { baseURL: 'https://api.deepseek.com', requiresApiKey: true },
-  openai: { requiresApiKey: true }
+  openai: { requiresApiKey: true },
+  custom_provider: { requiresApiKey: true }
 };
 
 export async function getOpenAI(): Promise<OpenAI> {
@@ -43,7 +44,7 @@ export async function getOpenAI(): Promise<OpenAI> {
   }
 
   return new OpenAI({
-    baseURL: (PROVIDER_CONFIGS[actualProvider] || PROVIDER_CONFIGS['openai']).baseURL,
+    baseURL: actualProvider === 'custom_provider' ? config.llm.base_url : (PROVIDER_CONFIGS[actualProvider] || PROVIDER_CONFIGS['openai']).baseURL,
     apiKey: apiKey,
     timeout: 120 * 1000,
     maxRetries: 0
@@ -86,9 +87,9 @@ export async function getLLMClient(): Promise<LLMProvider> {
     return cachedLLMClient;
   }
 
-  // Default fallback (OpenAI, Groq, OpenRouter, xAI, Mistral, DeepSeek)
+  // Default fallback (OpenAI, Groq, OpenRouter, xAI, Mistral, DeepSeek, Custom)
   const client = new OpenAI({
-    baseURL: providerConf.baseURL,
+    baseURL: providerName === 'custom_provider' ? config.llm.base_url : providerConf.baseURL,
     apiKey: apiKey || 'local',
     timeout: 120 * 1000,
     maxRetries: 0

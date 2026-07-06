@@ -1,9 +1,11 @@
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import https from 'https';
 import pc from 'picocolors';
-import { spinner, note, outro } from '@clack/prompts';
+import { spinner, note, outro, confirm, isCancel } from '@clack/prompts';
+import { loadConfig, saveConfig } from '../config/parser';
 
 const appDir = path.join(os.homedir(), '.nyxora');
 const mlEngineDir = path.join(appDir, 'ml-engine');
@@ -30,9 +32,67 @@ export async function setupMlEngine() {
       fs.mkdirSync(mlEngineDir, { recursive: true });
     }
 
+    const config = loadConfig();
+    let pythonCmd = config.agent.python_path || (process.platform === 'win32' ? 'python' : 'python3');
+
+    try {
+      execSync(`${pythonCmd} -c "import sys; assert sys.version_info >= (3, 10)"`, { stdio: 'ignore' });
+    } catch (e) {
+      const shouldInstall = await confirm({
+        message: 'Python 3.10+ is not found or not in PATH. Would you like Nyxora to automatically download a sandboxed, portable Python runtime? (It won\'t affect your OS)',
+        initialValue: true
+      });
+      if (!shouldInstall || isCancel(shouldInstall)) {
+        console.error(pc.red('ML Engine requires Python 3.10+. Exiting...'));
+        return;
+      }
+      
+      console.log(pc.cyan('Downloading Portable Python (this may take a few minutes)...'));
+      const pyDir = path.join(appDir, 'python-runtime');
+      
+      let downloadUrl = '';
+      if (process.platform === 'linux' && process.arch === 'x64') downloadUrl = 'https://github.com/indygreg/python-build-standalone/releases/download/20240224/cpython-3.10.13+20240224-x86_64-unknown-linux-gnu-install_only.tar.gz';
+      else if (process.platform === 'linux' && process.arch === 'arm64') downloadUrl = 'https://github.com/indygreg/python-build-standalone/releases/download/20240224/cpython-3.10.13+20240224-aarch64-unknown-linux-gnu-install_only.tar.gz';
+      else if (process.platform === 'darwin' && process.arch === 'x64') downloadUrl = 'https://github.com/indygreg/python-build-standalone/releases/download/20240224/cpython-3.10.13+20240224-x86_64-apple-darwin-install_only.tar.gz';
+      else if (process.platform === 'darwin' && process.arch === 'arm64') downloadUrl = 'https://github.com/indygreg/python-build-standalone/releases/download/20240224/cpython-3.10.13+20240224-aarch64-apple-darwin-install_only.tar.gz';
+      else if (process.platform === 'win32') downloadUrl = 'https://github.com/indygreg/python-build-standalone/releases/download/20240224/cpython-3.10.13+20240224-x86_64-pc-windows-msvc-shared-install_only.tar.gz';
+      else {
+        console.error(pc.red('Unsupported platform for portable python. Please install Python 3.10+ manually.'));
+        return;
+      }
+      
+      const tarPath = path.join(appDir, 'python_portable.tar.gz');
+      await new Promise<void>((resolve, reject) => {
+        const getFn = (url: string) => {
+          https.get(url, (res) => {
+            if (res.statusCode === 301 || res.statusCode === 302 && res.headers.location) {
+              getFn(res.headers.location);
+            } else {
+              const file = fs.createWriteStream(tarPath);
+              res.pipe(file);
+              file.on('finish', () => { file.close(); resolve(); });
+            }
+          }).on('error', reject);
+        };
+        getFn(downloadUrl);
+      });
+      
+      console.log(pc.cyan('Extracting Portable Python...'));
+      if (!fs.existsSync(pyDir)) fs.mkdirSync(pyDir, { recursive: true });
+      execSync(`tar -xzf "${tarPath}" -C "${pyDir}"`);
+      fs.unlinkSync(tarPath);
+      
+      pythonCmd = path.join(pyDir, 'python', 'bin', 'python3');
+      if (process.platform === 'win32') pythonCmd = path.join(pyDir, 'python', 'python.exe');
+      
+      config.agent.python_path = pythonCmd;
+      saveConfig(config);
+      console.log(pc.green('Portable Python installed successfully.'));
+    }
+
     s.start('Creating Python Virtual Environment (venv)...');
     if (!fs.existsSync(venvDir)) {
-      await runCommand('python3', ['-m', 'venv', venvDir], mlEngineDir);
+      await runCommand(pythonCmd, ['-m', 'venv', venvDir], mlEngineDir);
     }
     s.stop(pc.green('Virtual Environment created successfully.'));
 

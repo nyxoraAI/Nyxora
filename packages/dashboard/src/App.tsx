@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2 } from 'lucide-react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
 import SearchChat from './SearchChat';
@@ -14,6 +14,7 @@ import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
 import ReconnectOverlay from './components/ReconnectOverlay';
 import Login from './Login';
+import Playbooks from './Playbooks';
 import { usePolling } from './utils/usePolling';
 import './index.css';
 
@@ -21,6 +22,7 @@ interface Message {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content: string;
   name?: string;
+  reasoning_content?: string;
   tool_calls?: any[];
   isOptimistic?: boolean;
 }
@@ -32,7 +34,7 @@ interface Config {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search' | 'playbooks'>('chat');
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -52,6 +54,19 @@ function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus the chat input when the LLM finishes responding
+  useEffect(() => {
+    if (!isLoading) {
+      // Use standard DOM query to bypass any Ref mounting race conditions
+      setTimeout(() => {
+        const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
+        if (textarea && !textarea.disabled) {
+          textarea.focus();
+        }
+      }, 150);
+    }
+  }, [isLoading]);
 
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -471,16 +486,19 @@ function App() {
         const source = new EventSource(`/api/chat/stream?${params}`);
         let isSourceClosed = false;
 
-        // Artificial Smoothing (Typewriter Effect)
+        // Smooth Markdown rendering buffer (~30 FPS) to prevent React DOM lag
         intervalId = setInterval(() => {
           if (renderedResponse.length < fullResponse.length) {
-            const charsToAdd = fullResponse.slice(renderedResponse.length, renderedResponse.length + 3);
+            // Speed dynamically scales up if buffer gets too large, using natural easing
+            const remaining = fullResponse.length - renderedResponse.length;
+            const charsPerFrame = Math.max(2, Math.ceil(remaining / 4)); 
+            
+            const charsToAdd = fullResponse.slice(renderedResponse.length, renderedResponse.length + charsPerFrame);
             renderedResponse += charsToAdd;
             setMessages(prev => prev.map((m: any) =>
               m.id === streamingId ? { ...m, content: renderedResponse } : m
             ));
           } else if (isSourceClosed) {
-            // Buffer is fully drained AND stream is closed
             if (intervalId) clearInterval(intervalId);
             resolve();
           }
@@ -490,13 +508,19 @@ function App() {
           if (event.data === '[DONE]') {
             source.close();
             isSourceClosed = true;
-            // Let the interval finish draining the buffer and resolve
             return;
           }
           try {
             const data = JSON.parse(event.data);
             if (data.chunk) {
-              fullResponse += data.chunk;
+              if (data.chunk === '[CLEAR_STREAM]') {
+                fullResponse = '';
+                renderedResponse = '';
+              } else {
+                fullResponse += data.chunk;
+              }
+              // We do not immediately setMessages here to avoid React frame drops.
+              // The intervalId loop will pick up fullResponse and smoothly render it.
             }
             if (data.progress) {
               setMessages(prev => prev.map((m: any) =>
@@ -515,7 +539,6 @@ function App() {
         source.onerror = () => {
           source.close();
           isSourceClosed = true;
-          // Let the interval finish draining what we have
         };
       });
 
@@ -544,7 +567,10 @@ function App() {
     } finally {
       setIsLoading(false);
       const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
-      if (textarea) textarea.style.height = 'auto';
+      if (textarea) {
+        textarea.style.height = 'auto';
+        setTimeout(() => textarea.focus(), 150);
+      }
     }
   };
 
@@ -718,6 +744,13 @@ function App() {
               <Wallet size={15} className="nav-icon" /> <span className="nav-label">Portfolio</span>
             </div>
             <div 
+              className={`nav-item ${currentView === 'playbooks' ? 'active' : ''}`}
+              onClick={() => setCurrentView('playbooks')}
+              title={isSidebarCollapsed ? "Playbooks" : undefined}
+            >
+              <BookOpen size={15} className="nav-icon" /> <span className="nav-label">Skill Store</span>
+            </div>
+            <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
               title={isSidebarCollapsed ? "Settings" : undefined}
@@ -740,15 +773,14 @@ function App() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
-                  <MessageSquare size={14} className="nav-icon" />
                   <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>{session.title}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
-                    <Edit2 size={12} />
+                    <Edit2 size={12} strokeWidth={1.5} />
                   </button>
                   <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
-                    <Trash2 size={14} />
+                    <Trash2 size={14} strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
@@ -809,6 +841,8 @@ function App() {
           <Overview config={config} sessionsCount={chatSessions.length} />
         ) : currentView === 'portfolio' ? (
           <Portfolio baseFiat={config?.agent?.base_fiat || 'usd'} />
+        ) : currentView === 'playbooks' ? (
+          <Playbooks />
         ) : currentView === 'settings' ? (
           <Settings 
             config={config} 
@@ -884,9 +918,16 @@ function App() {
                             currentAssistantMsg.tool_calls = [...(currentAssistantMsg.tool_calls || []), ...m.tool_calls];
                           }
                           if (m.content && m.content.trim() !== '') {
-                            currentAssistantMsg.content = (currentAssistantMsg.content && currentAssistantMsg.content.trim() !== '')
-                              ? currentAssistantMsg.content.trim() + '\n\n' + m.content.trim() 
-                              : m.content.trim();
+                            if (currentAssistantMsg.tool_calls && currentAssistantMsg.tool_calls.length > 0) {
+                               currentAssistantMsg.content = m.content.trim();
+                            } else {
+                               currentAssistantMsg.content = (currentAssistantMsg.content && currentAssistantMsg.content.trim() !== '')
+                                 ? currentAssistantMsg.content.trim() + '\n\n' + m.content.trim() 
+                                 : m.content.trim();
+                            }
+                          }
+                          if (m.reasoning_content) {
+                            currentAssistantMsg.reasoning_content = (currentAssistantMsg.reasoning_content || '') + m.reasoning_content;
                           }
                           currentAssistantMsg.isStreaming = currentAssistantMsg.isStreaming || m.isStreaming;
                         } else {
@@ -917,7 +958,7 @@ function App() {
                   </div>
                 );
               }
-              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progress)) {
+              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progress || msg.reasoning_content)) {
                 return (
                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignSelf: 'flex-start', maxWidth: '95%' }}>
                     {msg.progress && (
@@ -925,6 +966,12 @@ function App() {
                         <Activity size={16} color="#22c55e" />
                         <span dangerouslySetInnerHTML={{ __html: msg.progress.replace(/_([^_]+)_/g, '<i>$1</i>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
                       </div>
+                    )}
+                    {msg.reasoning_content && (
+                      <details className="reasoning-accordion">
+                        <summary><Brain size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> <span style={{verticalAlign: 'middle'}}>View AI thinking process...</span></summary>
+                        <div className="reasoning-content" style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{msg.reasoning_content}</div>
+                      </details>
                     )}
                     {msg.tool_calls && msg.tool_calls.map((tool: any, tIdx: number) => (
                       <div key={`t-${tIdx}`} className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>

@@ -29,8 +29,15 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
       return portfolioCache[cacheKey].data + `\n\n*(Cached from ${(now - portfolioCache[cacheKey].timestamp) / 1000}s ago)*`;
     }
 
+    const nativeSymbolMap: Record<string, string> = {
+      ethereum: 'ETH', bsc: 'BNB', polygon: 'MATIC',
+      base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
+      sepolia: 'ETH', base_sepolia: 'ETH'
+    };
+    const nativeSymbol = nativeSymbolMap[chainName] || 'ETH';
+
     const tokensToScan: Array<{ symbol: string, address: `0x${string}`, isNative: boolean }> = [
-      { symbol: 'Native', address: '0x0000000000000000000000000000000000000000', isNative: true }
+      { symbol: nativeSymbol, address: '0x0000000000000000000000000000000000000000', isNative: true }
     ];
 
     const chainTokens = TOKEN_MAP[chainName];

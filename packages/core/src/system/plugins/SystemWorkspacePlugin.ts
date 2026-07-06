@@ -4,8 +4,11 @@ import { writeLocalFileToolDefinition, writeLocalFile } from '../skills/writeFil
 import { editLocalFileToolDefinition, editLocalFile } from '../skills/editFile';
 import { generateExcelToolDefinition, generateExcelFile } from '../skills/generateExcel';
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../skills/executeShell';
-import { gitManagerToolDefinition, executeGitCommand } from '../skills/gitManager';
 import { createCognitiveSkillToolDefinition, createCognitiveSkill } from '../skills/createCognitiveSkill';
+import { searchPlaybookToolDefinition, readPlaybookToolDefinition, search_playbook, read_playbook } from '../skills/playbookManager';
+import { generateDownloadLinkToolDefinition, generateDownloadLink } from '../skills/fileDownloader';
+import { analyzeLocalImageToolDefinition, analyzeLocalImage } from '../skills/analyzeImage';
+import { sendTelegramFileToolDefinition, sendTelegramFile } from '../skills/telegramUpload';
 
 export class SystemWorkspacePlugin implements Plugin {
   public name = 'SystemWorkspacePlugin';
@@ -18,8 +21,12 @@ export class SystemWorkspacePlugin implements Plugin {
     editLocalFileToolDefinition,
     generateExcelToolDefinition,
     runTerminalCommandToolDefinition,
-    gitManagerToolDefinition,
-    createCognitiveSkillToolDefinition
+    createCognitiveSkillToolDefinition,
+    searchPlaybookToolDefinition,
+    readPlaybookToolDefinition,
+    generateDownloadLinkToolDefinition,
+    analyzeLocalImageToolDefinition,
+    sendTelegramFileToolDefinition
   ];
 
   public handlers = {
@@ -38,11 +45,23 @@ export class SystemWorkspacePlugin implements Plugin {
     ['run_terminal_command']: async (args: any) => {
       return await runTerminalCommand(args.command);
     },
-    ['git_manager']: async (args: any) => {
-      return await executeGitCommand(args.command, args.args);
-    },
     ['create_cognitive_skill']: async (args: any) => {
       return await createCognitiveSkill(args.category, args.skillName, args.content);
+    },
+    ['search_playbook']: async (args: any) => {
+      return await search_playbook(args.query);
+    },
+    ['read_playbook']: async (args: any) => {
+      return await read_playbook(args.filename);
+    },
+    ['generate_download_link']: async (args: any) => {
+      return await generateDownloadLink(args.absolutePath);
+    },
+    ['analyze_local_image']: async (args: any) => {
+      return await analyzeLocalImage(args.imagePath, args.prompt);
+    },
+    ['send_telegram_file']: async (args: any) => {
+      return await sendTelegramFile(args.absolutePath);
     }
   };
 }

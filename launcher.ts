@@ -150,7 +150,8 @@ setTimeout(() => {
     // Spawn ML Engine (Python Sidecar)
     const pythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', 'bin', 'python');
     if (fs.existsSync(pythonPath)) {
-      const mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
+      let mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
+      if (!fs.existsSync(mlDir)) mlDir = path.join(__dirnameResolved, '..', 'packages', 'ml-engine');
       const mlArgs = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'];
       const mlEngine = spawnService('ML Engine', pythonPath, mlArgs, env, false, mlDir);
       children.push(mlEngine);
@@ -163,6 +164,30 @@ setTimeout(() => {
       const args = process.argv.slice(2);
       const core = spawnService('Core', cmd, [...baseArgs, corePath, ...args], env, true);
       children.push(core);
+
+      // --- AUTO-TUNNEL (Cloudflare) ---
+      setTimeout(() => {
+        console.log('[Launcher] Starting Auto-Tunnel (Cloudflare) on port 3000...');
+        const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true });
+        
+        children.push({
+          kill: () => { try { process.kill(cf.pid!, 'SIGTERM'); } catch(e){} },
+          forceKill: () => { try { process.kill(cf.pid!, 'SIGKILL'); } catch(e){} }
+        });
+
+        cf.stderr.on('data', (data) => {
+          const msg = data.toString();
+          // Extract the Cloudflare URL (e.g., https://xyz.trycloudflare.com)
+          const match = msg.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+          if (match) {
+            const url = match[0];
+            console.log(`\n[Auto-Tunnel] Secure Public URL generated: ${url}\n`);
+            fs.writeFileSync(path.join(nyxoraDir, 'public_url.txt'), url, 'utf8');
+          }
+          // Optionally print errors if they are real errors, but cloudflared logs everything to stderr
+        });
+      }, 3000);
+      
     }, 1000);
   }, 1000);
 }, 1000);

@@ -75,3 +75,5 @@ vitest.config.*
 
 # Unreleased Strategy Documents
 GOVERNANCE.md
+.git/config
+

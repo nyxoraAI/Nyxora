@@ -1,45 +1,45 @@
 :root {
-  /* Nord Theme - Dark Default */
-  --bg-color: #3b4252; /* Main content background */
-  --bg-secondary: #434c5e;
-  --bg-sidebar: #2e3440; /* Sidebar darker background */
-  --text-primary: #eceff4;
-  --text-secondary: #d8dee9;
-  --accent: #88c0d0; /* Frost Light Blue/Cyan */
+  /* Apple Design Aesthetic - Dark Mode */
+  --bg-color: #1C1C1E; 
+  --bg-secondary: #2C2C2E;
+  --bg-sidebar: rgba(28, 28, 30, 0.8); 
+  --text-primary: #F5F5F7;
+  --text-secondary: #98989D;
+  --accent: #88c0d0; 
   --accent-hover: #81a1c1;
-  --glass-bg: rgba(46, 52, 64, 0.7);
-  --glass-border: rgba(216, 222, 233, 0.1);
+  --glass-bg: rgba(28, 28, 30, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --chat-user: #88c0d0;
-  --chat-user-text: #2e3440; /* Dark text for contrast against cyan bubble */
-  --chat-agent: #2e3440;
-  --tool-bg: #4c566a;
-  --success: #a3be8c;
-  --danger: #bf616a;
-  --terminal-bg: #1e222a; /* Very dark background for terminal logs */
-  --btn-primary-bg: #81a1c1; /* Original dark mode blue */
+  --chat-user-text: #000000; 
+  --chat-agent: #2C2C2E;
+  --tool-bg: #3A3A3C;
+  --success: #32D74B;
+  --danger: #FF453A;
+  --terminal-bg: #000000; 
+  --btn-primary-bg: #88c0d0; 
 }
 
-/* Warm Cream / Vintage Theme - Light */
+/* Apple Design Aesthetic - Light Mode */
 body.light-theme {
-  --bg-color: #fdfbf6;
-  --bg-secondary: #f4f1e1;
-  --bg-sidebar: #fdfbf6;
-  --text-primary: #1a2b2b;
-  --text-secondary: #5c6b6b;
-  --accent: #8a9a86;
-  --accent-hover: #72826e;
-  --glass-bg: rgba(253, 251, 246, 0.8);
-  --glass-border: rgba(26, 43, 43, 0.08);
-  --chat-user: #eef0e5;
-  --chat-user-text: #1a2b2b;
-  --chat-agent: #ffffff;
-  --tool-bg: #f4f1e1;
-  --success: #6b8e23;
-  --danger: #cd5c5c;
-  --terminal-bg: #eef0e5; /* Distinct subtle tint for logs in light mode */
+  --bg-color: #F5F5F7;
+  --bg-secondary: #FFFFFF;
+  --bg-sidebar: rgba(245, 245, 247, 0.8);
+  --text-primary: #1D1D1F;
+  --text-secondary: #86868B;
+  --accent: #88c0d0;
+  --accent-hover: #5e81ac;
+  --glass-bg: rgba(245, 245, 247, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --chat-user: #88c0d0;
+  --chat-user-text: #000000;
+  --chat-agent: #E5E5EA;
+  --tool-bg: #F2F2F7;
+  --success: #34C759;
+  --danger: #FF3B30;
+  --terminal-bg: #FFFFFF; 
   --nav-text: var(--text-secondary);
   --nav-section: var(--text-secondary);
-  --btn-primary-bg: var(--text-secondary);
+  --btn-primary-bg: #88c0d0;
 }
 
 * {
@@ -107,6 +107,8 @@ body {
 .sidebar {
   width: 280px;
   background-color: var(--bg-sidebar);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -119,9 +121,8 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--glass-border);
   margin-bottom: 8px;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
 }
 
 .agent-avatar {
@@ -233,16 +234,39 @@ body.light-theme .sidebar-scroll-area::-webkit-scrollbar-thumb {
   justify-content: flex-start !important;
   flex: none !important;
   height: max-content !important;
+  padding: 0 12px !important;
 }
 
 .session-item {
   justify-content: space-between;
-  padding: 4px 10px !important;
+  padding: 4px 12px !important;
   margin-bottom: 2px !important;
   margin-top: 0px !important;
-  min-height: 28px !important;
+  min-height: 24px !important;
   height: max-content !important;
   flex: none !important;
+  border-radius: 999px !important;
+  border: none !important;
+  transition: background 0.2s ease;
+  font-size: 0.85rem !important;
+  color: var(--nav-text, #94a3b8) !important;
+  transform: none !important;
+}
+
+.session-item:hover {
+  background: var(--glass-border);
+  color: var(--text-primary) !important;
+}
+
+.session-item.active {
+  background: var(--chat-agent) !important;
+  color: var(--text-primary) !important;
+  border: none !important;
+  border-left: none !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-weight: 500 !important;
 }
 
 .delete-session-btn {
@@ -328,7 +352,7 @@ body.light-theme .sidebar-scroll-area::-webkit-scrollbar-thumb {
   gap: 8px;
   background-color: var(--accent);
   border: none;
-  color: #000000;
+  color: var(--chat-user-text);
   font-weight: 600;
   font-size: 0.85rem;
   border-radius: 9999px;
@@ -595,7 +619,7 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   border-radius: 18px;
   line-height: 1.6;
   font-size: 0.95rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -648,12 +672,12 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .input-form:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
 }
 
 .chat-input {
@@ -669,7 +693,7 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 
 .send-button {
   background: var(--accent);
-  color: var(--text-primary);
+  color: var(--chat-user-text);
   border: none;
   width: 36px;
   height: 36px;
@@ -867,7 +891,7 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 }
 .token-tag {
   background: var(--accent);
-  color: var(--bg-color);
+  color: var(--chat-user-text);
   padding: 4px 10px;
   border-radius: 12px;
   font-weight: 600;
@@ -1115,4 +1139,43 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Reasoning Accordion */
+.reasoning-accordion {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.reasoning-accordion summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.reasoning-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning-accordion summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.reasoning-content {
+  padding: 12px 14px;
+  border-top: 1px solid var(--glass-border);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.15);
 }

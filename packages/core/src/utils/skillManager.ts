@@ -9,8 +9,8 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'read_local_file': { category: 'os', name: 'readFile' },
   'write_local_file': { category: 'os', name: 'writeFile' },
   'edit_local_file': { category: 'os', name: 'editFile' },
+  'generate_download_link': { category: 'os', name: 'generate_download_link' },
   'generate_excel_file': { category: 'os', name: 'generateExcel' },
-  'analyze_document': { category: 'os', name: 'analyzeDocument' },
   'run_terminal_command': { category: 'os', name: 'executeShell' },
   'browse_website': { category: 'os', name: 'browseWeb' },
   'search_web': { category: 'os', name: 'searchWeb' },
@@ -19,14 +19,19 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'append_row_to_sheets': { category: 'os', name: 'appendSheets' },
   'read_google_docs': { category: 'os', name: 'readDocs' },
   'read_google_form_responses': { category: 'os', name: 'readForms' },
-  'execute_git_command': { category: 'os', name: 'gitManager' },
   'forget_memory': { category: 'os', name: 'forgetMemory' },
-  'manage_twitter': { category: 'os', name: 'xManager' },
-  'manage_notion': { category: 'os', name: 'notionWorkspace' },
   'transcribe_audio': { category: 'os', name: 'audioTranscribe' },
   'summarize_text': { category: 'os', name: 'summarizeText' },
   'update_security_policy': { category: 'os', name: 'updateSecurityPolicy' },
   'create_cognitive_skill': { category: 'os', name: 'createCognitiveSkill' },
+  'search_playbook': { category: 'os', name: 'search_playbook' },
+  'read_playbook': { category: 'os', name: 'read_playbook' },
+  
+  // Note Management Skills
+  'save_note': { category: 'os', name: 'save_note' },
+  'read_note': { category: 'os', name: 'read_note' },
+  'list_notes': { category: 'os', name: 'list_notes' },
+  'delete_note': { category: 'os', name: 'delete_note' },
   
   // Web3 Skills
   'transfer_token': { category: 'web3', name: 'transfer' },

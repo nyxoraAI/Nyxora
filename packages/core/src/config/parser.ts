@@ -108,13 +108,16 @@ export interface NyxoraConfig {
     default_slippage?: number | "auto";
     log_level?: 'info' | 'debug';
     base_fiat?: string;
+    python_path?: string;
   };
   llm: {
     provider: string;
     model: string;
     temperature: number;
+    reasoning_effort?: 'low' | 'medium' | 'high' | 'none';
     api_keys?: string[];
     credentials?: any; // Deprecated, kept for parsing during migration
+    base_url?: string;
   };
   web_search?: {
     provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh';
@@ -125,6 +128,8 @@ export interface NyxoraConfig {
     gemini_key?: string;
     anthropic_key?: string;
     openrouter_key?: string;
+    '9router_key'?: string;
+    custom_provider_key?: string;
     tavily_key?: string;
     brave_key?: string;
     [key: string]: string | undefined;
@@ -259,7 +264,8 @@ export function loadConfig(): NyxoraConfig {
         discord: { enabled: false }
       },
       security: parsed.security || { dashboard_password: '123456' },
-      skills: parsed.skills
+      skills: parsed.skills,
+      channels: parsed.channels
     };
 
     cachedNyxoraConfig = validatedConfig;

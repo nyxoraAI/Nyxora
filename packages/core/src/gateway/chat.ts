@@ -98,15 +98,23 @@ export async function chatInteractive() {
                   s.stop(pc.cyan('Nyxora:'));
                   firstChunk = false;
                 }
-                process.stdout.write(`\r${pc.italic(pc.gray(data.progress))}   `);
+                process.stdout.write(`\x1b[2K\r${pc.italic(pc.gray(data.progress))}`);
               }
               if (data.chunk) {
+                if (data.chunk === '[CLEAR_STREAM]') {
+                  // Ignore the clear stream token in TUI, but clear the current line just in case
+                  process.stdout.write('\x1b[2K\r');
+                  continue;
+                }
                 if (firstChunk) {
                   s.stop(pc.green('Nyxora:'));
                   process.stdout.write('\n');
                   firstChunk = false;
                 }
-                // Clear progress line if any, then write chunk
+                // Clear the line once before writing the first chunk of text to erase any lingering progress
+                if (finalReply === '') {
+                  process.stdout.write('\x1b[2K\r');
+                }
                 finalReply += data.chunk;
                 process.stdout.write(data.chunk);
               }

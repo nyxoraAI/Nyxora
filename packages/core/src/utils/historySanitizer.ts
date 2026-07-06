@@ -5,7 +5,13 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
 
   for (const m of history) {
     let role = m.role === 'system' ? 'user' : m.role;
-    let msg: any = { ...m, role, content: m.content || "" };
+    let content = m.content || "";
+
+    if (role === 'assistant' && content) {
+      content = content.replace(/No response generated\.\s*(---)?\s*/g, '').trim();
+    }
+
+    let msg: any = { ...m, role, content };
     
     if (m.tool_calls && m.tool_calls.length > 0) {
       if (provider === 'gemini') {

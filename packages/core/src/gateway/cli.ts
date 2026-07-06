@@ -72,6 +72,8 @@ console.log(`================================`);
       'openai': 'openai_key',
       'gemini': 'gemini_key',
       'openrouter': 'openrouter_key',
+      '9router': '9router_key',
+      'custom_provider': 'custom_provider_key',
       'groq': 'groq_key',
       'mistral': 'mistral_key',
       'xai': 'xai_key',

@@ -16,6 +16,17 @@ const CHAIN_IDS: Record<string, number> = {
   arbitrum_sepolia: 421614,
   optimism_sepolia: 11155420
 };
+const BLOCKSCOUT_URLS: Record<string, string> = {
+  ethereum: 'https://eth.blockscout.com/api',
+  base: 'https://base.blockscout.com/api',
+  optimism: 'https://optimism.blockscout.com/api',
+  arbitrum: 'https://arbitrum.blockscout.com/api',
+  polygon: 'https://polygon.blockscout.com/api',
+  sepolia: 'https://eth-sepolia.blockscout.com/api',
+  base_sepolia: 'https://base-sepolia.blockscout.com/api',
+  optimism_sepolia: 'https://optimism-sepolia.blockscout.com/api',
+  arbitrum_sepolia: 'https://arbitrum-sepolia.blockscout.com/api'
+};
 
 export async function getTxHistory(chainName: ChainName, address?: string, days: number = 30): Promise<string> {
   try {
@@ -25,19 +36,42 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     if (!chainId) {
       return `Error: No chain ID configured for chain ${chainName}.`;
     }
-    const apiUrl = `https://api.etherscan.io/v2/api?chainid=${chainId}`;
-
     const config = loadConfig();
-    const apiKey = config.web3?.explorer_api_key || ''; // Public fallback with no key
-    const apiKeyParam = apiKey ? `&apikey=${apiKey}` : '';
+    const apiKey = config.web3?.explorer_api_key || ''; 
+    
+    let apiUrl = '';
+    
+    // Always prefer Etherscan V2 if API key is provided, otherwise fallback to Blockscout
+    if (apiKey || chainName === 'ethereum') {
+      apiUrl = `https://api.etherscan.io/v2/api?chainid=${chainId}`;
+      if (apiKey) apiUrl += `&apikey=${apiKey}`;
+    } else if (BLOCKSCOUT_URLS[chainName]) {
+      apiUrl = `${BLOCKSCOUT_URLS[chainName]}?`;
+    } else {
+      return `Error: Free API access is not supported for ${chainName}. Please provide a PRO Etherscan API key in Dashboard.`;
+    }
 
     const startTimestamp = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
+    const getUrl = (url: string, action: string) => `${url}&module=account&action=${action}&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc`;
 
     // Fetch Native Txs
-    const nativeData = await safeFetchJson<any>(`${apiUrl}&module=account&action=txlist&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
+    let nativeData = await safeFetchJson<any>(getUrl(apiUrl, 'txlist'));
+    
+    // Handle Etherscan Free Tier paywall rejection
+    if (nativeData.message === 'NOTOK' && nativeData.result.includes('Free API access is not supported')) {
+      if (BLOCKSCOUT_URLS[chainName]) {
+        // Failover to Blockscout!
+        apiUrl = `${BLOCKSCOUT_URLS[chainName]}?`;
+        nativeData = await safeFetchJson<any>(getUrl(apiUrl, 'txlist'));
+      } else {
+        return `Error: Etherscan requires a PRO API key for ${chainName}. No free fallback available.`;
+      }
+    } else if (nativeData.message === 'NOTOK') {
+      throw new Error(`Explorer API Error: ${nativeData.result}`);
+    }
 
-    // Fetch ERC20 Txs
-    const tokenData = await safeFetchJson<any>(`${apiUrl}&module=account&action=tokentx&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${apiKeyParam}`);
+    // Fetch ERC20 Txs (Using the same apiUrl which may have been updated during failover)
+    const tokenData = await safeFetchJson<any>(getUrl(apiUrl, 'tokentx'));
 
     let history: any[] = [];
 
@@ -99,7 +133,7 @@ export const getTxHistoryToolDefinition = {
   type: "function",
   function: {
     name: "get_tx_history",
-    description: "Fetches the transaction history (Native and ERC-20 transfers) for an address on a specific chain over the last N days. Returns a structured JSON array suitable for generating Excel reports.",
+    description: "Fetches the transaction history (Native and ERC-20 transfers) for an address on a specific chain over the last N days. Do NOT automatically generate an Excel file or download link from this data unless the user explicitly asks for a file or report.",
     parameters: {
       type: "object",
       properties: {

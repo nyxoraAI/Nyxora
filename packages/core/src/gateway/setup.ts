@@ -38,13 +38,12 @@ export async function runSetupWizard() {
     const [major, minor] = pyVersionStr.split('.').map(Number);
     
     if (major < 3 || (major === 3 && minor < 10)) {
-       console.error(pc.red(`\n❌ Unsupported Python version. Nyxora ML Engine requires Python 3.10+. You are running v${pyVersionStr}`));
-       process.exit(1);
+       console.warn(pc.yellow(`\n⚠️ Unsupported Python version (v${pyVersionStr}). Nyxora ML Engine requires Python 3.10+.\nNyxora will attempt to download a Portable Python runtime during ML setup.`));
+    } else {
+       note(`Node.js: v${process.versions.node}\nPython: v${pyVersionStr}`, 'System Requirements Met');
     }
-    note(`Node.js: v${process.versions.node}\nPython: v${pyVersionStr}`, 'System Requirements Met');
   } catch (error) {
-    console.error(pc.red(`\n❌ Python 3 is not installed or not in your PATH. Nyxora requires Python 3.10+ for the ML Engine.`));
-    process.exit(1);
+    console.warn(pc.yellow(`\n⚠️ Python 3 is not installed or not in your PATH.\nNyxora will attempt to download a Portable Python runtime during ML setup.`));
   }
 
   const appDir = getAppDir();
@@ -108,16 +107,28 @@ Provider: ${config.llm.provider}`;
       { value: 'anthropic', label: 'Anthropic (Claude)' },
       { value: 'gemini', label: 'Google Gemini' },
       { value: 'openrouter', label: 'OpenRouter (Many Models)' },
+      { value: '9router', label: '9Router (Local Gateway)' },
       { value: 'ollama', label: 'Ollama (Local)' },
       { value: 'groq', label: 'Groq (Ultra-fast)' },
       { value: 'mistral', label: 'Mistral AI' },
       { value: 'xai', label: 'xAI (Grok)' },
       { value: 'deepseek', label: 'DeepSeek' },
+      { value: 'custom_provider', label: 'Custom Provider (OpenAI Compatible)' },
     ],
   });
   if (isCancel(provider)) return process.exit(0);
 
-  // 2. Model Name
+  // 2. Base URL for Custom Provider
+  let customBaseUrl = '';
+  if (provider === 'custom_provider') {
+    customBaseUrl = (await text({
+      message: 'Enter Custom API Base URL (e.g., http://localhost:1234/v1):',
+      initialValue: config.llm.base_url || 'http://localhost:1234/v1',
+    })) as string;
+    if (isCancel(customBaseUrl)) return process.exit(0);
+  }
+
+  // 3. Model Name
   let modelOptions: { value: string, name: string }[] = [];
   if (provider === 'gemini') {
     modelOptions = [
@@ -151,6 +162,12 @@ Provider: ${config.llm.provider}`;
       { value: 'openai/gpt-5.5', name: 'GPT-5.5' },
       { value: 'x-ai/grok-2', name: 'Grok 2' },
       { value: 'mistralai/mistral-large', name: 'Mistral Large' },
+    ];
+  } else if (provider === '9router') {
+    modelOptions = [
+      { value: 'kr/claude-sonnet-4.5', name: 'Claude Sonnet 4.5' },
+      { value: 'kr/gpt-4o', name: 'GPT 4o' },
+      { value: 'kr/gemini-pro', name: 'Gemini Pro' },
     ];
   } else if (provider === 'groq') {
     modelOptions = [
@@ -312,15 +329,11 @@ Provider: ${config.llm.provider}`;
       { value: 'writeFile', label: 'Write Local File' },
       { value: 'editFile', label: 'Edit Local File (Patch/Diff)' },
       { value: 'generateExcel', label: 'Generate Excel Reports' },
-      { value: 'analyzeDocument', label: 'Analyze Docs (PDF/Word)' },
       { value: 'run_terminal', label: 'Run Terminal Command', hint: '⚠️ UNSAFE' },
-      { value: 'gitManager', label: 'Git Operations (Commit/Push/Pull)' },
       { value: 'updateSecurityPolicy', label: 'Update policy.yaml rules', hint: 'safeguard' },
       { value: 'browseWeb', label: 'Browse & Scrape Webpages' },
       { value: 'searchWeb', label: 'Smart Web Search (Tavily/Brave/DuckDuckGo)', hint: 'Optional API Key' },
       { value: 'googleWorkspace', label: 'Google Workspace (Gmail, Docs, Sheets, Forms)', hint: 'Requires OAuth' },
-      { value: 'notionWorkspace', label: 'Notion Integration' },
-      { value: 'xManager', label: 'X/Twitter Management' },
       { value: 'audioTranscribe', label: 'Audio Transcription (Whisper)' },
       { value: 'summarizeText', label: 'Summarize Long Text' },
     ],
@@ -329,13 +342,24 @@ Provider: ${config.llm.provider}`;
   if (isCancel(activeOsSkills)) return process.exit(0);
 
   // --- CHANNELS ---
+  const channelOptions = [
+    { value: 'telegram', label: 'Telegram Bot', hint: 'Requires Token' },
+    { value: 'discord', label: 'Discord Bot', hint: 'Requires Token' },
+    { value: 'dashboard', label: 'Local Web Dashboard', hint: 'enabled by default' },
+  ];
+  
+  try {
+    const { channelManager } = require('../channels/index');
+    channelManager.getAllAdapters().forEach((adapter: any) => {
+      if (adapter.id !== 'telegram' && adapter.id !== 'discord') {
+         channelOptions.push({ value: adapter.id, label: adapter.name, hint: 'New Integration' });
+      }
+    });
+  } catch (err) {}
+
   const activeChannels = await multiselect({
     message: '💬 Select Integration Channels to enable:',
-    options: [
-      { value: 'telegram', label: 'Telegram Bot', hint: 'Requires Token' },
-      { value: 'discord', label: 'Discord Bot', hint: 'Requires Token' },
-      { value: 'dashboard', label: 'Local Web Dashboard', hint: 'enabled by default' },
-    ],
+    options: channelOptions,
     initialValues: ['dashboard'],
     required: false,
   }) as string[];
@@ -449,6 +473,20 @@ Provider: ${config.llm.provider}`;
     if (isCancel(discordToken)) return process.exit(0);
   }
 
+  // --- DYNAMIC CHANNELS SETUP ---
+  try {
+    const { channelManager } = require('../channels/index');
+    for (const ch of activeChannels) {
+       if (ch !== 'telegram' && ch !== 'discord' && ch !== 'dashboard') {
+           const adapter = channelManager.getAdapter(ch);
+           if (adapter && adapter.setupCredentials) {
+               await adapter.setupCredentials(config);
+           }
+       }
+    }
+  } catch (err) {
+    console.error('Error in dynamic channel setup:', err);
+  }
 
 
   // --- SAVING ---
@@ -464,6 +502,10 @@ Provider: ${config.llm.provider}`;
 
   if (!config.channels) config.channels = { active: [] } as any;
   config.channels!.active = activeChannels;
+  
+  if (customBaseUrl) {
+    config.llm.base_url = customBaseUrl;
+  }
 
   const newApiKeys: Record<string, string> = {};
   if (apiKey) {
@@ -520,9 +562,9 @@ Provider: ${config.llm.provider}`;
   ];
   
   const allOsSkills = [
-    'readFile', 'writeFile', 'editFile', 'generateExcel', 'analyzeDocument',
-    'run_terminal', 'gitManager', 'updateSecurityPolicy',
-    'browseWeb', 'searchWeb', 'googleWorkspace', 'notionWorkspace', 'xManager',
+    'readFile', 'writeFile', 'editFile', 'generateExcel',
+    'run_terminal', 'updateSecurityPolicy',
+    'browseWeb', 'searchWeb', 'googleWorkspace',
     'audioTranscribe', 'summarizeText'
   ];
 
@@ -534,9 +576,7 @@ Provider: ${config.llm.provider}`;
     writeFile: 'write_local_file',
     editFile: 'edit_local_file',
     generateExcel: 'generate_excel_file',
-    analyzeDocument: 'analyze_document',
     run_terminal: 'run_terminal_command',
-    gitManager: 'execute_git_command',
     updateSecurityPolicy: 'update_security_policy',
     browseWeb: 'browse_website',
     searchWeb: 'search_web',
@@ -547,8 +587,6 @@ Provider: ${config.llm.provider}`;
       'read_google_docs', 
       'read_google_form_responses'
     ],
-    notionWorkspace: 'manage_notion',
-    xManager: 'manage_twitter',
     audioTranscribe: 'transcribe_audio',
     summarizeText: 'summarize_text',
 

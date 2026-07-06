@@ -34,7 +34,7 @@ export const generateExcelToolDefinition = {
   type: "function",
   function: {
     name: "generate_excel_file",
-    description: "Generates an Excel (.xlsx) file from an array of JSON objects and saves it to the specified local path. Useful for creating trading reports, crypto PnL, or any structured data export.",
+    description: "Generates an Excel (.xlsx) file from an array of JSON objects and saves it to the specified local path. Useful for creating trading reports or crypto PnL. ONLY use this tool if the user explicitly requests an Excel file, a download, or a spreadsheet report.",
     parameters: {
       type: "object",
       properties: {

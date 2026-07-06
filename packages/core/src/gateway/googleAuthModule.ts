@@ -8,12 +8,13 @@ const FALLBACK_TOKEN_PATH = getPath('google-tokens.json');
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/documents.readonly',
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/documents',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/forms.responses.readonly',
-  'https://www.googleapis.com/auth/drive.file'
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/contacts.readonly'
 ];
 
 interface GoogleCredentials {
@@ -50,6 +51,24 @@ export async function initGoogleAuth(): Promise<boolean> {
   }
 }
 
+export async function setClientSecret(secretPath: string): Promise<boolean> {
+  try {
+    const p = path.resolve(secretPath.trim());
+    if (!fs.existsSync(p)) {
+      console.error(`[Google Auth] Client secret file not found at ${p}`);
+      return false;
+    }
+    const content = fs.readFileSync(p, 'utf8');
+    // validate it's valid JSON
+    JSON.parse(content);
+    fs.copyFileSync(p, CREDENTIALS_PATH);
+    return await initGoogleAuth();
+  } catch (err) {
+    console.error('[Google Auth] Failed to set client secret:', err);
+    return false;
+  }
+}
+
 export function getAuthUrl(): string | null {
   if (!credentials) return null;
 
@@ -63,6 +82,82 @@ export function getAuthUrl(): string | null {
   });
 
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+export function getAuthUrlCLI(): string | null {
+  if (!credentials) return null;
+
+  const params = new URLSearchParams({
+    client_id: credentials.client_id,
+    redirect_uri: (credentials.redirect_uris && credentials.redirect_uris.length > 0) ? credentials.redirect_uris[0] : 'http://localhost:1',
+    response_type: 'code',
+    scope: SCOPES.join(' '),
+    access_type: 'offline',
+    prompt: 'consent'
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+export async function processCallbackCLI(urlOrCode: string): Promise<boolean> {
+  if (!credentials) return false;
+
+  let code = urlOrCode;
+  let redirectUri = (credentials.redirect_uris && credentials.redirect_uris.length > 0) ? credentials.redirect_uris[0] : 'http://localhost:1';
+
+  if (urlOrCode.startsWith('http')) {
+    try {
+      const url = new URL(urlOrCode);
+      code = url.searchParams.get('code') || urlOrCode;
+      const base = url.origin + url.pathname;
+      if (base === 'http://localhost/') redirectUri = 'http://localhost';
+      else redirectUri = base;
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  try {
+    const makeReq = async (rUri: string) => fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: credentials!.client_id,
+        client_secret: credentials!.client_secret,
+        redirect_uri: rUri,
+        grant_type: 'authorization_code'
+      }).toString()
+    });
+
+    let res = await makeReq(redirectUri);
+    let data = await res.json();
+
+    if (res.status === 400 && data.error === 'redirect_uri_mismatch') {
+      const altUri = redirectUri === 'http://localhost:1' ? credentials.redirect_uris[0] : 'http://localhost:1';
+      res = await makeReq(altUri);
+      data = await res.json();
+    }
+
+    if (!res.ok) {
+      console.error('[Google Auth] Token exchange failed:', data);
+      return false;
+    }
+
+    if (data.access_token) {
+      accessToken = data.access_token;
+      tokenExpiry = Date.now() + (data.expires_in * 1000);
+    }
+
+    if (data.refresh_token) {
+      await saveRefreshToken(data.refresh_token);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[Google Auth] Error processing CLI callback:', err);
+    return false;
+  }
 }
 
 export async function processCallback(code: string): Promise<boolean> {
@@ -174,13 +269,20 @@ async function saveRefreshToken(token: string) {
 }
 
 async function getRefreshToken(): Promise<string | null> {
-  if (fs.existsSync(FALLBACK_TOKEN_PATH)) {
-    try {
-      const content = fs.readFileSync(FALLBACK_TOKEN_PATH, 'utf8');
-      const parsed = JSON.parse(content);
-      if (parsed.refresh_token) return parsed.refresh_token;
-    } catch (e) {
-      return null;
+  const checkPaths = [
+    FALLBACK_TOKEN_PATH, // ~/.nyxora/auth/google-tokens.json
+    path.join(path.dirname(FALLBACK_TOKEN_PATH), 'google_token.json') // common typo or copy-paste
+  ];
+
+  for (const tokenPath of checkPaths) {
+    if (fs.existsSync(tokenPath)) {
+      try {
+        const content = fs.readFileSync(tokenPath, 'utf8');
+        const parsed = JSON.parse(content);
+        if (parsed.refresh_token) return parsed.refresh_token;
+      } catch (e) {
+        // Continue checking other paths
+      }
     }
   }
   return null;

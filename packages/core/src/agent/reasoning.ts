@@ -19,177 +19,23 @@ export const logger = new Logger();
 
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 import { txManager } from './transactionManager';
+import { promptBuilder } from './promptBuilder';
+
 async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'general', userInput: string = ''): Promise<string> {
     const config = loadConfig();
-    const currentDateTime = new Date().toLocaleString('en-US');
-    let basePrompt = "";
+    const provider = (config?.llm?.provider || '').toLowerCase();
+    let modelFamily: 'openai' | 'google' | 'anthropic' | 'grok' | 'unknown' = 'unknown';
+    if (provider.includes('openai')) modelFamily = 'openai';
+    else if (provider.includes('gemini') || provider.includes('google')) modelFamily = 'google';
+    else if (provider.includes('anthropic') || provider.includes('claude')) modelFamily = 'anthropic';
+    else if (provider.includes('grok') || provider.includes('xai')) modelFamily = 'grok';
 
-    if (context === 'web3') {
-      basePrompt = `You are Nyxora's Web3 Agent (DeFi Specialist).
-The current real-world date and time is: ${currentDateTime}.
-Default Chain: ${config.agent.default_chain}
-
-CRITICAL: You MUST use a Chain of Thought approach for every response. Enclose your reasoning within <think>...</think> tags.
-IMPORTANT: The <think> block is strictly for internal monologue. Your final answer must be OUTSIDE and AFTER the </think> tag.
-
-[WEB3 EXECUTION WORKFLOW]
-CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
-CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified.
-CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
-CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
-CRITICAL RULE 6: NETWORK SAFETY VALIDATION. NEVER GUESS chains or tokens. Ask for confirmation if ambiguous.
-CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data.
-CRITICAL RULE 8: AMOUNT PRECISION. Use 6 decimal places for precision, or 2 if >$10,000.
-CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' inside <think>. Warn if < 40%.`;
-    } else if (context === 'os') {
-      basePrompt = `You are Nyxora's OS Agent (System & Automation Specialist).
-The current real-world date and time is: ${currentDateTime}.
-
-CRITICAL: You MUST use a Chain of Thought approach for every response. Enclose your reasoning within <think>...</think> tags.
-IMPORTANT: The <think> block is strictly for internal monologue. Your final answer must be OUTSIDE and AFTER the </think> tag.
-
-[OS EXECUTION WORKFLOW]
-CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
-CRITICAL RULE 3: FILE SYSTEM SAFETY. You are STRICTLY FORBIDDEN from modifying config.yaml, rpc_key.yaml, or policy.yaml using terminal commands like sed or echo.
-CRITICAL RULE 4: CRON JOBS VS LIMIT ORDERS. Do NOT use schedule_task for price-based trading triggers. Use schedule_task for time-based recurring tasks.
-CRITICAL RULE 5: TOOL CONFIDENCE. NEVER fabricate file contents or command outputs.`;
-    } else {
-      basePrompt = `You are Nyxora's General Agent.
-The current real-world date and time is: ${currentDateTime}.
-
-CRITICAL: You MUST use a Chain of Thought approach for every response. Enclose your reasoning within <think>...</think> tags.
-IMPORTANT: The <think> block is strictly for internal monologue. Your final answer must be OUTSIDE and AFTER the </think> tag.
-
-[GENERAL WORKFLOW]
-CRITICAL RULE 1: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
-CRITICAL RULE 2: BE HELPFUL AND CONCISE. You do not have Web3 or OS tools in this context. If the user asks for Web3 or OS tasks, politely inform them to rephrase using clear keywords like 'transfer', 'harga', 'file', 'email', etc.`;
-    }
-
-  const identityMdPath = getPath('IDENTITY.md');
-  const userMdPath = getPath('user.md');
-  
-  let isFirstTime = false;
-  try {
-    const identityContent = fs.existsSync(identityMdPath) ? fs.readFileSync(identityMdPath, 'utf8').trim() : '';
-    const userContent = fs.existsSync(userMdPath) ? fs.readFileSync(userMdPath, 'utf8').trim() : '';
-    
-    // Check if files are empty or contain the default installation text
-    const isIdentityDefault = !identityContent || identityContent.includes('You are a Web3 AI assistant named Nyxora.');
-    const isUserDefault = !userContent || userContent.includes('Write custom instructions, special rules, user profiles');
-    
-    isFirstTime = isIdentityDefault && isUserDefault;
-  } catch (e) {
-    isFirstTime = true;
-  }
-
-  if (isFirstTime) {
-    basePrompt += `\n\n[ONBOARDING MODE]
-This is your VERY FIRST interaction with the user. You MUST warmly welcome them to Nyxora and ask for 4 things to initialize your setup:
-1. Their Name
-2. What they want to name YOU (the AI Agent)
-3. Their Hobbies or Job (so you can tailor your conversation context)
-4. Your Persona/Character (e.g., professional, sarcastic, JARVIS, anime waifu)
-Do NOT perform any web3 tasks or generic answers until they provide all 4 details. Once they answer, use 'update_profile' to save their name and hobbies/job to user.md, and use 'update_identity' (making sure to provide the 'agentName' parameter!) to save your new name and persona to IDENTITY.md.`;
-  } else {
-    // Read IDENTITY.md for core AI persona
-    try {
-      if (fs.existsSync(identityMdPath)) {
-        const identityInstructions = fs.readFileSync(identityMdPath, 'utf8');
-        basePrompt += `\n\n--- CORE IDENTITY & PERSONA ---\n${identityInstructions}`;
-      }
-    } catch (error) {
-      console.error('Failed to read IDENTITY.md:', error);
-    }
-
-    // Read user.md for custom instructions
-    try {
-      if (fs.existsSync(userMdPath)) {
-        const customInstructions = fs.readFileSync(userMdPath, 'utf8');
-        basePrompt += `\n\n--- CUSTOM USER INSTRUCTIONS ---\n${customInstructions}`;
-      }
-    } catch (error) {
-      console.error('Failed to read user.md:', error);
-    }
-  }
-
-  // Read policy.yaml for NLP security constraints
-  try {
-    const policyPath = getPath('policy.yaml');
-    if (fs.existsSync(policyPath)) {
-      const yaml = require('yaml'); // lazily import if not imported
-      const file = fs.readFileSync(policyPath, 'utf8');
-      const parsed = yaml.parse(file) || {};
-      if (parsed.custom_llm_rules && Array.isArray(parsed.custom_llm_rules) && parsed.custom_llm_rules.length > 0) {
-        basePrompt += `\n\n--- SECURITY POLICY (MANDATORY RULES) ---\n${parsed.custom_llm_rules.map((r: string) => `* ${r}`).join('\n')}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.`;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to read policy.yaml:', error);
-  }
-
-  // Inject Episodic Memories via Python RAG
-  try {
-    const ragRes = await fetch('http://127.0.0.1:8000/memory/rag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: userInput, top_k: 5 })
+    return await promptBuilder.buildSystemPrompt({
+        agentType: context,
+        userInput,
+        config,
+        modelFamily
     });
-    if (ragRes.ok) {
-      const ragData = await ragRes.json();
-      if (ragData.memories && ragData.memories.length > 0) {
-        basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n`;
-        ragData.memories.forEach((mem: string) => {
-          basePrompt += `- ${mem}\n`;
-        });
-      }
-    }
-  } catch (e) {
-    // Fallback or ignore if Python ML engine is down
-  }
-
-  // V3: Inject Personalized Risk Profile
-  try {
-    const profile = logger.getUserProfile();
-    
-    if (profile) {
-      basePrompt += `\n\n--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
-      basePrompt += `Risk Level: ${profile.risk_level}\n`;
-      basePrompt += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
-      basePrompt += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
-      if (profile.custom_rules) {
-        basePrompt += `Custom Rules: ${profile.custom_rules}\n`;
-      }
-      basePrompt += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
-    }
-  } catch {}
-
-  // HIGHEST PRIORITY: Inject observed user communication style.
-  // This section is placed LAST so it overrides any default tone rules above (including IDENTITY.md).
-  try {
-    // Only use traits with confidence >= 0.5 (confirmed by multiple audit cycles)
-    const strongPersonas = episodicDB.getStrongPersonas(0.5);
-    
-    if (strongPersonas.length > 0) {
-      basePrompt += `\n\n--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
-      basePrompt += `CRITICAL: These are CONFIRMED user preferences observed across multiple conversations. You MUST apply them IMMEDIATELY and CONSISTENTLY, overriding any default tone or style instructions above.\n\n`;
-      
-      strongPersonas.forEach(p => {
-        const label = p.category ? `[${p.category.toUpperCase()}]` : '[PREFERENCE]';
-        basePrompt += `${label} ${p.trait}\n`;
-      });
-      
-      basePrompt += `\nMANDATORY ENFORCEMENT:\n`;
-      basePrompt += `- You MUST adapt your tone, language, and style to match the detected user preferences above.\n`;
-      basePrompt += `- If the user communicates informally or casually → respond casually. Do NOT be formal or robotic.\n`;
-      basePrompt += `- If the user communicates in a specific language or dialect → respond in that same language/style.\n`;
-      basePrompt += `- If the user uses slang or informal words → mirror that vocabulary naturally.\n`;
-      basePrompt += `- This is a HARD RULE. It overrides any default tone in IDENTITY.md or other instructions above.\n`;
-    }
-  } catch {}
-
-  return basePrompt;
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -202,9 +48,10 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
 // To add another language, extend these arrays — no other changes required.
 // ──────────────────────────────────────────────────────────────────
 const OS_KEYWORDS: string[] = [
-  // Files & Documents
+  // Files, Documents & Notes
   'excel', 'xlsx', 'spreadsheet', 'generate excel',
   'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
+  'note', 'catat', 'catatan', 'keep', 'download', 'unduh', 'link',
   // Terminal & Git
   'terminal', 'command', 'shell', 'bash', 'script', 'run command',
   'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
@@ -359,14 +206,15 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     console.log(pc.cyan(`[Orchestrator] Intent pre-classified (keyword match) as: ${context.toUpperCase()}`));
   } else {
     // ── Fallback: LLM Router (untuk intent ambigu / percakapan umum) ─────────
-    const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
+    const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
-4. If the core intent involves OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
-5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
-Reply with EXACTLY ONE WORD: web3, os, or general.`;
+3. If the core intent involves BOTH blockchain/finance AND system automation/files/emails, reply 'compound'.
+4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
+5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
+6. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
 
     const routerMessages = [
         { role: 'system', content: routerPrompt },
@@ -386,7 +234,19 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
         
         let contextResponse = (routerResponse.message.content || 'general').toLowerCase().trim();
         
-        if (contextResponse.includes('web3')) context = 'web3';
+        if (contextResponse.includes('compound')) {
+           console.log(pc.cyan('[Orchestrator] Compound intent detected via LLM Router. Running both agents sequentially.'));
+           logger.addEntry({ role, content: input }, sessionId);
+           const [web3Result, osResult] = await Promise.allSettled([
+             processWeb3Intent(input, role, onProgress, sessionId),
+             processOsIntent(input, role, onProgress, sessionId),
+           ]);
+           const parts: string[] = [];
+           if (web3Result.status === 'fulfilled' && web3Result.value) parts.push(web3Result.value);
+           if (osResult.status === 'fulfilled' && osResult.value) parts.push(osResult.value);
+           return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+        }
+        else if (contextResponse.includes('web3')) context = 'web3';
         else if (contextResponse.includes('os')) context = 'os';
         else context = 'general';
     } catch (e) {
@@ -434,10 +294,6 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
           let finalContent = response.message?.content || "";
           finalContent = finalContent.replace(/<thought>[\s\S]*?<\/thought>\n?/gi, '');
           finalContent = finalContent.replace(/<think>[\s\S]*?<\/think>\n?/gi, '');
-          if (finalContent.includes('<think>')) {
-            finalContent = finalContent.replace(/<think>[\s\S]*?\n\n/i, '');
-            finalContent = finalContent.replace(/<think>[\s\S]*$/i, '');
-          }
           finalContent = finalContent.trim();
           
           if (!finalContent) {
@@ -518,14 +374,15 @@ export async function processUserInputStream(
     }
 
     if (!preCheckMatched) {
-      const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of three categories: 'web3', 'os', or 'general'.
+      const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. If the core intent involves blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
-4. If the core intent involves OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
-5. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
-Reply with EXACTLY ONE WORD: web3, os, or general.`;
+3. If the core intent involves BOTH blockchain/finance AND system automation/files/emails, reply 'compound'.
+4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
+5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
+6. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
       const routerMessages = [
         { role: 'system', content: routerPrompt },
         ...textOnlyHistory.slice(-10),
@@ -536,7 +393,19 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
           client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 1000 })
         , 3);
         const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
-        if (cr.includes('web3')) context = 'web3';
+        if (cr.includes('compound')) {
+          console.log(pc.cyan('[Stream Orchestrator] Compound intent detected via LLM Router.'));
+          logger.addEntry({ role: 'user', content: input }, sessionId);
+          const [web3R, osR] = await Promise.allSettled([
+            processWeb3IntentStream(input, onChunk, onProgress, sessionId),
+            processOsIntentStream(input, onChunk, onProgress, sessionId),
+          ]);
+          const parts: string[] = [];
+          if (web3R.status === 'fulfilled' && web3R.value) parts.push(web3R.value);
+          if (osR.status === 'fulfilled' && osR.value) parts.push(osR.value);
+          return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+        }
+        else if (cr.includes('web3')) context = 'web3';
         else if (cr.includes('os')) context = 'os';
         else context = 'general';
       } catch {
@@ -565,12 +434,14 @@ Reply with EXACTLY ONE WORD: web3, os, or general.`;
       ];
       try {
         let streamedContent = '';
-        const response = await executeWithRetry(async (client) =>
-          client.stream(
+        const response = await executeWithRetry(async (client) => {
+          streamedContent = '';
+          onChunk('[CLEAR_STREAM]');
+          return client.stream(
             { model: config.llm.model, messages: messages as any },
             (chunk: string) => { streamedContent += chunk; onChunk(chunk); }
-          )
-        );
+          );
+        });
         let finalContent = response.message?.content || streamedContent || '';
         finalContent = finalContent
           .replace(/<(think|thought)[\s\S]*?<\/\1>\n?/gi, '')

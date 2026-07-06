@@ -18,10 +18,29 @@ export class ReasoningScratchpad {
     while ((match = thinkRegex.exec(rawContent)) !== null) {
       const thinkText = match[2].trim();
       if (thinkText.length > 20) {
-        // Distil to first 600 chars to avoid bloating the next prompt
-        this.entries.push({ turn, summary: thinkText.slice(0, 600) });
+        let summary = thinkText;
+        if (summary.length > 700) {
+          summary = summary.slice(0, 100) + '\n...[truncated]...\n' + summary.slice(-600);
+        }
+        this.entries.push({ turn, summary });
       }
     }
+    
+    // Fallback for bare "think" blocks without XML tags (common in Gemini Flash)
+    const bareThinkRegex = /^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n([\s\S]*?)\n\n/i;
+    let bareMatch = bareThinkRegex.exec(rawContent);
+    if (bareMatch && !rawContent.includes('<think>')) {
+      const thinkText = bareMatch[1].trim();
+      if (thinkText.length > 20) {
+        let summary = thinkText;
+        if (summary.length > 700) {
+          summary = summary.slice(0, 100) + '\n...[truncated]...\n' + summary.slice(-600);
+        }
+        this.entries.push({ turn, summary });
+      }
+      rawContent = rawContent.replace(bareThinkRegex, '');
+    }
+
     // Return content with think blocks stripped
     return rawContent
       .replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/gi, '')

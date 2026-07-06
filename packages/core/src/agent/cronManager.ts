@@ -1,6 +1,6 @@
 import { Cron } from 'croner';
 import { loadConfig } from '../config/parser';
-import { sendPushNotification } from '../gateway/telegram';
+import { sendPushNotification } from '../channels/telegram';
 import { randomUUID } from 'crypto';
 import pc from 'picocolors';
 

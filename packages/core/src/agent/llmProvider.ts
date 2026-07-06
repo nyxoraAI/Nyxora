@@ -9,11 +9,13 @@ export interface NormalizedChatRequest {
   tool_choice?: 'auto' | 'none' | any;
   temperature?: number;
   max_tokens?: number;
+  reasoning_effort?: 'low' | 'medium' | 'high' | 'none' | null;
 }
 
 export interface NormalizedChatResponse {
   message: {
     content: string | null;
+    reasoning_content?: string | null;
     tool_calls?: {
       id: string;
       type: 'function';
@@ -41,6 +43,7 @@ export class OpenAIAdapter implements LLMProvider {
     return {
       message: {
         content: response.choices[0].message.content,
+        reasoning_content: (response.choices[0].message as any).reasoning_content || null,
         tool_calls: response.choices[0].message.tool_calls as any
       },
       usage: response.usage ? { total_tokens: response.usage.total_tokens } : undefined
@@ -51,6 +54,7 @@ export class OpenAIAdapter implements LLMProvider {
     try {
       const streamRes = await this.client.chat.completions.create({ ...(request as any), stream: true }) as any as AsyncIterable<any>;
       let fullContent = '';
+      let reasoningContent = '';
       const toolCallsMap: Record<number, any> = {};
 
       for await (const chunk of streamRes) {
@@ -58,6 +62,9 @@ export class OpenAIAdapter implements LLMProvider {
         if (delta?.content) {
           fullContent += delta.content;
           onChunk(delta.content);
+        }
+        if (delta?.reasoning_content) {
+          reasoningContent += delta.reasoning_content;
         }
         if (delta?.tool_calls) {
           for (const tc of delta.tool_calls) {
@@ -76,6 +83,7 @@ export class OpenAIAdapter implements LLMProvider {
       return {
         message: {
           content: fullContent || null,
+          reasoning_content: reasoningContent || null,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined
         }
       };
@@ -83,6 +91,7 @@ export class OpenAIAdapter implements LLMProvider {
       // Fallback to non-streaming if streaming fails
       const chatRes = await this.chat(request);
       if (chatRes.message.content) {
+        onChunk('[CLEAR_STREAM]');
         onChunk(chatRes.message.content);
       }
       return chatRes;
@@ -172,11 +181,14 @@ export class AnthropicAdapter implements LLMProvider {
     });
 
     let contentStr = null;
+    let reasoningStr = null;
     let toolCalls: any[] = [];
 
     for (const block of response.content) {
       if (block.type === 'text') {
         contentStr = (contentStr || '') + block.text;
+      } else if (block.type === 'thinking' as any) {
+        reasoningStr = (reasoningStr || '') + (block as any).thinking;
       } else if (block.type === 'tool_use') {
         toolCalls.push({
           id: block.id,
@@ -192,6 +204,7 @@ export class AnthropicAdapter implements LLMProvider {
     return {
       message: {
         content: contentStr,
+        reasoning_content: reasoningStr,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined
       },
       usage: response.usage ? { total_tokens: response.usage.input_tokens + response.usage.output_tokens } : undefined
@@ -242,12 +255,16 @@ export class AnthropicAdapter implements LLMProvider {
       });
 
       let fullContent = '';
+      let reasoningContent = '';
       const toolCalls: any[] = [];
 
       for await (const event of stream) {
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           fullContent += event.delta.text;
           onChunk(event.delta.text);
+        }
+        if (event.type === 'content_block_delta' && (event.delta as any).type === 'thinking_delta') {
+          reasoningContent += (event.delta as any).thinking;
         }
         if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
           toolCalls.push({ id: event.content_block.id, type: 'function', function: { name: event.content_block.name, arguments: '' } });
@@ -258,9 +275,14 @@ export class AnthropicAdapter implements LLMProvider {
         }
       }
 
-      return { message: { content: fullContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined } };
+      return { message: { content: fullContent || null, reasoning_content: reasoningContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined } };
     } catch {
-      return this.chat(request);
+      const chatRes = await this.chat(request);
+      if (chatRes.message.content) {
+        onChunk('[CLEAR_STREAM]');
+        onChunk(chatRes.message.content);
+      }
+      return chatRes;
     }
   }
 }
@@ -519,7 +541,12 @@ export class GeminiAdapter implements LLMProvider {
         usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
       };
     } catch {
-      return this.chat(request);
+      const chatRes = await this.chat(request);
+      if (chatRes.message.content) {
+        onChunk('[CLEAR_STREAM]');
+        onChunk(chatRes.message.content);
+      }
+      return chatRes;
     }
   }
 }

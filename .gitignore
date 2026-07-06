@@ -60,3 +60,5 @@ packages/registry-contract/
 # Python Cache
 __pycache__/
 *.py[cod]
+.git/config
+

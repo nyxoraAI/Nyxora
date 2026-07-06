@@ -1,5 +1,5 @@
 import { txManager } from './transactionManager';
-import { sendPushNotification } from '../gateway/telegram';
+import { sendPushNotification } from '../channels/telegram';
 import { loadConfig } from '../config/parser';
 
 // In a real production environment, this would use the @eth-optimism/sdk 

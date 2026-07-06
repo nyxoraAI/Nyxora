@@ -8,6 +8,7 @@ import { getPath } from '../config/paths';
 export interface MemoryEntry {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
+  reasoning_content?: string;
   name?: string;
   tool_call_id?: string;
   tool_calls?: any[];
@@ -67,6 +68,7 @@ export class Logger {
         session_id TEXT,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
+        reasoning_content TEXT,
         name TEXT,
         tool_call_id TEXT,
         tool_calls TEXT,
@@ -143,6 +145,11 @@ export class Logger {
       this.db.prepare('ALTER TABLE messages ADD COLUMN session_id TEXT').run();
     } catch {}
 
+    // Ensure reasoning_content exists for older DBs
+    try {
+      this.db.prepare('ALTER TABLE messages ADD COLUMN reasoning_content TEXT').run();
+    } catch {}
+
     // Migration logic from old memory.json to SQLite
     const config = loadConfig() || {};
     const oldJsonPath = getPath((config && (config as any).memory && (config as any).memory.path) ? (config as any).memory.path : 'memory.json');
@@ -155,8 +162,8 @@ export class Logger {
         const oldMemory = JSON.parse(data);
         if (Array.isArray(oldMemory) && oldMemory.length > 0) {
           const insert = this.db.prepare(`
-            INSERT INTO messages (role, content, name, tool_call_id, tool_calls)
-            VALUES (@role, @content, @name, @tool_call_id, @tool_calls)
+            INSERT INTO messages (role, content, reasoning_content, name, tool_call_id, tool_calls)
+            VALUES (@role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls)
           `);
           
           const insertMany = (entries: any[]) => {
@@ -166,6 +173,7 @@ export class Logger {
                 insert.run({
                   role: entry.role,
                   content: entry.content || '',
+                  reasoning_content: (entry as any).reasoning_content || null,
                   name: entry.name || null,
                   tool_call_id: entry.tool_call_id || null,
                   tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null
@@ -191,7 +199,12 @@ export class Logger {
   }
 
   public getSessions(): ChatSession[] {
-    const rows = this.db.prepare('SELECT id, title, timestamp FROM sessions ORDER BY timestamp DESC').all();
+    const rows = this.db.prepare(`
+      SELECT id, title, timestamp 
+      FROM sessions 
+      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%'
+      ORDER BY timestamp DESC
+    `).all();
     return rows as unknown as ChatSession[];
   }
 
@@ -218,7 +231,8 @@ export class Logger {
       SELECT DISTINCT s.* 
       FROM sessions s
       LEFT JOIN messages m ON s.id = m.session_id
-      WHERE s.title LIKE ? OR m.content LIKE ?
+      WHERE (s.title LIKE ? OR m.content LIKE ?)
+      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%'
       ORDER BY s.timestamp DESC
     `).all(term, term);
   }
@@ -230,7 +244,7 @@ export class Logger {
     if (sessionId) {
       rows = this.db.prepare(`
         SELECT * FROM (
-          SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
+          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
           WHERE session_id = ? 
           ORDER BY id DESC LIMIT ?
@@ -239,7 +253,7 @@ export class Logger {
     } else {
       rows = this.db.prepare(`
         SELECT * FROM (
-          SELECT role, content, name, tool_call_id, tool_calls, session_id, id 
+          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
           WHERE session_id IS NULL
           ORDER BY id DESC LIMIT ?
@@ -252,6 +266,7 @@ export class Logger {
         role: row.role,
         content: row.content,
       };
+      if (row.reasoning_content) entry.reasoning_content = row.reasoning_content;
       if (row.name) entry.name = row.name;
       if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
@@ -267,7 +282,7 @@ export class Logger {
   public getRecentMessagesAllSessions(limit: number = 30): MemoryEntry[] {
     const rows = this.db.prepare(`
       SELECT * FROM (
-        SELECT role, content, name, tool_call_id, tool_calls, session_id, id
+        SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id
         FROM messages
         ORDER BY id DESC LIMIT ?
       ) ORDER BY id ASC
@@ -278,6 +293,7 @@ export class Logger {
         role: row.role,
         content: row.content,
       };
+      if (row.reasoning_content) entry.reasoning_content = row.reasoning_content;
       if (row.name) entry.name = row.name;
       if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
@@ -302,14 +318,15 @@ export class Logger {
     }
 
     const insert = this.db.prepare(`
-      INSERT INTO messages (session_id, role, content, name, tool_call_id, tool_calls)
-      VALUES (@session_id, @role, @content, @name, @tool_call_id, @tool_calls)
+      INSERT INTO messages (session_id, role, content, reasoning_content, name, tool_call_id, tool_calls)
+      VALUES (@session_id, @role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls)
     `);
     
     insert.run({
       session_id: sessionId || null,
       role: entry.role,
       content: entry.content || '',
+      reasoning_content: entry.reasoning_content || null,
       name: entry.name || null,
       tool_call_id: entry.tool_call_id || null,
       tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null

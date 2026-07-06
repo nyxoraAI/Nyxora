@@ -26,6 +26,10 @@ export class EpisodicMemoryDB {
     
     const dbPath = path.join(dataDir, 'episodic.db');
     this.db = new DatabaseSync(dbPath);
+    // Enable WAL mode for concurrent multi-process reads/writes (Node + Python ML Engine)
+    this.db.exec('PRAGMA journal_mode = WAL;');
+    this.db.exec('PRAGMA synchronous = NORMAL;');
+    this.db.exec('PRAGMA busy_timeout = 5000;');
     this.initSchema();
   }
 

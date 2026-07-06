@@ -89,8 +89,8 @@ export class NyxDaemon {
         } else {
           console.log(pc.magenta('[Nyx] No strong traits found in this audit cycle.'));
         }
-      } catch (e) {
-        console.error(pc.red('[Nyx] Failed to process traits from Python'), traits);
+      } catch (e: any) {
+        console.error(pc.red('[Nyx] Failed to process traits from Python: ' + e.message), traits);
       }
       
     } catch (e: any) {

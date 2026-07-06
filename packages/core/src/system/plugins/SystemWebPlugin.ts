@@ -1,7 +1,6 @@
 import { Plugin } from '../../plugin/types';
 import { browseWebsiteToolDefinition, browseWebsite } from '../skills/browseWeb';
 import { searchWebToolDefinition, searchWeb } from '../skills/searchWeb';
-import { analyzeDocumentToolDefinition, analyzeDocument } from '../skills/analyzeDocument';
 import { summarizeTextToolDefinition, summarizeText } from '../skills/summarizeText';
 import { audioTranscribeToolDefinition, transcribeAudio } from '../skills/audioTranscribe';
 
@@ -13,7 +12,6 @@ export class SystemWebPlugin implements Plugin {
   public tools = [
     browseWebsiteToolDefinition,
     searchWebToolDefinition,
-    analyzeDocumentToolDefinition,
     summarizeTextToolDefinition,
     audioTranscribeToolDefinition
   ];
@@ -24,9 +22,6 @@ export class SystemWebPlugin implements Plugin {
     },
     ['search_web']: async (args: any) => {
       return await searchWeb(args.query, args.depth);
-    },
-    ['analyze_document']: async (args: any) => {
-      return await analyzeDocument(args.filePath);
     },
     ['summarize_text']: async (args: any) => {
       return await summarizeText(args.text, args.format);

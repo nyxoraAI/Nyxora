@@ -25,7 +25,7 @@ const ChainIcon = ({ id }: { id: string }) => (
 
 interface Config {
   agent: { name: string; default_chain: string; default_slippage?: number | 'auto'; log_level?: string; base_fiat?: string };
-  llm: { provider: string; model: string; temperature: number };
+  llm: { provider: string; model: string; temperature: number; base_url?: string; reasoning_effort?: 'low' | 'medium' | 'high' };
   web3?: { rpc_urls?: Record<string, string | string[]>; explorer_api_key?: string };
 }
 
@@ -73,10 +73,18 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   const [passSaveStatus, setPassSaveStatus] = useState('');
 
   const [showGoogleWizard, setShowGoogleWizard] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [authUrlInput, setAuthUrlInput] = useState('');
   const [supportedFiats, setSupportedFiats] = useState<string[]>(['usd', 'idr', 'eur', 'jpy', 'gbp', 'aud']);
   const [wipingMemory, setWipingMemory] = useState(false);
 
   useEffect(() => {
+    // Fetch Google Status
+    apiFetch('/api/auth/google/status')
+      .then(res => res.json())
+      .then(data => { if (data) setGoogleConnected(data.connected); })
+      .catch(() => {});
+
     fetch('https://api.coingecko.com/api/v3/simple/supported_vs_currencies')
       .then(res => res.json())
       .then(data => {
@@ -147,7 +155,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         llm: {
           provider: config.llm?.provider || 'openai',
           model: config.llm?.model || 'gpt-4',
-          temperature: config.llm?.temperature || 0.7
+          temperature: config.llm?.temperature || 0.7,
+          base_url: config.llm?.base_url || '',
+          reasoning_effort: config.llm?.reasoning_effort || 'medium'
         },
         web3: {
           rpc_urls: config.web3?.rpc_urls || {},
@@ -412,7 +422,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       { id: 'groq', label: 'Groq', icon: <LlmIcon provider="groq" size={14} /> },
                       { id: 'mistral', label: 'Mistral AI', icon: <LlmIcon provider="mistral" size={14} /> },
                       { id: 'xai', label: 'xAI (Grok)', icon: <LlmIcon provider="xai" size={14} /> },
-                      { id: 'deepseek', label: 'DeepSeek', icon: <LlmIcon provider="deepseek" size={14} /> }
+                      { id: 'deepseek', label: 'DeepSeek', icon: <LlmIcon provider="deepseek" size={14} /> },
+                      { id: 'custom_provider', label: 'Custom Provider', icon: <LlmIcon provider="custom_provider" size={14} /> }
                     ]}
                   />
                 </div>
@@ -437,6 +448,37 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   />
                 </div>
               </div>
+              <div className="form-row" style={{ marginTop: '16px' }}>
+                <div className="form-group flex-1">
+                  <label className="nord-label">Reasoning Effort (O1/O3)</label>
+                  <PillSelect 
+                    value={formData.llm.reasoning_effort || 'medium'}
+                    onChange={(val) => handleChange('llm', 'reasoning_effort', val)}
+                    pillColor="var(--accent)"
+                    textColor="var(--bg-secondary)"
+                    options={[
+                      { id: 'low', label: 'Low' },
+                      { id: 'medium', label: 'Medium' },
+                      { id: 'high', label: 'High' }
+                    ]}
+                  />
+                </div>
+                <div className="form-group flex-2" style={{ flex: 2 }}></div>
+              </div>
+              {formData.llm.provider === 'custom_provider' && (
+                <div className="form-row" style={{ marginTop: '16px' }}>
+                  <div className="form-group flex-1">
+                    <label className="nord-label">Custom API Base URL</label>
+                    <input 
+                      className="nord-pill-input"
+                      type="text" 
+                      placeholder="e.g. http://localhost:1234/v1"
+                      value={formData.llm.base_url || ''} 
+                      onChange={e => handleChange('llm', 'base_url', e.target.value)} 
+                    />
+                  </div>
+                </div>
+              )}
               {formData.llm.provider === '9router' && (
                 <div style={{ background: 'rgba(136, 192, 208, 0.1)', border: '1px solid rgba(136, 192, 208, 0.3)', padding: '14px', borderRadius: '8px', marginTop: '16px' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -727,18 +769,149 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
                   Connect Nyxora to external services to expand its capabilities.
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
-                  <div>
-                    <h4 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Google Workspace</h4>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Nyxora to securely read emails and write to Google Drive locally.</p>
+                <div style={{ background: 'rgba(163, 190, 140, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(163, 190, 140, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Google Workspace</h4>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Allow Nyxora to securely manage emails, calendar, docs, and drive locally.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        className="nord-btn" 
+                        style={{ 
+                          background: 'rgba(136, 192, 208, 0.1)', 
+                          color: '#88c0d0', 
+                          border: '1px solid rgba(136, 192, 208, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setShowGoogleWizard(true)}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(136, 192, 208, 0.2)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(136, 192, 208, 0.1)'}
+                      >
+                        <Key size={14} /> Config
+                      </button>
+                      
+                      {googleConnected ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(163, 190, 140, 0.1)', color: '#a3be8c', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, fontSize: '0.9rem' }}>
+                            <span style={{ width: '8px', height: '8px', background: '#a3be8c', borderRadius: '50%', display: 'inline-block' }}></span>
+                            Connected
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await apiFetch('/api/auth/google', { method: 'DELETE' });
+                                if (res.ok) setGoogleConnected(false);
+                              } catch (e) {
+                                alert('Failed to disconnect.');
+                              }
+                            }}
+                            style={{
+                              background: 'transparent',
+                              color: '#bf616a',
+                              border: '1px solid rgba(191, 97, 106, 0.4)',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                            }}
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              const res = await apiFetch('/api/auth/google/url');
+                              const data = await res.json();
+                              if (res.ok) {
+                                window.open(data.url, '_blank', 'width=600,height=700');
+                              } else {
+                                alert('Setup Required: Please upload Client Secret first.');
+                              }
+                            } catch (e) {
+                              alert('Failed to initiate Google Auth.');
+                            }
+                          }}
+                          style={{
+                            background: 'var(--text-primary)',
+                            color: 'var(--bg-secondary)',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Sign in with Google
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button 
-                    className="nord-btn-primary" 
-                    style={{ background: 'var(--success)', color: 'var(--bg-secondary)', fontWeight: 600 }}
-                    onClick={() => setShowGoogleWizard(true)}
-                  >
-                    Setup OAuth
-                  </button>
+
+                  {!googleConnected && (
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed rgba(235, 203, 139, 0.3)' }}>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Used a <strong>Desktop App</strong> credential and got a "Connection Refused" error? Paste the broken URL here:
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="text" 
+                          placeholder="http://localhost/?state=..."
+                          value={authUrlInput}
+                          onChange={(e) => setAuthUrlInput(e.target.value)}
+                          style={{
+                            flex: 1,
+                            background: 'var(--bg-tertiary)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--text-primary)',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            outline: 'none',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                        <button 
+                          className="nord-btn-primary"
+                          disabled={!authUrlInput.trim()}
+                          onClick={async () => {
+                            try {
+                              const res = await apiFetch('/api/auth/google/submit-code', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ code: authUrlInput.trim() })
+                              });
+                              if (res.ok) {
+                                setGoogleConnected(true);
+                                setAuthUrlInput('');
+                              } else {
+                                const err = await res.json();
+                                alert('Verification failed: ' + err.error);
+                              }
+                            } catch (e) {
+                              alert('Network error.');
+                            }
+                          }}
+                        >
+                          Verify
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

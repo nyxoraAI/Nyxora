@@ -11,124 +11,29 @@ import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
 
-const EXECUTION_DISCIPLINE = `
-
-
-<tool_persistence>
-Use tools whenever they can increase the accuracy, completeness, or factual correctness of your response.
-Do NOT stop early if another tool call would materially improve the result.
-Continue using tools until the task is completely finished and verified.
-</tool_persistence>
-
-<mandatory_tool_use>
-NEVER answer the following using only your internal memory — ALWAYS use the relevant tool:
-- Cryptocurrency prices, market data, and portfolio values (e.g., use get_price_and_fiat_value)
-- Fiat exchange rates or currency conversions (fetch live rates, never guess)
-- Arithmetic, math, calculations
-- System State: OS version, RAM, processes
-- File contents, file sizes
-- Real-world current events
-</mandatory_tool_use>
-
-<fiat_conversion_rule>
-CRITICAL: If the user asks for the total fiat value of a certain amount of crypto (e.g., "3821 jrny to idr", "2 eth in usd", "cek saldo gue dirupiahin"), you MUST pass that amount into the 'get_price_and_fiat_value' tool's 'amount' parameter.
-You MUST also set the 'currency' parameter in 'get_price_and_fiat_value' ONLY IF the user explicitly requests a specific currency. If no specific currency is requested, LEAVE THE 'currency' PARAMETER BLANK so the system can use the user's default.
-NEVER fetch the price and then manually multiply it by the amount in your head. The LLM is prohibited from performing fiat multiplication. ALWAYS use the 'amount' parameter in 'get_price_and_fiat_value' to guarantee mathematical precision.
-NEVER use the 'analyze_market' tool if the user is only asking to check their balance in fiat/rupiah. 'analyze_market' does not do fiat conversion.
-</fiat_conversion_rule>
-
-<act_dont_ask>
-When a user's request has a clear, standard interpretation, take immediate ACTION instead of asking for clarification.
-</act_dont_ask>
-
-<task_completion>
-The deliverable must be a working artifact backed by real tool output — not just a description or a plan of how you would do it.
-NEVER fabricate, hallucinate, or forge tool outputs.
-</task_completion>
-`;
-
-import { getPath } from '../config/paths';
-import pc from 'picocolors';
+import { promptBuilder } from './promptBuilder';
 
 export const logger = new Logger();
 
 import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
-
+import { getPath } from '../config/paths';
+import pc from 'picocolors';
 
 async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3', userInput: string = ''): Promise<string> {
     const config = loadConfig();
-    let basePrompt = `You are Nyxora's Web3 Agent (DeFi Specialist).
-Current Time: ${new Date().toISOString()}
-Default Chain: ${config.agent.default_chain}
+    const provider = (config?.llm?.provider || '').toLowerCase();
+    let modelFamily: 'openai' | 'google' | 'anthropic' | 'grok' | 'unknown' = 'unknown';
+    if (provider.includes('openai')) modelFamily = 'openai';
+    else if (provider.includes('gemini') || provider.includes('google')) modelFamily = 'google';
+    else if (provider.includes('anthropic') || provider.includes('claude')) modelFamily = 'anthropic';
+    else if (provider.includes('grok') || provider.includes('xai')) modelFamily = 'grok';
 
-Reason internally. Never reveal private reasoning. Provide only concise conclusions, assumptions, and actionable steps.
-
-[WEB3 EXECUTION WORKFLOW]
-CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome naturally.
-CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
-CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config.agent.default_chain} unless specified.
-CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
-CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
-CRITICAL RULE 6: NETWORK SAFETY VALIDATION. NEVER GUESS chains or tokens. Ask for confirmation if ambiguous.
-CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data.
-CRITICAL RULE 8: AMOUNT PRECISION. Use 6 decimal places for precision, or 2 if >$10,000.
-CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' inside <think>. Warn if < 40%.
-
-${EXECUTION_DISCIPLINE}
-`;
-
-  // Inject Episodic Memories via Python RAG
-  try {
-    const ragRes = await fetch('http://127.0.0.1:8000/memory/rag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: userInput, top_k: 5 })
+    return await promptBuilder.buildSystemPrompt({
+        agentType: context,
+        userInput,
+        config,
+        modelFamily
     });
-    if (ragRes.ok) {
-      const ragData = await ragRes.json();
-      if (ragData.memories && ragData.memories.length > 0) {
-        basePrompt += `\n\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n`;
-        ragData.memories.forEach((mem: string) => {
-          basePrompt += `- ${mem}\n`;
-        });
-      }
-    }
-  } catch (e) {
-    // Fallback or ignore if Python ML engine is down
-  }
-
-  // Inject Active Cognitive Skills
-  const activeSOP = cognitiveManager.loadActiveCognitiveSkills(userInput);
-  if (activeSOP) {
-    basePrompt += `\n\n[ACTIVE COGNITIVE SKILLS]\n${activeSOP}\n`;
-  }
-  // Inject User Information & Personas from user.md
-  try {
-    const userMdPath = getPath('user.md');
-    if (fs.existsSync(userMdPath)) {
-      const userInstructions = fs.readFileSync(userMdPath, 'utf8');
-      basePrompt += `\n\n--- USER INFORMATION & PREFERENCES ---\n${userInstructions}\n`;
-    }
-  } catch (e) {
-    // Ignore error
-  }
-  
-  // HIGHEST PRIORITY: Inject observed user communication style (NyxDaemon)
-  try {
-    const strongPersonas = episodicDB.getStrongPersonas(0.5);
-    if (strongPersonas.length > 0) {
-      basePrompt += `\n\n--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
-      basePrompt += `CRITICAL: These are CONFIRMED user preferences observed across multiple conversations. You MUST apply them IMMEDIATELY and CONSISTENTLY, overriding any default tone or style instructions above.\n\n`;
-      strongPersonas.forEach(p => {
-        const label = p.category ? `[${p.category.toUpperCase()}]` : '[PREFERENCE]';
-        basePrompt += `${label} ${p.trait}\n`;
-      });
-    }
-  } catch (e) {
-    // Ignore
-  }
-
-  return basePrompt;
 }
 
 export async function processWeb3Intent(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string): Promise<string> {
@@ -260,7 +165,8 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx',
+        'send_telegram_file'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -414,8 +320,10 @@ export async function processWeb3IntentStream(
 
       let streamedContent = '';
       const response = await executeWithRetry(async (client) => {
+        streamedContent = '';
+        onChunk('[CLEAR_STREAM]');
         return await client.stream(
-          { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools },
+          { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools, reasoning_effort: config.llm.reasoning_effort },
           (chunk: string) => {
             streamedContent += chunk;
             onChunk(chunk);
@@ -432,18 +340,20 @@ export async function processWeb3IntentStream(
       logger.addEntry({
         role: 'assistant',
         content: responseMessage.content || '',
+        reasoning_content: (responseMessage as any).reasoning_content,
         tool_calls: responseMessage.tool_calls,
       }, sessionId);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         let finalContent = responseMessage.content || 'No response generated.';
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
+        finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
         fullResponse = finalContent;
         break;
       }
 
       // Tool calls detected — pause stream visually and execute tools
-      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'];
+      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
 

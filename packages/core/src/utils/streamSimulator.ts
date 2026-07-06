@@ -40,11 +40,9 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
       waitPromise = new Promise(r => { resolveWait = r; });
     }
     
-    while (queue.length > 0) {
-      const chars = queue.substring(0, 3);
-      queue = queue.substring(3);
-      originalOnChunk(chars);
-      await new Promise(r => setTimeout(r, 20));
+    if (queue.length > 0) {
+      originalOnChunk(queue);
+      queue = '';
     }
     
     isSimulating = false;
@@ -59,11 +57,20 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
 
   return {
     onChunk: (chunk: string) => {
+      if (chunk === '[CLEAR_STREAM]') {
+        accumulatedRaw = '';
+        sentLength = 0;
+        queue = '';
+        originalOnChunk('[CLEAR_STREAM]');
+        return;
+      }
       accumulatedRaw += chunk;
       
-      // Strip any <think> or <thought> block. 
-      // The (<\/\1>|$) part matches up to the closing tag, or up to the END of the string if it's unclosed.
-      const cleanText = accumulatedRaw.replace(/<(think|thought)[\s\S]*?(<\/\1>|$)/gi, '');
+      // Robust stripping: remove completely closed <think>...</think> blocks
+      let cleanText = accumulatedRaw.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '');
+      
+      // Also, if there's currently an OPEN <think> block at the end of the text, strip it too (so we don't stream it while it's generating)
+      cleanText = cleanText.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*$/i, '');
       
       if (cleanText.length > sentLength) {
         const newText = cleanText.substring(sentLength);
