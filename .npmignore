@@ -18,6 +18,7 @@ scratch/
 /wiki/
 /assets/
 config.yaml
+test/
 rpc_key.yaml
 packages/policy/policy.yaml
 keystore.json
