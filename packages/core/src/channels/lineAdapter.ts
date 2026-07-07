@@ -1,13 +1,14 @@
-import * as line from '@line/bot-sdk';
 import express from 'express';
 import { ChannelAdapter } from './ChannelManager';
 // import { processUserInput } from '../agent/reasoning'; // To be wired up
 
+
 export class LineAdapter implements ChannelAdapter {
     id: string = 'line';
     name: string = 'LINE';
-    private client: line.messagingApi.MessagingApiClient | undefined;
+    private client: any;
     private server: any;
+
 
     async initialize(): Promise<void> {
         console.log(`[LINE] Initializing...`);
@@ -24,13 +25,22 @@ export class LineAdapter implements ChannelAdapter {
             return;
         }
 
+        let line: any;
+        try {
+            line = await import('@line/bot-sdk');
+        } catch (e: any) {
+            console.error('[LINE] Cannot start: missing optional dependency "@line/bot-sdk".');
+            console.error('[LINE] Install it with: npm install -g @line/bot-sdk');
+            return;
+        }
+
         const lineConfig = { channelAccessToken, channelSecret };
         this.client = new line.messagingApi.MessagingApiClient({ channelAccessToken });
 
         const app = express();
         
         // Webhook route
-        app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
+        app.post('/webhook', line.middleware(lineConfig), async (req: any, res: any) => {
             Promise.all(req.body.events.map(this.handleEvent.bind(this)))
                 .then(() => res.status(200).end())
                 .catch((err) => {

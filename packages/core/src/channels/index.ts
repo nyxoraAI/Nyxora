@@ -1,40 +1,57 @@
 import { channelManager } from './ChannelManager';
-import { adapter as whatsappAdapter } from './whatsappAdapter';
-import { adapter as slackAdapter } from './slackAdapter';
-import { adapter as lineAdapter } from './lineAdapter';
-import { adapter as msteamsAdapter } from './msteamsAdapter';
-import { adapter as mattermostAdapter } from './mattermostAdapter';
-import { adapter as matrixAdapter } from './matrixAdapter';
-import { adapter as googlechatAdapter } from './googlechatAdapter';
-import { adapter as zaloAdapter } from './zaloAdapter';
-import { adapter as twitchAdapter } from './twitchAdapter';
-import { adapter as imessageAdapter } from './imessageAdapter';
-import { adapter as smsAdapter } from './smsAdapter';
-import { adapter as voicecallAdapter } from './voicecallAdapter';
-import { adapter as ircAdapter } from './ircAdapter';
-import { adapter as qqbotAdapter } from './qqbotAdapter';
-import { adapter as nostrAdapter } from './nostrAdapter';
-import { adapter as synologychatAdapter } from './synologychatAdapter';
-import { adapter as nextcloudtalkAdapter } from './nextcloudtalkAdapter';
 
-channelManager.register(whatsappAdapter);
-channelManager.register(slackAdapter);
-channelManager.register(lineAdapter);
-channelManager.register(msteamsAdapter);
-channelManager.register(mattermostAdapter);
-channelManager.register(matrixAdapter);
-channelManager.register(googlechatAdapter);
-channelManager.register(zaloAdapter);
-channelManager.register(twitchAdapter);
-channelManager.register(imessageAdapter);
-channelManager.register(smsAdapter);
-channelManager.register(voicecallAdapter);
-channelManager.register(ircAdapter);
-channelManager.register(qqbotAdapter);
-channelManager.register(nostrAdapter);
-channelManager.register(synologychatAdapter);
-channelManager.register(nextcloudtalkAdapter);
+// IMPORTANT: All channel adapters with optional/external dependencies MUST be
+// loaded lazily here (via dynamic import) to prevent startup crashes when the
+// required npm package is not installed on a global user's system.
+//
+// Only adapters that have ALL their dependencies listed in package.json can use
+// a top-level static import. Everything else must use dynamic import.
+//
+// Pattern: Try to import → if module missing, log a warning and skip.
 
-// Note: telegram and discord adapters will be registered later once refactored to implement ChannelAdapter.
+async function tryRegisterAdapter(channelId: string, adapterFile: string) {
+  try {
+    const mod = await import(`./${adapterFile}`);
+    const adapter = mod.adapter || mod.default;
+    if (adapter) {
+      channelManager.register(adapter);
+    }
+  } catch (e: any) {
+    if (e.code === 'MODULE_NOT_FOUND') {
+      // Extract the missing package name from the error message
+      const match = e.message?.match(/Cannot find module '([^']+)'/);
+      const missingPkg = match ? match[1] : 'unknown';
+      console.warn(`[ChannelManager] Skipping '${channelId}' adapter — optional dependency missing: ${missingPkg}`);
+      console.warn(`[ChannelManager]   Install it with: npm install -g ${missingPkg}`);
+    } else {
+      console.error(`[ChannelManager] Failed to load '${channelId}' adapter:`, e.message);
+    }
+  }
+}
+
+export async function registerAllAdapters(): Promise<void> {
+  await Promise.all([
+    tryRegisterAdapter('whatsapp', 'whatsappAdapter'),
+    tryRegisterAdapter('slack', 'slackAdapter'),
+    tryRegisterAdapter('line', 'lineAdapter'),
+    tryRegisterAdapter('msteams', 'msteamsAdapter'),
+    tryRegisterAdapter('mattermost', 'mattermostAdapter'),
+    tryRegisterAdapter('matrix', 'matrixAdapter'),
+    tryRegisterAdapter('googlechat', 'googlechatAdapter'),
+    tryRegisterAdapter('zalo', 'zaloAdapter'),
+    tryRegisterAdapter('twitch', 'twitchAdapter'),
+    tryRegisterAdapter('imessage', 'imessageAdapter'),
+    tryRegisterAdapter('sms', 'smsAdapter'),
+    tryRegisterAdapter('voicecall', 'voicecallAdapter'),
+    tryRegisterAdapter('irc', 'ircAdapter'),
+    tryRegisterAdapter('qqbot', 'qqbotAdapter'),
+    tryRegisterAdapter('nostr', 'nostrAdapter'),
+    tryRegisterAdapter('synologychat', 'synologychatAdapter'),
+    tryRegisterAdapter('nextcloudtalk', 'nextcloudtalkAdapter'),
+  ]);
+}
+
+// Note: telegram and discord adapters are registered directly in server.ts
+// because they are core supported channels with all deps in package.json.
 
 export { channelManager };

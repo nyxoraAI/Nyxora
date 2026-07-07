@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.8]
+### Bug Fixes — Global Compatibility & Dashboard Crash
+
+- **Dashboard Not Accessible via `nyxora dashboard` (Critical Fix)**: Resolved a crash-on-startup bug where the entire Core gateway process would exit with code `1` before binding to port 3000, making `http://localhost:3000` unreachable. Root cause: `channels/index.ts` performed static top-level imports of `baileys`, `@slack/bolt`, and `@line/bot-sdk` — packages that are **not listed in `package.json` dependencies** and therefore not installed on global npm users' machines. Resolved by refactoring `channels/index.ts` into a `registerAllAdapters()` async function that uses dynamic `import()` with `MODULE_NOT_FOUND` error handling. Missing adapters now log a clear warning and are skipped instead of crashing the process.
+- **WhatsApp Adapter Lazy Load**: Migrated `whatsappAdapter.ts` from a static `import makeWASocket from 'baileys'` to a lazy `await import('baileys')` inside `start()`, with a graceful error and install instructions if `baileys` is absent.
+- **Slack Adapter Lazy Load**: Migrated `slackAdapter.ts` `@slack/bolt` import to lazy initialization inside `start()`.
+- **LINE Adapter Lazy Load**: Migrated `lineAdapter.ts` `@line/bot-sdk` import to lazy initialization inside `start()`.
+
+### Bug Fixes — Windows & Cross-Platform Compatibility
+
+- **Unix Socket Crash on Windows** (`ENOENT`/`ENOTSUP`): Replaced hardcoded Unix Domain Socket (`/tmp/nyxora-signer.sock`) in `signer/server.ts` with a cross-platform IPC strategy. On Windows, the signer now listens on TCP `127.0.0.1:3002`; Unix/Mac keeps the existing UDS path for security.
+- **Policy Engine Cross-Platform IPC**: Refactored all Signer proxy calls in `policy/server.ts` into a unified `signerRequestOptions()` helper that automatically selects Unix socket (Linux/Mac) or TCP (Windows). The optional UDS IPC server is now skipped entirely on Windows.
+- **vaultClient TCP Fallback**: Refactored `vaultClient.ts` with a `getPolicyOptions()` helper — on Windows, all Policy Engine requests use TCP; on Linux/Mac, Unix socket is preferred if available with automatic TCP fallback.
+- **Python Path on Windows**: Launcher now resolves the ML Engine Python executable to `venv/Scripts/python.exe` on Windows instead of `venv/bin/python`, preventing silent "Python not found" at startup.
+- **`pkill` Skipped on Windows**: Graceful shutdown in `launcher.ts` now guards `pkill -f ts-node` and `pkill -f uvicorn` behind a `process.platform !== 'win32'` check.
+- **Unix Socket Doctor Checks Skipped on Windows**: `nyxora doctor` now conditionally skips UDS socket health checks on Windows where they are not applicable.
+
+### Improvements — Configuration & Telemetry
+
+- **Cloudflare Tunnel Configurable**: Cloudflare auto-tunnel can now be disabled by setting `cloudflare_tunnel: false` in `~/.nyxora/config/config.yaml`. Previously it always launched unconditionally.
+- **ML Engine Health Check in `nyxora doctor`**: Added a dedicated check (#7) that pings `http://127.0.0.1:8000/health` to detect if the Python ML Engine sidecar is running. When daemon is stopped, it verifies the venv is installed and guides with `nyxora setup`.
+- **Node.js Version Enforcement**: Added `"engines": { "node": ">=22.0.0" }` to `package.json`. npm will now warn users attempting to install on incompatible Node.js versions instead of silently installing and crashing at runtime.
+- **Locale-Neutral System Prompt**: Replaced Indonesian-specific examples (`"cek saldo gue dirupiahin"`, `"fiat/rupiah"`) in `promptBuilder.ts` with multilingual examples (`"0.5 BTC in EUR"`, `"convert 100 SOL to JPY"`) to align with global user base.
+- **English-Only Source Code**: Translated the remaining Indonesian comment in `nyxDaemon.ts` (`// Kirim riwayat percakapan...`) to English for open-source contributor clarity.
+
 ## [26.7.6]
 ### Features & Architecture
 - **ML Engine Custom Provider Support**: Fixed a `500 Internal Server Error` in the Python ML Engine by explicitly supporting the `custom` and `openrouter` providers and gracefully handling empty API keys with a local fallback, ensuring robust execution for cognitive reasoning and RAG memory tasks.

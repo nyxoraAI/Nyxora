@@ -55,7 +55,8 @@ import { executeApprove, executeAaveSupply, executeVaultDeposit, executeUniv3Min
 import { executeRevokeApproval } from '../web3/skills/revokeApprovals';
 import { startTelegramBot } from '../channels/telegram';
 import { startDiscordBot } from '../channels/discordAdapter';
-import { channelManager } from '../channels/index';
+import { channelManager, registerAllAdapters } from '../channels/index';
+
 import { startBridgeWatcher } from '../agent/bridgeWatcher';
 import { eventListener } from '../web3/eventListener';
 import { formatTransactionSuccess, formatTransactionError } from '../utils/formatter';
@@ -1392,9 +1393,15 @@ export async function startServer() {
     // Start Native Channel Engine (New Architecture)
     const config = require('../config/parser').loadConfig();
     const activeChannels = config.channels?.active || [];
-    channelManager.startAll(activeChannels).catch((e: any) => {
+    // Register all optional adapters lazily (catches missing deps gracefully)
+    registerAllAdapters().then(() => {
+      channelManager.startAll(activeChannels).catch((e: any) => {
         console.error('[ChannelManager] Error starting channels:', e);
+      });
+    }).catch((e: any) => {
+      console.error('[ChannelManager] Error registering adapters:', e);
     });
+
     
     // Start Asynchronous Bridge Watcher
     startBridgeWatcher();

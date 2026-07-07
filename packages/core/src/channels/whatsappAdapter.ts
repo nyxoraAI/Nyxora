@@ -1,6 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason } from 'baileys';
 import { ChannelAdapter } from './ChannelManager';
-// import { processUserInput } from '../agent/reasoning'; // To be wired up
 
 export class WhatsappAdapter implements ChannelAdapter {
     id: string = 'whatsapp';
@@ -12,14 +10,26 @@ export class WhatsappAdapter implements ChannelAdapter {
     }
 
     async start(): Promise<void> {
+        // Lazy import — baileys is an optional dependency not bundled with Nyxora core.
+        // Install it separately if you want WhatsApp support: npm install -g baileys
+        let makeWASocket: any, useMultiFileAuthState: any, DisconnectReason: any;
+        try {
+            const baileys = await import('baileys');
+            makeWASocket = baileys.default || baileys;
+            useMultiFileAuthState = baileys.useMultiFileAuthState;
+            DisconnectReason = baileys.DisconnectReason;
+        } catch (e: any) {
+            console.error('[WhatsApp] Cannot start: missing optional dependency "baileys".');
+            console.error('[WhatsApp] Install it with: npm install -g baileys');
+            return;
+        }
+
         const { state, saveCreds } = await useMultiFileAuthState('whatsapp_auth_info');
         
         // Create a silent logger to prevent Baileys from spamming the terminal with raw JSON
         const pino = require('pino');
         const logger = pino({ level: 'silent' });
 
-        // TypeScript ignores for baileys internal types
-        // @ts-ignore
         this.sock = makeWASocket.default ? makeWASocket.default({
             auth: state,
             logger

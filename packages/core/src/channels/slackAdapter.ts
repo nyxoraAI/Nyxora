@@ -1,4 +1,3 @@
-import { App } from '@slack/bolt';
 import { ChannelAdapter } from './ChannelManager';
 // import { processUserInput } from '../agent/reasoning'; // To be wired up
 
@@ -18,6 +17,16 @@ export class SlackAdapter implements ChannelAdapter {
 
         if (!token || !appToken) {
             console.error('[Slack] Missing bot_token or app_token in config.yaml. Please set them up.');
+            return;
+        }
+
+        let App: any;
+        try {
+            const boltModule = await import('@slack/bolt');
+            App = boltModule.App;
+        } catch (e: any) {
+            console.error('[Slack] Cannot start: missing optional dependency "@slack/bolt".');
+            console.error('[Slack] Install it with: npm install -g @slack/bolt');
             return;
         }
 
