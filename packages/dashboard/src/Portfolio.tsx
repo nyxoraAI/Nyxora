@@ -546,7 +546,7 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
                     opacity: 0.7
                   }}
                 />
-                {fetchingMetadata && <div className="dot spin" style={{ position: 'absolute', right: '16px', top: '16px', width: '12px', height: '12px', border: '2px solid #88C0D0', borderTopColor: 'transparent', borderRadius: '50%' }}></div>}
+                {fetchingMetadata && <div className="dot spin" style={{ position: 'absolute', right: '16px', top: '16px', width: '12px', height: '12px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>}
               </div>
             </div>
 

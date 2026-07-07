@@ -60,7 +60,7 @@ export const RouterSelector: React.FC<RouterSelectorProps> = ({ value, onChange 
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
-        <RouterImage id={currentRouter.id} size={16} color="var(--chat-user-text)" />
+        <RouterImage id={currentRouter.id} size={16} color="var(--accent-text)" />
         <span className="network-label">{currentRouter.label}</span>
         <ChevronDown size={14} className="network-chevron" />
       </button>

@@ -15,18 +15,27 @@ function getInternalToken(): string | undefined {
   return undefined;
 }
 
+// Cross-platform IPC: check for Unix socket on Linux/Mac, use TCP on Windows
+const IS_WINDOWS = process.platform === 'win32';
+
+function getPolicyOptions(path_: string, method: string, token?: string, extraHeaders?: Record<string, any>): http.RequestOptions {
+  const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
+  const headers: Record<string, any> = {
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(extraHeaders || {})
+  };
+  // On Linux/Mac, prefer Unix socket if available (faster IPC)
+  if (!IS_WINDOWS && fs.existsSync(POLICY_SOCKET)) {
+    return { socketPath: POLICY_SOCKET, path: path_, method, headers };
+  }
+  // Fallback: TCP (always used on Windows)
+  return { host: '127.0.0.1', port: parseInt(process.env.POLICY_PORT || '3001', 10), path: path_, method, headers };
+}
+
 export async function getAddress(): Promise<string> {
   const token = getInternalToken();
   return new Promise((resolve, reject) => {
-    const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
-    const options = {
-      socketPath: fs.existsSync(POLICY_SOCKET) ? POLICY_SOCKET : undefined,
-      host: fs.existsSync(POLICY_SOCKET) ? undefined : '127.0.0.1',
-      port: fs.existsSync(POLICY_SOCKET) ? undefined : (process.env.POLICY_PORT || 3001),
-      path: '/address',
-      method: 'GET',
-      headers: (token ? { 'Authorization': `Bearer ${token}` } : {})
-    };
+    const options = getPolicyOptions('/address', 'GET', token);
 
     const req = http.request(options, (res) => {
       let data = '';
@@ -57,6 +66,7 @@ export async function getAddress(): Promise<string> {
   });
 }
 
+
 export async function submitTransaction(txPayload: any): Promise<string> {
   const token = getInternalToken();
   if (txPayload.details) {
@@ -76,24 +86,15 @@ export async function submitTransaction(txPayload: any): Promise<string> {
     txPayload.internalSignature = crypto.createHmac('sha256', secret).update(txPayload.chainName + amountWei).digest('hex');
   }
   return new Promise((resolve, reject) => {
-    const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
     const sanitizedPayload = JSON.parse(JSON.stringify(txPayload, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
     ));
     const payloadBuffer = encode(sanitizedPayload);
 
-    const options = {
-      socketPath: fs.existsSync(POLICY_SOCKET) ? POLICY_SOCKET : undefined,
-      host: fs.existsSync(POLICY_SOCKET) ? undefined : '127.0.0.1',
-      port: fs.existsSync(POLICY_SOCKET) ? undefined : (process.env.POLICY_PORT || 3001),
-      path: '/request-tx',
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/msgpack',
-        'Content-Length': payloadBuffer.length,
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    };
+    const options = getPolicyOptions('/request-tx', 'POST', token, {
+      'Content-Type': 'application/msgpack',
+      'Content-Length': payloadBuffer.length
+    });
 
     const req = http.request(options, (res) => {
       let data = '';

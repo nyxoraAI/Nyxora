@@ -32,7 +32,21 @@ def get_llm():
             api_key = os.environ.get('ANTHROPIC_API_KEY', '')
         return ChatAnthropic(model_name=model_name, anthropic_api_key=api_key, temperature=0.2)
         
+    elif provider == 'openrouter':
+        from langchain_openai import ChatOpenAI
+        api_key = creds.get('openrouter_key', creds.get('openrouter', ''))
+        if not api_key: api_key = "local"
+        return ChatOpenAI(model=model_name, openai_api_key=api_key, base_url="https://openrouter.ai/api/v1", temperature=0.2)
+
+    elif provider == 'custom':
+        from langchain_openai import ChatOpenAI
+        api_key = creds.get('custom_provider_key', creds.get('custom', ''))
+        if not api_key: api_key = "local"
+        base_url = config.core.get('llm', {}).get('base_url', '')
+        return ChatOpenAI(model=model_name, openai_api_key=api_key, base_url=base_url, temperature=0.2)
+
     else:
         # Fallback to OpenAI if unknown
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model='gpt-4o-mini', temperature=0.2)
+        api_key = creds.get('openai', os.environ.get('OPENAI_API_KEY', ''))
+        return ChatOpenAI(model='gpt-4o-mini', openai_api_key=api_key if api_key else "local", temperature=0.2)

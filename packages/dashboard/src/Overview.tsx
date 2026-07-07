@@ -149,7 +149,16 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
           {(() => {
             const provider = config.llm.provider.toLowerCase();
             const isLocalProxy = provider === '9router' || provider === 'ollama';
-            const apiKey = config.credentials ? config.credentials[`${provider}_key`] : undefined;
+            let apiKey = config.credentials ? config.credentials[`${provider}_key`] : undefined;
+            
+            // Special mappings for specific providers
+            if (provider === 'custom' && !apiKey) {
+              apiKey = config.credentials?.['custom_provider_key'];
+            }
+            if (provider === '9router' && !apiKey) {
+              apiKey = config.credentials?.['9router_key'];
+            }
+
             const isConfigured = (apiKey && apiKey.length > 5) || isLocalProxy;
             return (
               <>

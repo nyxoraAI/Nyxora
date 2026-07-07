@@ -16,7 +16,14 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const SOCKET_PATH = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
+// Cross-platform IPC: Unix socket on Linux/Mac, TCP on Windows
+// Windows does not support Unix domain sockets natively (without WSL).
+const IS_WINDOWS = process.platform === 'win32';
+const SIGNER_PORT = parseInt(process.env.SIGNER_PORT || '3002', 10);
+const SOCKET_PATH = IS_WINDOWS
+  ? undefined
+  : (process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock');
+
 const tokenPathAuth = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
 let JWT_SECRET = '';
 try {
@@ -79,7 +86,7 @@ app.post('/sign-transaction', async (req, res) => {
   }
 });
 
-if (fs.existsSync(SOCKET_PATH)) {
+if (!IS_WINDOWS && SOCKET_PATH && fs.existsSync(SOCKET_PATH)) {
   try {
     fs.unlinkSync(SOCKET_PATH);
   } catch (err) {
@@ -87,23 +94,35 @@ if (fs.existsSync(SOCKET_PATH)) {
   }
 }
 
-app.listen(SOCKET_PATH, () => {
-  try {
-    fs.chmodSync(SOCKET_PATH, 0o600);
-    console.log(`[Signer Vault] Listening on Unix Socket: ${SOCKET_PATH}`);
-  } catch (err) {
-    console.error('Failed to chmod socket:', err);
-  }
-});
+if (IS_WINDOWS) {
+  // Windows: Use TCP on localhost (Unix sockets not supported without WSL)
+  app.listen(SIGNER_PORT, '127.0.0.1', () => {
+    console.log(`[Signer Vault] Listening on TCP 127.0.0.1:${SIGNER_PORT} (Windows mode)`);
+  });
+} else {
+  // Linux/Mac: Use Unix domain socket for better IPC security
+  app.listen(SOCKET_PATH!, () => {
+    try {
+      fs.chmodSync(SOCKET_PATH!, 0o600);
+      console.log(`[Signer Vault] Listening on Unix Socket: ${SOCKET_PATH}`);
+    } catch (err) {
+      console.error('Failed to chmod socket:', err);
+    }
+  });
+}
+
 
 // Graceful Shutdown
 const gracefulShutdown = () => {
   signer.lock();
-  try {
-    if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
-  } catch {}
+  if (!IS_WINDOWS && SOCKET_PATH) {
+    try {
+      if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
+    } catch {}
+  }
   process.exit(0);
 };
+
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);

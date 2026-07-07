@@ -203,10 +203,10 @@ NEVER answer the following using only your internal memory — ALWAYS use the re
 </mandatory_tool_use>
 
 <fiat_conversion_rule>
-CRITICAL: If the user asks for the total fiat value of a certain amount of crypto (e.g., "3821 jrny to idr", "2 eth in usd", "cek saldo gue dirupiahin"), you MUST pass that amount into the 'get_price_and_fiat_value' tool's 'amount' parameter.
+CRITICAL: If the user asks for the total fiat value of a certain amount of crypto (e.g., "3821 JRNY to IDR", "2 ETH in USD", "how much is 0.5 BTC in EUR", "convert 100 SOL to JPY"), you MUST pass that amount into the 'get_price_and_fiat_value' tool's 'amount' parameter.
 You MUST also set the 'currency' parameter in 'get_price_and_fiat_value' ONLY IF the user explicitly requests a specific currency. If no specific currency is requested, LEAVE THE 'currency' PARAMETER BLANK so the system can use the user's default.
 NEVER fetch the price and then manually multiply it by the amount in your head. The LLM is prohibited from performing fiat multiplication. ALWAYS use the 'amount' parameter in 'get_price_and_fiat_value' to guarantee mathematical precision.
-NEVER use the 'analyze_market' tool if the user is only asking to check their balance in fiat/rupiah. 'analyze_market' does not do fiat conversion.
+NEVER use the 'analyze_market' tool if the user is only asking to check their balance in local fiat currency. 'analyze_market' does not do fiat conversion.
 </fiat_conversion_rule>`;
     } else {
       return `<mandatory_tool_use>

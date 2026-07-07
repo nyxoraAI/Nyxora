@@ -170,7 +170,45 @@ export function startTelegramBot() {
       console.log(`[Telegram] Received from ${ctx.from?.first_name || 'User'}: ${text}`);
       await ctx.replyWithChatAction('typing');
 
-      let isDrafting = false; // Kept for compatibility if used elsewhere
+      let buffer = '';
+      let progressMsgId: number | null = null;
+      let pendingEdit: NodeJS.Timeout | null = null;
+      let isFinalized = false;
+      // FIX: Track whether the last chunk was the final content (fast-return path).
+      // If true, the buffer already contains the final response — no need to re-send.
+      let finalContentAlreadyStreamed = false;
+      
+      const flushEdit = async () => {
+        if (isFinalized) return;
+        const displayHtml = formatToTelegramHTML(buffer);
+        try {
+          if (!progressMsgId) {
+            const sent = await ctx.reply(displayHtml, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any });
+            progressMsgId = sent.message_id;
+          } else {
+            // RC#4 FIX: Use Grammy's API instead of raw fetch()
+            // Raw fetch() had no response.ok check — 429 errors were silently swallowed.
+            // Grammy's editMessageText throws on API errors, allowing proper handling.
+            await ctx.api.editMessageText(ctx.chat.id, progressMsgId, displayHtml, { parse_mode: 'HTML' });
+          }
+        } catch (e: any) {
+          // During live streaming, 429 (rate limit) is expected and acceptable.
+          // The final edit will correct any missed intermediate updates.
+          const is429 = e?.error_code === 429 || e?.description?.includes('Too Many Requests');
+          const isUnchanged = e?.description?.includes('message is not modified');
+          if (!is429 && !isUnchanged) {
+            console.warn('[Telegram] Live edit failed:', e?.description || e?.message);
+          }
+        }
+      };
+
+      const scheduleEdit = () => {
+        if (pendingEdit || isFinalized) return;
+        pendingEdit = setTimeout(async () => {
+          pendingEdit = null;
+          await flushEdit();
+        }, 1100); // 1.1s safe limit to avoid 429 without hitting queue
+      };
 
       // Keep sending 'typing' action every 5 seconds while processing
       const typingInterval = setInterval(() => {
@@ -178,21 +216,146 @@ export function startTelegramBot() {
       }, 5000);
 
       const onChunk = async (chunk: string) => {
-        // Disabled streaming on Telegram as requested by user.
-        // It will only show 'typing...' and then send the final message.
+        if (chunk === '[CLEAR_STREAM]') {
+          // Turn 1 starting — reset to clean state
+          buffer = '⏳ Processing...';
+          finalContentAlreadyStreamed = false;
+        } else if (chunk === '[TOOL_CALL_DETECTED]') {
+          // BUG#1 FIX: LLM made a tool call — wipe turn-1 planning/thinking text from buffer.
+          // The LLM often generates "chain-of-thought" text before calling a tool (e.g. "Let me
+          // check the data first..."). This should NOT be shown to users. We reset the buffer to
+          // a clean progress indicator, preserving progressMsgId so the same message gets reused.
+          buffer = '⏳ Processing...';
+          finalContentAlreadyStreamed = false;
+          scheduleEdit(); // Update Telegram immediately to show clean state
+        } else {
+          buffer += chunk;
+        }
+        scheduleEdit();
       };
 
       const onProgress = async (msg: string) => {
-        // Disabled streaming on Telegram.
+        buffer += `\n${msg}\n`;
+        scheduleEdit();
       };
 
       try {
         const response = await processUserInputStream(
           text, onChunk, onProgress, `telegram_${ctx.chat?.id}`
         );
+        isFinalized = true;
+        if (pendingEdit) {
+            clearTimeout(pendingEdit);
+            pendingEdit = null;
+        }
         clearInterval(typingInterval);
 
-        // Finalize by sending the permanent message (which replaces the draft)
+        // ── Message Splitting Helper ─────────────────────────────────────────
+        // BUG#2 FIX: Telegram hard-limits all text to 4096 chars.
+        // Long responses (comprehensive analysis, detailed reports) frequently exceed this.
+        // Split at natural boundaries: paragraphs → newlines → words. Never split inside HTML tags.
+        const TELEGRAM_MAX = 4000; // 96-char buffer below 4096 hard limit
+
+        const splitHtmlMessage = (html: string): string[] => {
+          if (html.length <= TELEGRAM_MAX) return [html];
+          const chunks: string[] = [];
+          let remaining = html;
+
+          while (remaining.length > TELEGRAM_MAX) {
+            let splitAt = TELEGRAM_MAX;
+
+            // Prefer paragraph break (\n\n)
+            const lastPara = remaining.lastIndexOf('\n\n', TELEGRAM_MAX);
+            if (lastPara > TELEGRAM_MAX / 2) {
+              splitAt = lastPara + 2;
+            } else {
+              // Fall back to newline
+              const lastNewline = remaining.lastIndexOf('\n', TELEGRAM_MAX);
+              if (lastNewline > TELEGRAM_MAX / 2) {
+                splitAt = lastNewline + 1;
+              } else {
+                // Fall back to word boundary
+                const lastSpace = remaining.lastIndexOf(' ', TELEGRAM_MAX);
+                if (lastSpace > TELEGRAM_MAX / 2) splitAt = lastSpace + 1;
+                // Hard cut as last resort
+              }
+            }
+
+            chunks.push(remaining.substring(0, splitAt).trim());
+            remaining = remaining.substring(splitAt).trim();
+          }
+
+          if (remaining.length > 0) chunks.push(remaining);
+          return chunks;
+        };
+
+        // ── Reliable Final Send ──────────────────────────────────────────────
+        // RC#3 FIX: Retry on 429 with exponential backoff.
+        // BUG#2 FIX: Detect MESSAGE_TOO_LONG and split into multiple messages.
+        const editFinal = async (html: string, markup?: any): Promise<void> => {
+          const htmlChunks = splitHtmlMessage(html);
+          const MAX_ATTEMPTS = 3;
+
+          for (let ci = 0; ci < htmlChunks.length; ci++) {
+            const chunk = htmlChunks[ci];
+            const isLast = ci === htmlChunks.length - 1;
+            const chunkMarkup = isLast ? markup : undefined;
+
+            let sent = false;
+            for (let attempt = 0; attempt < MAX_ATTEMPTS && !sent; attempt++) {
+              try {
+                if (ci === 0 && progressMsgId) {
+                  // Edit the existing in-progress message with first chunk
+                  await ctx.api.editMessageText(ctx.chat.id, progressMsgId, chunk, { parse_mode: 'HTML', reply_markup: chunkMarkup });
+                } else {
+                  // Send additional chunks as new messages
+                  await ctx.reply(chunk, { parse_mode: 'HTML', reply_markup: chunkMarkup, reply_parameters: { message_id: ctx.message.message_id } as any });
+                }
+                sent = true;
+              } catch (e: any) {
+                const is429 = e?.error_code === 429 || e?.description?.includes('Too Many Requests');
+                const isUnchanged = e?.description?.includes('message is not modified');
+                const isTooLong = e?.description?.includes('MESSAGE_TOO_LONG');
+
+                if (isUnchanged) { sent = true; break; }
+
+                if (is429 && attempt < MAX_ATTEMPTS - 1) {
+                  const waitMs = (attempt + 1) * 2000;
+                  console.warn(`[Telegram] Final edit 429. Retry in ${waitMs}ms (attempt ${attempt + 1}/${MAX_ATTEMPTS})`);
+                  await new Promise(r => setTimeout(r, waitMs));
+                  continue;
+                }
+
+                if (isTooLong) {
+                  // This should not happen after splitting, but handle defensively
+                  console.error('[Telegram] Chunk still too long after split — hard-truncating.');
+                  const truncated = chunk.substring(0, TELEGRAM_MAX - 100) + '...\n\n_(Response truncated — ask again for details)_';
+                  await ctx.reply(truncated, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any }).catch(() => {});
+                  sent = true;
+                  break;
+                }
+
+                console.error(`[Telegram] editFinal attempt ${attempt + 1} failed: ${e?.description || e?.message}`);
+
+                if (attempt === MAX_ATTEMPTS - 1) {
+                  // All retries exhausted — last resort: send as new message
+                  console.warn('[Telegram] All retries exhausted. Sending as new message.');
+                  await ctx.reply(chunk, { parse_mode: 'HTML', reply_markup: chunkMarkup, reply_parameters: { message_id: ctx.message.message_id } as any }).catch(fe => {
+                    console.error('[Telegram] CRITICAL: Fallback reply also failed:', fe.message);
+                  });
+                  sent = true;
+                }
+              }
+            }
+          }
+        };
+
+        const finalHtml = formatToTelegramHTML(response);
+
+        const cleanBuffer = buffer.replace(/\n⏳ Processing\.\.\.\n?/g, '').replace(/\n_⚡[^\n]*_\n?/g, '').trim();
+        const cleanResponse = response.trim();
+        finalContentAlreadyStreamed = cleanBuffer === cleanResponse || buffer.includes(cleanResponse);
+
         let replyMarkup: any = undefined;
         if (/Reply \*\*Yes\*\*/i.test(response) && /\*\*No\*\* to cancel/i.test(response)) {
           replyMarkup = new InlineKeyboard()
@@ -200,18 +363,13 @@ export function startTelegramBot() {
             .text('❌ Reject', 'tx_reject');
         }
 
-        await ctx.reply(
-          formatToTelegramHTML(response),
-          { parse_mode: 'HTML', reply_markup: replyMarkup, reply_parameters: { message_id: ctx.message.message_id } }
-        ).catch((e) => {
-          console.error("[Telegram] CRITICAL: ctx.reply failed in text handler:", e.message);
-        });
+        await editFinal(finalHtml, replyMarkup);
       } catch (error: any) {
         clearInterval(typingInterval);
         console.error('[Telegram] Error processing message:', error);
         await ctx.reply(
           '❌ Sorry, I encountered an error while processing your message.',
-          { reply_parameters: { message_id: ctx.message.message_id } }
+          { reply_parameters: { message_id: ctx.message.message_id } as any }
         ).catch(() => {});
       }
     });
@@ -228,33 +386,102 @@ export function startTelegramBot() {
         if (!ctx.chat) return;
         await ctx.replyWithChatAction('typing');
         
-        const draft_id = Math.floor(Math.random() * 100000000) + 1;
-        let buffer = '';
-        let lastDraftAt = 0;
-        let isDrafting = false;
-        
         const typingInterval = setInterval(() => {
           ctx.replyWithChatAction('typing').catch(() => {});
         }, 5000);
         
+        let buffer = '';
+        let progressMsgId: number | null = null;
+        let pendingEdit: NodeJS.Timeout | null = null;
+        let isFinalized = false;
+        
+        const flushEdit = async () => {
+          if (isFinalized) return;
+          const displayHtml = formatToTelegramHTML(buffer);
+          try {
+            if (!progressMsgId) {
+              const sent = await ctx.reply(displayHtml, { parse_mode: 'HTML' });
+              progressMsgId = sent.message_id;
+            } else {
+              // RC#4 FIX: Use Grammy API instead of raw fetch()
+              await ctx.api.editMessageText(ctx.chat.id, progressMsgId, displayHtml, { parse_mode: 'HTML' });
+            }
+          } catch (e: any) {
+            const is429 = e?.error_code === 429 || e?.description?.includes('Too Many Requests');
+            const isUnchanged = e?.description?.includes('message is not modified');
+            if (!is429 && !isUnchanged) {
+              console.warn('[Telegram] Callback live edit failed:', e?.description || e?.message);
+            }
+          }
+        };
+
+        const scheduleEdit = () => {
+          if (pendingEdit || isFinalized) return;
+          pendingEdit = setTimeout(async () => {
+            pendingEdit = null;
+            await flushEdit();
+          }, 1100);
+        };
+        
         const onChunk = async (chunk: string) => {
-          // Disabled streaming on Telegram.
+          if (chunk === '[CLEAR_STREAM]') {
+            buffer = '⏳ Processing...';
+          } else {
+            buffer += chunk;
+          }
+          scheduleEdit();
         };
 
         const onProgress = async (msg: string) => {
-          // Disabled streaming on Telegram.
+          buffer += `\n${msg}\n`;
+          scheduleEdit();
         };
 
         try {
           const response = await processUserInputStream(simulatedText, onChunk, onProgress, `telegram_${ctx.chat.id}`);
+          isFinalized = true;
+          if (pendingEdit) {
+            clearTimeout(pendingEdit);
+            pendingEdit = null;
+          }
           clearInterval(typingInterval);
+
           let replyMarkup: any = undefined;
           if (/Reply \*\*Yes\*\*/i.test(response) && /\*\*No\*\* to cancel/i.test(response)) {
             replyMarkup = new InlineKeyboard().text('✅ Approve', 'tx_approve').text('❌ Reject', 'tx_reject');
           }
-          await ctx.reply(formatToTelegramHTML(response), { parse_mode: 'HTML', reply_markup: replyMarkup }).catch((e) => {
-             console.error("[Telegram] CRITICAL: ctx.reply failed in callback:", e.message);
-          });
+          const finalHtml = formatToTelegramHTML(response);
+
+          // RC#3 FIX: Same retry + fallback logic as the text message handler
+          const editFinalCb = async (html: string, markup?: any): Promise<void> => {
+            const MAX_ATTEMPTS = 3;
+            for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+              try {
+                if (progressMsgId) {
+                  await ctx.api.editMessageText(ctx.chat.id, progressMsgId, html, { parse_mode: 'HTML', reply_markup: markup });
+                } else {
+                  await ctx.reply(html, { parse_mode: 'HTML', reply_markup: markup });
+                }
+                return;
+              } catch (e: any) {
+                const is429 = e?.error_code === 429 || e?.description?.includes('Too Many Requests');
+                const isUnchanged = e?.description?.includes('message is not modified');
+                if (isUnchanged) return;
+                if (is429 && attempt < MAX_ATTEMPTS - 1) {
+                  await new Promise(r => setTimeout(r, (attempt + 1) * 2000));
+                  continue;
+                }
+                if (attempt === MAX_ATTEMPTS - 1) {
+                  await ctx.reply(html, { parse_mode: 'HTML', reply_markup: markup }).catch(fe => {
+                    console.error('[Telegram] CRITICAL: Callback fallback reply failed:', fe.message);
+                  });
+                }
+                return;
+              }
+            }
+          };
+          await editFinalCb(finalHtml, replyMarkup);
+
         } catch (error) {
           clearInterval(typingInterval);
           await ctx.reply('❌ Sorry, I encountered an error.', {}).catch(() => {});

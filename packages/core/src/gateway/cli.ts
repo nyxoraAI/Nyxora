@@ -12,12 +12,13 @@ import path from 'path';
 import os from 'os';
 import open from 'open';
 import { getAppDir, getPath } from '../config/paths';
+console.log(`--- CLI.TS STARTED (PID: ${process.pid}) ---`);
+import { loadConfig, saveApiKeys } from '../config/parser';
 import { startServer } from './server';
 import { runSetupWizard } from './setup';
 import { password, isCancel, confirm } from '@clack/prompts';
 import { getSessionToken } from '../utils/state';
 import pc from 'picocolors';
-import { saveApiKeys } from '../config/parser';
 
 async function main() {
   // 1. Determine configuration directory

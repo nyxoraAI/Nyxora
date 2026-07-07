@@ -123,43 +123,39 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 The following diagram illustrates Nyxora's **6-Tier Hybrid Architecture**, showing the isolated communication channels across the ecosystem.
 
-```text
-+-------------------------------------------------------------+
-|                     Nyxora 6-Tier Architecture              |
-+-------------------------------------------------------------+
+```mermaid
+graph TD
+    classDef default fill:#1E1E2E,stroke:#4C4F69,stroke-width:2px,color:#CDD6F4;
+    classDef external fill:#11111B,stroke:#F38BA8,stroke-width:2px,color:#F38BA8,stroke-dasharray: 5 5;
+    classDef ui fill:#89B4FA,stroke:#1E1E2E,stroke-width:2px,color:#11111B;
+    classDef core fill:#A6E3A1,stroke:#1E1E2E,stroke-width:2px,color:#11111B;
+    classDef policy fill:#F9E2AF,stroke:#1E1E2E,stroke-width:2px,color:#11111B;
+    classDef signer fill:#F38BA8,stroke:#1E1E2E,stroke-width:2px,color:#11111B;
+    classDef blockchain fill:#CBA6F7,stroke:#1E1E2E,stroke-width:2px,color:#11111B;
 
-    [ User / External Client ]
-               |
-               v
-+-----------------------------+       +-------------------------+
-|     Dashboard (UI)          |       |      MCP Server         |
-|        Port 5173            |       |       Port 3001         |
-+-----------------------------+       +-------------------------+
-               |                                  |
-               +---------------+------------------+
-                               |
-                               v
-                    +--------------------+
-                    |   Core LLM Runtime | <--- (NLP Parsing, Routing,
-                    |      Port 3000     |       Agent Logic)
-                    +--------------------+
-                      ^                |
-       (RAG & Math)   |                |  (Draft Transaction)
-                      v                v
-+-------------------------+   +-------------------------------+
-|       ML Engine         |   |    Policy Engine (Guard)      |
-|       Port 8000         |   |  Unix Socket (IPC) / Loopback |
-+-------------------------+   +-------------------------------+
-                                               |
-                                               | (Approved Payload)
-                                               v
-                              +-------------------------------+
-                              |    Signer Vault (Safe)        |
-                              |       Unix Socket (IPC)       |
-                              +-------------------------------+
-                                               |
-                                               v
-                                      [ Blockchain RPC ]
+    User["User / External Client"]:::external
+
+    Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
+    MCP["MCP Server<br/>Port 3001"]:::ui
+
+    Core["Core LLM Runtime<br/>Port 3000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
+
+    ML["ML Engine<br/>Port 8000"]:::core
+    Policy["Policy Engine (Guard)<br/>Unix Socket (IPC) / Loopback"]:::policy
+    Signer["Signer Vault (Safe)<br/>Unix Socket (IPC)"]:::signer
+
+    RPC["Blockchain RPC"]:::blockchain
+
+    User --> Dashboard
+    User --> MCP
+
+    Dashboard --> Core
+    MCP --> Core
+
+    Core <-->|" RAG & Math "| ML
+    Core -->|" Draft Transaction "| Policy
+    Policy -->|" Approved Payload "| Signer
+    Signer --> RPC
 ```
 
 *Nyxora separates its duties into 6 independent layers for absolute security and cognitive depth:*

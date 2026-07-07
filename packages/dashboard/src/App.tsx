@@ -967,12 +967,7 @@ function App() {
                         <span dangerouslySetInnerHTML={{ __html: msg.progress.replace(/_([^_]+)_/g, '<i>$1</i>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
                       </div>
                     )}
-                    {msg.reasoning_content && (
-                      <details className="reasoning-accordion">
-                        <summary><Brain size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> <span style={{verticalAlign: 'middle'}}>View AI thinking process...</span></summary>
-                        <div className="reasoning-content" style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{msg.reasoning_content}</div>
-                      </details>
-                    )}
+
                     {msg.tool_calls && msg.tool_calls.map((tool: any, tIdx: number) => (
                       <div key={`t-${tIdx}`} className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
                         <Activity size={16} color="#22c55e" />

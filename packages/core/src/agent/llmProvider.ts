@@ -40,10 +40,20 @@ export class OpenAIAdapter implements LLMProvider {
 
   async chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse> {
     const response = await this.client.chat.completions.create(request as any);
+    let content = response.choices[0].message.content || '';
+    let reasoning = (response.choices[0].message as any).reasoning_content || null;
+    
+    // Extract <thinking> tags from content if present
+    const thinkingMatch = content.match(/<(think|thought|thinking|reasoning|analysis|reflection)>([\s\S]*?)<\/\1>/i);
+    if (thinkingMatch) {
+      reasoning = (reasoning || '') + thinkingMatch[2].trim();
+      content = content.replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/i, '').trim();
+    }
+
     return {
       message: {
-        content: response.choices[0].message.content,
-        reasoning_content: (response.choices[0].message as any).reasoning_content || null,
+        content: content || null,
+        reasoning_content: reasoning || null,
         tool_calls: response.choices[0].message.tool_calls as any
       },
       usage: response.usage ? { total_tokens: response.usage.total_tokens } : undefined
@@ -63,8 +73,8 @@ export class OpenAIAdapter implements LLMProvider {
           fullContent += delta.content;
           onChunk(delta.content);
         }
-        if (delta?.reasoning_content) {
-          reasoningContent += delta.reasoning_content;
+        if (delta?.reasoning_content || (delta as any)?.reasoning) {
+          reasoningContent += (delta.reasoning_content || (delta as any).reasoning);
         }
         if (delta?.tool_calls) {
           for (const tc of delta.tool_calls) {
@@ -80,6 +90,14 @@ export class OpenAIAdapter implements LLMProvider {
       }
 
       const toolCalls = Object.values(toolCallsMap);
+      
+      // Post-process to extract <thinking> tags that were streamed as part of content
+      const thinkingMatch = fullContent.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
+      if (thinkingMatch) {
+        reasoningContent = (reasoningContent || '') + thinkingMatch[2].trim();
+        fullContent = fullContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
+      }
+
       return {
         message: {
           content: fullContent || null,
@@ -201,10 +219,18 @@ export class AnthropicAdapter implements LLMProvider {
       }
     }
 
+    if (contentStr) {
+      const thinkingMatch = contentStr.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
+      if (thinkingMatch) {
+        reasoningStr = (reasoningStr || '') + thinkingMatch[2].trim();
+        contentStr = contentStr.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
+      }
+    }
+
     return {
       message: {
-        content: contentStr,
-        reasoning_content: reasoningStr,
+        content: contentStr || null,
+        reasoning_content: reasoningStr || null,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined
       },
       usage: response.usage ? { total_tokens: response.usage.input_tokens + response.usage.output_tokens } : undefined
@@ -272,6 +298,14 @@ export class AnthropicAdapter implements LLMProvider {
         if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
           const last = toolCalls[toolCalls.length - 1];
           if (last) last.function.arguments += event.delta.partial_json;
+        }
+      }
+
+      if (fullContent) {
+        const thinkingMatch = fullContent.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (thinkingMatch) {
+          reasoningContent = (reasoningContent || '') + thinkingMatch[2].trim();
+          fullContent = fullContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
         }
       }
 
@@ -424,9 +458,19 @@ export class GeminiAdapter implements LLMProvider {
       totalTokens = data.usageMetadata.totalTokenCount;
     }
 
+    let reasoningContent = null;
+    if (contentStr) {
+      const thinkingMatch = contentStr.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
+      if (thinkingMatch) {
+        reasoningContent = thinkingMatch[2].trim();
+        contentStr = contentStr.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
+      }
+    }
+
     return {
       message: {
-        content: contentStr,
+        content: contentStr || null,
+        reasoning_content: reasoningContent || null,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined
       },
       usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
@@ -536,8 +580,17 @@ export class GeminiAdapter implements LLMProvider {
         }
       }
 
+      let reasoningContent = null;
+      if (contentStr) {
+        const thinkingMatch = contentStr.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (thinkingMatch) {
+          reasoningContent = thinkingMatch[2].trim();
+          contentStr = contentStr.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
+        }
+      }
+
       return {
-        message: { content: contentStr || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined },
+        message: { content: contentStr || null, reasoning_content: reasoningContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined },
         usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
       };
     } catch {

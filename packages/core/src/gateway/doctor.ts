@@ -111,33 +111,67 @@ export async function runDoctor() {
     printStatus(`Port 3001 (Policy Engine Fallback)`, port3001Free, `Port is already in use by another application.`);
   }
 
-  // 6. Check Unix Sockets (UDS)
-  const policySockPath = '/tmp/nyxora-policy.sock';
-  const signerSockPath = '/tmp/nyxora-signer.sock';
-  
-  const checkSocket = (sockPath: string, name: string) => {
-    let sockExists = false;
-    try {
-      sockExists = fs.existsSync(sockPath);
-    } catch {}
+  // 6. Check Unix Sockets (UDS) — Linux/Mac only
+  if (process.platform !== 'win32') {
+    const policySockPath = '/tmp/nyxora-policy.sock';
+    const signerSockPath = '/tmp/nyxora-signer.sock';
 
-    if (sockExists) {
-      if (isDaemonRunning) {
-        console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.cyan('[In Use by Nyxora]')}`);
+    const checkSocket = (sockPath: string, name: string) => {
+      let sockExists = false;
+      try {
+        sockExists = fs.existsSync(sockPath);
+      } catch {}
+
+      if (sockExists) {
+        if (isDaemonRunning) {
+          console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.cyan('[In Use by Nyxora]')}`);
+        } else {
+          printStatus(`${name} UDS (${sockPath})`, false, `Stale/Zombie socket found! Run 'rm -f ${sockPath}' to fix EADDRINUSE lockups.`);
+        }
       } else {
-        printStatus(`${name} UDS (${sockPath})`, false, `Stale/Zombie socket found! Run 'rm -f ${sockPath}' to fix EADDRINUSE lockups.`);
+        if (isDaemonRunning) {
+          printStatus(`${name} UDS (${sockPath})`, false, `Missing active socket! Nyxora is running but IPC might be broken.`);
+        } else {
+          console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.gray('[Clean]')}`);
+        }
       }
-    } else {
-      if (isDaemonRunning) {
-         printStatus(`${name} UDS (${sockPath})`, false, `Missing active socket! Nyxora is running but IPC might be broken.`);
-      } else {
-         console.log(`${pc.green('✓')} ${name} UDS (${sockPath}) ${pc.gray('[Clean]')}`);
-      }
-    }
+    };
+
+    checkSocket(policySockPath, 'Policy Engine');
+    checkSocket(signerSockPath, 'Signer Vault');
+  }
+
+  // 7. Check ML Engine (Python Sidecar)
+  const checkMlEngine = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const req = require('http').get('http://127.0.0.1:8000/health', (res: any) => {
+        resolve(res.statusCode < 500);
+      });
+      req.on('error', () => resolve(false));
+      req.setTimeout(2000, () => { req.destroy(); resolve(false); });
+    });
   };
 
-  checkSocket(policySockPath, 'Policy Engine');
-  checkSocket(signerSockPath, 'Signer Vault');
+  const mlRunning = isDaemonRunning ? await checkMlEngine() : false;
+  if (isDaemonRunning) {
+    if (mlRunning) {
+      console.log(`${pc.green('✓')} ML Engine (port 8000) ${pc.cyan('[Running]')}`);
+    } else {
+      console.log(`${pc.yellow('!')} ML Engine (port 8000) ${pc.yellow('[Not Running]')} — market analysis tools will return errors. Run: nyxora setup`);
+    }
+  } else {
+    // Not running daemon, check if venv exists
+    const pythonBinDir = process.platform === 'win32' ? 'Scripts' : 'bin';
+    const pythonExe = process.platform === 'win32' ? 'python.exe' : 'python';
+    const venvPath = path.join(require('os').homedir(), '.nyxora', 'ml-engine', 'venv', pythonBinDir, pythonExe);
+    if (fs.existsSync(venvPath)) {
+      console.log(`${pc.green('✓')} ML Engine venv ${pc.gray('[Installed, daemon not running]')}`);
+    } else {
+      console.log(`${pc.yellow('!')} ML Engine ${pc.yellow('[Not Installed]')} — run 'nyxora setup' to enable market analysis features`);
+    }
+  }
+
+
 
   console.log('\n================================');
   if (allGood) {

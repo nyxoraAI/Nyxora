@@ -6,7 +6,7 @@ import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
 import { isSkillActive } from '../utils/skillManager';
-import { pluginManager } from '../plugin/registry';
+import { pluginManager, initializePlugins } from '../plugin/registry';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
@@ -41,9 +41,22 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
   // Add input to memory
   logger.addEntry({ role, content: input }, sessionId);
 
+  // FIX: Lazy-init guard — ensure plugins are always loaded before tool execution.
+  // Handles race conditions where Web3Agent is called before startServer() fully completes.
+  if (pluginManager.getPlugins().length === 0) {
+    console.warn('[Web3Agent] ⚠️ Plugins not initialized! Running lazy initializePlugins()...');
+    await initializePlugins();
+  }
+
   const pluginTools = pluginManager.getAllToolDefinitions();
   let activeTools = [...pluginTools];
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
+
+  if (activeTools.length === 0) {
+    console.error('[Web3Agent] ❌ CRITICAL: No active tools found after initialization! Retrying...');
+    await initializePlugins();
+    activeTools = [...pluginManager.getAllToolDefinitions()].filter(t => isSkillActive(t.function.name));
+  }
 
   // P1: Init reasoning scratchpad for this request
   const scratchpad = new ReasoningScratchpad();
@@ -161,12 +174,11 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
-      // Enabled fastReturnTools to eliminate 2nd LLM latency for transaction popups
+      // FIX: Removed send_telegram_file — only financial Web3 ops need fast-return
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx',
-        'send_telegram_file'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -175,8 +187,26 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         let args: any = {};
         const toolName = toolCall.function.name;
 
+        const getToolEmoji = (n: string) => {
+          if (n.includes('swap')) return '🔄';
+          if (n.includes('bridge')) return '🌉';
+          if (n.includes('transfer') || n.includes('send')) return '💸';
+          if (n.includes('mint') || n.includes('nft')) return '🎨';
+          if (n.includes('price') || n.includes('chart')) return '📈';
+          if (n.includes('wallet') || n.includes('balance')) return '👛';
+          return '⚙️';
+        };
+        const emoji = getToolEmoji(toolName);
+        let argsPreview = "";
+        try {
+            const parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+            const firstKey = Object.keys(parsedArgs)[0];
+            if (firstKey) argsPreview = `"${parsedArgs[firstKey]}"`;
+        } catch(e) {}
+        const previewMsg = argsPreview ? `${toolName}: ${argsPreview}` : toolName;
+
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
+        if (onProgress) onProgress(`*${emoji} ${previewMsg}*`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -299,8 +329,23 @@ export async function processWeb3IntentStream(
   const config = loadConfig();
   logger.addEntry({ role: 'user', content: input }, sessionId);
 
+  // FIX: Lazy-init guard — same pattern as processWeb3Intent
+  if (pluginManager.getPlugins().length === 0) {
+    console.warn('[Web3AgentStream] ⚠️ Plugins not initialized! Running lazy initializePlugins()...');
+    await initializePlugins();
+  }
+
   const pluginTools = pluginManager.getAllToolDefinitions();
   let activeTools = [...pluginTools].filter(t => isSkillActive(t.function.name));
+
+  if (activeTools.length === 0) {
+    console.error('[Web3AgentStream] ❌ CRITICAL: No active tools found after initialization! Retrying...');
+    await initializePlugins();
+    activeTools = [...pluginManager.getAllToolDefinitions()].filter(t => isSkillActive(t.function.name));
+  }
+
+  // FIX: Cache system prompt ONCE before the loop (was rebuilt on every turn)
+  const cachedWeb3SystemPrompt = await getSystemPrompt('web3', input);
 
   const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
 
@@ -313,15 +358,18 @@ export async function processWeb3IntentStream(
       turnCount++;
       const currentHistory = logger.getHistory(sessionId);
       const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      // FIX: Use cached system prompt — no longer rebuilt every turn
       const messages: any[] = [
-        { role: 'system', content: await getSystemPrompt('web3', input) },
+        { role: 'system', content: cachedWeb3SystemPrompt },
         ...sanitizedHistory
       ];
 
       let streamedContent = '';
       const response = await executeWithRetry(async (client) => {
         streamedContent = '';
-        onChunk('[CLEAR_STREAM]');
+        // RC#1 FIX: Only clear the Telegram buffer on the FIRST turn.
+        // Subsequent turns must NOT wipe the buffer that shows tool progress.
+        if (turnCount === 1) onChunk('[CLEAR_STREAM]');
         return await client.stream(
           { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools, reasoning_effort: config.llm.reasoning_effort },
           (chunk: string) => {
@@ -353,9 +401,13 @@ export async function processWeb3IntentStream(
       }
 
       // Tool calls detected — pause stream visually and execute tools
-      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'];
+      // BUG#1 FIX: Wipe turn-1 planning text. See osAgent.ts for full explanation.
+      onChunk('[TOOL_CALL_DETECTED]');
+      // FIX: Removed send_telegram_file — not a financial transaction
+      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
+
 
       for (const _toolCall of responseMessage.tool_calls) {
         const toolCall = _toolCall as any;

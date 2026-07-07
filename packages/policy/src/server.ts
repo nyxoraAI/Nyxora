@@ -1,4 +1,5 @@
 import { initSafeLogger } from '../../core/src/utils/safeLogger';
+console.log(`--- SERVER.TS STARTED (PID: ${process.pid}) ---`);
 initSafeLogger();
 import { getPath } from '../../core/src/config/paths';
 
@@ -24,6 +25,8 @@ process.on('uncaughtException', (error) => {
 });
 
 const PORT = process.env.POLICY_PORT || 3001;
+const IS_WINDOWS = process.platform === 'win32';
+const SIGNER_PORT = parseInt(process.env.SIGNER_PORT || '3002', 10);
 const tokenPath = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token');
 let JWT_SECRET = '';
 try {
@@ -33,7 +36,22 @@ try {
   process.exit(1);
 }
 
-const SIGNER_SOCKET = process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock';
+// Cross-platform: Unix socket on Linux/Mac, TCP fallback on Windows
+const SIGNER_SOCKET = IS_WINDOWS
+  ? undefined
+  : (process.env.SIGNER_SOCKET_PATH || '/tmp/nyxora-signer.sock');
+
+// Helper: build http.request options for Signer IPC (cross-platform)
+function signerRequestOptions(path_: string, method: string, contentLength?: number): http.RequestOptions {
+  const token = jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' });
+  if (!IS_WINDOWS && SIGNER_SOCKET && fs.existsSync(SIGNER_SOCKET)) {
+    // Unix socket path (Linux/Mac)
+    return { socketPath: SIGNER_SOCKET, path: path_, method, headers: { 'Authorization': `Bearer ${token}`, ...(contentLength !== undefined ? { 'Content-Type': 'application/json', 'Content-Length': contentLength } : {}) } };
+  }
+  // TCP fallback (Windows or if socket missing)
+  return { host: '127.0.0.1', port: SIGNER_PORT, path: path_, method, headers: { 'Authorization': `Bearer ${token}`, ...(contentLength !== undefined ? { 'Content-Type': 'application/json', 'Content-Length': contentLength } : {}) } };
+}
+
 
 const app = express();
 app.use(express.json());
@@ -105,14 +123,7 @@ app.use((req, res, next) => {
 
 // Proxy GET /address to Signer
 app.get('/address', (req, res) => {
-  const options = {
-    socketPath: SIGNER_SOCKET,
-    path: '/address',
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`
-    }
-  };
+  const options = signerRequestOptions('/address', 'GET');
 
   const signerReq = http.request(options, (signerRes) => {
     let data = '';
@@ -129,6 +140,7 @@ app.get('/address', (req, res) => {
   signerReq.on('error', (e) => res.status(500).json({ error: 'Failed to contact Signer: ' + e.message }));
   signerReq.end();
 });
+
 
 app.post('/request-tx', async (req, res) => {
   try {
@@ -156,16 +168,7 @@ app.post('/request-tx', async (req, res) => {
     // Auto-approve bypass for internal trusted features like CL/TP
     if (payload.autoApprove) {
         const requestPayload = JSON.stringify({ txPayload: payload });
-        const options = {
-            socketPath: SIGNER_SOCKET,
-            path: '/sign-transaction',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
-                'Content-Length': Buffer.byteLength(requestPayload)
-            }
-        };
+        const options = signerRequestOptions('/sign-transaction', 'POST', Buffer.byteLength(requestPayload));
 
         const signerReq = http.request(options, (signerRes) => {
             let data = '';
@@ -184,6 +187,7 @@ app.post('/request-tx', async (req, res) => {
         signerReq.end();
         return;
     }
+
     
     // 1. Whitelist Check
     if (policyRules.whitelist_only === true) {
@@ -207,16 +211,7 @@ app.post('/request-tx', async (req, res) => {
     } else {
       // Auto-Sign Transaction if global require_approval is false
       const requestPayload = JSON.stringify({ txPayload: payload });
-      const options = {
-          socketPath: SIGNER_SOCKET,
-          path: '/sign-transaction',
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
-              'Content-Length': Buffer.byteLength(requestPayload)
-          }
-      };
+      const options = signerRequestOptions('/sign-transaction', 'POST', Buffer.byteLength(requestPayload));
 
       const signerReq = http.request(options, (signerRes) => {
           let data = '';
@@ -235,6 +230,7 @@ app.post('/request-tx', async (req, res) => {
       signerReq.end();
       return;
     }
+
   } catch (error) {
     res.status(400).json({ error: 'Invalid transaction payload' });
   }
@@ -270,16 +266,7 @@ app.post('/approve-tx/:id', async (req, res) => {
     txPayload: tx
   });
 
-  const options = {
-    socketPath: SIGNER_SOCKET,
-    path: '/sign-transaction',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt.sign({ service: 'policy' }, JWT_SECRET, { expiresIn: '1m' })}`,
-      'Content-Length': Buffer.byteLength(requestPayload)
-    }
-  };
+  const options = signerRequestOptions('/sign-transaction', 'POST', Buffer.byteLength(requestPayload));
 
   const signerReq = http.request(options, (signerRes) => {
     let data = '';
@@ -302,8 +289,10 @@ app.post('/approve-tx/:id', async (req, res) => {
   signerReq.end();
 });
 
-const POLICY_SOCKET = '/tmp/nyxora-policy.sock';
 
+const POLICY_SOCKET = IS_WINDOWS ? undefined : '/tmp/nyxora-policy.sock';
+
+console.log('--- APP.LISTEN CALLED ---');
 const server = app.listen(Number(PORT), '127.0.0.1', () => {
   console.log(`[Policy Engine] Listening on 127.0.0.1:${PORT} (Secured Local Loopback)`);
 });
@@ -318,20 +307,25 @@ server.on('error', (e: any) => {
   }
 });
 
-// Start UDS Server for Hyper-Optimized IPC
-const udsServer = http.createServer(app);
-if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
-udsServer.listen(POLICY_SOCKET, () => {
-  console.log(`[Policy Engine] Listening on UDS ${POLICY_SOCKET} (Hyper-Optimized IPC)`);
-});
+// Start UDS Server for Hyper-Optimized IPC (Linux/Mac only)
+if (!IS_WINDOWS) {
+  const udsServer = http.createServer(app);
+  if (POLICY_SOCKET && fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
+  udsServer.listen(POLICY_SOCKET!, () => {
+    console.log(`[Policy Engine] Listening on UDS ${POLICY_SOCKET} (Hyper-Optimized IPC)`);
+  });
+}
 
 const gracefulShutdown = () => {
   console.log('[Policy Engine] Received shutdown signal. Cleaning up IPC...');
-  try {
-    if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
-  } catch {}
+  if (!IS_WINDOWS && POLICY_SOCKET) {
+    try {
+      if (fs.existsSync(POLICY_SOCKET)) fs.unlinkSync(POLICY_SOCKET);
+    } catch {}
+  }
   process.exit(0);
 };
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+

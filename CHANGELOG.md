@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.6]
+### Features & Architecture
+- **ML Engine Custom Provider Support**: Fixed a `500 Internal Server Error` in the Python ML Engine by explicitly supporting the `custom` and `openrouter` providers and gracefully handling empty API keys with a local fallback, ensuring robust execution for cognitive reasoning and RAG memory tasks.
+
+### Bug Fixes & Dashboard
+- **Dashboard Overview Key Detection**: Resolved a UI bug in the Dashboard Overview where custom and proxy providers (`custom_provider_key`, `9router_key`) incorrectly rendered as "Missing Key". The status engine now dynamically queries the exact credential mapping for off-standard providers.
+- **LLM Configuration Persistence Bug**: Fixed a configuration merging flaw in `Settings.tsx` where switching away from a `custom_provider` left the old `base_url` intact in the persistent payload. This previously caused subsequent standard LLM providers (e.g., OpenAI) to silently inherit the custom URL and crash. The dashboard now cleanly purges the `base_url` state upon provider transitions.
+
 ## [26.7.5]
 ### Reasoning & Agent Engine Architecture
 - **Event-Driven Tool Execution**: Fully refactored the core agent loop (`osAgent.ts`) from a linear synchronous executor to a highly scalable, event-driven architecture using Lifecycle Hooks (`beforeToolCall`, `afterToolCall`). This completely decouples security guardrails and domain-specific logic from the core loop.

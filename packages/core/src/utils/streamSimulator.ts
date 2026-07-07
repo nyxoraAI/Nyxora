@@ -21,34 +21,26 @@ export const simulateStream = async (text: string, onChunk: (chunk: string) => v
 };
 
 /**
- * Creates a smart wrapper around an onChunk callback.
- * If the incoming chunk is large (e.g. Gemini buffering), it intercepts it and streams it smoothly.
- * If the chunk is small (e.g. OpenAI native stream), it passes it instantly.
+ * RC#2 FIX: Rewrote createSmartStreamWrapper with a reliable wait() mechanism.
+ *
+ * Old design problems:
+ * - waitPromise started as Promise.resolve() — wait() was a no-op until processQueue ran
+ * - resolveWait nulled after first call — subsequent chunks after resolution were untracked
+ * - 30-char batching via queue complicated state and caused chunks to be dropped
+ *
+ * New design:
+ * - inflightCount tracks how many chunk calls are in-flight
+ * - wait() returns a Promise that only resolves when inflightCount reaches 0
+ * - No batching queue — chunks pass through immediately (Telegram has its own 1.1s debounce)
+ * - All think-tag stripping is preserved
  */
 export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => void) => {
-  let isSimulating = false;
-  let queue = '';
-  let resolveWait: (() => void) | null = null;
-  let waitPromise = Promise.resolve();
+  let inflightCount = 0;
+  const waiters: Array<() => void> = [];
 
-  const processQueue = async () => {
-    if (isSimulating || queue.length === 0) return;
-    isSimulating = true;
-    
-    // Create a new wait promise if one doesn't exist
-    if (!resolveWait) {
-      waitPromise = new Promise(r => { resolveWait = r; });
-    }
-    
-    if (queue.length > 0) {
-      originalOnChunk(queue);
-      queue = '';
-    }
-    
-    isSimulating = false;
-    if (resolveWait) {
-      resolveWait();
-      resolveWait = null;
+  const checkWaiters = () => {
+    if (inflightCount === 0 && waiters.length > 0) {
+      waiters.splice(0).forEach(r => r());
     }
   };
 
@@ -58,38 +50,41 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
   return {
     onChunk: (chunk: string) => {
       if (chunk === '[CLEAR_STREAM]') {
+        // Reset accumulator when a new turn begins (turn 1 only, due to RC#1 fix)
         accumulatedRaw = '';
         sentLength = 0;
-        queue = '';
         originalOnChunk('[CLEAR_STREAM]');
         return;
       }
+
       accumulatedRaw += chunk;
-      
-      // Robust stripping: remove completely closed <think>...</think> blocks
-      let cleanText = accumulatedRaw.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '');
-      
-      // Also, if there's currently an OPEN <think> block at the end of the text, strip it too (so we don't stream it while it's generating)
-      cleanText = cleanText.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*$/i, '');
-      
+
+      // Strip fully-closed <think>...</think> blocks (reasoning traces should not stream)
+      let cleanText = accumulatedRaw.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>/gi, '');
+
+      // Strip an OPEN <think> block still being generated at the tail
+      cleanText = cleanText.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*$/i, '');
+
+      // Strip an incomplete opening tag (e.g. "<th", "<think") at the very end
+      cleanText = cleanText.replace(/<[a-zA-Z-]*$/i, '');
+
       if (cleanText.length > sentLength) {
         const newText = cleanText.substring(sentLength);
         sentLength = cleanText.length;
-        
-        if (newText.length > 30) {
-          queue += newText;
-          processQueue();
-        } else {
-          if (isSimulating) {
-            queue += newText;
-          } else {
-            originalOnChunk(newText);
-          }
+
+        inflightCount++;
+        try {
+          originalOnChunk(newText);
+        } finally {
+          inflightCount--;
+          checkWaiters();
         }
       }
     },
-    wait: async () => {
-      await waitPromise;
+
+    wait: (): Promise<void> => {
+      if (inflightCount === 0) return Promise.resolve();
+      return new Promise<void>(resolve => waiters.push(resolve));
     }
   };
 };

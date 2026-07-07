@@ -74,7 +74,6 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
         try {
           const yaml = require('yaml');
           const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'config', 'config.yaml');
-          // Fallback check just in case it hasn't migrated yet
           const actualConfigPath = fs.existsSync(configPath) ? configPath : path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'config.yaml');
           if (fs.existsSync(actualConfigPath)) {
             const configStr = fs.readFileSync(actualConfigPath, 'utf8');
@@ -93,7 +92,13 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
           }
         } catch(e) {}
         
-        process.exit(1);
+        console.log('\n[Launcher] Shutting down all services due to emergency shutdown...');
+        children.forEach(c => c.kill());
+        
+        // Give children time to exit cleanly
+        setTimeout(() => {
+          process.exit(1);
+        }, 1000);
         return;
       }
 
@@ -148,7 +153,11 @@ setTimeout(() => {
   
   setTimeout(() => {
     // Spawn ML Engine (Python Sidecar)
-    const pythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', 'bin', 'python');
+    // Cross-platform: Windows uses Scripts/, Unix uses bin/
+    const IS_WINDOWS_LAUNCHER = process.platform === 'win32';
+    const pythonBinDir = IS_WINDOWS_LAUNCHER ? 'Scripts' : 'bin';
+    const pythonExe = IS_WINDOWS_LAUNCHER ? 'python.exe' : 'python';
+    const pythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', pythonBinDir, pythonExe);
     if (fs.existsSync(pythonPath)) {
       let mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
       if (!fs.existsSync(mlDir)) mlDir = path.join(__dirnameResolved, '..', 'packages', 'ml-engine');
@@ -156,7 +165,7 @@ setTimeout(() => {
       const mlEngine = spawnService('ML Engine', pythonPath, mlArgs, env, false, mlDir);
       children.push(mlEngine);
     } else {
-      console.warn('[Launcher] Warning: Python virtual environment not found. Did you run setup?');
+      console.warn('[Launcher] Warning: Python virtual environment not found. ML Engine features (market analysis etc.) will be unavailable. Run: nyxora setup');
     }
 
     setTimeout(() => {
@@ -166,31 +175,48 @@ setTimeout(() => {
       children.push(core);
 
       // --- AUTO-TUNNEL (Cloudflare) ---
+      // Respects config: set cloudflare_tunnel: false in ~/.nyxora/config/config.yaml to disable.
       setTimeout(() => {
-        console.log('[Launcher] Starting Auto-Tunnel (Cloudflare) on port 3000...');
-        const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true });
-        
-        children.push({
-          kill: () => { try { process.kill(cf.pid!, 'SIGTERM'); } catch(e){} },
-          forceKill: () => { try { process.kill(cf.pid!, 'SIGKILL'); } catch(e){} }
-        });
-
-        cf.stderr.on('data', (data) => {
-          const msg = data.toString();
-          // Extract the Cloudflare URL (e.g., https://xyz.trycloudflare.com)
-          const match = msg.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-          if (match) {
-            const url = match[0];
-            console.log(`\n[Auto-Tunnel] Secure Public URL generated: ${url}\n`);
-            fs.writeFileSync(path.join(nyxoraDir, 'public_url.txt'), url, 'utf8');
+        let cfEnabled = true;
+        try {
+          const yaml = require('yaml');
+          const configPath = path.join(nyxoraDir, 'config', 'config.yaml');
+          const fallbackPath = path.join(nyxoraDir, 'config.yaml');
+          const actualPath = fs.existsSync(configPath) ? configPath : fallbackPath;
+          if (fs.existsSync(actualPath)) {
+            const cfg = yaml.parse(fs.readFileSync(actualPath, 'utf8'));
+            if (cfg?.cloudflare_tunnel === false) {
+              cfEnabled = false;
+              console.log('[Launcher] Cloudflare Auto-Tunnel is disabled by config (cloudflare_tunnel: false).');
+            }
           }
-          // Optionally print errors if they are real errors, but cloudflared logs everything to stderr
-        });
+        } catch (e) {}
+
+        if (cfEnabled) {
+          console.log('[Launcher] Starting Auto-Tunnel (Cloudflare) on port 3000...');
+          const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true });
+
+          children.push({
+            kill: () => { try { process.kill(cf.pid!, 'SIGTERM'); } catch(e){} },
+            forceKill: () => { try { process.kill(cf.pid!, 'SIGKILL'); } catch(e){} }
+          });
+
+          cf.stderr.on('data', (data: Buffer) => {
+            const msg = data.toString();
+            const match = msg.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+            if (match) {
+              const url = match[0];
+              console.log(`\n[Auto-Tunnel] Secure Public URL generated: ${url}\n`);
+              fs.writeFileSync(path.join(nyxoraDir, 'public_url.txt'), url, 'utf8');
+            }
+          });
+        }
       }, 3000);
-      
+
     }, 1000);
   }, 1000);
 }, 1000);
+
 
 // Ensure all child processes are killed when launcher exits
 let isCleaningUp = false;
@@ -204,10 +230,11 @@ const cleanup = () => {
     children.forEach(c => {
       try { c.forceKill(); } catch(e) {}
     });
-    try {
-      require('child_process').execSync('pkill -f ts-node');
-      require('child_process').execSync('pkill -f uvicorn');
-    } catch (e) {}
+    // pkill is Unix-only — skip on Windows
+    if (process.platform !== 'win32') {
+      try { require('child_process').execSync('pkill -f ts-node'); } catch (e) {}
+      try { require('child_process').execSync('pkill -f uvicorn'); } catch (e) {}
+    }
     process.exit(0);
   }, 1000);
 };

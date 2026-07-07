@@ -172,12 +172,18 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   const handleChange = (section: 'agent' | 'llm' | 'web3', field: string, value: string | number) => {
     setFormData(prev => {
       if (!prev) return prev;
+      
+      const newSectionData = { ...prev[section] } as any;
+      newSectionData[field] = field === 'temperature' ? Number(value) : value;
+
+      // Clean up base_url if provider changes and it's not custom_provider
+      if (section === 'llm' && field === 'provider' && value !== 'custom_provider') {
+        newSectionData.base_url = '';
+      }
+
       return {
         ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: field === 'temperature' ? Number(value) : value
-        }
+        [section]: newSectionData
       };
     });
   };
@@ -482,7 +488,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               {formData.llm.provider === '9router' && (
                 <div style={{ background: 'rgba(136, 192, 208, 0.1)', border: '1px solid rgba(136, 192, 208, 0.3)', padding: '14px', borderRadius: '8px', marginTop: '16px' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: '#88c0d0' }}>ℹ️ Local Proxy Required:</strong> Ensure you have installed and started the 9Router proxy before saving.
+                    <strong style={{ color: 'var(--accent)' }}>ℹ️ Local Proxy Required:</strong> Ensure you have installed and started the 9Router proxy before saving.
                     <br/><br/>
                     <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'monospace' }}>npm install -g 9router</code>
                     <br/>
@@ -780,7 +786,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                         className="nord-btn" 
                         style={{ 
                           background: 'rgba(136, 192, 208, 0.1)', 
-                          color: '#88c0d0', 
+                          color: 'var(--accent)', 
                           border: '1px solid rgba(136, 192, 208, 0.3)',
                           display: 'flex',
                           alignItems: 'center',

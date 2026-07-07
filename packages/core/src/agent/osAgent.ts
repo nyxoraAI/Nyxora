@@ -12,7 +12,7 @@ import { compressHistory, needsCompression } from '../utils/contextSummarizer';
 
 import { promptBuilder } from './promptBuilder';
 
-import { pluginManager } from '../plugin/registry';
+import { pluginManager, initializePlugins } from '../plugin/registry';
 
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
@@ -21,7 +21,8 @@ import pc from 'picocolors';
 pluginManager.registerHook({
   name: 'ReasoningGate',
   beforeToolCall: async (toolName, args, context) => {
-    const toolsRequiringReasoning = ['run_command', 'write_to_file', 'replace_file_content', 'multi_replace_file_content', 'execute_script'];
+    // FIX: Use actual Nyxora tool names (not legacy names)
+    const toolsRequiringReasoning = ['run_terminal_command', 'write_local_file', 'edit_local_file', 'execute_script'];
     if (toolsRequiringReasoning.includes(toolName)) {
       const responseMessage = context.responseMessage || {};
       const hasThinkingTag = /<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>/i.test(responseMessage.content || '');
@@ -38,7 +39,9 @@ pluginManager.registerHook({
 pluginManager.registerHook({
   name: 'Web3FastReturn',
   afterToolCall: async (toolName, args, result, context) => {
-    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'];
+    // FIX: Only financial Web3 transactions need fast-return (to show approval popup ASAP).
+    // send_telegram_file is NOT a financial transaction — removed from this list.
+    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'];
     if (fastReturnTools.includes(toolName)) {
       return { terminate: true };
     }
@@ -117,8 +120,22 @@ CRITICAL INSTRUCTIONS:
     }, sessionId);
   }
 
+  // FIX: Lazy-init guard — ensure plugins are always initialized before use.
+  // This handles cases where processOsIntent is called before startServer() completes,
+  // e.g., direct Telegram messages arriving before plugin initialization.
+  if (pluginManager.getPlugins().length === 0) {
+    console.warn('[OsAgent] ⚠️ Plugins not initialized! Running lazy initializePlugins()...');
+    await initializePlugins();
+  }
+
   let activeTools = [...pluginManager.getAllToolDefinitions()];
   activeTools = activeTools.filter(t => isSkillActive(t.function.name));
+
+  if (activeTools.length === 0) {
+    console.error('[OsAgent] ❌ CRITICAL: No active tools found after initialization! Retrying...');
+    await initializePlugins();
+    activeTools = [...pluginManager.getAllToolDefinitions()].filter(t => isSkillActive(t.function.name));
+  }
 
   // P1: Init reasoning scratchpad for this request
   const scratchpad = new ReasoningScratchpad();
@@ -197,10 +214,11 @@ CRITICAL INSTRUCTIONS:
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
       // Enabled fastReturnTools to eliminate 2nd LLM latency for transaction popups
+      // FIX: Removed send_telegram_file — not a financial transaction
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'
+        'deposit_yield_vault', 'provide_liquidity_v3'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -209,8 +227,25 @@ CRITICAL INSTRUCTIONS:
         let args: any = {};
         const toolName = toolCall.function.name;
 
+        const getToolEmoji = (n: string) => {
+          if (n.includes('file') || n.includes('read') || n.includes('write')) return '📄';
+          if (n.includes('dir') || n.includes('folder')) return '📁';
+          if (n.includes('cmd') || n.includes('shell') || n.includes('run')) return '🖥️';
+          if (n.includes('search') || n.includes('find')) return '🔍';
+          if (n.includes('git')) return '🐙';
+          return '⚙️';
+        };
+        const emoji = getToolEmoji(toolName);
+        let argsPreview = "";
+        try {
+            const parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+            const firstKey = Object.keys(parsedArgs)[0];
+            if (firstKey) argsPreview = `"${parsedArgs[firstKey]}"`;
+        } catch(e) {}
+        const previewMsg = argsPreview ? `${toolName}: ${argsPreview}` : toolName;
+
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
+        if (onProgress) onProgress(`*${emoji} ${previewMsg}*`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -271,7 +306,8 @@ CRITICAL INSTRUCTIONS:
         }, sessionId);
 
         accumulatedResults.push(result);
-        if (!['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'].includes(toolName)) {
+        // FIX: Removed send_telegram_file from fast-return set
+        if (!['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'].includes(toolName)) {
           canFastReturnAll = false;
         }
       }
@@ -362,8 +398,23 @@ CRITICAL INSTRUCTIONS:
     }, sessionId);
   }
 
+  // FIX: Lazy-init guard — same as processOsIntent
+  if (pluginManager.getPlugins().length === 0) {
+    console.warn('[OsAgentStream] ⚠️ Plugins not initialized! Running lazy initializePlugins()...');
+    await initializePlugins();
+  }
+
   const pluginTools = pluginManager.getAllToolDefinitions();
   let activeTools = [...pluginTools].filter(t => isSkillActive(t.function.name));
+
+  if (activeTools.length === 0) {
+    console.error('[OsAgentStream] ❌ CRITICAL: No active tools found after initialization! Retrying...');
+    await initializePlugins();
+    activeTools = [...pluginManager.getAllToolDefinitions()].filter(t => isSkillActive(t.function.name));
+  }
+
+  // FIX: Cache system prompt ONCE before loop (was being rebuilt every turn — wasteful)
+  const cachedSystemPromptStream = await getSystemPrompt('os', input);
 
   const { sanitizeHistoryForLLM } = require('../utils/historySanitizer');
 
@@ -377,15 +428,19 @@ CRITICAL INSTRUCTIONS:
       turnCount++;
       const currentHistory = logger.getHistory(sessionId);
       const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      // FIX: Use cached system prompt — no longer rebuilt every turn
       const messages: any[] = [
-        { role: 'system', content: await getSystemPrompt('os', input) },
+        { role: 'system', content: cachedSystemPromptStream },
         ...sanitizedHistory
       ];
 
       let streamedContent = '';
       const response = await executeWithRetry(async (client) => {
         streamedContent = '';
-        onChunk('[CLEAR_STREAM]');
+        // RC#1 FIX: Only clear the Telegram buffer on the FIRST turn.
+        // On subsequent turns (after tool calls), the buffer already shows useful
+        // progress info. Resetting it causes visible content to disappear.
+        if (turnCount === 1) onChunk('[CLEAR_STREAM]');
         return await client.stream(
           { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
           (chunk: string) => {
@@ -422,8 +477,14 @@ CRITICAL INSTRUCTIONS:
       }
 
       // Tool calls detected — pause stream visually and execute tools concurrently
+      // BUG#1 FIX: Signal to Telegram to wipe turn-1 planning text from the buffer.
+      // LLM often generates "thinking out loud" text before calling a tool (e.g. "Let me check...").
+      // This text should NOT be shown to users. [TOOL_CALL_DETECTED] resets the buffer to a
+      // clean progress indicator, hiding the planning text without losing the message handle.
+      onChunk('[TOOL_CALL_DETECTED]');
       let shouldFastReturn = false;
       const accumulatedResults: string[] = [];
+
 
       const promises = responseMessage.tool_calls.map(async (_toolCall: any) => {
         const toolCall = _toolCall;

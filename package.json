@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.5",
+  "version": "26.7.6",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -112,8 +112,12 @@
     "@types/ws": "^8.5.10",
     "concurrently": "^10.0.3",
     "husky": "^9.1.7",
+    "nodemon": "^3.1.14",
     "oxc-minify": "^0.135.0",
     "vitepress": "^2.0.0-alpha.17",
     "vitest": "^4.1.9"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

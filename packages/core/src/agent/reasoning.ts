@@ -56,34 +56,47 @@ const OS_KEYWORDS: string[] = [
   'terminal', 'command', 'shell', 'bash', 'script', 'run command',
   'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
   // Web & Search
-  'search web', 'google', 'browse', 'scrape', 'weather', 'news',
+  'search web', 'google', 'browse', 'scrape', 'weather', 'news', 'search', 'find', 'look up',
   // Email & Workspace
   'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
   // Social & Media
   'twitter', 'tweet', 'x post', 'transcribe', 'audio',
+  // Messaging & File Upload
+  'telegram', 'discord', 'kirim file', 'send file', 'upload file', 'upload', 'attach', 'share file', 'share link',
   // AI Settings
   'rename agent', 'change persona', 'update profile', 'update identity', 'setting',
   // Summarization
-  'summarize',
+  'summarize', 'summary', 'ringkas',
+  // Search & Info queries (Global + ID)
+  'cariin', 'cari', 'lihat', 'jadwal', 'info', 'berita', 'schedule',
+  'cek email', 'cek kalender', 'cek file', 'cek folder', 'check email', 'check calendar', 'check file',
 ];
 
 const WEB3_KEYWORDS: string[] = [
   // Transactions
-  'swap', 'bridge', 'transfer', 'send', 'buy', 'sell',
+  'swap', 'bridge', 'transfer',
+  // Safe Send Actions (Explicit)
+  'send token', 'send eth', 'send bnb', 'send usdt', 'send usdc', 'send sol',
+  'send btc', 'send crypto', 'send coin', 'send nft', 'send funds',
+  'buy', 'sell', 'purchase', 'trade',
   'mint', 'stake', 'unstake', 'claim', 'deposit', 'withdraw', 'approve',
   // Assets & Wallets
-  'token', 'crypto', 'coin', 'nft', 'wallet', 'address',
-  'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'base',
-  // DeFi & Market
-  'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr',
-  'price', 'chart', 'market', 'portfolio', 'balance',
-  'gas', 'fee', 'slippage', 'transaction', 'tx',
-  // Chains
+  'token', 'crypto', 'coin', 'nft', 'wallet', 'address', 'contract',
+  // Major Chains & L2s
   'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-  'on-chain', 'blockchain',
+  'on-chain', 'blockchain', 'solana', 'avalanche', 'base',
+  // Top 50+ Global Assets / Tickers
+  'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'btc', 'bitcoin',
+  'xrp', 'doge', 'dogecoin', 'avax', 'ada', 'cardano', 'pepe', 'shib', 'shiba',
+  'link', 'chainlink', 'dot', 'polkadot', 'trx', 'tron', 'ton', 'wbtc', 'dai',
+  // DeFi & Market
+  'defi', 'dex', 'liquidity', 'pool', 'aave', 'uniswap', 'apy', 'apr', 'yield',
+  'price', 'chart', 'market', 'portfolio', 'balance', 'mc', 'marketcap',
+  'gas', 'fee', 'slippage', 'transaction', 'tx', 'gwei',
   // Fiat & Currency
   'usd', 'eur', 'gbp', 'jpy', 'aud', 'idr', 'fiat', 'currency', 'convert', 'exchange', 'rate', 'value',
 ];
+
 
 
 
@@ -91,17 +104,37 @@ const WEB3_KEYWORDS: string[] = [
 /**
  * Detects if the user message contains BOTH web3 AND os intents.
  * Returns 'compound' when both are present so we can route to both agents.
+ * 
+ * IMPORTANT: This check runs BEFORE the LLM router to save tokens.
+ * Keyword matching must be precise to avoid false 'compound' classifications
+ * that would cause two agents to run in parallel unnecessarily.
  */
 function detectCompoundIntent(
   lowerInput: string,
   osKeywords: string[],
   web3Keywords: string[]
 ): { hasOs: boolean; hasWeb3: boolean } {
-  return {
-    hasOs: osKeywords.some(kw => lowerInput.includes(kw)),
-    hasWeb3: web3Keywords.some(kw => lowerInput.includes(kw)),
-  };
+  // FIX: Use score-based detection instead of naive boolean OR.
+  // A single keyword match is often a false positive (e.g. 'cek' in a web3 query,
+  // or 'balance' in a file management query). Only trigger compound if BOTH sides
+  // have meaningful signal (score >= 2), OR if the dominant side has score >= 2 
+  // while the other has >= 1 but is not clearly overshadowed (score ratio < 3:1).
+  const osScore = osKeywords.filter(kw => lowerInput.includes(kw)).length;
+  const web3Score = web3Keywords.filter(kw => lowerInput.includes(kw)).length;
+
+  // If either side has no hits, it's clearly single-intent
+  if (osScore === 0 || web3Score === 0) {
+    return { hasOs: osScore > 0, hasWeb3: web3Score > 0 };
+  }
+
+  // If one side dominates by 3:1 or more, treat as single-intent
+  if (web3Score >= osScore * 3) return { hasOs: false, hasWeb3: true };
+  if (osScore >= web3Score * 3) return { hasOs: true, hasWeb3: false };
+
+  // Both sides have meaningful signal — genuine compound
+  return { hasOs: true, hasWeb3: true };
 }
+
 
 // ── P7: Task Planner ─────────────────────────────────────────────────────────
 // Trigger keywords for complex requests that benefit from a planning step first.
@@ -180,17 +213,29 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
   const compound = detectCompoundIntent(lowerInput, OS_KEYWORDS, WEB3_KEYWORDS);
 
   // P2: Handle compound web3+os intent — run both agents and merge results
+  // FIX: Do NOT addEntry here — each sub-agent (processWeb3Intent / processOsIntent)
+  // calls logger.addEntry({ role, content: input }) internally. Adding here would
+  // result in the user message being stored 3x in history.
   if (compound.hasWeb3 && compound.hasOs) {
     console.log(pc.cyan('[Orchestrator] Compound intent detected (web3 + os). Running both agents sequentially.'));
-    logger.addEntry({ role, content: input }, sessionId);
     const [web3Result, osResult] = await Promise.allSettled([
       processWeb3Intent(input, role, onProgress, sessionId),
       processOsIntent(input, role, onProgress, sessionId),
     ]);
+    // FIX: Filter out fallback/empty responses. If an agent couldn't handle the request,
+    // don't include its "No response generated." in the merged output.
+    const FALLBACK_STRINGS = ['No response generated.', 'no response generated', '\u26a0️'];
     const parts: string[] = [];
-    if (web3Result.status === 'fulfilled' && web3Result.value) parts.push(web3Result.value);
-    if (osResult.status === 'fulfilled' && osResult.value) parts.push(osResult.value);
-    return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+    if (web3Result.status === 'fulfilled' && web3Result.value &&
+        !FALLBACK_STRINGS.some(f => web3Result.value.trim().startsWith(f))) {
+      parts.push(web3Result.value);
+    }
+    if (osResult.status === 'fulfilled' && osResult.value &&
+        !FALLBACK_STRINGS.some(f => osResult.value.trim().startsWith(f))) {
+      parts.push(osResult.value);
+    }
+    if (parts.length === 0) return '⚠️ Both agents returned empty responses.';
+    return parts.length === 1 ? parts[0] : parts.join('\n\n---\n\n');
   }
 
   // Single-intent routing
@@ -236,15 +281,24 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
         
         if (contextResponse.includes('compound')) {
            console.log(pc.cyan('[Orchestrator] Compound intent detected via LLM Router. Running both agents sequentially.'));
-           logger.addEntry({ role, content: input }, sessionId);
+           // FIX: Do NOT addEntry here — sub-agents handle their own memory writes.
            const [web3Result, osResult] = await Promise.allSettled([
              processWeb3Intent(input, role, onProgress, sessionId),
              processOsIntent(input, role, onProgress, sessionId),
            ]);
+           // FIX: Filter fallback responses
+           const FALLBACK_STRINGS = ['No response generated.', 'no response generated', '⚠️'];
            const parts: string[] = [];
-           if (web3Result.status === 'fulfilled' && web3Result.value) parts.push(web3Result.value);
-           if (osResult.status === 'fulfilled' && osResult.value) parts.push(osResult.value);
-           return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+           if (web3Result.status === 'fulfilled' && web3Result.value &&
+               !FALLBACK_STRINGS.some(f => web3Result.value.trim().startsWith(f))) {
+             parts.push(web3Result.value);
+           }
+           if (osResult.status === 'fulfilled' && osResult.value &&
+               !FALLBACK_STRINGS.some(f => osResult.value.trim().startsWith(f))) {
+             parts.push(osResult.value);
+           }
+           if (parts.length === 0) return '⚠️ Both agents returned empty responses.';
+           return parts.length === 1 ? parts[0] : parts.join('\n\n---\n\n');
         }
         else if (contextResponse.includes('web3')) context = 'web3';
         else if (contextResponse.includes('os')) context = 'os';
@@ -355,16 +409,25 @@ export async function processUserInputStream(
       preCheckMatched = true;
     } else if (streamCompound.hasWeb3 && streamCompound.hasOs) {
       // Compound: stream both agents and concatenate
+      // FIX: Do NOT addEntry here — processWeb3IntentStream / processOsIntentStream do it internally.
       console.log(pc.cyan('[Stream Orchestrator] Compound intent detected (web3 + os).'));
-      logger.addEntry({ role: 'user', content: input }, sessionId);
       const [web3R, osR] = await Promise.allSettled([
         processWeb3IntentStream(input, onChunk, onProgress, sessionId),
         processOsIntentStream(input, onChunk, onProgress, sessionId),
       ]);
+      // FIX: Filter fallback responses from compound merge
+      const FALLBACK_STRINGS_S = ['No response generated.', 'no response generated', '⚠️'];
       const parts: string[] = [];
-      if (web3R.status === 'fulfilled' && web3R.value) parts.push(web3R.value);
-      if (osR.status === 'fulfilled' && osR.value) parts.push(osR.value);
-      return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+      if (web3R.status === 'fulfilled' && web3R.value &&
+          !FALLBACK_STRINGS_S.some(f => web3R.value.trim().startsWith(f))) {
+        parts.push(web3R.value);
+      }
+      if (osR.status === 'fulfilled' && osR.value &&
+          !FALLBACK_STRINGS_S.some(f => osR.value.trim().startsWith(f))) {
+        parts.push(osR.value);
+      }
+      if (parts.length === 0) return '⚠️ Both agents returned empty responses.';
+      return parts.length === 1 ? parts[0] : parts.join('\n\n---\n\n');
     } else if (streamCompound.hasOs) {
       context = 'os';
       preCheckMatched = true;
@@ -395,15 +458,24 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
         const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
         if (cr.includes('compound')) {
           console.log(pc.cyan('[Stream Orchestrator] Compound intent detected via LLM Router.'));
-          logger.addEntry({ role: 'user', content: input }, sessionId);
+          // FIX: Do NOT addEntry here — sub-agents handle their own memory writes.
           const [web3R, osR] = await Promise.allSettled([
             processWeb3IntentStream(input, onChunk, onProgress, sessionId),
             processOsIntentStream(input, onChunk, onProgress, sessionId),
           ]);
+          // FIX: Filter fallback responses
+          const FALLBACK_STRINGS_SR = ['No response generated.', 'no response generated', '⚠️'];
           const parts: string[] = [];
-          if (web3R.status === 'fulfilled' && web3R.value) parts.push(web3R.value);
-          if (osR.status === 'fulfilled' && osR.value) parts.push(osR.value);
-          return parts.join('\n\n---\n\n') || '⚠️ Both agents returned empty responses.';
+          if (web3R.status === 'fulfilled' && web3R.value &&
+              !FALLBACK_STRINGS_SR.some(f => web3R.value.trim().startsWith(f))) {
+            parts.push(web3R.value);
+          }
+          if (osR.status === 'fulfilled' && osR.value &&
+              !FALLBACK_STRINGS_SR.some(f => osR.value.trim().startsWith(f))) {
+            parts.push(osR.value);
+          }
+          if (parts.length === 0) return '⚠️ Both agents returned empty responses.';
+          return parts.length === 1 ? parts[0] : parts.join('\n\n---\n\n');
         }
         else if (cr.includes('web3')) context = 'web3';
         else if (cr.includes('os')) context = 'os';
@@ -444,7 +516,7 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
         });
         let finalContent = response.message?.content || streamedContent || '';
         finalContent = finalContent
-          .replace(/<(think|thought)[\s\S]*?<\/\1>\n?/gi, '')
+          .replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/gi, '')
           .trim();
         if (!finalContent) finalContent = '⚠️ The LLM returned an empty response. Please try again.';
         logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);

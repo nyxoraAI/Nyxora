@@ -15,8 +15,16 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
     
     if (m.tool_calls && m.tool_calls.length > 0) {
       if (provider === 'gemini') {
-        // Strip tool calls from history for Gemini to prevent 400 Bad Request bugs
-        msg.content = msg.content || `[Executed external tools: ${m.tool_calls.map((tc: any) => tc.function?.name).join(', ')}]`;
+        // FIX: For Gemini, we can't pass tool_calls in history directly (causes 400 error),
+        // but we MUST NOT silently delete this context. Convert to informative text so the
+        // LLM knows it already executed tools and what they returned.
+        // Without this, the LLM hallucinates completion of tasks it never ran.
+        const toolSummary = m.tool_calls.map((tc: any) => {
+          const name = tc.function?.name || 'unknown_tool';
+          const argsStr = tc.function?.arguments ? tc.function.arguments.substring(0, 100) : '{}';
+          return `${name}(${argsStr})`;
+        }).join(', ');
+        msg.content = msg.content || `[Tools executed: ${toolSummary}]`;
         delete msg.tool_calls;
       } else {
         // Preserve tool calls for OpenAI/Anthropic, but filter inactive ones
@@ -32,9 +40,11 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
 
     if (m.role === 'tool' || m.tool_call_id) {
       if (provider === 'gemini' || !keptToolCallIds.has(m.tool_call_id)) {
-        // Convert orphaned or stripped tool results to user messages
+        // FIX: Convert tool result to user message with the ACTUAL result content.
+        // This preserves what the tool returned so LLM can reference it.
+        const resultPreview = (m.content || '').substring(0, 500);
         msg.role = 'user'; 
-        msg.content = `[Past Tool Result for ${m.name}]:\n${m.content || ""}`;
+        msg.content = `[Tool Result: ${m.name || 'tool'}]\n${resultPreview}${(m.content || '').length > 500 ? '\n...(truncated)' : ''}`;
         delete msg.tool_call_id;
         delete msg.name;
       }

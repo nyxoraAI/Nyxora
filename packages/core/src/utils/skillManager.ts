@@ -33,6 +33,11 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'list_notes': { category: 'os', name: 'list_notes' },
   'delete_note': { category: 'os', name: 'delete_note' },
   
+  // Telegram & Messaging Skills (FIX: were missing, causing disable/enable to not work)
+  'send_telegram_file': { category: 'os', name: 'telegramUpload' },
+  'send_telegram_message': { category: 'os', name: 'telegramMessage' },
+  'analyze_local_image': { category: 'os', name: 'analyzeImage' },
+  
   // Web3 Skills
   'transfer_token': { category: 'web3', name: 'transfer' },
   'transfer_native': { category: 'web3', name: 'transfer' },
