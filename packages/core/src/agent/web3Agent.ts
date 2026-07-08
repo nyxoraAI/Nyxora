@@ -193,11 +193,11 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
-      // FIX: Removed send_telegram_file — only financial Web3 ops need fast-return
+      // FIX: Re-added send_telegram_file to prevent "typing" loop after file upload.
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -498,8 +498,8 @@ Act now.`;
       // Tool calls detected — pause stream visually and execute tools
       // BUG#1 FIX: Wipe turn-1 planning text. See osAgent.ts for full explanation.
       onChunk('[TOOL_CALL_DETECTED]');
-      // FIX: Removed send_telegram_file — not a financial transaction
-      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'];
+      // FIX: Re-added send_telegram_file to prevent "typing" loop after file upload.
+      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
 

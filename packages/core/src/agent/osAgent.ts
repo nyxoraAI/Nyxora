@@ -40,8 +40,8 @@ pluginManager.registerHook({
   name: 'Web3FastReturn',
   afterToolCall: async (toolName, args, result, context) => {
     // FIX: Only financial Web3 transactions need fast-return (to show approval popup ASAP).
-    // send_telegram_file is NOT a financial transaction — removed from this list.
-    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'];
+    // FIX: Re-added send_telegram_file so the agent stops "typing" after file is successfully uploaded.
+    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'];
     if (fastReturnTools.includes(toolName)) {
       return { terminate: true };
     }
@@ -280,11 +280,11 @@ CRITICAL INSTRUCTIONS:
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
       // Enabled fastReturnTools to eliminate 2nd LLM latency for transaction popups
-      // FIX: Removed send_telegram_file — not a financial transaction
+      // FIX: Re-added send_telegram_file to prevent "typing" loop after file upload.
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
