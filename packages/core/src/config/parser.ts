@@ -120,7 +120,7 @@ export interface NyxoraConfig {
     base_url?: string;
   };
   web_search?: {
-    provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh';
+    provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh' | 'serpapi';
     enabled: boolean;
   };
   credentials?: {
@@ -132,6 +132,7 @@ export interface NyxoraConfig {
     custom_provider_key?: string;
     tavily_key?: string;
     brave_key?: string;
+    serpapi_key?: string;
     [key: string]: string | undefined;
   };
   memory: {

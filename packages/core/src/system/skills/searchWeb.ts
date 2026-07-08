@@ -128,6 +128,39 @@ async function searchDuckDuckGo(query: string, depth: number = 1): Promise<Searc
 
 const searchCache = new Map<string, {data: SearchQueryResult[], timestamp: number}>();
 
+async function searchSerpApi(query: string, apiKey: string, depth: number = 1): Promise<SearchQueryResult[]> {
+  const q = encodeURIComponent(query);
+  const num = depth > 1 ? 15 : 8;
+  const res = await fetch(`https://serpapi.com/search?engine=google&q=${q}&api_key=${apiKey}&num=${num}`);
+  
+  if (!res.ok) {
+    throw new Error(`[SerpApi Error] Status: ${res.status}`);
+  }
+  
+  const json = await res.json();
+  const results: SearchQueryResult[] = [];
+
+  if (json.answer_box && json.answer_box.snippet) {
+    results.push({
+      title: json.answer_box.title || "Direct Answer",
+      url: json.answer_box.link || "#",
+      content: json.answer_box.snippet
+    });
+  }
+
+  if (json.organic_results) {
+    for (const r of json.organic_results) {
+      results.push({
+        title: r.title || "No title",
+        url: r.link || "#",
+        content: r.snippet || r.title
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function searchWeb(query: string, depth: number = 1): Promise<string> {
   // Auto-inject current year for time-sensitive queries
   const lowerQuery = String(query || "").toLowerCase();
@@ -160,7 +193,19 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
   let results: SearchQueryResult[] = [];
   
   try {
-    if (provider === 'tavily' && creds.tavily_key) {
+    if (provider === 'serpapi' && creds.serpapi_key) {
+      try {
+        results = await searchSerpApi(finalQuery, creds.serpapi_key, depth);
+      } catch (e: any) {
+        console.warn(`[WebSearch] Primary provider (SerpApi) failed: ${e.message}. Switching to backup provider (DuckDuckGo)...`);
+        try {
+          results = await searchDuckDuckGo(finalQuery, depth);
+        } catch (e3) {
+          console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
+          results = await searchSearxng(finalQuery, depth);
+        }
+      }
+    } else if (provider === 'tavily' && creds.tavily_key) {
       try {
         results = await searchTavily(finalQuery, creds.tavily_key, depth);
       } catch (e: any) {
