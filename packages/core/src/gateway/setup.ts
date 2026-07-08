@@ -374,6 +374,7 @@ Provider: ${config.llm.provider}`;
       options: [
         { value: 'tavily', label: 'Tavily Search (Built for AI - 1000 free/mo)' },
         { value: 'brave', label: 'Brave Search (Privacy focused - 2000 free/mo)' },
+        { value: 'serpapi', label: 'SerpApi (Google Search - 100 free/mo)' },
         { value: 'duckduckgo', label: 'DuckDuckGo (Free & Built-in)' },
       ],
     });
@@ -381,7 +382,7 @@ Provider: ${config.llm.provider}`;
 
     if (searchProvider !== 'duckduckgo') {
       searchApiKey = (await password({
-        message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : 'search.brave.com'}):`,
+        message: `Enter API Key for ${searchProvider} (Get it free at ${searchProvider === 'tavily' ? 'tavily.com' : searchProvider === 'serpapi' ? 'serpapi.com' : 'search.brave.com'}):`,
       })) as string;
       if (isCancel(searchApiKey)) return process.exit(0);
     }
@@ -519,6 +520,7 @@ Provider: ${config.llm.provider}`;
     if (searchApiKey) {
       if (searchProvider === 'tavily') newApiKeys.tavily_key = searchApiKey;
       if (searchProvider === 'brave') newApiKeys.brave_key = searchApiKey;
+      if (searchProvider === 'serpapi') newApiKeys.serpapi_key = searchApiKey;
     }
   } else {
     config.web_search.provider = 'mesh';
