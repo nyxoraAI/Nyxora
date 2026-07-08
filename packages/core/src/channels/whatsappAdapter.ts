@@ -10,17 +10,19 @@ export class WhatsappAdapter implements ChannelAdapter {
     }
 
     async start(): Promise<void> {
-        // Lazy import — baileys is an optional dependency not bundled with Nyxora core.
-        // Install it separately if you want WhatsApp support: npm install -g baileys
+        // Lazy require — baileys is a runtime-optional dependency not bundled with Nyxora.
+        // Install separately if you want WhatsApp support: npm install baileys
+        // Using require() instead of import() to bypass TypeScript type resolution for optional packages.
         let makeWASocket: any, useMultiFileAuthState: any, DisconnectReason: any;
         try {
-            const baileys = await import('baileys');
+            // @ts-ignore — intentional: baileys is optional and may not be installed
+            const baileys = require('baileys');
             makeWASocket = baileys.default || baileys;
             useMultiFileAuthState = baileys.useMultiFileAuthState;
             DisconnectReason = baileys.DisconnectReason;
         } catch (e: any) {
             console.error('[WhatsApp] Cannot start: missing optional dependency "baileys".');
-            console.error('[WhatsApp] Install it with: npm install -g baileys');
+            console.error('[WhatsApp] Install it with: npm install baileys');
             return;
         }
 

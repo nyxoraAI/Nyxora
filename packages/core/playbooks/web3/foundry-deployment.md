@@ -35,5 +35,8 @@ When the user asks to "deploy", "compile", or "test" a smart contract using Foun
    ```
    *(Adjust the script path and contract name based on the actual file).*
 
-3. **Post-Deployment**:
-   Extract the deployed contract address from the deployment logs. Present the address and the transaction hash to the user.
+3. **Post-Deployment & Verification**:
+   - **CRITICAL**: Do NOT confuse the "Simulated On-chain Traces" with the actual deployment! A "Success" in the simulation does NOT mean the contract was deployed.
+   - You MUST look for the `========================== ONCHAIN EXECUTION ==========================` block in the output.
+   - If the output was truncated or you are unsure, read the `broadcast/` folder JSON receipts (e.g. `cat broadcast/Deploy.s.sol/chain_id/run-latest.json`) to confirm the transaction hash and status.
+   - Present the deployed contract address and transaction hash to the user ONLY if the ONCHAIN EXECUTION was successful.

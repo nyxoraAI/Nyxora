@@ -77,7 +77,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
       // P6: Compress history if conversation is too long
       const historyToUse = needsCompression(currentHistory)
-        ? await compressHistory(currentHistory)
+        ? await compressHistory(currentHistory, sessionId)
         : currentHistory;
 
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -124,6 +124,8 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
       if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
         const fallbacks: any[] = [];
+        
+        // 1. Slash commands (/swap amount="100")
         const regex = /^\/([a-zA-Z0-9_]+)\s+(.*)$/gm;
         let match;
         while ((match = regex.exec(responseMessage.content)) !== null) {
@@ -154,9 +156,26 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           });
         }
         
+        // 2. Markdown bash blocks (```bash ... ```)
+        const mdRegex = /```(?:bash|sh|zsh)?\n([\s\S]*?)```/g;
+        let mdMatch;
+        while ((mdMatch = mdRegex.exec(responseMessage.content)) !== null) {
+          const bashCmd = mdMatch[1].trim();
+          if (bashCmd) {
+            fallbacks.push({
+              id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+              type: 'function',
+              function: {
+                name: 'run_terminal_command',
+                arguments: JSON.stringify({ command: bashCmd })
+              }
+            });
+          }
+        }
+        
         if (fallbacks.length > 0) {
           responseMessage.tool_calls = fallbacks;
-          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').trim();
+          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').trim();
           console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
           // Update logger entry with the intercepted tool calls
           logger.addEntry({
@@ -166,10 +185,10 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           }, sessionId);
         }
       }
-      // -----------------------------------------------------
+      // ---------------------------------------------------------------
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
-        return cleanedContent || 'No response generated.';
+        return cleanedContent || '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
       }
 
       let canFastReturnAll = true;
@@ -351,13 +370,21 @@ export async function processWeb3IntentStream(
 
   try {
     let turnCount = 0;
+    let nudgeCount = 0;
     const MAX_TURNS = 20;
+    let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
     let fullResponse = '';
+
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       const currentHistory = logger.getHistory(sessionId);
-      const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      
+      const historyToUse = needsCompression(currentHistory)
+        ? await compressHistory(currentHistory, sessionId)
+        : currentHistory;
+        
+      const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
       // FIX: Use cached system prompt — no longer rebuilt every turn
       const messages: any[] = [
         { role: 'system', content: cachedWeb3SystemPrompt },
@@ -393,9 +420,77 @@ export async function processWeb3IntentStream(
       }, sessionId);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
-        let finalContent = responseMessage.content || 'No response generated.';
+        let finalContent = responseMessage.content || '';
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
         finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
+        
+        if (finalContent === '') {
+          const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
+          const hasThinkTagInStream = /<(think|thought|thinking|reasoning)[\s\S]*?<\//i.test(streamedContent);
+          const isThinkOnlyResponse = hasNativeReasoning || hasThinkTagInStream;
+
+          // ── THINKING-PREFILL CONTINUATION ──
+          if (isThinkOnlyResponse && thinkingPrefillRetries < 2) {
+            thinkingPrefillRetries++;
+            console.warn(`[Web3AgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/2)...`);
+            continue;
+          }
+
+          // ── NUDGE FALLBACK (after prefill exhaustion or truly empty) ──
+          if (nudgeCount < 3) {
+            nudgeCount++;
+            const recentUserMsg = logger.getHistory(sessionId)
+              .filter((m: any) => m.role === 'user').slice(-1)[0]?.content || 'the user request';
+
+            let nudgeContent: string;
+            if (isThinkOnlyResponse) {
+              console.warn(`[Web3AgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3 — SILENT STOP DETECTED]
+You completed your internal reasoning but produced NO output (no tool call, no text).
+This is a silent stop — it is not acceptable.
+
+Task: "${recentUserMsg.substring(0, 200)}"
+
+You MUST act RIGHT NOW. Do one of these:
+  A) Call the first required tool immediately (e.g., get_price, analyze_market, get_balance)
+  B) Output a final text answer
+
+Do NOT think again. Execute step 1 of the task NOW.`;
+            } else {
+              console.warn(`[Web3AgentStream] ⚠️ Empty response. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty. You MUST take action now.
+
+Task: "${recentUserMsg.substring(0, 200)}"
+
+Available tools: get_price, analyze_market, get_balance, get_tx_history, swap_token and others.
+You MUST either:
+  A) Call one or more tools, OR
+  B) Output a complete final text answer
+
+Act now.`;
+            }
+
+            logger.addEntry({
+              role: 'system' as any,
+              content: nudgeContent
+            }, sessionId);
+            continue;
+          } else {
+            console.error('[Web3AgentStream] ❌ LLM failed to recover after prefill + 3 nudges. Aborting.');
+            const reasoningContent = (responseMessage as any).reasoning_content || '';
+            if (reasoningContent && reasoningContent.length > 50) {
+              console.warn('[Web3AgentStream] Using reasoning_content as fallback response.');
+              finalContent = reasoningContent.replace(/<(think|thought|thinking)[\s\S]*?<\/\1>/gi, '').trim()
+                || '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
+            } else {
+              finalContent = '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
+            }
+          }
+        }
+        // Reset prefill counter on successful response
+        thinkingPrefillRetries = 0;
+
+
         fullResponse = finalContent;
         break;
       }

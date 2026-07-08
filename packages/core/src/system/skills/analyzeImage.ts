@@ -30,7 +30,7 @@ export async function analyzeLocalImage(imagePath: string, prompt: string): Prom
   }
 
   try {
-    const { GoogleGenAI } = require('@google/genai');
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
     const keys = await loadApiKeys();
     const geminiKey = keys['gemini_key'];
     
@@ -38,7 +38,11 @@ export async function analyzeLocalImage(imagePath: string, prompt: string): Prom
         return `[Security Error] No gemini_key found in the vault. Please run 'nyxora set-key gemini' first.`;
     }
 
-    const ai = new GoogleGenAI({ apiKey: geminiKey });
+    const genAI = new GoogleGenerativeAI(geminiKey);
+    const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        generationConfig: { temperature: 0.1 }
+    });
     
     // Read file and determine mime type
     const buffer = fs.readFileSync(imagePath);
@@ -51,28 +55,17 @@ export async function analyzeLocalImage(imagePath: string, prompt: string): Prom
     else if (ext === '.heic') mimeType = 'image/heic';
     else if (ext === '.heif') mimeType = 'image/heif';
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-            {
-                role: 'user',
-                parts: [
-                    { text: prompt },
-                    { 
-                        inlineData: {
-                            data: base64Data,
-                            mimeType: mimeType
-                        }
-                    }
-                ]
+    const response = await model.generateContent([
+        prompt,
+        {
+            inlineData: {
+                data: base64Data,
+                mimeType: mimeType
             }
-        ],
-        config: {
-            temperature: 0.1
         }
-    });
+    ]);
 
-    return response.text || "[Error] No content generated.";
+    return response.response.text() || "[Error] No content generated.";
   } catch (error: any) {
     return `[System Error] Failed to analyze image: ${error.message}`;
   }

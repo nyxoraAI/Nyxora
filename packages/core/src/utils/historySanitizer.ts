@@ -47,6 +47,17 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
         msg.content = `[Tool Result: ${m.name || 'tool'}]\n${resultPreview}${(m.content || '').length > 500 ? '\n...(truncated)' : ''}`;
         delete msg.tool_call_id;
         delete msg.name;
+      } else {
+        // GLOBAL TOOL OUTPUT TRUNCATION (Anti-Context Overflow)
+        const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
+        const MAX_TOOL_CHARS = isLocalModel ? 4000 : 15000;
+        if (msg.content && msg.content.length > MAX_TOOL_CHARS) {
+          const head = Math.floor(MAX_TOOL_CHARS * 0.3);
+          const tail = Math.floor(MAX_TOOL_CHARS * 0.7);
+          msg.content = msg.content.substring(0, head) + 
+            `\n\n... [Content Truncated: ${msg.content.length - MAX_TOOL_CHARS} chars omitted to prevent LLM context overflow] ...\n\n` + 
+            msg.content.substring(msg.content.length - tail);
+        }
       }
     }
 

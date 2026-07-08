@@ -1,11 +1,13 @@
 ---
 name: smart-contract-audit
-description: "Run automated security analysis on Foundry/Hardhat projects using Slither and Aderyn."
+description: "Run standard LOCAL security analysis on Foundry/Hardhat projects using Slither and Aderyn (DO NOT use for responsible disclosure)."
 ---
 
 # Smart Contract Security Audit
 
-When the user asks to "audit", "check security", or "scan" a smart contract repository, use this playbook.
+When the user asks to "audit", "check security", or "scan" a local smart contract repository, use this playbook. 
+
+> **Note**: If the user specifically asks for a "responsible disclosure scan", "private vulnerability reporting", or to scan external trending repos for CVEs, **DO NOT** use this playbook. Use `aeon-vuln-scanner` instead.
 
 ## Prerequisites
 - The project must be a Foundry or Hardhat project.

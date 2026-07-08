@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.8",
+  "version": "26.7.9",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -22,6 +22,7 @@
     "CHANGELOG.md",
     "launcher.ts",
     "packages/core/src",
+    "packages/core/playbooks",
     "packages/core/package.json",
     "packages/policy/src",
     "packages/policy/package.json",
@@ -57,7 +58,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
     "@clack/prompts": "^1.4.0",
-    "@google/genai": "^2.10.0",
     "@google/generative-ai": "^0.24.1",
     "@grammyjs/runner": "^2.0.3",
     "@grammyjs/transformer-throttler": "^1.2.1",

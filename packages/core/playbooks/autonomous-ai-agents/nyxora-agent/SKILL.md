@@ -900,13 +900,13 @@ and logs — avoids shell-escaping backslashes in bash.
 
 ### Tool not available
 1. `nyxora tools` — check if toolset is enabled for your platform
-2. Some tools need env vars (check `.env`)
+2. Some tools need env vars (check `~/.nyxora/.env`)
 3. `/reset` after enabling tools
 
 ### Model/provider issues
 1. `nyxora doctor` — check config and dependencies
 2. `nyxora auth` — re-authenticate OAuth providers (or `nyxora auth add <provider>`)
-3. Check `.env` has the right API key
+3. Check `~/.nyxora/.env` has the right API key
 4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `nyxora model` → GitHub Copilot.
 
 ### Changes not taking effect

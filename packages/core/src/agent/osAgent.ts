@@ -157,7 +157,7 @@ CRITICAL INSTRUCTIONS:
 
       // P6: Compress history if conversation is too long
       const historyToUse = needsCompression(currentHistory)
-        ? await compressHistory(currentHistory)
+        ? await compressHistory(currentHistory, sessionId)
         : currentHistory;
 
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -203,12 +203,78 @@ CRITICAL INSTRUCTIONS:
         tool_calls: responseMessage.tool_calls,
       }, sessionId);
 
+      // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
+      if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
+        const fallbacks: any[] = [];
+        
+        // 1. Slash commands (/swap amount="100")
+        const regex = /^\/([a-zA-Z0-9_]+)\s+(.*)$/gm;
+        let match;
+        while ((match = regex.exec(responseMessage.content)) !== null) {
+          const toolName = match[1];
+          let argsStr = match[2];
+          const argsObj: any = {};
+          
+          const kvRegex = /([a-zA-Z0-9_]+)=(".*?"|'.*?'|[^\s]+)/g;
+          let kvMatch;
+          while ((kvMatch = kvRegex.exec(argsStr)) !== null) {
+            let key = kvMatch[1];
+            let val = kvMatch[2].replace(/^["']|["']$/g, '');
+            argsObj[key] = val;
+          }
+          
+          // Map generic names if needed
+          let mappedToolName = toolName;
+          if (toolName === 'transfer' && argsObj.mode === 'bridge') mappedToolName = 'bridge_token';
+          if (toolName === 'swap') mappedToolName = 'swap_token';
+          
+          fallbacks.push({
+            id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+            type: 'function',
+            function: {
+              name: mappedToolName,
+              arguments: JSON.stringify(argsObj)
+            }
+          });
+        }
+        
+        // 2. Markdown bash blocks (```bash ... ```)
+        const mdRegex = /```(?:bash|sh|zsh)?\n([\s\S]*?)```/g;
+        let mdMatch;
+        while ((mdMatch = mdRegex.exec(responseMessage.content)) !== null) {
+          const bashCmd = mdMatch[1].trim();
+          if (bashCmd) {
+            fallbacks.push({
+              id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+              type: 'function',
+              function: {
+                name: 'run_terminal_command',
+                arguments: JSON.stringify({ command: bashCmd })
+              }
+            });
+          }
+        }
+        
+        if (fallbacks.length > 0) {
+          responseMessage.tool_calls = fallbacks;
+          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').trim();
+          console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
+          // Update logger entry with the intercepted tool calls
+          logger.addEntry({
+             role: 'assistant',
+             content: responseMessage.content || "",
+             tool_calls: responseMessage.tool_calls,
+          }, sessionId);
+        }
+      }
+      // -----------------------------------------------------
+
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         // --- CRITIC PASS REMOVED ---
         // The new PromptBuilder handles robust reasoning. Post-generation critic
         // causes aggressive loops and UI artifacts.
         triggerBackgroundReview(sessionId);
-        return cleanedContent || 'No response generated.';
+        return cleanedContent || '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
       }
 
       let canFastReturnAll = true;
@@ -420,14 +486,22 @@ CRITICAL INSTRUCTIONS:
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 10;
+    let nudgeCount = 0;
+    const MAX_TURNS = 15; // Increased from 10 — complex tasks need more turns
+    let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
+
     let fullResponse = '';
     let criticHasFiredStream = false; // Critic Pass hanya aktif 1x per request
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       const currentHistory = logger.getHistory(sessionId);
-      const sanitizedHistory = sanitizeHistoryForLLM(currentHistory, activeTools, config.llm.provider);
+      
+      const historyToUse = needsCompression(currentHistory)
+        ? await compressHistory(currentHistory, sessionId)
+        : currentHistory;
+        
+      const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
       // FIX: Use cached system prompt — no longer rebuilt every turn
       const messages: any[] = [
         { role: 'system', content: cachedSystemPromptStream },
@@ -464,12 +538,83 @@ CRITICAL INSTRUCTIONS:
       }, sessionId);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
-        let finalContent = responseMessage.content || 'No response generated.';
+        let finalContent = responseMessage.content || '';
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
         finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
 
-        // --- CRITIC PASS REMOVED ---
-        // Prevents leaking internal reasoning into the stream and confusing the user.
+        if (finalContent === '') {
+          // Detect think-only response: model reasoned but produced no tool calls or visible text.
+          const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
+          const hasThinkTagInStream = /<(think|thought|thinking|reasoning)[\s\S]*?<\//i.test(streamedContent);
+          const isThinkOnlyResponse = hasNativeReasoning || hasThinkTagInStream;
+
+          // ── THINKING-PREFILL CONTINUATION ──
+          // If model produced reasoning but no visible output, append the assistant message as-is
+          // so the model sees its own reasoning on the next turn and continues naturally.
+          // This avoids restarting the reasoning chain from scratch (which is what nudges do).
+          if (isThinkOnlyResponse && thinkingPrefillRetries < 2) {
+            thinkingPrefillRetries++;
+            console.warn(`[OsAgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/2)...`);
+            // The assistant message is already in logger from the addEntry above.
+            // The model will see its own reasoning and produce a tool call or text next turn.
+            continue;
+          }
+
+          // ── NUDGE FALLBACK (after prefill exhaustion or truly empty) ──
+          if (nudgeCount < 3) {
+            nudgeCount++;
+            const recentUserMsg = logger.getHistory(sessionId)
+              .filter((m: any) => m.role === 'user').slice(-1)[0]?.content || 'the user request';
+
+            let nudgeContent: string;
+            if (isThinkOnlyResponse) {
+              console.warn(`[OsAgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3 — SILENT STOP DETECTED]
+You completed your internal reasoning but produced NO output (no tool call, no text).
+This is a silent stop — it is not acceptable.
+
+Task: "${recentUserMsg.substring(0, 200)}"
+
+You MUST act RIGHT NOW. Do one of these:
+  A) Call the first required tool immediately (e.g., write_local_file, run_terminal_command, send_telegram_file)
+  B) Output a final text answer
+
+Do NOT think again. Execute step 1 of the task NOW.`;
+            } else {
+              console.warn(`[OsAgentStream] ⚠️ Empty response. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty. You MUST take action now.
+
+Task: "${recentUserMsg.substring(0, 200)}"
+
+Available tools: write_local_file, run_terminal_command, send_telegram_file, search_web and others.
+You MUST either:
+  A) Call one or more tools, OR
+  B) Output a complete final text answer
+
+Act now.`;
+            }
+
+            logger.addEntry({
+              role: 'system' as any,
+              content: nudgeContent
+            }, sessionId);
+            continue;
+
+          } else {
+            console.error('[OsAgentStream] ❌ LLM failed to recover after prefill + 3 nudges. Aborting.');
+            // Last-resort recovery: surface reasoning_content if available
+            const reasoningContent = (responseMessage as any).reasoning_content || '';
+            if (reasoningContent && reasoningContent.length > 50) {
+              console.warn('[OsAgentStream] Using reasoning_content as fallback response.');
+              finalContent = reasoningContent.replace(/<(think|thought|thinking)[\s\S]*?<\/\1>/gi, '').trim()
+                || '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
+            } else {
+              finalContent = '⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps.';
+            }
+          }
+        }
+        // Reset prefill counter on successful response
+        thinkingPrefillRetries = 0;
 
         fullResponse = finalContent;
         triggerBackgroundReview(sessionId);

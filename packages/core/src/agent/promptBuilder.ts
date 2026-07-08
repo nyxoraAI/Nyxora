@@ -95,7 +95,9 @@ This tool runs in a NON-INTERACTIVE shell (no TTY). Therefore:
 - If a command fails with "sudo: a password is required" or similar, DO NOT promise to retry without actually retrying.
 - Instead, try running the command WITHOUT sudo if possible (e.g. for user-space tools).
 - If sudo is truly required and unavailable, clearly tell the user EXACTLY what command to run manually in their terminal, with a copy-paste ready command. Do not just say it failed without providing a solution.
-- NEVER promise to retry ("let me try again", "I'll run it again", etc.) without immediately making another tool_call in the same response.`;
+- NEVER promise to retry ("let me try again", "I'll run it again", etc.) without immediately making another tool_call in the same response.
+
+CRITICAL RULE 6: NO SILENT STOPS. After your internal reasoning/thinking is complete, you MUST produce output: either one or more tool calls OR a visible text answer. Ending your turn with ONLY thinking content and no tool calls or text is strictly forbidden. If you have finished thinking, the NEXT thing you output must be a concrete action (tool call) or a final answer.`;
     }
 
     return identity;

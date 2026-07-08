@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.9]
+### Refactor — Dependency & NPM Warning Cleanup
+
+- **Removed Unused & Problematic Dependencies**: Completely uninstalled `@google/genai`, `baileys`, and `@matrix-org/matrix-sdk-crypto-nodejs` from the workspace. This fully eliminates the annoying `npm warn allow-scripts` warnings that users previously encountered when running `npm install -g nyxora` or standard `npm install`.
+- **Migrated Image Analysis SDK**: Refactored `analyzeImage.ts` (Dynamic Require) to use `@google/generative-ai` (which has no install scripts) instead of the newer `@google/genai` (which triggers NPM security warnings), maintaining full Gemini 2.5 Flash compatibility.
+
+### Bug Fix — Playbooks Missing for Global npm Users
+
+- **Playbooks Not Distributed to Global Users (Critical Fix)**: Resolved a packaging omission where `packages/core/playbooks/` (containing 70 bundled SKILL.md playbooks) was missing from the `files[]` array in `package.json`. Global users running `npm install -g nyxora` never received any playbooks, causing `search_playbook` to always return "No playbooks available." and the system prompt to never list available skills. Fixed by adding `"packages/core/playbooks"` to the `files[]` field.
+
+### Bug Fix — "No response generated." Crash on Complex Multi-Step Prompts
+
+- **ContextSummarizer Redundant 4x LLM Calls (Critical Fix)**: Fixed a severe loop bug where `compressHistory()` was called once per nudge iteration (up to 4x per request) instead of once per session turn. The compressed result was never persisted back to the logger, so every iteration re-fetched the full uncompressed history and triggered another full LLM summarization call. Added a per-session in-memory cache keyed by text message count: if no new user/assistant messages have arrived, the cached compressed result is reused immediately — eliminating the redundant LLM calls entirely.
+- **TaskPlanner Context Bloat**: Refactored the TaskPlanner to inject its execution plan as a `role: 'system'` logger entry instead of prepending it to the user input string. Previously, the plan was concatenated into the user message body (`planInjection + "\n\nUSER REQUEST: " + input`), which inflated the user message size stored in logger and compounded context bloat on every subsequent turn. Also capped generated plans at 120 words to prevent runaway context consumption.
+- **Nudge Messages Now Actionable**: Replaced the generic `"[SYSTEM NUDGE] You did not output any tool calls..."` message with a structured, actionable prompt that includes: the original user task (truncated to 200 chars), the list of relevant available tools, and explicit instruction to either call a tool or output a final text answer. Applies to both OS Agent and Web3 Agent.
+- **Dead-End Fallback Replaced**: Replaced `"No response generated."` (which leaves the user with no actionable path) with `"⚠️ I encountered an issue processing your request. This can happen with very complex multi-step tasks. Please try rephrasing or breaking the request into smaller steps."` in all 4 abort paths across `osAgent.ts` and `web3Agent.ts`.
+- **Hermes-Style Thinking-Prefill Continuation (Critical Fix)**: Ported the core silent-stop recovery technique used by the Hermes agent framework. When a reasoning model (e.g. Gemini 2.5 Pro with `reasoning_effort: high`) produces internal thinking content but no visible text or tool calls, Nyxora now appends the assistant's reasoning turn as-is and continues the loop — allowing the model to see its own reasoning on the next turn and naturally produce a tool call or text response. This is a fundamentally different approach from system nudges (which restart the reasoning chain from scratch). Prefill is attempted up to 2 times before falling back to the nudge path. Applies to both OS Agent and Web3 Agent.
+- **Anti-Silent-Stop System Prompt Rule**: Added `CRITICAL RULE 6` to the OS agent system prompt explicitly forbidding silent stops: after reasoning is complete, the model MUST produce either tool calls or a visible text answer. Ending a turn with only internal thinking is explicitly stated as not acceptable.
+- **MAX_TURNS Raised (OS Agent)**: Increased the stream loop iteration cap from 10 to 15 to give complex multi-step tasks (e.g. write file → send to Telegram) sufficient room to complete without hitting the ceiling.
+
 ## [26.7.8]
 ### Bug Fixes — Global Compatibility & Dashboard Crash
 

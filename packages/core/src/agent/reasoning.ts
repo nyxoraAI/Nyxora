@@ -166,21 +166,23 @@ async function runTaskPlanner(input: string, context: string): Promise<string> {
         messages: [
           {
             role: 'system',
-            content: `You are a task planning assistant for a crypto AI agent.
-The user has a complex request that needs structured execution.
-Break it down into a clear, ordered execution plan with 3-6 concrete steps.
-Each step should map to a specific action or tool call.
-Be concise. Use bullet points. No fluff.
+            content: `You are a concise task planning assistant.
+The user has a complex multi-step request. Output a brief, ordered execution plan with 3-5 bullet points (max 120 words total).
+Each bullet = one concrete action or tool call.
+Be extremely concise. No intros, no explanations.
 Context domain: ${context}`
           },
-          { role: 'user', content: `Create an execution plan for: ${input}` }
+          { role: 'user', content: `Plan execution for: ${input}` }
         ]
       })
     );
     const plan = planRes.message?.content?.trim() || '';
     if (!plan) return '';
+    // Enforce max length — truncate to ~120 words to prevent context bloat
+    const words = plan.split(/\s+/);
+    const trimmedPlan = words.length > 120 ? words.slice(0, 120).join(' ') + '...' : plan;
     console.log(pc.blue('[TaskPlanner] Plan generated, injecting into agent context.'));
-    return `\n\n--- 📋 TASK EXECUTION PLAN (follow this order) ---\n${plan}\n--- END PLAN ---\n`;
+    return `--- 📋 EXECUTION PLAN ---\n${trimmedPlan}\n--- END PLAN ---`;
   } catch {
     return ''; // planning is best-effort, never block the agent
   }
@@ -312,17 +314,21 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
   }
   
   if (context === 'web3') {
-      // P7: Inject task plan for complex requests
-      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'web3') : '';
-      if (planInjection) {
-        // Prepend plan as a system note in the input so agent sees it
-        return await processWeb3Intent(planInjection + '\n\nUSER REQUEST: ' + input, role, onProgress, sessionId);
+      // P7: Inject task plan as a system note (NOT prepended to user input to avoid context bloat)
+      if (shouldPlan(input)) {
+        const planInjection = await runTaskPlanner(input, 'web3');
+        if (planInjection) {
+          // Inject plan as system message — visible to LLM but doesn't pollute user message size
+          logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
+        }
       }
       return await processWeb3Intent(input, role, onProgress, sessionId);
   } else if (context === 'os') {
-      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'os') : '';
-      if (planInjection) {
-        return await processOsIntent(planInjection + '\n\nUSER REQUEST: ' + input, role, onProgress, sessionId);
+      if (shouldPlan(input)) {
+        const planInjection = await runTaskPlanner(input, 'os');
+        if (planInjection) {
+          logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
+        }
       }
       return await processOsIntent(input, role, onProgress, sessionId);
   } else {
@@ -489,14 +495,22 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
 
     let finalResult = '';
     if (context === 'web3') {
-      // P7: Inject task plan for complex stream requests
-      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'web3') : '';
-      const streamInput = planInjection ? planInjection + '\n\nUSER REQUEST: ' + input : input;
-      finalResult = await processWeb3IntentStream(streamInput, onChunk, onProgress, sessionId);
+      // P7: Inject task plan as a system note (NOT prepended to user input to avoid context bloat)
+      if (shouldPlan(input)) {
+        const planInjection = await runTaskPlanner(input, 'web3');
+        if (planInjection) {
+          logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
+        }
+      }
+      finalResult = await processWeb3IntentStream(input, onChunk, onProgress, sessionId);
     } else if (context === 'os') {
-      const planInjection = shouldPlan(input) ? await runTaskPlanner(input, 'os') : '';
-      const streamInput = planInjection ? planInjection + '\n\nUSER REQUEST: ' + input : input;
-      finalResult = await processOsIntentStream(streamInput, onChunk, onProgress, sessionId);
+      if (shouldPlan(input)) {
+        const planInjection = await runTaskPlanner(input, 'os');
+        if (planInjection) {
+          logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
+        }
+      }
+      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId);
     } else {
       logger.addEntry({ role: 'user', content: input }, sessionId);
       const messages = [

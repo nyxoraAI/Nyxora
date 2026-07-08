@@ -120,7 +120,7 @@ const Playbooks: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
             <BookOpen size={18} /> Skill Store
           </div>
-          <button onClick={handleCreateNew} style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', padding: '4px' }} title="New Playbook">
+          <button onClick={handleCreateNew} style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '4px' }} title="New Playbook">
             <Plus size={18} />
           </button>
         </div>
@@ -169,7 +169,7 @@ const Playbooks: React.FC = () => {
                                 padding: '8px 15px 8px 38px',
                                 cursor: 'pointer',
                                 backgroundColor: isSelected ? 'var(--highlight-bg, rgba(255,255,255,0.05))' : 'transparent',
-                                borderLeft: isSelected ? '3px solid var(--accent-color)' : '3px solid transparent',
+                                borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
@@ -230,7 +230,7 @@ const Playbooks: React.FC = () => {
                 )}
                 <button 
                   onClick={handleSave}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 16px', background: 'var(--accent-color)', border: 'none', color: '#fff', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 16px', background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
                 >
                   <Save size={14} /> Save
                 </button>

@@ -21,7 +21,6 @@ packages/dashboard/.env
 packages/dashboard/.env.*
 packages/dashboard/.eslintcache
 packages/policy/policy.yaml
-scratch/
 docs/.vitepress/cache/
 /wiki/
 

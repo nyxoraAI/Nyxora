@@ -73,7 +73,7 @@ initGoogleAuth();
 // Start Background Nyx Daemon
 nyxDaemon.start();
 
-// Synchronize playbooks using Smart Sync Engine (Hermes Parity)
+// Synchronize playbooks using Smart Sync Engine
 ensurePlaybookDir();
 
 // Synchronize all active skills to config.yaml on startup
