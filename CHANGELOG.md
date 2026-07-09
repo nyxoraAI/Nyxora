@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
 ## [26.7.9]
+### Features & Architecture
+
+- **Deep Market Analysis Upgrade**: Significantly enhanced the Python ML Engine (`market.py`) to compute a comprehensive suite of advanced technical indicators including MACD, Bollinger Bands, EMA-20, ATR-14, and OBV using live OHLCV data.
+- **Smart Trend Classification**: The ML Engine now runs deterministic trend scoring (`STRONG_BULLISH` to `STRONG_BEARISH`) and generates an AI narrative summary of the market structure to prevent LLM hallucination and provide highly accurate context.
+- **Anti-Blocker Data Pipeline**: Bypassed Indonesian ISP blocks (e.g., internetsehat/ICON+) that previously blocked major crypto exchange APIs (Binance, Bybit, KuCoin, OKX) by routing historical candle data through `data-api.binance.vision`.
+
 ### Refactor — Dependency & NPM Warning Cleanup
 
 - **Removed Unused & Problematic Dependencies**: Completely uninstalled `@google/genai`, `baileys`, and `@matrix-org/matrix-sdk-crypto-nodejs` from the workspace. This fully eliminates the annoying `npm warn allow-scripts` warnings that users previously encountered when running `npm install -g nyxora` or standard `npm install`.

@@ -1,6 +1,6 @@
 import { apiFetch } from './utils/api';
 import React, { useState, useEffect } from 'react';
-import { Save, User, Cpu, Key, Network, Globe, Shield, Zap, Terminal, Database, Plug } from 'lucide-react';
+import { Save, User, Cpu, Key, Network, Globe, Shield, Zap, Terminal, Database, Plug, BookOpen } from 'lucide-react';
 import { PillSelect } from './components/PillSelect';
 import { LlmIcon } from './components/LlmIcons';
 import { getChainLogoUrl } from './utils/logos';
@@ -9,6 +9,7 @@ import { FiatSelector } from './FiatSelector';
 import Skills from './Skills';
 import OsSkills from './OsSkills';
 import ExternalSkills from './ExternalSkills';
+import Playbooks from './Playbooks';
 import { DefiKeys } from './DefiKeys';
 import { MarketOracles } from './MarketOracles';
 import RpcConfig from './RpcConfig';
@@ -312,6 +313,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         </div>
         <div className={`settings-menu-item ${activeCategory === 'externalskills' ? 'active' : ''}`} onClick={() => setActiveCategory('externalskills')}>
           <Plug size={16} /> <span className="settings-menu-label">External Skills</span>
+        </div>
+        <div className={`settings-menu-item ${activeCategory === 'playbooks' ? 'active' : ''}`} onClick={() => setActiveCategory('playbooks')}>
+          <BookOpen size={16} /> <span className="settings-menu-label">Skill Store</span>
         </div>
 
         <div className="settings-section-title" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginTop: '16px', marginBottom: '4px', paddingLeft: '12px' }}>ADVANCED</div>
@@ -946,6 +950,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           {activeCategory === 'web3skills' && <div style={{ margin: '-24px' }}><Skills /></div>}
           {activeCategory === 'osskills' && <div style={{ margin: '-24px' }}><OsSkills /></div>}
           {activeCategory === 'externalskills' && <div style={{ margin: '-24px' }}><ExternalSkills /></div>}
+          {activeCategory === 'playbooks' && <div style={{ margin: '-24px' }}><Playbooks /></div>}
           {activeCategory === 'rpc' && <div style={{ margin: '-24px' }}><RpcConfig /></div>}
           {activeCategory === 'defi' && <div style={{ margin: '-24px' }}><DefiKeys /></div>}
           {activeCategory === 'oracles' && <div style={{ margin: '-24px' }}><MarketOracles /></div>}

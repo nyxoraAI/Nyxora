@@ -55,7 +55,21 @@ export class PluginManager {
   public getAllToolDefinitions(): any[] {
     const pluginTools = this.plugins.flatMap(p => p.tools);
     const agentTools = this.agentSkills.getToolSchemas();
-    return [...pluginTools, ...agentTools];
+    const allTools = [...pluginTools, ...agentTools];
+
+    const uniqueTools: any[] = [];
+    const seenNames = new Set<string>();
+    for (const t of allTools) {
+      if (t?.function?.name) {
+        if (!seenNames.has(t.function.name)) {
+          seenNames.add(t.function.name);
+          uniqueTools.push(t);
+        }
+      } else {
+        uniqueTools.push(t);
+      }
+    }
+    return uniqueTools;
   }
 
   public async triggerBeforeHooks(toolName: string, args: any, context: ToolContext): Promise<BeforeToolCallResult> {

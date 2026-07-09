@@ -40,6 +40,16 @@ The Dashboard is designed to be a transparent window into the background daemon'
 *   **Active CRON Jobs:** The Overview page actively polls the `/api/cron` endpoint to display the exact number of recurring background tasks currently registered by the AI Scheduler.
 *   **Agent Identity Sync:** If you instruct the AI to change its name via a chat command (e.g., "Change your name to Jarvis"), the backend instantly updates the global `nyxora.config.json` file. This guarantees that your Dashboard UI and Telegram Bot always reflect the AI's latest personality and naming configurations.
 
+## 🛠️ Unified Agent Capabilities (Settings)
+
+To provide a cleaner, more organized user experience, all modular capabilities of the AI have been consolidated under the **Settings ➔ AGENT CAPABILITIES** menu. 
+*   **Skill Store (Playbooks):** Manage and install Markdown-based Standard Operating Procedures (SOPs).
+*   **Web3 Skills:** Configure native blockchain transaction tools.
+*   **OS Skills:** Toggle permissions for the AI to interact with your host operating system (file system, command execution).
+*   **External Skills:** Manage `agentskills.io` standard code-based plugins and API keys for external services.
+
+This ensures the primary dashboard sidebar remains clutter-free while centralizing all agent configuration into a single logical control panel.
+
 ## 🖥️ Policy Engine Dashboard (Hard-coded Firewall)
 
 Nyxora kini memiliki modul **Policy Engine Dashboard** mandiri di dalam antarmuka Settings. Ini merupakan mekanisme keamanan ketat yang bertindak sebagai perisai tak tertembus, yang sama sekali tidak dapat di-bypass oleh agen LLM dalam kondisi apapun. Melalui dashboard ini, Anda dapat langsung mengatur aturan keselamatan berbasis NLP dan batas pengeluaran transaksi tanpa harus mengedit file `policy.yaml` secara manual.

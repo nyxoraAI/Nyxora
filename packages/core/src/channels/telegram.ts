@@ -140,7 +140,8 @@ export function startTelegramBot() {
     });
 
     bot.command('clear', async (ctx) => {
-      logger.clear(`telegram_${ctx.chat?.id}`);
+      const threadId = ctx.message?.message_thread_id ? `_${ctx.message.message_thread_id}` : '';
+      logger.clear(`telegram_${ctx.chat?.id}${threadId}`);
       await ctx.reply("✅ AI memory has been cleared. Let's start a new chat!");
     });
 
@@ -220,16 +221,32 @@ export function startTelegramBot() {
           // Turn 1 starting — reset to clean state
           buffer = '⏳ Processing...';
           finalContentAlreadyStreamed = false;
-        } else if (chunk === '[TOOL_CALL_DETECTED]') {
-          // BUG#1 FIX: LLM made a tool call — wipe turn-1 planning/thinking text from buffer.
-          // The LLM often generates "chain-of-thought" text before calling a tool (e.g. "Let me
-          // check the data first..."). This should NOT be shown to users. We reset the buffer to
-          // a clean progress indicator, preserving progressMsgId so the same message gets reused.
-          buffer = '⏳ Processing...';
+        } else if (chunk === '[TOOL_CALL_DETECTED]' || chunk === '[TOOL_CALL_FINISHED]') {
+          // Hermes-Agent tool boundary: Finalize the current message synchronously to avoid race conditions.
+          const htmlToSave = formatToTelegramHTML(buffer);
+          const msgIdToSave = progressMsgId;
+          
+          progressMsgId = null;
+          buffer = '';
           finalContentAlreadyStreamed = false;
-          scheduleEdit(); // Update Telegram immediately to show clean state
+          
+          if (pendingEdit) {
+            clearTimeout(pendingEdit);
+            pendingEdit = null;
+          }
+
+          if (msgIdToSave && htmlToSave) {
+            await ctx.api.editMessageText(ctx.chat.id, msgIdToSave, htmlToSave, { parse_mode: 'HTML' }).catch(() => {});
+          } else if (!msgIdToSave && htmlToSave) {
+            await ctx.reply(htmlToSave, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any }).catch(() => {});
+          }
+          return;
         } else {
-          buffer += chunk;
+          if (buffer === '⏳ Processing...') {
+            buffer = chunk;
+          } else {
+            buffer += chunk;
+          }
         }
         scheduleEdit();
       };
@@ -240,8 +257,10 @@ export function startTelegramBot() {
       };
 
       try {
+        const threadId = ctx.message.message_thread_id ? `_${ctx.message.message_thread_id}` : '';
+        const sessionId = `telegram_${ctx.chat?.id}${threadId}`;
         const response = await processUserInputStream(
-          text, onChunk, onProgress, `telegram_${ctx.chat?.id}`
+          text, onChunk, onProgress, sessionId
         );
         isFinalized = true;
         if (pendingEdit) {
@@ -426,8 +445,30 @@ export function startTelegramBot() {
         const onChunk = async (chunk: string) => {
           if (chunk === '[CLEAR_STREAM]') {
             buffer = '⏳ Processing...';
+          } else if (chunk === '[TOOL_CALL_DETECTED]' || chunk === '[TOOL_CALL_FINISHED]') {
+            const htmlToSave = formatToTelegramHTML(buffer);
+            const msgIdToSave = progressMsgId;
+            
+            progressMsgId = null;
+            buffer = '';
+            
+            if (pendingEdit) {
+              clearTimeout(pendingEdit);
+              pendingEdit = null;
+            }
+
+            if (msgIdToSave && htmlToSave) {
+              await ctx.api.editMessageText(ctx.chat.id, msgIdToSave, htmlToSave, { parse_mode: 'HTML' }).catch(() => {});
+            } else if (!msgIdToSave && htmlToSave) {
+              await ctx.reply(htmlToSave, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any }).catch(() => {});
+            }
+            return;
           } else {
-            buffer += chunk;
+            if (buffer === '⏳ Processing...') {
+              buffer = chunk;
+            } else {
+              buffer += chunk;
+            }
           }
           scheduleEdit();
         };
@@ -438,7 +479,10 @@ export function startTelegramBot() {
         };
 
         try {
-          const response = await processUserInputStream(simulatedText, onChunk, onProgress, `telegram_${ctx.chat.id}`);
+          const msg = ctx.callbackQuery.message as any;
+          const threadId = msg?.message_thread_id ? `_${msg.message_thread_id}` : '';
+          const sessionId = `telegram_${ctx.chat.id}${threadId}`;
+          const response = await processUserInputStream(simulatedText, onChunk, onProgress, sessionId);
           isFinalized = true;
           if (pendingEdit) {
             clearTimeout(pendingEdit);
@@ -525,7 +569,9 @@ export function startTelegramBot() {
           } catch {}
         };
 
-        const response = await processUserInput(prompt, 'user', onProgress, `telegram_${ctx.chat?.id}`);
+        const threadId = ctx.message?.message_thread_id ? `_${ctx.message.message_thread_id}` : '';
+        const sessionId = `telegram_${ctx.chat?.id}${threadId}`;
+        const response = await processUserInput(prompt, 'user', onProgress, sessionId);
 
         if (progressMsgId) {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
@@ -575,7 +621,9 @@ export function startTelegramBot() {
           } catch {}
         };
 
-        const response = await processUserInput(prompt, 'user', onProgress, `telegram_${ctx.chat?.id}`);
+        const threadId = ctx.message?.message_thread_id ? `_${ctx.message.message_thread_id}` : '';
+        const sessionId = `telegram_${ctx.chat?.id}${threadId}`;
+        const response = await processUserInput(prompt, 'user', onProgress, sessionId);
 
         if (progressMsgId) {
           await ctx.api.deleteMessage(ctx.chat.id, progressMsgId).catch(() => {});
@@ -635,8 +683,17 @@ export async function sendTelegramDocument(absolutePath: string): Promise<string
   
   try {
     const file = new InputFile(absolutePath);
-    await globalBotInstance.api.sendDocument(chatId, file);
-    return `Success! File has been uploaded directly to the Telegram chat.`;
+    // Wait for the stream to flush the "⚡ Running tool..." message so the file appears after it
+    await new Promise(r => setTimeout(r, 1500));
+    
+    const ext = absolutePath.toLowerCase();
+    if (ext.endsWith('.png') || ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.gif') || ext.endsWith('.webp')) {
+      await globalBotInstance.api.sendPhoto(chatId, file);
+    } else {
+      await globalBotInstance.api.sendDocument(chatId, file);
+    }
+    
+    return `[SILENT_FAST_RETURN] Success! File has been uploaded directly to the Telegram chat.`;
   } catch (err: any) {
     return `[Error] Failed to upload document to Telegram: ${err.message}`;
   }

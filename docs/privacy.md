@@ -15,6 +15,7 @@ To provide AI and Web3 capabilities, Nyxora must communicate with third-party pr
 - **Web Search Engines:** (e.g., Tavily, Brave). Search queries are sent to these engines to fetch real-time data.
 - **Google Workspace:** If you connect your Google account, Nyxora will access your Gmail, Calendar, or Docs strictly to perform tasks you explicitly request. We do not store this data centrally.
 - **RPC Nodes & Blockchains:** Transaction details are broadcast to public blockchain networks (Ethereum, Polygon, Base, etc.) via RPC endpoints.
+- **Social Intelligence APIs:** (e.g., Social Fetch). If you use social media playbooks, Nyxora will send search queries (such as usernames or topics) and your provided API keys to these services to fetch real-time data from platforms like Twitter, TikTok, and Instagram.
 
 ## 🛡️ 3. Data Security
 We employ OS-native security mechanisms (such as the OS Keyring via `@napi-rs/keyring`) to encrypt and securely store your sensitive tokens and private keys locally. It is your responsibility to secure the physical access to your device.

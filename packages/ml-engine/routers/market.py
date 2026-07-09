@@ -11,9 +11,6 @@ from config import config
 import logging
 import warnings
 
-# SSL note: the host system's CA bundle is missing intermediate certificates
-# (confirmed: curl also fails without --insecure on this machine).
-# verify=False is intentional here — all target domains are well-known exchanges.
 SSL_VERIFY = False
 log = logging.getLogger("uvicorn.error")
 
@@ -37,10 +34,28 @@ class MarketResponse(BaseModel):
     liquidityUsd: float
     volume24h: float
     priceChange24h: float
+    
+    # New indicators
     rsi: Optional[float]
     ma50: Optional[float]
+    ema20: Optional[float]
+    macd: Optional[float]
+    macdSignal: Optional[float]
+    macdHistogram: Optional[float]
+    bollingerUpper: Optional[float]
+    bollingerLower: Optional[float]
+    bollingerBandwidth: Optional[float]
+    atr14: Optional[float]
+    obv: Optional[float]
+    obvTrend: Optional[str]
+    
+    # Trend
+    trendClassification: Optional[str]
+    trendConfidence: Optional[float]
+    narrative: Optional[str]
+    
     isCexAsset: bool
-    momentumSources: Optional[List[str]] = None  # exchanges yang berhasil contribute data
+    momentumSources: Optional[List[str]] = None
 
 async def fetch_dexscreener(query: str, is_ca: bool, chain: str = None):
     url = f"https://api.dexscreener.com/latest/dex/tokens/{query}" if is_ca else f"https://api.dexscreener.com/latest/dex/search?q={query}"
@@ -88,123 +103,199 @@ async def fetch_coingecko(symbol: str):
     return None
 
 def _sanitize_symbol(symbol: str) -> str:
-    """Strip characters that most CEX APIs don't accept (dots, dashes, spaces, etc)."""
     return re.sub(r'[^A-Z0-9]', '', symbol.upper())
 
-
-# ─── Per-exchange close price fetchers ────────────────────────────────────────
-# Each returns a list of daily close prices (oldest → newest), or None on failure.
-
-async def _closes_binance(client: httpx.AsyncClient, symbol: str) -> Optional[List[float]]:
-    """Binance: [ts, open, high, low, close, ...] — close = index 4, oldest first."""
+async def _closes_binance(client: httpx.AsyncClient, symbol: str) -> Optional[pd.DataFrame]:
     try:
         r = await client.get(
-            f"https://api.binance.com/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=50",
+            f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=100",
             timeout=10
         )
         data = r.json()
-        if isinstance(data, list) and len(data) >= 14:
-            return [float(k[4]) for k in data]
+        if isinstance(data, list) and len(data) >= 20:
+            df = pd.DataFrame(data, columns=['ts', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'trades', 'tbb', 'tbq', 'ignore'])
+            return df[['high', 'low', 'close', 'volume']].astype(float)
     except Exception as e:
         print(f"[ML] Binance error for {symbol}: {e}")
     return None
 
-
-async def _closes_bybit(client: httpx.AsyncClient, symbol: str) -> Optional[List[float]]:
-    """Bybit v5: result.list = [[ts, open, high, low, close, ...]] — newest first."""
+async def _closes_bybit(client: httpx.AsyncClient, symbol: str) -> Optional[pd.DataFrame]:
     try:
         r = await client.get(
-            f"https://api.bybit.com/v5/market/kline?category=linear&symbol={symbol}USDT&interval=D&limit=50",
+            f"https://api.bybit.com/v5/market/kline?category=linear&symbol={symbol}USDT&interval=D&limit=100",
             timeout=10
         )
         data = r.json()
         klines = data.get("result", {}).get("list", [])
-        if isinstance(klines, list) and len(klines) >= 14:
-            return [float(k[4]) for k in reversed(klines)]  # close = index 4, reverse to oldest-first
+        if isinstance(klines, list) and len(klines) >= 20:
+            df = pd.DataFrame(reversed(klines), columns=['ts', 'open', 'high', 'low', 'close', 'volume', 'turnover'])
+            return df[['high', 'low', 'close', 'volume']].astype(float)
     except Exception as e:
         print(f"[ML] Bybit error for {symbol}: {e}")
     return None
 
-
-async def _closes_okx(client: httpx.AsyncClient, symbol: str) -> Optional[List[float]]:
-    """OKX: data = [[ts, open, high, low, close, ...]] — newest first."""
+async def _closes_okx(client: httpx.AsyncClient, symbol: str) -> Optional[pd.DataFrame]:
     try:
         r = await client.get(
-            f"https://www.okx.com/api/v5/market/candles?instId={symbol}-USDT&bar=1D&limit=50",
+            f"https://www.okx.com/api/v5/market/candles?instId={symbol}-USDT&bar=1D&limit=100",
             timeout=10
         )
         data = r.json()
         klines = data.get("data", [])
-        if isinstance(klines, list) and len(klines) >= 14:
-            return [float(k[4]) for k in reversed(klines)]  # close = index 4, reverse to oldest-first
+        if isinstance(klines, list) and len(klines) >= 20:
+            df = pd.DataFrame(reversed(klines), columns=['ts', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm'])
+            df['volume'] = df['vol']
+            return df[['high', 'low', 'close', 'volume']].astype(float)
     except Exception as e:
         print(f"[ML] OKX error for {symbol}: {e}")
     return None
 
-
-async def _closes_kucoin(client: httpx.AsyncClient, symbol: str) -> Optional[List[float]]:
-    """KuCoin: data = [[ts_sec, open, close, high, low, vol]] — newest first, close = index 2."""
+async def _closes_kucoin(client: httpx.AsyncClient, symbol: str) -> Optional[pd.DataFrame]:
     try:
         now = int(datetime.now(timezone.utc).timestamp())
-        start = now - (50 * 86400)
+        start = now - (100 * 86400)
         r = await client.get(
             f"https://api.kucoin.com/api/v1/market/candles?type=1day&symbol={symbol}-USDT&startAt={start}&endAt={now}",
             timeout=10
         )
         data = r.json()
         klines = data.get("data", [])
-        if isinstance(klines, list) and len(klines) >= 14:
-            return [float(k[2]) for k in reversed(klines)]  # close = index 2, reverse to oldest-first
+        if isinstance(klines, list) and len(klines) >= 20:
+            df = pd.DataFrame(reversed(klines), columns=['time', 'open', 'close', 'high', 'low', 'volume', 'turnover'])
+            return df[['high', 'low', 'close', 'volume']].astype(float)
     except Exception as e:
         print(f"[ML] KuCoin error for {symbol}: {e}")
     return None
 
-
-async def _closes_mexc(client: httpx.AsyncClient, symbol: str) -> Optional[List[float]]:
-    """MEXC: same wire format as Binance — [ts, open, high, low, close, ...], close = index 4."""
+async def _closes_mexc(client: httpx.AsyncClient, symbol: str) -> Optional[pd.DataFrame]:
     try:
         r = await client.get(
-            f"https://api.mexc.com/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=50",
+            f"https://api.mexc.com/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=100",
             timeout=10
         )
         data = r.json()
-        if isinstance(data, list) and len(data) >= 14:
-            return [float(k[4]) for k in data]
+        if isinstance(data, list) and len(data) >= 20:
+            df = pd.DataFrame(data, columns=['ts', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'trades', 'tbb', 'tbq', 'ignore'])
+            return df[['high', 'low', 'close', 'volume']].astype(float)
     except Exception as e:
         print(f"[ML] MEXC error for {symbol}: {e}")
     return None
 
+def safe_float(v, default=0.0):
+    if pd.isna(v) or not np.isfinite(v):
+        return default
+    return float(v)
 
-# ─── RSI + MA50 calculator ────────────────────────────────────────────────────
+def _compute_indicators(df: pd.DataFrame, current_price: float):
+    close = df['close']
+    high = df['high']
+    low = df['low']
+    vol = df['volume']
+    
+    ma50 = close.rolling(50, min_periods=1).mean().iloc[-1]
+    ema20 = close.ewm(span=20, adjust=False).mean().iloc[-1]
+    
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss.replace(0, np.nan)
+    rsi_val = 100 - (100 / (1 + rs))
+    rsi_val = rsi_val.iloc[-1]
+    if pd.isna(rsi_val):
+        rsi_val = 50.0
+        
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd = ema12 - ema26
+    macd_signal = macd.ewm(span=9, adjust=False).mean()
+    macd_hist = macd - macd_signal
+    
+    sma20 = close.rolling(20, min_periods=1).mean()
+    std20 = close.rolling(20, min_periods=1).std()
+    bb_up = sma20 + (2 * std20)
+    bb_low = sma20 - (2 * std20)
+    bb_width = (bb_up - bb_low) / sma20 * 100
+    
+    tr1 = high - low
+    tr2 = (high - close.shift(1)).abs()
+    tr3 = (low - close.shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr14 = tr.rolling(14, min_periods=1).mean().iloc[-1]
+    
+    obv = (np.sign(delta) * vol).fillna(0).cumsum().iloc[-1]
+    obv_ma = (np.sign(delta) * vol).fillna(0).cumsum().rolling(10, min_periods=1).mean().iloc[-1]
+    obv_trend = "accumulation" if obv > obv_ma else "distribution"
+    
+    return {
+        "rsi": safe_float(rsi_val, 50.0),
+        "ma50": safe_float(ma50, current_price),
+        "ema20": safe_float(ema20, current_price),
+        "macd": safe_float(macd.iloc[-1]),
+        "macdSignal": safe_float(macd_signal.iloc[-1]),
+        "macdHistogram": safe_float(macd_hist.iloc[-1]),
+        "bollingerUpper": safe_float(bb_up.iloc[-1]),
+        "bollingerLower": safe_float(bb_low.iloc[-1]),
+        "bollingerBandwidth": safe_float(bb_width.iloc[-1]),
+        "atr14": safe_float(atr14),
+        "obv": safe_float(obv),
+        "obvTrend": obv_trend
+    }
 
-def _compute_rsi_ma50(closes: List[float], current_price: float):
-    """Returns (rsi, ma50) from a list of daily close prices."""
-    s = pd.Series(closes, dtype=float)
+def classify_trend(indicators: dict, current_price: float):
+    score = 0
+    max_score = 6
+    
+    rsi = indicators.get('rsi', 50)
+    macd_hist = indicators.get('macdHistogram', 0)
+    ema20 = indicators.get('ema20', current_price)
+    ma50 = indicators.get('ma50', current_price)
+    
+    if current_price > ma50: score += 1
+    if current_price > ema20: score += 1
+    if ema20 > ma50: score += 1
+    if macd_hist > 0: score += 1
+    if rsi > 50: score += 1
+    if indicators.get('obvTrend') == 'accumulation': score += 1
+    
+    confidence = (score / max_score) * 100
+    
+    if score >= 5: return "STRONG_BULLISH", confidence
+    if score >= 4: return "BULLISH", confidence
+    if score >= 3: return "NEUTRAL", confidence
+    if score >= 2: return "BEARISH", 100 - confidence
+    return "STRONG_BEARISH", 100 - confidence
 
-    ma50 = float(s.rolling(window=min(50, len(s))).mean().iloc[-1])
-    if not np.isfinite(ma50):
-        ma50 = current_price
-
-    delta = s.diff()
-    gain = delta.clip(lower=0).rolling(window=14).mean()
-    loss = (-delta.clip(upper=0)).rolling(window=14).mean()
-    loss_safe = loss.replace(0, np.nan)
-    rs = gain / loss_safe
-    rsi_val = float((100 - (100 / (1 + rs))).iloc[-1])
-    if not np.isfinite(rsi_val):
-        rsi_val = 100.0 if float(gain.iloc[-1]) > 0 else 50.0
-
-    return rsi_val, ma50
-
-
-# ─── Main momentum aggregator ─────────────────────────────────────────────────
+def generate_narrative(symbol: str, classification: str, confidence: float, indicators: dict):
+    narrative = f"{symbol} is currently in a {classification} trend ({confidence:.0f}% confidence). "
+    
+    if classification in ["STRONG_BULLISH", "BULLISH"]:
+        narrative += f"Price action shows strength above key moving averages. "
+    elif classification in ["STRONG_BEARISH", "BEARISH"]:
+        narrative += f"Price faces downward pressure below key moving averages. "
+    else:
+        narrative += f"The market is moving sideways. "
+        
+    macd_hist = indicators.get('macdHistogram', 0)
+    if macd_hist > 0:
+        narrative += "MACD shows positive momentum. "
+    else:
+        narrative += "MACD indicates negative momentum. "
+        
+    rsi = indicators.get('rsi', 50)
+    if rsi > 70:
+        narrative += "RSI is overbought (>70), warning of a potential pullback. "
+    elif rsi < 30:
+        narrative += "RSI is oversold (<30), hinting at a potential bounce. "
+        
+    obv_trend = indicators.get('obvTrend')
+    if obv_trend == 'accumulation':
+        narrative += "Volume profile (OBV) indicates accumulation by buyers."
+    elif obv_trend == 'distribution':
+        narrative += "Volume profile (OBV) suggests distribution by sellers."
+        
+    return narrative
 
 async def calculate_momentum(symbol: str, current_price: float):
-    """Fetch daily candles from Binance, KuCoin, Bybit, OKX, MEXC concurrently.
-    Average RSI-14 and MA-50 across all exchanges that return valid data."""
-    import logging
-    log = logging.getLogger("uvicorn.error")
-
     clean_symbol = _sanitize_symbol(symbol)
     if not clean_symbol:
         log.warning(f"[ML Engine] ⚠️ Invalid symbol '{symbol}', skipping momentum.")
@@ -219,33 +310,53 @@ async def calculate_momentum(symbol: str, current_price: float):
             _closes_okx(client, clean_symbol),
             _closes_kucoin(client, clean_symbol),
             _closes_mexc(client, clean_symbol),
-            return_exceptions=True  # never let one exchange crash the whole call
+            return_exceptions=True
         )
 
-    rsi_vals, ma50_vals, sources = [], [], []
+    dfs = []
+    sources = []
     for name, res in zip(EXCHANGE_NAMES, results):
-        if isinstance(res, list) and len(res) >= 14:
-            try:
-                rsi_v, ma50_v = _compute_rsi_ma50(res, current_price)
-                rsi_vals.append(rsi_v)
-                ma50_vals.append(ma50_v)
-                sources.append(name)
-            except Exception as e:
-                log.warning(f"[ML Engine] ⚠️ {name} compute error: {e}")
+        if isinstance(res, pd.DataFrame) and len(res) >= 14:
+            dfs.append(res)
+            sources.append(name)
 
-    if not sources:
-        log.warning(f"[ML Engine] ⚠️ No exchange returned valid data for {clean_symbol}, using fallback.")
+    if not dfs:
+        log.warning(f"[ML Engine] ⚠️ No exchange returned valid data for {clean_symbol}.")
         return {"ma50": current_price, "rsi": 50.0, "momentumSources": []}
 
-    avg_rsi  = float(np.mean(rsi_vals))
-    avg_ma50 = float(np.mean(ma50_vals))
+    # Aggregate by averaging across all valid dataframes
+    all_inds = []
+    for df in dfs:
+        try:
+            inds = _compute_indicators(df, current_price)
+            all_inds.append(inds)
+        except Exception as e:
+            pass
 
-    log.info(
-        f"[ML Engine] 📊 Multi-exchange momentum for {clean_symbol}: "
-        f"RSI={avg_rsi:.2f}, MA50={avg_ma50:.4f} "
-        f"(sources: {', '.join(sources)})"
-    )
-    return {"ma50": avg_ma50, "rsi": avg_rsi, "momentumSources": sources}
+    if not all_inds:
+        return {"ma50": current_price, "rsi": 50.0, "momentumSources": []}
+
+    # Average the indicators
+    avg_inds = {}
+    for key in all_inds[0].keys():
+        if isinstance(all_inds[0][key], (int, float)):
+            avg_inds[key] = sum([ind[key] for ind in all_inds]) / len(all_inds)
+        else:
+            # For categorical like obvTrend, take majority
+            vals = [ind[key] for ind in all_inds]
+            avg_inds[key] = max(set(vals), key=vals.count)
+
+    avg_inds['momentumSources'] = sources
+    
+    # Classify trend & generate narrative
+    classification, confidence = classify_trend(avg_inds, current_price)
+    narrative = generate_narrative(clean_symbol, classification, confidence, avg_inds)
+    
+    avg_inds['trendClassification'] = classification
+    avg_inds['trendConfidence'] = confidence
+    avg_inds['narrative'] = narrative
+
+    return avg_inds
 
 @router.get("/analyze", response_model=MarketResponse)
 async def analyze_market(query: str, chain: str = "UNKNOWN"):
@@ -261,10 +372,9 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
     liquidity_usd = 0.0
     volume_24h = 0.0
     price_change_24h = 0.0
-    rsi = None
-    ma50 = None
-    momentum_sources: Optional[List[str]] = None
     is_cex_asset = False
+    
+    mom = {}
     
     if is_address:
         pair = await fetch_dexscreener(clean_input, True, chain)
@@ -279,8 +389,6 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
             price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
             
             mom = await calculate_momentum(official_symbol, current_price)
-            ma50, rsi = mom['ma50'], mom['rsi']
-            momentum_sources = mom.get('momentumSources')
         else:
             raise HTTPException(status_code=404, detail="Token not found on DEX")
     else:
@@ -296,10 +404,7 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
             liquidity_usd = mcap_usd * 0.10
             
             mom = await calculate_momentum(official_symbol, current_price)
-            ma50, rsi = mom['ma50'], mom['rsi']
-            momentum_sources = mom.get('momentumSources')
         else:
-            # Fallback to DEX if CEX fails for a symbol
             pair = await fetch_dexscreener(clean_input, False, chain)
             if pair:
                 official_symbol = pair['baseToken']['symbol']
@@ -311,8 +416,6 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
                 volume_24h = float(pair.get('volume', {}).get('h24', 0))
                 price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
                 mom = await calculate_momentum(official_symbol, current_price)
-                ma50, rsi = mom['ma50'], mom['rsi']
-                momentum_sources = mom.get('momentumSources')
             else:
                 raise HTTPException(status_code=404, detail="Token not found anywhere")
 
@@ -325,8 +428,24 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
         liquidityUsd=liquidity_usd,
         volume24h=volume_24h,
         priceChange24h=price_change_24h,
-        rsi=rsi,
-        ma50=ma50,
+        
+        rsi=mom.get('rsi'),
+        ma50=mom.get('ma50'),
+        ema20=mom.get('ema20'),
+        macd=mom.get('macd'),
+        macdSignal=mom.get('macdSignal'),
+        macdHistogram=mom.get('macdHistogram'),
+        bollingerUpper=mom.get('bollingerUpper'),
+        bollingerLower=mom.get('bollingerLower'),
+        bollingerBandwidth=mom.get('bollingerBandwidth'),
+        atr14=mom.get('atr14'),
+        obv=mom.get('obv'),
+        obvTrend=mom.get('obvTrend'),
+        
+        trendClassification=mom.get('trendClassification'),
+        trendConfidence=mom.get('trendConfidence'),
+        narrative=mom.get('narrative'),
+        
         isCexAsset=is_cex_asset,
-        momentumSources=momentum_sources
+        momentumSources=mom.get('momentumSources')
     )

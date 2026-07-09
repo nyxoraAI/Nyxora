@@ -14,7 +14,7 @@ import NyxoraLogo from './NyxoraLogo';
 import SwapWidget from './SwapWidget';
 import ReconnectOverlay from './components/ReconnectOverlay';
 import Login from './Login';
-import Playbooks from './Playbooks';
+
 import { usePolling } from './utils/usePolling';
 import './index.css';
 
@@ -516,6 +516,8 @@ function App() {
               if (data.chunk === '[CLEAR_STREAM]') {
                 fullResponse = '';
                 renderedResponse = '';
+              } else if (data.chunk === '[TOOL_CALL_DETECTED]' || data.chunk === '[TOOL_CALL_FINISHED]') {
+                // Ignore internal engine markers
               } else {
                 fullResponse += data.chunk;
               }
@@ -743,13 +745,7 @@ function App() {
             >
               <Wallet size={15} className="nav-icon" /> <span className="nav-label">Portfolio</span>
             </div>
-            <div 
-              className={`nav-item ${currentView === 'playbooks' ? 'active' : ''}`}
-              onClick={() => setCurrentView('playbooks')}
-              title={isSidebarCollapsed ? "Playbooks" : undefined}
-            >
-              <BookOpen size={15} className="nav-icon" /> <span className="nav-label">Skill Store</span>
-            </div>
+
             <div 
               className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentView('settings')}
@@ -841,8 +837,6 @@ function App() {
           <Overview config={config} sessionsCount={chatSessions.length} />
         ) : currentView === 'portfolio' ? (
           <Portfolio baseFiat={config?.agent?.base_fiat || 'usd'} />
-        ) : currentView === 'playbooks' ? (
-          <Playbooks />
         ) : currentView === 'settings' ? (
           <Settings 
             config={config} 

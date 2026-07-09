@@ -35,6 +35,14 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
         priceChange24h,
         rsi,
         ma50,
+        ema20,
+        macdHistogram,
+        bollingerBandwidth,
+        atr14,
+        obvTrend,
+        trendClassification,
+        trendConfidence,
+        narrative,
         isCexAsset
     } = mlData;
 
@@ -53,7 +61,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
 
     try {
         healthResult = generateMarketHealthReport(
-            liquidityUsd, mcapUsd, tvlChange7d, volume24h, priceChange24h, top10HoldersPercent, rsi, currentPrice, ma50
+            liquidityUsd, mcapUsd, tvlChange7d, volume24h, priceChange24h, top10HoldersPercent, rsi, currentPrice, ma50, trendClassification
         );
     } catch (e: any) {
         console.warn(`[Market Intelligence] Failed to generate deep risk report: ${e.message}`);
@@ -67,19 +75,25 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     
     report += `**⭐ Overall Market Health Score:** ${healthResult.overallScore} / 10\n\n`;
     
-    report += `**1. Liquidity Risk:** ${healthResult.liquidityScore !== null ? healthResult.liquidityScore + '/10' : '[ N/A ]'}\n`;
-    report += `- Liquidity: $${liquidityUsd.toLocaleString()} vs FDV: $${mcapUsd.toLocaleString()}\n`;
+    report += `**1. Trend Analysis:** ${trendClassification || 'N/A'} (Confidence: ${trendConfidence ? trendConfidence.toFixed(0) + '%' : 'N/A'})\n`;
+    report += `- Narrative: ${narrative || 'N/A'}\n\n`;
     
-    report += `**2. Smart Money Flow:** ${healthResult.smartMoneyScore !== null ? healthResult.smartMoneyScore + '/10' : '[ N/A - Not in DefiLlama ]'}\n`;
-    report += `- 24h Volume: $${volume24h.toLocaleString()} | TVL 7D Change: ${tvlChange7d !== null ? tvlChange7d.toFixed(2) + '%' : 'N/A'}\n`;
+    report += `**2. Liquidity & Flow:** ${healthResult.liquidityScore !== null ? healthResult.liquidityScore + '/10' : '[ N/A ]'}\n`;
+    report += `- Liquidity: $${liquidityUsd.toLocaleString()} vs FDV: $${mcapUsd.toLocaleString()}\n`;
+    report += `- 24h Volume: $${volume24h.toLocaleString()} | OBV Trend: ${obvTrend || 'N/A'}\n\n`;
     
     report += `**3. Holder Concentration:** ${healthResult.concentrationScore !== null ? healthResult.concentrationScore + '/10' : '[ N/A - RPC Pending ]'}\n`;
-    report += `- Top 10 Holders: ${top10HoldersPercent !== null ? top10HoldersPercent + '%' : 'N/A'}\n`;
+    report += `- Top 10 Holders: ${top10HoldersPercent !== null ? top10HoldersPercent + '%' : 'N/A'}\n\n`;
     
-    report += `**4. Momentum (CEX):** ${healthResult.momentumScore !== null ? healthResult.momentumScore + '/10' : '[ N/A - DEX Only Coin ]'}\n`;
-    report += `- Price: $${currentPrice} | MA50: ${ma50 ? '$'+ma50.toFixed(4) : 'N/A'} | RSI: ${rsi || 'N/A'}\n\n`;
+    report += `**4. Technical Indicators (Daily):** ${healthResult.momentumScore !== null ? healthResult.momentumScore + '/10' : '[ N/A - DEX Only Coin ]'}\n`;
+    report += `- Price: $${currentPrice}\n`;
+    report += `- RSI (14): ${rsi ? rsi.toFixed(2) : 'N/A'}\n`;
+    report += `- MACD Histogram: ${macdHistogram ? macdHistogram.toFixed(4) : 'N/A'}\n`;
+    report += `- MA-50: ${ma50 ? '$'+ma50.toFixed(4) : 'N/A'} | EMA-20: ${ema20 ? '$'+ema20.toFixed(4) : 'N/A'}\n`;
+    report += `- Bollinger Bandwidth: ${bollingerBandwidth ? bollingerBandwidth.toFixed(2)+'%' : 'N/A'}\n`;
+    report += `- ATR (14): ${atr14 ? '$'+atr14.toFixed(4) : 'N/A'}\n\n`;
 
-    report += `*System Note for LLM: Use this exact data to provide a "Market Summary" and "Suggested Autonomous Actions" in the user's native language. If CEX momentum is N/A, explicitly warn about high risk Degen/Memecoin status. IMPORTANT: Always include a clear disclaimer at the end (translated into the user's native language) stating that this analysis is NOT financial advice (NFA).*`;
+    report += `*System Note for LLM: Use this exact data to provide a "Market Summary" and "Suggested Autonomous Actions" in the user's native language. The narrative provided is pre-computed by the ML engine. Incorporate the ML engine's narrative into your summary. IMPORTANT: Always include a clear disclaimer at the end (translated into the user's native language) stating that this analysis is NOT financial advice (NFA).*`;
 
     return report;
 

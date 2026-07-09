@@ -424,7 +424,10 @@ export async function processWeb3IntentStream(
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
         finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
         
-        if (finalContent === '') {
+        // Support global languages: English, Indonesian, Spanish, French, German filler words
+        const isConversationalFiller = finalContent.length > 0 && finalContent.length < 250 && /(wait|checking|executing|processing|give me a moment|let me check|one moment|hold on|tunggu|sebentar|lagi proses|lanjut cek|gue cek|aku cek|un momento|attendez|bitte warten)[\s\.\!a-z]*$/i.test(finalContent.trim());
+
+        if (finalContent === '' || isConversationalFiller) {
           const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
           const hasThinkTagInStream = /<(think|thought|thinking|reasoning)[\s\S]*?<\//i.test(streamedContent);
           const isThinkOnlyResponse = hasNativeReasoning || hasThinkTagInStream;
@@ -457,17 +460,17 @@ You MUST act RIGHT NOW. Do one of these:
 
 Do NOT think again. Execute step 1 of the task NOW.`;
             } else {
-              console.warn(`[Web3AgentStream] ⚠️ Empty response. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty. You MUST take action now.
+              console.warn(`[Web3AgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
 Task: "${recentUserMsg.substring(0, 200)}"
 
-Available tools: get_price, analyze_market, get_balance, get_tx_history, swap_token and others.
+Available tools: swap_token, get_portfolio, etc.
 You MUST either:
   A) Call one or more tools, OR
   B) Output a complete final text answer
 
-Act now.`;
+Do NOT output filler text like "Wait, I will check". Act now.`;
             }
 
             logger.addEntry({
@@ -497,21 +500,31 @@ Act now.`;
 
       // Tool calls detected — pause stream visually and execute tools
       // BUG#1 FIX: Wipe turn-1 planning text. See osAgent.ts for full explanation.
-      onChunk('[TOOL_CALL_DETECTED]');
+      await onChunk('[TOOL_CALL_DETECTED]');
       // FIX: Re-added send_telegram_file to prevent "typing" loop after file upload.
       const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
 
+      // Deduplicate identical tool calls to prevent double execution bugs
+      const uniqueToolCalls = [];
+      const seenToolCalls = new Set();
+      for (const tc of responseMessage.tool_calls) {
+        const sig = `${tc.function.name}:${tc.function.arguments}`;
+        if (!seenToolCalls.has(sig)) {
+          seenToolCalls.add(sig);
+          uniqueToolCalls.push(tc);
+        }
+      }
 
-      for (const _toolCall of responseMessage.tool_calls) {
+      for (const _toolCall of uniqueToolCalls) {
         const toolCall = _toolCall as any;
         const toolName = toolCall.function.name;
         let result = '';
         let args: any = {};
 
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
+        if (onProgress) onProgress(`⚡ Running tool: ${toolName}...`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -547,11 +560,17 @@ Act now.`;
         if (!fastReturnTools.includes(toolName)) canFastReturnAll = false;
       }
 
+      await onChunk('[TOOL_CALL_FINISHED]');
+
       if (canFastReturnAll && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
-        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
-        onChunk(finalContent);
-        fullResponse = finalContent;
+        const cleanContent = finalContent.replace(/\[SILENT_FAST_RETURN\] /g, '');
+        logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
+        
+        if (!finalContent.includes('[SILENT_FAST_RETURN]')) {
+          await onChunk(finalContent);
+        }
+        fullResponse = cleanContent;
         break;
       }
     }

@@ -37,6 +37,7 @@ const reverseSkillMapping: Record<string, { category: 'os' | 'web3', name: strin
   'send_telegram_file': { category: 'os', name: 'telegramUpload' },
   'send_telegram_message': { category: 'os', name: 'telegramMessage' },
   'analyze_local_image': { category: 'os', name: 'analyzeImage' },
+  'generate_image': { category: 'os', name: 'generateImage' },
   
   // Web3 Skills
   'transfer_token': { category: 'web3', name: 'transfer' },

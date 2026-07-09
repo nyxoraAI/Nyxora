@@ -195,6 +195,7 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
   try {
     if (provider === 'serpapi' && creds.serpapi_key) {
       try {
+        console.log(`[WebSearch] Executing search via SerpApi for: "${finalQuery}"`);
         results = await searchSerpApi(finalQuery, creds.serpapi_key, depth);
       } catch (e: any) {
         console.warn(`[WebSearch] Primary provider (SerpApi) failed: ${e.message}. Switching to backup provider (DuckDuckGo)...`);

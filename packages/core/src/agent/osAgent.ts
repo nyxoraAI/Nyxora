@@ -21,8 +21,8 @@ import pc from 'picocolors';
 pluginManager.registerHook({
   name: 'ReasoningGate',
   beforeToolCall: async (toolName, args, context) => {
-    // FIX: Use actual Nyxora tool names (not legacy names)
-    const toolsRequiringReasoning = ['run_terminal_command', 'write_local_file', 'edit_local_file', 'execute_script'];
+    // FIX: Use actual Nyxora tool names (not legacy names). Removed run_terminal_command to prevent infinite loops.
+    const toolsRequiringReasoning = ['write_local_file', 'edit_local_file', 'execute_script'];
     if (toolsRequiringReasoning.includes(toolName)) {
       const responseMessage = context.responseMessage || {};
       const hasThinkingTag = /<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>/i.test(responseMessage.content || '');
@@ -542,7 +542,10 @@ CRITICAL INSTRUCTIONS:
         finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
         finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
 
-        if (finalContent === '') {
+        // Support global languages: English, Indonesian, Spanish, French, German filler words
+        const isConversationalFiller = finalContent.length > 0 && finalContent.length < 250 && /(wait|checking|executing|processing|give me a moment|let me check|one moment|hold on|tunggu|sebentar|lagi proses|lanjut cek|gue cek|aku cek|un momento|attendez|bitte warten)[\s\.\!a-z]*$/i.test(finalContent.trim());
+
+        if (finalContent === '' || isConversationalFiller) {
           // Detect think-only response: model reasoned but produced no tool calls or visible text.
           const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
           const hasThinkTagInStream = /<(think|thought|thinking|reasoning)[\s\S]*?<\//i.test(streamedContent);
@@ -581,8 +584,8 @@ You MUST act RIGHT NOW. Do one of these:
 
 Do NOT think again. Execute step 1 of the task NOW.`;
             } else {
-              console.warn(`[OsAgentStream] ⚠️ Empty response. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty. You MUST take action now.
+              console.warn(`[OsAgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
 Task: "${recentUserMsg.substring(0, 200)}"
 
@@ -591,7 +594,7 @@ You MUST either:
   A) Call one or more tools, OR
   B) Output a complete final text answer
 
-Act now.`;
+Do NOT output filler text like "Wait, I will check". Act now.`;
             }
 
             logger.addEntry({
@@ -626,12 +629,22 @@ Act now.`;
       // LLM often generates "thinking out loud" text before calling a tool (e.g. "Let me check...").
       // This text should NOT be shown to users. [TOOL_CALL_DETECTED] resets the buffer to a
       // clean progress indicator, hiding the planning text without losing the message handle.
-      onChunk('[TOOL_CALL_DETECTED]');
+      await onChunk('[TOOL_CALL_DETECTED]');
       let shouldFastReturn = false;
       const accumulatedResults: string[] = [];
 
+      // Deduplicate identical tool calls to prevent double execution bugs
+      const uniqueToolCalls = [];
+      const seenToolCalls = new Set();
+      for (const tc of responseMessage.tool_calls) {
+        const sig = `${tc.function.name}:${tc.function.arguments}`;
+        if (!seenToolCalls.has(sig)) {
+          seenToolCalls.add(sig);
+          uniqueToolCalls.push(tc);
+        }
+      }
 
-      const promises = responseMessage.tool_calls.map(async (_toolCall: any) => {
+      const promises = uniqueToolCalls.map(async (_toolCall: any) => {
         const toolCall = _toolCall;
         const toolName = toolCall.function.name;
         let result = '';
@@ -639,7 +652,7 @@ Act now.`;
         const context = { sessionId, toolCallId: toolCall.id, responseMessage };
 
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`_⚡ Running tool: ${toolName}..._`);
+        if (onProgress) onProgress(`⚡ Running tool: ${toolName}...`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -668,7 +681,7 @@ Act now.`;
         try {
           const pluginResult = await pluginManager.executeTool(toolName, args, context, (partialResult: string) => {
             // Partial Streaming callback
-            if (onProgress) onProgress(`_⏳ [${toolName}] ${partialResult}..._`);
+            if (onProgress) onProgress(`⏳ [${toolName}] ${partialResult}...`);
           });
           
           result = pluginResult !== null ? pluginResult : `Error: Tool ${toolName} is not implemented.`;
@@ -697,11 +710,17 @@ Act now.`;
       const results = await Promise.all(promises);
       results.forEach(r => accumulatedResults.push(r.result));
 
+      await onChunk('[TOOL_CALL_FINISHED]');
+
       if (shouldFastReturn && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
-        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
-        onChunk(finalContent);
-        fullResponse = finalContent;
+        const cleanContent = finalContent.replace(/\[SILENT_FAST_RETURN\] /g, '');
+        logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
+        
+        if (!finalContent.includes('[SILENT_FAST_RETURN]')) {
+          await onChunk(finalContent);
+        }
+        fullResponse = cleanContent;
         triggerBackgroundReview(sessionId);
         break;
       }

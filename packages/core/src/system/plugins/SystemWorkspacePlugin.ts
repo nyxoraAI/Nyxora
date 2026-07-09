@@ -8,6 +8,7 @@ import { createCognitiveSkillToolDefinition, createCognitiveSkill } from '../ski
 import { searchPlaybookToolDefinition, readPlaybookToolDefinition, search_playbook, read_playbook } from '../skills/playbookManager';
 import { generateDownloadLinkToolDefinition, generateDownloadLink } from '../skills/fileDownloader';
 import { analyzeLocalImageToolDefinition, analyzeLocalImage } from '../skills/analyzeImage';
+import { generateImageToolDefinition, generateImage } from '../skills/generateImage';
 import { sendTelegramFileToolDefinition, sendTelegramFile } from '../skills/telegramUpload';
 
 export class SystemWorkspacePlugin implements Plugin {
@@ -26,6 +27,7 @@ export class SystemWorkspacePlugin implements Plugin {
     readPlaybookToolDefinition,
     generateDownloadLinkToolDefinition,
     analyzeLocalImageToolDefinition,
+    generateImageToolDefinition,
     sendTelegramFileToolDefinition
   ];
 
@@ -59,6 +61,9 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['analyze_local_image']: async (args: any) => {
       return await analyzeLocalImage(args.imagePath, args.prompt);
+    },
+    ['generate_image']: async (args: any) => {
+      return await generateImage(args.prompt);
     },
     ['send_telegram_file']: async (args: any) => {
       return await sendTelegramFile(args.absolutePath);

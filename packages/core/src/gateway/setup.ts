@@ -349,13 +349,16 @@ Provider: ${config.llm.provider}`;
   ];
   
   try {
-    const { channelManager } = require('../channels/index');
+    const { channelManager, registerAllAdapters } = require('../channels/index');
+    await registerAllAdapters();
     channelManager.getAllAdapters().forEach((adapter: any) => {
       if (adapter.id !== 'telegram' && adapter.id !== 'discord') {
          channelOptions.push({ value: adapter.id, label: adapter.name, hint: 'New Integration' });
       }
     });
-  } catch (err) {}
+  } catch (err) {
+    console.error('Error loading dynamic channels:', err);
+  }
 
   const activeChannels = await multiselect({
     message: '💬 Select Integration Channels to enable:',

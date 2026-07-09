@@ -61,10 +61,17 @@ export function analyzeHolderConcentration(top10HoldersPercent: number | null): 
     return parseFloat(score.toFixed(1));
 }
 
-export function calculateMomentumScore(rsi: number | null, currentPrice: number | null, ma50: number | null): number | null {
-    if (rsi === null && ma50 === null) return null;
+export function calculateMomentumScore(rsi: number | null, currentPrice: number | null, ma50: number | null, trendClassification?: string): number | null {
+    if (rsi === null && ma50 === null && !trendClassification) return null;
     
     let score = 5.0;
+    
+    if (trendClassification) {
+        if (trendClassification === 'STRONG_BULLISH') return 9.0;
+        if (trendClassification === 'BULLISH') return 7.0;
+        if (trendClassification === 'BEARISH') return 3.0;
+        if (trendClassification === 'STRONG_BEARISH') return 1.0;
+    }
     
     if (rsi !== null) {
         if (rsi > 70) score -= 2; // Overbought risk
@@ -86,13 +93,14 @@ export function generateMarketHealthReport(
     liquidityUsd: number | null, mcapUsd: number | null,
     tvlChange7d: number | null, volumeChange24h: number | null, priceChange24h: number | null,
     top10HoldersPercent: number | null,
-    rsi: number | null, currentPrice: number | null, ma50: number | null
+    rsi: number | null, currentPrice: number | null, ma50: number | null,
+    trendClassification?: string
 ): MarketHealthResult {
     
     const liquidityScore = calculateLiquidityScore(liquidityUsd, mcapUsd);
     const smartMoneyScore = analyzeSmartMoneyFlow(tvlChange7d, volumeChange24h, priceChange24h);
     const concentrationScore = analyzeHolderConcentration(top10HoldersPercent);
-    const momentumScore = calculateMomentumScore(rsi, currentPrice, ma50);
+    const momentumScore = calculateMomentumScore(rsi, currentPrice, ma50, trendClassification);
     
     let totalValidScores = 0;
     let sumScores = 0;

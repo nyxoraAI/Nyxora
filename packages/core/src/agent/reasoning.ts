@@ -253,14 +253,14 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     console.log(pc.cyan(`[Orchestrator] Intent pre-classified (keyword match) as: ${context.toUpperCase()}`));
   } else {
     // ── Fallback: LLM Router (untuk intent ambigu / percakapan umum) ─────────
-    const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
+    const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. If the core intent involves BOTH blockchain/finance AND system automation/files/emails, reply 'compound'.
+3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message. Example: "swap 1 ETH to USDC and email me the receipt". If in doubt, do NOT use 'compound'.
 4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
 5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
-6. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+6. If the message is casual conversation, chit-chat, greetings, capability questions (e.g., 'what can you do?', 'bisa ngapain?', 'help', 'menu'), or any open-ended/vague question, reply 'general'.
 Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
 
     const routerMessages = [
@@ -275,7 +275,7 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
                 model: config.llm.model,
                 messages: routerMessages as any,
                 temperature: 0.1,
-                max_tokens: 1000
+                max_tokens: 10
             });
         }, 3); // 3 retries for transient 503/429 errors
         
@@ -443,14 +443,14 @@ export async function processUserInputStream(
     }
 
     if (!preCheckMatched) {
-      const routerPrompt = `You are Nyxora's Semantic Intent Router. Your job is to classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
+      const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
 1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. If the core intent involves BOTH blockchain/finance AND system automation/files/emails, reply 'compound'.
+3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message. Example: "swap 1 ETH to USDC and email me the receipt". If in doubt, do NOT use 'compound'.
 4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
 5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
-6. If it is purely casual conversation, chit-chat, or greetings, reply 'general'.
+6. If the message is casual conversation, chit-chat, greetings, capability questions (e.g., 'what can you do?', 'bisa ngapain?', 'help', 'menu'), or any open-ended/vague question, reply 'general'.
 Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
       const routerMessages = [
         { role: 'system', content: routerPrompt },
@@ -459,7 +459,7 @@ Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
       ];
       try {
         const routerResponse = await executeWithRetry(async (client) =>
-          client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 1000 })
+          client.chat({ model: config.llm.model, messages: routerMessages as any, temperature: 0.1, max_tokens: 10 })
         , 3);
         const cr = (routerResponse.message.content || 'general').toLowerCase().trim();
         if (cr.includes('compound')) {
