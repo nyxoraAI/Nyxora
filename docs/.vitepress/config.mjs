@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const globalSidebar = [
   {
@@ -23,23 +24,6 @@ const globalSidebar = [
     ]
   },
   {
-    text: '✨ CORE CAPABILITIES',
-    items: [
-      { text: 'Native Skills', link: '/native' },
-      { text: 'Python ML Engine', link: '/ml-engine' },
-      { text: 'Market Intelligence', link: '/market-intelligence' },
-      { text: 'Web Search & Deep Research', link: '/web-search' },
-      { text: 'Google Workspace MVP', link: '/google-workspace' },
-      { text: 'DeFi Configuration', link: '/defi-config' },
-      { text: 'Market Oracles', link: '/market-oracles' },
-      { text: 'Understanding Slippage', link: '/slippage' },
-      { text: 'Chain Specifics', link: '/chains' },
-      { text: 'Custom RPC Configuration', link: '/rpc' },
-      { text: 'Etherscan API V2 Key', link: '/etherscan' },
-      { text: 'NLP Security Policy', link: '/nlp' }
-    ]
-  },
-  {
     text: '🛡️ OPERATIONS & SECURITY',
     items: [
       { text: 'Base Smart Contract', link: '/smart-contract' },
@@ -59,7 +43,8 @@ const globalSidebar = [
   }
 ];
 
-export default defineConfig({
+export default withMermaid(defineConfig({
+  ignoreDeadLinks: true,
   title: "Nyxora Protocol",
   description: "Secure AI execution framework for Web3 agents",
   base: '/Nyxora/',
@@ -83,10 +68,11 @@ export default defineConfig({
     search: {
       provider: 'local'
     },
-    logo: '/favicon.svg',
+    logo: { light: '/favicon-light.svg', dark: '/favicon.svg' },
     nav: [
       { text: '🏠 Home', link: '/' },
-      { text: '📖 Docs', link: '/docs', activeMatch: '^/(?!$|index\\.html|cli/|mcp/|plugins/|sdk/)' },
+      { text: '📖 Docs', link: '/docs', activeMatch: '^/(?!$|index\\.html|cli/|mcp/|plugins/|sdk/|core/)' },
+      { text: '🧠 Core', link: '/core/native', activeMatch: '^/core/' },
       { text: '💻 CLI Reference', link: '/cli/', activeMatch: '^/cli/' },
       { text: '⚙️ MCP', link: '/mcp/', activeMatch: '^/mcp/' },
       { text: '🔌 Plugin Registry', link: '/plugins/', activeMatch: '^/plugins/' },
@@ -99,7 +85,6 @@ export default defineConfig({
           text: '🧩 NYXORA SDK FRAMEWORK',
           items: [
             { text: 'Overview & Architecture', link: '/sdk/' },
-            { text: 'Umbrella Package', link: '/sdk/umbrella' },
             { text: 'Core SDK', link: '/sdk/core' },
             { text: 'Policy SDK', link: '/sdk/policy' },
             { text: 'Signer SDK', link: '/sdk/signer' }
@@ -137,6 +122,26 @@ export default defineConfig({
           ]
         }
       ],
+      '/core/': [
+        {
+          text: '🧠 CORE CAPABILITIES',
+          items: [
+            { text: 'Native Skills', link: '/core/native' },
+            { text: 'Playbooks (SOPs)', link: '/core/playbooks' },
+            { text: 'Python ML Engine', link: '/core/ml-engine' },
+            { text: 'Market Intelligence', link: '/core/market-intelligence' },
+            { text: 'Web Search & Deep Research', link: '/core/web-search' },
+            { text: 'Google Workspace MVP', link: '/core/google-workspace' },
+            { text: 'DeFi Configuration', link: '/core/defi-config' },
+            { text: 'Market Oracles', link: '/core/market-oracles' },
+            { text: 'Understanding Slippage', link: '/core/slippage' },
+            { text: 'Chain Specifics', link: '/core/chains' },
+            { text: 'Custom RPC Configuration', link: '/core/rpc' },
+            { text: 'Etherscan API V2 Key', link: '/core/etherscan' },
+            { text: 'NLP Security Policy', link: '/core/nlp' }
+          ]
+        }
+      ],
       '/': globalSidebar
     },
 
@@ -154,4 +159,4 @@ export default defineConfig({
       copyright: 'Copyright © 2026 Nyxora Protocol'
     }
   }
-})
+}))

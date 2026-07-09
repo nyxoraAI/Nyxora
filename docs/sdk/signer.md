@@ -35,3 +35,10 @@ const signedTxHex = await vault.signTransaction(approvedTx);
 ```
 
 Because the `signer-sdk` operates independently, a complete compromise of your Web Server (`core-sdk`) will still leave the attacker entirely unable to extract your private keys!
+
+## ⏳ Transaction Finality & Revert Detection
+
+Unlike standard "Fire-and-Forget" transaction broadcasters, the Nyxora Signer SDK features built-in **Receipt Waiting**:
+- **Anti-False-Positive**: After broadcasting, the SDK actively waits for the blockchain to mine the transaction and fetch the receipt (up to a 20-second timeout window).
+- **Revert Interception**: If the transaction reverts on-chain (e.g., due to MEV slippage or gas exhaustion), the SDK violently rejects the promise, ensuring the AI never falsely reports a failed transaction as a success.
+- **Graceful Timeout**: If network congestion delays confirmation past the 20-second window, the SDK falls back gracefully and reports a `"Pending receipt"` status, preventing upper-layer HTTP timeouts while maintaining accurate tracking.

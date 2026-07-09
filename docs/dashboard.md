@@ -43,7 +43,7 @@ The Dashboard is designed to be a transparent window into the background daemon'
 ## 🛠️ Unified Agent Capabilities (Settings)
 
 To provide a cleaner, more organized user experience, all modular capabilities of the AI have been consolidated under the **Settings ➔ AGENT CAPABILITIES** menu. 
-*   **Skill Store (Playbooks):** Manage and install Markdown-based Standard Operating Procedures (SOPs).
+*   **[Skill Store (Playbooks)](/playbooks):** Manage and install Markdown-based Standard Operating Procedures (SOPs).
 *   **Web3 Skills:** Configure native blockchain transaction tools.
 *   **OS Skills:** Toggle permissions for the AI to interact with your host operating system (file system, command execution).
 *   **External Skills:** Manage `agentskills.io` standard code-based plugins and API keys for external services.
@@ -52,16 +52,16 @@ This ensures the primary dashboard sidebar remains clutter-free while centralizi
 
 ## 🖥️ Policy Engine Dashboard (Hard-coded Firewall)
 
-Nyxora kini memiliki modul **Policy Engine Dashboard** mandiri di dalam antarmuka Settings. Ini merupakan mekanisme keamanan ketat yang bertindak sebagai perisai tak tertembus, yang sama sekali tidak dapat di-bypass oleh agen LLM dalam kondisi apapun. Melalui dashboard ini, Anda dapat langsung mengatur aturan keselamatan berbasis NLP dan batas pengeluaran transaksi tanpa harus mengedit file `policy.yaml` secara manual.
+Nyxora now features a standalone **Policy Engine Dashboard** module within the Settings interface. This is a strict security mechanism that acts as an impenetrable shield, which cannot be bypassed by the LLM agent under any circumstances. Through this dashboard, you can directly configure NLP-based safety rules and transaction spending limits without having to manually edit the `policy.yaml` file.
 
-Dua perlindungan utamanya adalah:
-1. **Max USD per Transaction:** Batas keras (hard limit) pada nilai fiat maksimum yang diizinkan per transaksi.
-2. **Strict Whitelist Only:** Secara instan memblokir transfer atau interaksi *smart contract* apa pun yang diarahkan ke alamat yang tidak terdaftar.
+Its two primary protections are:
+1. **Max USD per Transaction:** A hard limit on the maximum fiat value allowed per transaction.
+2. **Strict Whitelist Only:** Instantly blocks any transfers or *smart contract* interactions directed to unregistered addresses.
 
 ### ⚙️ Manual Whitelist Configuration
-Meskipun batas pengeluaran dan aturan NLP dapat diatur melalui GUI Dasbor, untuk mengeliminasi risiko serangan injeksi UI atau kesalahan ketik fatal, antarmuka Dasbor **sengaja tidak menyediakan** kolom input teks untuk mendaftarkan alamat dompet (*whitelist*).
+Although spending limits and NLP rules can be configured via the Dashboard GUI, to eliminate the risk of UI injection attacks or fatal typos, the Dashboard interface **deliberately does not provide** a text input field for registering wallet addresses (*whitelist*).
 
-Pengguna tingkat lanjut yang ingin menggunakan fitur ini harus menyuntikkan alamat yang disetujui secara manual ke dalam file `~/.nyxora/policy.yaml` (atau `policy.yaml` di root) di bawah array `whitelist:`.
+Advanced users who wish to use this feature must manually inject approved addresses into the `~/.nyxora/policy.yaml` file (or `policy.yaml` at the root) under the `whitelist:` array.
 
 **Example `policy.yaml` Format:**
 ```yaml
@@ -79,8 +79,8 @@ whitelist:
 
 ## 🖥️ RPC Dashboard
 
-Nyxora menyediakan tab **RPC Configuration** yang sepenuhnya baru. Melalui antarmuka ini, pengguna dapat dengan mudah mengganti *endpoint* untuk lingkungan Mainnet dan Testnet secara transparan. Sistem ini juga dibangun dengan mekanisme *fallback* yang kokoh; jika node RPC utama gagal, sistem akan otomatis beralih ke jalur cadangan untuk memastikan agen tetap terhubung ke blockchain tanpa hambatan.
+Nyxora provides an entirely new **RPC Configuration** tab. Through this interface, users can easily switch *endpoints* for Mainnet and Testnet environments transparently. The system is also built with a robust *fallback* mechanism; if the primary RPC node fails, the system will automatically switch to a backup route to ensure the agent remains seamlessly connected to the blockchain.
 
 ## 💡 Global Fiat Currency Converter
 
-Untuk memudahkan pelacakan portofolio pengguna dari berbagai negara, Dasbor Portfolio kini terintegrasi dengan **Global Fiat Currency Converter**. Fitur ini mengambil data kurs secara live dari CoinGecko, memungkinkan Anda untuk secara instan mengonversi dan menampilkan total kekayaan kripto lintas rantai Anda ke dalam mata uang fiat lokal (seperti IDR, EUR, GBP, JPY, dll) hanya dengan memilih opsi dari halaman Pengaturan (*Settings*).
+To simplify portfolio tracking for users from various countries, the Portfolio Dashboard is now integrated with a **Global Fiat Currency Converter**. This feature fetches live exchange rate data from CoinGecko, allowing you to instantly convert and display your total cross-chain crypto wealth into your local fiat currency (such as IDR, EUR, GBP, JPY, etc.) simply by selecting an option from the Settings page.

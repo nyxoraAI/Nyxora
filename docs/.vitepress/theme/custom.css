@@ -7,9 +7,11 @@
   --vp-c-text-1: #1d1d1f !important;
   --vp-c-text-2: #86868b !important;
   --vp-c-text-3: #86868b !important;
-  --vp-c-brand-1: #88c0d0 !important;
-  --vp-c-brand-2: #81a1c1 !important;
-  --vp-c-brand-3: #5e81ac !important;
+  --vp-c-brand-1: #007aff !important;
+  --vp-c-brand-2: #0062cc !important;
+  --vp-c-brand-3: #005cbf !important;
+  --vp-sidebar-hover-bg: rgba(0, 122, 255, 0.1) !important;
+  --vp-sidebar-active-bg: rgba(0, 122, 255, 0.15) !important;
   --vp-c-divider: rgba(0, 0, 0, 0.08) !important;
   --vp-sidebar-bg-color: transparent !important;
   --vp-c-gutter: var(--vp-c-divider) !important;
@@ -27,6 +29,8 @@
   --vp-c-brand-1: #88c0d0 !important;
   --vp-c-brand-2: #81a1c1 !important;
   --vp-c-brand-3: #5e81ac !important;
+  --vp-sidebar-hover-bg: rgba(136, 192, 208, 0.1) !important;
+  --vp-sidebar-active-bg: rgba(136, 192, 208, 0.15) !important;
   --vp-c-divider: rgba(255, 255, 255, 0.15) !important;
   --vp-sidebar-bg-color: transparent !important;
   --vp-c-gutter: var(--vp-c-divider) !important;
@@ -425,11 +429,11 @@ body:has(.VPHome)::-webkit-scrollbar-track {
 }
 
 .VPSidebarItem .link:hover {
-  background-color: rgba(136, 192, 208, 0.1) !important;
+  background-color: var(--vp-sidebar-hover-bg) !important;
 }
 
 .VPSidebarItem .item.is-active > .link {
-  background-color: rgba(136, 192, 208, 0.15) !important;
+  background-color: var(--vp-sidebar-active-bg) !important;
   color: var(--vp-c-brand-1) !important;
   font-weight: 500 !important;
 }

@@ -19,35 +19,21 @@ This provides robust Defense-in-Depth protection against advanced **Memory Scrap
 
 
 
-## 2. Developer SDK Framework (4-Tier Distribution)
+## 2. Developer SDK Framework (3-Tier Distribution)
 
 While Nyxora currently serves as an advanced CLI application and standalone daemon, our ultimate vision is to evolve it into the **Standard Security Protocol** for Web3 AI development. We plan to distribute Nyxora as a modular Software Development Kit (SDK) via NPM, empowering developers to build their own AI trading bots, DeFi interfaces, or Discord agents with institutional-grade security out-of-the-box.
 
 **The Evolution:**
-The SDK will be split into 4 distinct packages, perfectly mirroring our Zero-Trust 3-Tier architecture:
+The SDK will be split into 3 distinct packages, perfectly mirroring our Zero-Trust 3-Tier architecture:
 
-1. **`@nyxora/sdk` (The Umbrella Package):** A plug-and-play bundle designed for hackathons and rapid prototyping. It combines the core, policy, and signer with default safe settings for an immediate, robust out-of-the-box experience.
-2. **`@nyxora/core-sdk`:** The AI brain module for NLP processing, API connections, and tool execution.
-3. **`@nyxora/policy-sdk`:** The rigid security middleware. Developers can define custom dynamic rules that intercept the core's transactions.
-
-
+1. **`@nyxora-sdk/core-sdk`:** The AI brain module for NLP processing, API connections, and tool execution.
+2. **`@nyxora-sdk/policy-sdk`:** The rigid security middleware. Developers can define custom dynamic rules that intercept the core's transactions.
+3. **`@nyxora-sdk/signer`:** The low-level, zero-trust cryptographic signer.
 **Why it matters:**
 This modularity allows enterprise developers to build true Microservices. For example, an exchange could install `@nyxora/core-sdk` on their public-facing web server, while locking `@nyxora/signer-sdk` deep inside an air-gapped, internet-free Cold Server. This grants developers the flexibility to innovate without ever compromising their private keys.
 
 ---
 
-## 3. AI-Driven Smart Contract Deployment (The DevOps Agent)
-
-While Nyxora currently masters interacting with existing DeFi protocols (swapping, bridging, lending), the ultimate vision of an Autonomous Agent is one that can **build and deploy its own infrastructure**.
-
-**The Evolution:**
-A future update will introduce native "DevOps" capabilities by integrating OS-level compilation tools (like Foundry's `forge`) directly into the agent's reasoning engine.
-1. **Autonomous Solidity Generation:** The user can request custom tokenomics (e.g., "Deploy a memecoin with a 2% marketing tax"). The AI will autonomously generate the raw `Solidity` code and save it to a `.sol` file.
-2. **Local Compilation & Testing:** Nyxora will execute `forge build` in the background, and can even run `forge test` to perform basic unit testing on its own generated contract.
-3. **Zero-Trust Deployment:** Using the OS Keyring Vault, the agent will securely execute `forge create` to deploy the bytecode to Mainnet, injecting the user's private key seamlessly without exposing it to the UI.
-
-**Why it matters:**
-This transforms Nyxora from a mere Web3 trader into a **Full-Stack Blockchain Developer**. Users will be able to launch entire ecosystems, DAOs, or custom token contracts purely through conversational intent, without paying third-party platform fees, effectively democratizing Smart Contract development.
 
 ---
 
