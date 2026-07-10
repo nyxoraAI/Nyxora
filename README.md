@@ -2,7 +2,7 @@
 **Your Personal Web3 Assistant.**
 
 
-[![Status: Prototype](https://img.shields.io/badge/Status-Prototype-orange.svg?style=for-the-badge)](#)
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg?style=for-the-badge)](#)
 [![Donate on DeBank](https://img.shields.io/badge/DONATE-DEBANK-FE7E41?style=for-the-badge&logo=ethereum&logoColor=white)](https://debank.com/profile/0xe5c21f46993c67cfe04fcf1579486d390be7b535)
 
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg?style=for-the-badge)](#)
