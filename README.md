@@ -3,7 +3,7 @@
 
 
 [![Status: Prototype](https://img.shields.io/badge/Status-Prototype-orange.svg)](#)
-[![Donate via Web3](https://img.shields.io/badge/Donate-via_DeBank-FE7E41?style=flat-square&logo=ethereum&logoColor=white)](https://debank.com/profile/0xe5c21f46993c67cfe04fcf1579486d390be7b535)
+[![Donate on DeBank](https://img.shields.io/badge/DeBank-FE7E41?style=for-the-badge&logo=ethereum&logoColor=white)](https://debank.com/profile/0xe5c21f46993c67cfe04fcf1579486d390be7b535)
 
 [![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
