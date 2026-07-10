@@ -20,6 +20,7 @@
     "bin",
     "dist",
     "CHANGELOG.md",
+    "SUPPORT.md",
     "launcher.ts",
     "packages/core/src",
     "packages/core/playbooks",
