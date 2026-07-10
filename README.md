@@ -2,15 +2,15 @@
 **Your Personal Web3 Assistant.**
 
 
-[![Status: Prototype](https://img.shields.io/badge/Status-Prototype-orange.svg)](#)
+[![Status: Prototype](https://img.shields.io/badge/Status-Prototype-orange.svg?style=for-the-badge)](#)
 [![Donate on DeBank](https://img.shields.io/badge/DeBank-FE7E41?style=for-the-badge&logo=ethereum&logoColor=white)](https://debank.com/profile/0xe5c21f46993c67cfe04fcf1579486d390be7b535)
 
-[![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg)](#️-advanced-security-threat-model)
-[![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg)](#️-advanced-security-threat-model)
-[![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg)](#️-advanced-security-threat-model)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
+[![MCP Supported](https://img.shields.io/badge/MCP-Supported-blue.svg?style=for-the-badge)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Security: Defense-in-Depth](https://img.shields.io/badge/Security-Defense--in--Depth-blue.svg?style=for-the-badge)](#️-advanced-security-threat-model)
+[![Execution: Cryptographic Approval](https://img.shields.io/badge/Execution-Cryptographic--Approval-orange.svg?style=for-the-badge)](#️-advanced-security-threat-model)
+[![Privacy: Local-Only Keys](https://img.shields.io/badge/Privacy-Local--Only--Keys-success.svg?style=for-the-badge)](#️-advanced-security-threat-model)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](https://makeapullrequest.com)
 
 Nyxora is a **secure, non-custodial runtime infrastructure for autonomous onchain agents** built with a robust Monorepo architecture (Node.js & React). Designed for autonomous workflows with a premium Utility-Centric dark-themed UI and strict client-side key isolation. 
 
