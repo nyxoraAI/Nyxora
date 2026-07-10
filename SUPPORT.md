@@ -9,9 +9,9 @@ If Nyxora has brought value to you, your projects, or your organization, conside
 We gratefully accept community support via any EVM-compatible network (Ethereum, Arbitrum, Optimism, Polygon, Binance Smart Chain, etc.).
 
 **EVM Address:**
-```text
-0xE5c21F46993C67CFe04FCF1579486D390Be7B535
-```
+`0xE5c21F46993C67CFe04FCF1579486D390Be7B535`
+
+> 🔗 **[View & Donate via DeBank](https://debank.com/profile/0xe5c21f46993c67cfe04fcf1579486d390be7b535)**
 
 *Every contribution, no matter the size, is deeply appreciated and directly fuels the future of autonomous Web3 AI.*
 
