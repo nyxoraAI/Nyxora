@@ -3,7 +3,7 @@ import { safeFetch } from '../../../utils/httpClient';
 import crypto from 'crypto';
 
 const CHAIN_IDS: Record<string, number> = {
-  ethereum: 1, base: 8453, bsc: 56, arbitrum: 42161, optimism: 10, polygon: 137
+  ethereum: 1, base: 8453, bsc: 56, arbitrum: 42161, optimism: 10, polygon: 137, robinhood: 4663
 };
 
 export class OneInchProvider implements DefiAggregatorProvider {

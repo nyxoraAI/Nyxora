@@ -1,4 +1,4 @@
-import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon, baseSepolia, arbitrumSepolia, optimismSepolia } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum, optimism, sepolia, polygon, baseSepolia, arbitrumSepolia, optimismSepolia, robinhood, robinhoodTestnet } from 'viem/chains';
 
 export const supportedChains = {
   ethereum: mainnet,
@@ -11,6 +11,8 @@ export const supportedChains = {
   base_sepolia: baseSepolia,
   arbitrum_sepolia: arbitrumSepolia,
   optimism_sepolia: optimismSepolia,
+  robinhood: robinhood,
+  robinhood_testnet: robinhoodTestnet,
 };
 
 export const SUPPORTED_CHAIN_NAMES = Object.keys(supportedChains);
@@ -25,5 +27,6 @@ export function normalizeChainName(name: string): ChainName {
   else if (_c === 'matic') _c = 'polygon';
   else if (_c === 'eth') _c = 'ethereum';
   else if (_c === 'bnb') _c = 'bsc';
+  else if (_c === 'rh' || _c === 'hoodchain') _c = 'robinhood';
   return _c as ChainName;
 }

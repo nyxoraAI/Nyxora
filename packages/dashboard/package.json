@@ -1,7 +1,7 @@
 {
   "name": "nyxora-dashboard",
   "private": true,
-  "version": "26.7.9",
+  "version": "26.7.10",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "lucide-react": "^1.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "viem": "^2.53.1"
+    "viem": "^2.55.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",

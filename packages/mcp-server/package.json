@@ -1,6 +1,6 @@
 {
   "name": "nyxora-mcp-server",
-  "version": "26.7.9",
+  "version": "26.7.10",
   "description": "Nyxora MCP Subserver, for external AI clients",
   "main": "dist/server.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "jsonwebtoken": "^9.0.3",
+    "viem": "^2.55.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

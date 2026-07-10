@@ -5,7 +5,7 @@ import crypto from 'crypto';
 // Relay.link expects chain IDs as integers (number), not strings
 const CHAIN_IDS: Record<string, number> = {
   ethereum: 1, base: 8453, bsc: 56, arbitrum: 42161, optimism: 10, polygon: 137,
-  sepolia: 11155111, base_sepolia: 84532
+  sepolia: 11155111, base_sepolia: 84532, robinhood: 4663, arbitrum_sepolia: 421614, optimism_sepolia: 11155420, robinhood_testnet: 46630
 };
 
 export class RelayProvider implements DefiAggregatorProvider {

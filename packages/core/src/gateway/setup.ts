@@ -289,6 +289,8 @@ Provider: ${config.llm.provider}`;
         { value: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
         { value: 'arbitrum_sepolia', label: 'Arbitrum Sepolia (Testnet)' },
         { value: 'optimism_sepolia', label: 'OP Sepolia (Testnet)' },
+        { value: 'robinhood', label: 'Robinhood Chain' },
+        { value: 'robinhood_testnet', label: 'Robinhood Testnet' },
       ],
     });
     if (isCancel(defaultChain)) return process.exit(0);

@@ -13,6 +13,8 @@ const CHAIN_IDS: Record<ChainName, number> = {
   base_sepolia: 84532,
   arbitrum_sepolia: 421614,
   optimism_sepolia: 11155420,
+  robinhood: 4663,
+  robinhood_testnet: 46630,
 };
 
 export async function checkTokenSecurity(chainName: ChainName, contractAddress: string): Promise<string> {

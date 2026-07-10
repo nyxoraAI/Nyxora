@@ -369,11 +369,13 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
                       { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
                       { id: 'arbitrum', label: 'Arbitrum One', icon: <ChainIcon id="arbitrum" /> },
+                      { id: 'robinhood', label: 'Robinhood Chain', icon: <ChainIcon id="robinhood" /> },
                       { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
                       { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
                       { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
                       { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> },
                       { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
+                      { id: 'robinhood_testnet', label: 'Robinhood Testnet', icon: <ChainIcon id="robinhood_testnet" /> },
                       { id: 'optimism_sepolia', label: 'OP Sepolia', icon: <ChainIcon id="optimism_sepolia" /> }
                     ]}
                   />

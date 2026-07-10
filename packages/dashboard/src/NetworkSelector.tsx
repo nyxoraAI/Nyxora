@@ -7,11 +7,13 @@ const NETWORKS = [
   { id: 'bsc', label: 'BNB Smart Chain' },
   { id: 'base', label: 'Base' },
   { id: 'arbitrum', label: 'Arbitrum One' },
+  { id: 'robinhood', label: 'Robinhood Chain' },
   { id: 'optimism', label: 'OP Mainnet' },
   { id: 'polygon', label: 'Polygon (Matic)' },
   { id: 'sepolia', label: 'Sepolia (Testnet)' },
   { id: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
   { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia' },
+  { id: 'robinhood_testnet', label: 'Robinhood Testnet' },
   { id: 'optimism_sepolia', label: 'OP Sepolia' }
 ];
 

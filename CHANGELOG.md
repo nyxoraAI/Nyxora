@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.10]
+### Web3 Integrations
+- **Robinhood Chain Support**: Officially integrated `Robinhood Chain` (Mainnet) and `Robinhood Testnet` support natively via `viem` `v2.55.0` upgrade. Added seamless RPC mappings, updated the dashboard network selectors with official SVG branding, and ensured high-frequency trading capabilities in the Signer remain stable.
+
+### Core Architecture & Routing
+- **Deterministic Intent Fast-Path**: Bypassed the LLM semantic router for short confirmation phrases. Messages containing global confirmation keywords (e.g., "yes", "sure", "proceed") now deterministically inherit the strict contextual boundary (`os` or `web3`) of the Assistant's previous permission request, completely eradicating routing hallucinations.
+- **Global Codebase Standardization**: Refactored hardcoded regional slang from the routing logic into a comprehensive, professional English-first `CONFIRM_WORDS` array, natively supporting global users while retaining common localized confirmations as secondary fallbacks.
+
+### Fallback Execution Engine
+- **Native `<execute_bash>` Support**: Enhanced the `osAgent` and `web3Agent` Fallback Parsers to autonomously intercept and parse `<execute_bash>` and `<execute>` XML tags. This restores full execution capability for open-weight models that instinctively utilize these tags instead of strict JSON tool calls.
+- **Display Sanitization Hardening**: Appended `execute_bash` and `execute` to the automated UI Sanitizer `tagsToRemove` registry. Raw bash execution blocks hallucinated by the LLM are now stripped at the edge layer before streaming to Telegram or the Dashboard.
+
+### Web3 Signer SDK & Execution Guardrails
+- **Receipt Waiter Integration (Anti-False-Positive)**: Remediated a severe "Fire-and-Forget" architectural bug in `NyxoraSigner.ts` where broadcasted transactions were immediately reported as successful to the LLM regardless of actual on-chain finality. The Signer now strictly executes a `waitForTransactionReceipt` hook (capped at a 20-second timeout). 
+- **Revert Detection**: If a transaction reverts on-chain (e.g., due to strict MEV slippage or gas exhaustion), the Signer violently rejects the promise with `reverted`, preventing the AI from falsely declaring success.
+- **Pending Timeout Grace**: If the blockchain experiences congestion and fails to confirm within the 20-second window, the system falls back gracefully by returning `"Transaction broadcasted (Pending receipt)"` to ensure the 30-second Policy Engine HTTP timeout is never triggered, allowing the AI to report accurate pending status.
+
+### Policy SDK Refactoring
+- **Modular SDK Extraction**: Decoupled the monolithic Express server logic in `packages/policy` into a standalone, exportable `engine.ts`. This transforms the Policy Engine into a modular SDK (`@nyxora-sdk/policy-sdk`) that external Web3 applications can securely import and embed.
+- **Dynamic Dependency Isolation**: Replaced static relative monorepo imports for `core` functionalities (like `checkRegistryStatus` and `safeLogger`) with dynamic `require()` wrappers. This prevents TypeScript from bleeding the compilation boundary into external packages, resulting in a clean, self-contained SDK build without `viem` or `ox` node_modules collision errors.
+- **NPM Publication Readiness**: Integrated the MIT License, added an SDK `README.md`, configured a dedicated `tsconfig.json`, and set `"publishConfig": { "access": "public" }` to prepare the package for public NPM distribution as part of Nyxora's future 4-Tier Architecture roadmap.
 ## [26.7.9]
 ### Features & Architecture
 

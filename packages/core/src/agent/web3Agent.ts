@@ -113,7 +113,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
       // P1: Capture <think> blocks for scratchpad, get clean content
-      const cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
+      let cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
 
       logger.addEntry({
         role: 'assistant',
@@ -172,10 +172,52 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
             });
           }
         }
+
+        // 3. <tool_code> JSON arrays
+        const toolCodeRegex = /<tool_code>([\s\S]*?)<\/tool_code>/g;
+        let toolCodeMatch;
+        while ((toolCodeMatch = toolCodeRegex.exec(responseMessage.content)) !== null) {
+          try {
+            const jsonStr = toolCodeMatch[1].trim();
+            const parsedArray = JSON.parse(jsonStr);
+            if (Array.isArray(parsedArray)) {
+              for (const item of parsedArray) {
+                if (item.function_name && item.tool_args) {
+                  fallbacks.push({
+                    id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+                    type: 'function',
+                    function: {
+                      name: item.function_name,
+                      arguments: typeof item.tool_args === 'string' ? item.tool_args : JSON.stringify(item.tool_args)
+                    }
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            // Ignore parse errors, maybe it's not JSON
+          }
+        }
+        // 4. <execute_bash> or <execute> blocks
+        const executeRegex = /<(?:execute_bash|execute)>([\s\S]*?)<\/(?:execute_bash|execute)>/g;
+        let executeMatch;
+        while ((executeMatch = executeRegex.exec(responseMessage.content)) !== null) {
+          const bashCmd = executeMatch[1].trim();
+          if (bashCmd) {
+            fallbacks.push({
+              id: 'call_fallback_' + Math.random().toString(36).substr(2, 9),
+              type: 'function',
+              function: {
+                name: 'run_terminal_command',
+                arguments: JSON.stringify({ command: bashCmd })
+              }
+            });
+          }
+        }
         
         if (fallbacks.length > 0) {
           responseMessage.tool_calls = fallbacks;
-          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').trim();
+          responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').replace(/<tool_code>([\s\S]*?)<\/tool_code>/g, '').replace(/<(?:execute_bash|execute)>([\s\S]*?)<\/(?:execute_bash|execute)>/g, '').trim();
           console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
           // Update logger entry with the intercepted tool calls
           logger.addEntry({
@@ -184,6 +226,24 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
              tool_calls: responseMessage.tool_calls,
           }, sessionId);
         }
+      }
+      // ---------------------------------------------------------------
+
+      // --- DISPLAY SANITIZATION ---
+      // Remove commonly leaked XML tags (reasoning & tool calls) to prevent UI clutter
+      if (responseMessage.content) {
+        const tagsToRemove = ['tool_code', 'tool_call', 'tool_calls', 'function_call', 'function_calls', 'execute', 'think', 'thought', 'reasoning'];
+        tagsToRemove.forEach(tag => {
+            // Remove complete tags and their contents
+            const regex = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>\\s*`, 'gi');
+            responseMessage.content = responseMessage.content.replace(regex, '');
+            
+            // Remove any orphaned closing tags
+            const orphanRegex = new RegExp(`<\\/${tag}>\\s*`, 'gi');
+            responseMessage.content = responseMessage.content.replace(orphanRegex, '');
+        });
+        responseMessage.content = responseMessage.content.trim();
+        cleanedContent = responseMessage.content;
       }
       // ---------------------------------------------------------------
 
@@ -312,10 +372,9 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         consecutiveToolErrors = 0;
       }
 
-      // V2 Optimization: Zero-LLM Fast Return for transaction tools
       if (canFastReturnAll && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
-        logger.addEntry({ role: 'assistant', content: finalContent }, sessionId);
+        logger.addEntry({ role: 'user', content: `[System Notification: The tool executed successfully and returned the following result directly to the user]\n${finalContent}` }, sessionId);
         return finalContent;
       }
       
@@ -394,9 +453,9 @@ export async function processWeb3IntentStream(
       let streamedContent = '';
       const response = await executeWithRetry(async (client) => {
         streamedContent = '';
-        // RC#1 FIX: Only clear the Telegram buffer on the FIRST turn.
-        // Subsequent turns must NOT wipe the buffer that shows tool progress.
-        if (turnCount === 1) onChunk('[CLEAR_STREAM]');
+        // RC#1 FIX: Always clear the buffer at the start of the stream turn.
+        // Subsequent turns must wipe the buffer to prevent UI duplication of the planning text.
+        onChunk('[CLEAR_STREAM]');
         return await client.stream(
           { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools, reasoning_effort: config.llm.reasoning_effort },
           (chunk: string) => {

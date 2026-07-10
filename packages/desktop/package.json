@@ -21,11 +21,17 @@
     "npmRebuild": false,
     "icon": "build/icon.png",
     "linux": {
-      "target": ["deb", "AppImage"],
+      "target": [
+        "deb",
+        "AppImage"
+      ],
       "category": "Utility"
     },
     "directories": {
       "output": "dist"
     }
+  },
+  "dependencies": {
+    "viem": "^2.55.0"
   }
 }

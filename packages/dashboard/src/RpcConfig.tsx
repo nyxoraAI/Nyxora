@@ -8,12 +8,14 @@ const SUPPORTED_CHAINS = [
   { id: 'base', name: 'Base Mainnet' },
   { id: 'optimism', name: 'Optimism Mainnet' },
   { id: 'arbitrum', name: 'Arbitrum One' },
+  { id: 'robinhood', name: 'Robinhood Chain' },
   { id: 'bsc', name: 'Binance Smart Chain' },
   { id: 'polygon', name: 'Polygon Mainnet' },
   { id: 'sepolia', name: 'Sepolia (Testnet)' },
   { id: 'base_sepolia', name: 'Base Sepolia (Testnet)' },
   { id: 'optimism_sepolia', name: 'OP Sepolia (Testnet)' },
-  { id: 'arbitrum_sepolia', name: 'Arbitrum Sepolia (Testnet)' }
+  { id: 'arbitrum_sepolia', name: 'Arbitrum Sepolia (Testnet)' },
+  { id: 'robinhood_testnet', name: 'Robinhood Testnet' }
 ];
 
 export const RpcConfig: React.FC = () => {

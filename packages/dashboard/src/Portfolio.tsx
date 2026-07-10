@@ -258,11 +258,12 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
             <div 
               onClick={copyAddress}
               style={{ 
-                color: 'var(--text-secondary)', 
+                color: 'var(--text-primary)', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 gap: '8px', 
-                background: 'rgba(76, 86, 106, 0.5)',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--glass-border)',
                 padding: '4px 12px',
                 borderRadius: '12px',
                 cursor: 'pointer',
@@ -270,8 +271,8 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
                 fontFamily: 'monospace',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76, 86, 106, 0.2)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76, 86, 106, 0.1)'}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--tool-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
             >
               {walletAddress.substring(0, 6)}...{walletAddress.substring(38)}
               {copied ? <Check size={14} color="#A3BE8C" /> : <Copy size={14} />}

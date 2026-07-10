@@ -108,7 +108,7 @@ export class NyxoraSigner {
       account: this.account, 
       chain, 
       transport: http(customRpc, { timeout: 15000 }) 
-    }).extend(publicActions);
+    }).extend(publicActions) as any;
     
     const chainId = chain.id;
 
@@ -151,7 +151,27 @@ export class NyxoraSigner {
           });
           
           this.nonceCache[chainId] = nextNonce + 1;
-          resolve(hash);
+          
+          try {
+            const receipt = await client.waitForTransactionReceipt({ 
+              hash, 
+              timeout: 20000 
+            });
+            if (receipt.status === 'reverted') {
+              reject(new Error(`Transaction reverted on-chain. Hash: ${hash}`));
+              return;
+            }
+            resolve(hash);
+          } catch (receiptError: any) {
+            // If it times out waiting for the block, we don't know if it succeeded or reverted.
+            // We return a "Pending" message to the AI, rather than throwing an error or claiming success.
+            if (receiptError.name === 'TimeoutError' || receiptError.message.includes('Timeout') || receiptError.message.toLowerCase().includes('timeout')) {
+              console.warn(`[Signer SDK] Receipt wait timeout for ${hash}, assuming pending.`);
+              resolve(`Transaction broadcasted (Pending receipt). Hash: ${hash}`);
+            } else {
+              reject(receiptError);
+            }
+          }
         } catch (err: any) {
           reject(err);
         }

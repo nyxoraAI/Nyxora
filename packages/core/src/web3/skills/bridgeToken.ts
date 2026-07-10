@@ -125,7 +125,7 @@ export const bridgeTokenToolDefinition = {
         tokenSymbol: { type: "string" },
         amountStr: { type: "string" },
         mode: { type: "string", enum: ["auto", "manual"], default: "auto" },
-        providerName: { type: "string", enum: ["auto", "lifi", "relay", "op_bridge_testnet", "arbitrum_bridge_testnet"], default: "auto", description: "The preferred provider. Use 'op_bridge_testnet' (for OP/Base Sepolia), 'arbitrum_bridge_testnet' (for Arb Sepolia), or 'relay' (testnet fallback)." },
+        providerName: { type: "string", enum: ["auto", "lifi", "relay", "op_bridge_testnet", "arbitrum_bridge_testnet"], default: "auto", description: "The preferred provider. Use 'op_bridge_testnet' (for OP/Base Sepolia), 'arbitrum_bridge_testnet' (for Arb Sepolia or Robinhood Testnet), or 'relay' (testnet fallback)." },
         slippagePercent: { type: "number" }
       },
       required: ["fromChain", "toChain", "tokenSymbol", "amountStr"],

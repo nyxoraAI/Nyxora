@@ -221,25 +221,11 @@ export function startTelegramBot() {
           // Turn 1 starting — reset to clean state
           buffer = '⏳ Processing...';
           finalContentAlreadyStreamed = false;
-        } else if (chunk === '[TOOL_CALL_DETECTED]' || chunk === '[TOOL_CALL_FINISHED]') {
-          // Hermes-Agent tool boundary: Finalize the current message synchronously to avoid race conditions.
-          const htmlToSave = formatToTelegramHTML(buffer);
-          const msgIdToSave = progressMsgId;
-          
-          progressMsgId = null;
-          buffer = '';
-          finalContentAlreadyStreamed = false;
-          
-          if (pendingEdit) {
-            clearTimeout(pendingEdit);
-            pendingEdit = null;
-          }
-
-          if (msgIdToSave && htmlToSave) {
-            await ctx.api.editMessageText(ctx.chat.id, msgIdToSave, htmlToSave, { parse_mode: 'HTML' }).catch(() => {});
-          } else if (!msgIdToSave && htmlToSave) {
-            await ctx.reply(htmlToSave, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any }).catch(() => {});
-          }
+        } else if (chunk === '[TOOL_CALL_DETECTED]') {
+          buffer = '⏳ Processing...';
+          scheduleEdit();
+          return;
+        } else if (chunk === '[TOOL_CALL_FINISHED]') {
           return;
         } else {
           if (buffer === '⏳ Processing...') {
@@ -445,23 +431,11 @@ export function startTelegramBot() {
         const onChunk = async (chunk: string) => {
           if (chunk === '[CLEAR_STREAM]') {
             buffer = '⏳ Processing...';
-          } else if (chunk === '[TOOL_CALL_DETECTED]' || chunk === '[TOOL_CALL_FINISHED]') {
-            const htmlToSave = formatToTelegramHTML(buffer);
-            const msgIdToSave = progressMsgId;
-            
-            progressMsgId = null;
-            buffer = '';
-            
-            if (pendingEdit) {
-              clearTimeout(pendingEdit);
-              pendingEdit = null;
-            }
-
-            if (msgIdToSave && htmlToSave) {
-              await ctx.api.editMessageText(ctx.chat.id, msgIdToSave, htmlToSave, { parse_mode: 'HTML' }).catch(() => {});
-            } else if (!msgIdToSave && htmlToSave) {
-              await ctx.reply(htmlToSave, { parse_mode: 'HTML', reply_parameters: { message_id: ctx.message.message_id } as any }).catch(() => {});
-            }
+          } else if (chunk === '[TOOL_CALL_DETECTED]') {
+            buffer = '⏳ Processing...';
+            scheduleEdit();
+            return;
+          } else if (chunk === '[TOOL_CALL_FINISHED]') {
             return;
           } else {
             if (buffer === '⏳ Processing...') {

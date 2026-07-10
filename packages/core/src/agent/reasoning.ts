@@ -52,10 +52,10 @@ const OS_KEYWORDS: string[] = [
   'excel', 'xlsx', 'spreadsheet', 'generate excel',
   'file', 'folder', 'directory', 'read file', 'write file', 'pdf', 'word', 'docx', 'document',
   'note', 'catat', 'catatan', 'keep', 'download', 'unduh', 'link',
-  // Terminal & Git
+  // Terminal & Git & System
   'terminal', 'command', 'shell', 'bash', 'script', 'run command',
   'git', 'commit', 'push', 'pull', 'clone', 'branch', 'merge',
-  // Web & Search
+  'install', 'installin', 'uninstall', 'apt', 'npm', 'pip', 'yarn', 'docker', 'system',
   'search web', 'google', 'browse', 'scrape', 'weather', 'news', 'search', 'find', 'look up',
   // Email & Workspace
   'email', 'gmail', 'google docs', 'google sheets', 'notion', 'calendar',
@@ -84,7 +84,7 @@ const WEB3_KEYWORDS: string[] = [
   'token', 'crypto', 'coin', 'nft', 'wallet', 'address', 'contract',
   // Major Chains & L2s
   'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'mainnet', 'testnet',
-  'on-chain', 'blockchain', 'solana', 'avalanche', 'base',
+  'on-chain', 'blockchain', 'solana', 'avalanche', 'base', 'robinhood',
   // Top 50+ Global Assets / Tickers
   'eth', 'bnb', 'usdt', 'usdc', 'sol', 'matic', 'arb', 'op', 'btc', 'bitcoin',
   'xrp', 'doge', 'dogecoin', 'avax', 'ada', 'cardano', 'pepe', 'shib', 'shiba',
@@ -249,17 +249,43 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     preCheckMatched = true;
   }
 
+  if (!preCheckMatched) {
+    // Support global confirmation keywords for short fast-path routing
+    const CONFIRM_WORDS = [
+      // English (Global Defaults)
+      'yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'alright', 'confirm', 'proceed', 'continue', 'do it', 'go ahead', 'exactly', 'indeed',
+      // Common Localizations (e.g., ID, ES)
+      'ya', 'yakin', 'boleh', 'gas', 'lanjut', 'setuju', 'si', 'sí', 'vale', 'claro'
+    ];
+    const isConfirm = lowerInput.length < 25 && CONFIRM_WORDS.some(kw => lowerInput.includes(kw));
+    if (isConfirm && textOnlyHistory.length > 0) {
+      const lastMsg = textOnlyHistory[textOnlyHistory.length - 1];
+      if (lastMsg.role === 'assistant') {
+        const lastContent = lastMsg.content.toLowerCase();
+        // Check if the assistant was asking for permission to run an OS command
+        if (lastContent.includes('sudo ') || lastContent.includes('terminal') || lastContent.includes('apt') || lastContent.includes('perintah') || lastContent.includes('install') || lastContent.includes('command')) {
+          context = 'os';
+          preCheckMatched = true;
+        // Check if the assistant was asking for permission to run a Web3 transaction
+        } else if (lastContent.includes('swap') || lastContent.includes('transfer') || lastContent.includes('token') || lastContent.includes('wallet') || lastContent.includes('transaction')) {
+          context = 'web3';
+          preCheckMatched = true;
+        }
+      }
+    }
+  }
+
   if (preCheckMatched) {
-    console.log(pc.cyan(`[Orchestrator] Intent pre-classified (keyword match) as: ${context.toUpperCase()}`));
+    console.log(pc.cyan(`[Orchestrator] Intent pre-classified as: ${context.toUpperCase()}`));
   } else {
-    // ── Fallback: LLM Router (untuk intent ambigu / percakapan umum) ─────────
+    // ── Fallback: LLM Router (for ambiguous intents / general conversation) ─────────
     const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
-1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
+1. FOCUS ON THE FINAL MESSAGE, but use history to understand short answers. If the final message is a short confirmation (e.g. "ya", "yes", "do it") or answer to a pending permission request for a tool, CLASSIFY IT BASED ON THE CONTEXT. If the previous message was about an OS command, reply 'os'. If it was about crypto/web3, reply 'web3'.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message. Example: "swap 1 ETH to USDC and email me the receipt". If in doubt, do NOT use 'compound'.
+3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message.
 4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
-5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
+5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup, reply 'os'.
 6. If the message is casual conversation, chit-chat, greetings, capability questions (e.g., 'what can you do?', 'bisa ngapain?', 'help', 'menu'), or any open-ended/vague question, reply 'general'.
 Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
 
@@ -441,15 +467,40 @@ export async function processUserInputStream(
       context = 'web3';
       preCheckMatched = true;
     }
+    if (!preCheckMatched) {
+      // Support global confirmation keywords for short fast-path routing
+      const CONFIRM_WORDS = [
+        // English (Global Defaults)
+        'yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'alright', 'confirm', 'proceed', 'continue', 'do it', 'go ahead', 'exactly', 'indeed',
+        // Common Localizations (e.g., ID, ES)
+        'ya', 'yakin', 'boleh', 'gas', 'lanjut', 'setuju', 'si', 'sí', 'vale', 'claro'
+      ];
+      const isConfirm = lowerInput.length < 25 && CONFIRM_WORDS.some(kw => lowerInput.includes(kw));
+      if (isConfirm && textOnlyHistory.length > 0) {
+        const lastMsg = textOnlyHistory[textOnlyHistory.length - 1];
+        if (lastMsg.role === 'assistant') {
+          const lastContent = lastMsg.content.toLowerCase();
+          // Check if the assistant was asking for permission to run an OS command
+          if (lastContent.includes('sudo ') || lastContent.includes('terminal') || lastContent.includes('apt') || lastContent.includes('perintah') || lastContent.includes('install') || lastContent.includes('command')) {
+            context = 'os';
+            preCheckMatched = true;
+          // Check if the assistant was asking for permission to run a Web3 transaction
+          } else if (lastContent.includes('swap') || lastContent.includes('transfer') || lastContent.includes('token') || lastContent.includes('wallet') || lastContent.includes('transaction')) {
+            context = 'web3';
+            preCheckMatched = true;
+          }
+        }
+      }
+    }
 
     if (!preCheckMatched) {
       const routerPrompt = `You are Nyxora's Semantic Intent Router. Classify the user's FINAL message into one of four categories: 'web3', 'os', 'compound', or 'general'.
 Rules:
-1. FOCUS ONLY ON THE FINAL MESSAGE. History is only for context.
+1. FOCUS ON THE FINAL MESSAGE, but use history to understand short answers. If the final message is a short confirmation (e.g. "ya", "yes", "do it") or answer to a pending permission request for a tool, CLASSIFY IT BASED ON THE CONTEXT. If the previous message was about an OS command, reply 'os'. If it was about crypto/web3, reply 'web3'.
 2. The user may speak in ANY language, including casual slang, idioms, or abbreviations.
-3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message. Example: "swap 1 ETH to USDC and email me the receipt". If in doubt, do NOT use 'compound'.
+3. 'compound' is EXTREMELY RARE. Only reply 'compound' when the user EXPLICITLY requests BOTH a blockchain/crypto action AND an OS/file/email action in the SAME message.
 4. If the core intent involves ONLY blockchain, crypto, bridging, swapping, trading, sending/receiving, tokens, wallets, transactions, OR asking for the price/conversion of ANY asset to fiat, reply 'web3'.
-5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup (e.g., 'who won the game', 'what is the registration date', 'cek info', 'cari tahu'), reply 'os'.
+5. If the core intent involves ONLY OS automation, weather, emails, files, terminal, changing AI settings, OR asking ANY question that requires a web search or real-world factual lookup, reply 'os'.
 6. If the message is casual conversation, chit-chat, greetings, capability questions (e.g., 'what can you do?', 'bisa ngapain?', 'help', 'menu'), or any open-ended/vague question, reply 'general'.
 Reply with EXACTLY ONE WORD: compound, web3, os, or general.`;
       const routerMessages = [

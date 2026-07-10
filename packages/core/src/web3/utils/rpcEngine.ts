@@ -56,6 +56,10 @@ export function getPublicClient(chainName: ChainName): PublicClient {
     } else if (chainName === 'base_sepolia') {
       transports.push(http('https://base-sepolia-rpc.publicnode.com', { timeout: 5000 }));
       transports.push(http('https://sepolia.base.org', { timeout: 5000 }));
+    } else if (chainName === 'robinhood') {
+      transports.push(http('https://rpc.mainnet.chain.robinhood.com', { timeout: 5000 }));
+    } else if (chainName === 'robinhood_testnet') {
+      transports.push(http('https://rpc.testnet.chain.robinhood.com', { timeout: 5000 }));
     }
   }
 
@@ -101,6 +105,8 @@ export function getWsClient(chainName: ChainName): PublicClient {
     else if (chainName === 'arbitrum_sepolia') wsUrl = 'wss://arbitrum-sepolia-rpc.publicnode.com';
     else if (chainName === 'optimism_sepolia') wsUrl = 'wss://optimism-sepolia-rpc.publicnode.com';
     else if (chainName === 'base_sepolia') wsUrl = 'wss://base-sepolia-rpc.publicnode.com';
+    else if (chainName === 'robinhood') wsUrl = 'wss://feed.mainnet.chain.robinhood.com';
+    else if (chainName === 'robinhood_testnet') wsUrl = 'wss://feed.testnet.chain.robinhood.com';
   }
 
   // If WSS is totally unavailable, fallback to HTTP polling transparently

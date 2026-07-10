@@ -18,59 +18,40 @@ export interface Message {
   name?: string;
 }
 
-/** How many text-only exchanges to keep verbatim before summarising older ones. */
-const VERBATIM_TAIL = 10;
-/** Minimum history length (user+assistant pairs) before we bother summarising. */
-const SUMMARISE_THRESHOLD = 20;
+const VERBATIM_TAIL = 20;
+const SUMMARISE_THRESHOLD = 40;
 
-/**
- * Cache: prevents re-compressing the same history on every nudge iteration.
- * Key: sessionId — value contains the textCount at time of compression and
- * the resulting compressed history.
- *
- * During nudge loops, agent adds only system-role nudge messages. Those do NOT
- * increment the textCount (user+assistant only). So the cache key stays the same
- * and we return the cached result instead of making another LLM call.
- * Cache is invalidated when the textCount grows (i.e. real LLM response landed).
- */
 const compressionCache = new Map<string, { textCount: number; compressed: Message[] }>();
 
-/**
- * Returns a history array that fits in context.
- * If history is short, returns as-is.
- * If long, prepends a "Conversation Summary" system message and keeps the tail verbatim.
- *
- * @param history  Full raw history from logger.
- * @param sessionId  Optional session identifier used to cache results across nudge turns.
- */
 export async function compressHistory(history: Message[], sessionId?: string): Promise<Message[]> {
-  const textMessages = history.filter(
-    m => (m.role === 'user' || m.role === 'assistant') && m.content && !m.tool_calls
-  );
-
-  if (textMessages.length < SUMMARISE_THRESHOLD) {
-    return history; // nothing to compress yet
+  if (history.length < SUMMARISE_THRESHOLD) {
+    return history;
   }
 
-  // Cache hit: textCount hasn't grown since last compression for this session.
-  // This prevents 4x redundant LLM summarization calls during nudge iterations.
   if (sessionId) {
     const cached = compressionCache.get(sessionId);
-    if (cached && cached.textCount === textMessages.length) {
+    // FIX: Invalidate cache if ANY message is added to history, including tool calls
+    if (cached && cached.textCount === history.length) {
       return cached.compressed;
     }
   }
 
-  // Split: old messages to summarise, recent tail to keep verbatim
-  const tailMessages = textMessages.slice(-VERBATIM_TAIL);
-  const oldMessages = textMessages.slice(0, -VERBATIM_TAIL);
+  // FIX: Keep the tail strictly chronological so LLM doesn't get confused
+  const tailMessages = history.slice(-VERBATIM_TAIL);
+  const oldMessages = history.slice(0, -VERBATIM_TAIL);
 
   if (oldMessages.length === 0) return history;
 
   try {
     const config = loadConfig();
     const historyText = oldMessages
-      .map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`)
+      .map(m => {
+        let name = m.role.toUpperCase();
+        let content = m.content || '';
+        if (m.role === 'assistant' && m.tool_calls) content = `[Called tools: ${m.tool_calls.map(tc => tc.function.name).join(', ')}]`;
+        if (m.role === 'tool') content = `[Tool Result: ${m.name}]`;
+        return `${name}: ${content}`;
+      })
       .join('\n');
 
     const summaryRes = await executeWithRetry(async (client) =>
@@ -94,38 +75,24 @@ Write in third person. Be factual, not narrative.`
 
     console.log(pc.magenta(`[ContextSummarizer] Compressed ${oldMessages.length} old messages into summary.`));
 
-    // Return: summary as system note + verbatim tail + all tool messages (never drop tool messages)
-    const toolMessages = history.filter(
-      m => m.role === 'tool' || (m.role === 'assistant' && m.tool_calls)
-    );
-
     const compressed: Message[] = [
       {
         role: 'system' as any,
         content: `--- CONVERSATION SUMMARY (earlier context) ---\n${summaryText}\n--- END SUMMARY ---`
       },
-      ...tailMessages,
-      ...toolMessages.slice(-6) // keep last 6 tool interactions
+      ...tailMessages
     ];
 
-    // Persist in cache for this session
     if (sessionId) {
-      compressionCache.set(sessionId, { textCount: textMessages.length, compressed });
+      compressionCache.set(sessionId, { textCount: history.length, compressed });
     }
 
     return compressed;
   } catch (e) {
-    // On failure, just return the tail — never crash the agent
     return history.slice(-VERBATIM_TAIL * 2);
   }
 }
 
-/**
- * Fast check — should we attempt compression?
- */
 export function needsCompression(history: Message[]): boolean {
-  const textCount = history.filter(
-    m => (m.role === 'user' || m.role === 'assistant') && m.content && !m.tool_calls
-  ).length;
-  return textCount >= SUMMARISE_THRESHOLD;
+  return history.length >= SUMMARISE_THRESHOLD;
 }

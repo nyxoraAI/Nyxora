@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-core",
-  "version": "26.7.9",
+  "version": "26.7.10",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -48,7 +48,7 @@
     "proper-lockfile": "^4.1.2",
     "qrcode-terminal": "^0.12.0",
     "silk-wasm": "^3.7.1",
-    "viem": "^2.53.1",
+    "viem": "^2.55.0",
     "write-excel-file": "^4.1.1",
     "ws": "^8.21.0",
     "yaml": "^2.9.0",

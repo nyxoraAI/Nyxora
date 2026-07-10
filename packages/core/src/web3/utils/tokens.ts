@@ -109,6 +109,12 @@ export const TOKEN_MAP: Record<ChainName, Record<string, `0x${string}`>> = {
   },
   optimism_sepolia: {
     ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  },
+  robinhood: {
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  },
+  robinhood_testnet: {
+    ETH: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   }
 };
 

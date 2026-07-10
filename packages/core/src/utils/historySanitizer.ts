@@ -42,9 +42,16 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       if (provider === 'gemini' || !keptToolCallIds.has(m.tool_call_id)) {
         // FIX: Convert tool result to user message with the ACTUAL result content.
         // This preserves what the tool returned so LLM can reference it.
-        const resultPreview = (m.content || '').substring(0, 500);
+        const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
+        const maxChars = isLocalModel ? 4000 : 15000;
+        let resultPreview = m.content || '';
+        if (resultPreview.length > maxChars) {
+           const head = Math.floor(maxChars * 0.3);
+           const tail = Math.floor(maxChars * 0.7);
+           resultPreview = resultPreview.substring(0, head) + `\n\n... [Content Truncated: ${resultPreview.length - maxChars} chars omitted] ...\n\n` + resultPreview.substring(resultPreview.length - tail);
+        }
         msg.role = 'user'; 
-        msg.content = `[Tool Result: ${m.name || 'tool'}]\n${resultPreview}${(m.content || '').length > 500 ? '\n...(truncated)' : ''}`;
+        msg.content = `[Tool Result: ${m.name || 'tool'}]\n${resultPreview}`;
         delete msg.tool_call_id;
         delete msg.name;
       } else {
