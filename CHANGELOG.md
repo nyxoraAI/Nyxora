@@ -21,10 +21,6 @@ The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 - **Revert Detection**: If a transaction reverts on-chain (e.g., due to strict MEV slippage or gas exhaustion), the Signer violently rejects the promise with `reverted`, preventing the AI from falsely declaring success.
 - **Pending Timeout Grace**: If the blockchain experiences congestion and fails to confirm within the 20-second window, the system falls back gracefully by returning `"Transaction broadcasted (Pending receipt)"` to ensure the 30-second Policy Engine HTTP timeout is never triggered, allowing the AI to report accurate pending status.
 
-### Policy SDK Refactoring
-- **Modular SDK Extraction**: Decoupled the monolithic Express server logic in `packages/policy` into a standalone, exportable `engine.ts`. This transforms the Policy Engine into a modular SDK (`@nyxora-sdk/policy-sdk`) that external Web3 applications can securely import and embed.
-- **Dynamic Dependency Isolation**: Replaced static relative monorepo imports for `core` functionalities (like `checkRegistryStatus` and `safeLogger`) with dynamic `require()` wrappers. This prevents TypeScript from bleeding the compilation boundary into external packages, resulting in a clean, self-contained SDK build without `viem` or `ox` node_modules collision errors.
-- **NPM Publication Readiness**: Integrated the MIT License, added an SDK `README.md`, configured a dedicated `tsconfig.json`, and set `"publishConfig": { "access": "public" }` to prepare the package for public NPM distribution as part of Nyxora's future 4-Tier Architecture roadmap.
 ## [26.7.9]
 ### Features & Architecture
 

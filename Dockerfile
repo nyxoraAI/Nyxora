@@ -22,7 +22,7 @@ COPY packages/policy/package*.json ./packages/policy/
 COPY packages/signer/package*.json ./packages/signer/
 
 # Install ALL dependencies (including devDependencies for Vite)
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .
@@ -53,7 +53,7 @@ COPY packages/signer/package*.json ./packages/signer/
 
 # Install ONLY production dependencies (--omit=dev)
 ENV NODE_ENV=production
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy source code
 COPY . .
