@@ -28,6 +28,9 @@ const BLOCKSCOUT_URLS: Record<string, string> = {
   arbitrum_sepolia: 'https://arbitrum-sepolia.blockscout.com/api'
 };
 
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+
 export async function getTxHistory(chainName: ChainName, address?: string, days: number = 30): Promise<string> {
   try {
     chainName = normalizeChainName(chainName);
@@ -40,37 +43,52 @@ export async function getTxHistory(chainName: ChainName, address?: string, days:
     const apiKey = config.web3?.explorer_api_key || ''; 
     
     let apiUrl = '';
+    let isV2 = false;
+    let isBlockscout = false;
     
-    // Always prefer Etherscan V2 if API key is provided, otherwise fallback to Blockscout
-    if (apiKey || chainName === 'ethereum') {
-      apiUrl = `https://api.etherscan.io/v2/api?chainid=${chainId}`;
-      if (apiKey) apiUrl += `&apikey=${apiKey}`;
-    } else if (BLOCKSCOUT_URLS[chainName]) {
-      apiUrl = `${BLOCKSCOUT_URLS[chainName]}?`;
+    // Attempt Etherscan V2 if API Key is available
+    if (apiKey) {
+      apiUrl = `https://api.etherscan.io/v2/api?chainid=${chainId}&apikey=${apiKey}`;
+      isV2 = true;
     } else {
-      return `Error: Free API access is not supported for ${chainName}. Please provide a PRO Etherscan API key in Dashboard.`;
+      // Fallback to Blockscout
+      const baseUrl = BLOCKSCOUT_URLS[chainName];
+      if (!baseUrl) {
+        return `Error: No Blockscout API URL configured for chain ${chainName}, and no Etherscan API Key provided.`;
+      }
+      apiUrl = `${baseUrl}?`;
+      isBlockscout = true;
     }
 
     const startTimestamp = Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
-    const getUrl = (url: string, action: string) => `${url}&module=account&action=${action}&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc`;
+    const getUrl = (url: string, action: string) => `${url}&module=account&action=${action}&address=${targetAddress}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`;
 
     // Fetch Native Txs
     let nativeData = await safeFetchJson<any>(getUrl(apiUrl, 'txlist'));
     
     // Handle Etherscan Free Tier paywall rejection
-    if (nativeData.message === 'NOTOK' && nativeData.result.includes('Free API access is not supported')) {
-      if (BLOCKSCOUT_URLS[chainName]) {
-        // Failover to Blockscout!
-        apiUrl = `${BLOCKSCOUT_URLS[chainName]}?`;
+    if (isV2 && nativeData.message === 'NOTOK' && nativeData.result.includes('Free API access is not supported')) {
+      // V2 rejected due to lack of PRO key for non-ETH chain? Fallback to Blockscout!
+      const baseUrl = BLOCKSCOUT_URLS[chainName];
+      if (baseUrl) {
+        apiUrl = `${baseUrl}?`; 
+        isV2 = false;
+        isBlockscout = true;
         nativeData = await safeFetchJson<any>(getUrl(apiUrl, 'txlist'));
       } else {
-        return `Error: Etherscan requires a PRO API key for ${chainName}. No free fallback available.`;
+        return `Error: Etherscan V2 requires PRO plan for ${chainName}, and Blockscout fallback is not available for this chain.`;
       }
-    } else if (nativeData.message === 'NOTOK') {
+    } 
+    
+    if (nativeData.message === 'NOTOK') {
       throw new Error(`Explorer API Error: ${nativeData.result}`);
     }
 
-    // Fetch ERC20 Txs (Using the same apiUrl which may have been updated during failover)
+    // Adaptive Rate-Limit: 250ms for V2 (API Key), no strict delay needed for Blockscout but 250ms is safe
+    const delayTime = 250;
+    await delay(delayTime);
+
+    // Fetch ERC20 Txs
     const tokenData = await safeFetchJson<any>(getUrl(apiUrl, 'tokentx'));
 
     let history: any[] = [];

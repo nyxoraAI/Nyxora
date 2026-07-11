@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.10",
+  "version": "26.7.11",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -124,5 +124,8 @@
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "allowScripts": {
+    "electron@30.5.1": true
   }
 }

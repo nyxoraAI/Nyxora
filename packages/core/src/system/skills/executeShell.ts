@@ -1,7 +1,19 @@
 import { exec } from 'child_process';
-import { loadConfig } from '../../config/parser';
+import { loadConfig, loadApiKeys } from '../../config/parser';
 
-export function runTerminalCommand(command: string): Promise<string> {
+export async function runTerminalCommand(command: string): Promise<string> {
+  // Load API keys to inject into the shell environment for Playbooks (e.g. Notion, GitHub)
+  const keys = await loadApiKeys().catch(() => ({}));
+  const env = { ...process.env };
+  
+  for (const [k, v] of Object.entries(keys)) {
+    if (v) {
+      env[k.toUpperCase()] = v;
+      if (k === 'notion_key') env.NOTION_API_KEY = v;
+      if (k === 'github_key') env.GITHUB_TOKEN = v;
+    }
+  }
+
   return new Promise((resolve) => {
     // --- SUDO AUTO-INJECTION ---
     // If command requires sudo, inject password from config via sudo -S
@@ -21,7 +33,7 @@ export function runTerminalCommand(command: string): Promise<string> {
       }
     }
 
-    exec(finalCommand, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+    exec(finalCommand, { maxBuffer: 1024 * 1024 * 10, env }, (error, stdout, stderr) => {
       let output = "";
       if (stdout) output += `STDOUT:\n${stdout}\n`;
 

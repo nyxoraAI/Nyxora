@@ -37,6 +37,12 @@ class TransactionManager {
   constructor() {
     // Migration: if .nyxora_withdrawals.json exists, we could migrate it, but the plan says we can ignore/leave it.
     // However, a simple migration log is fine if we want to be safe.
+    try {
+      logger.cancelAllPendingTransactions();
+      console.log('[TransactionManager] Cleaned up stale pending transactions on startup.');
+    } catch (e) {
+      console.error('[TransactionManager] Failed to clean up stale transactions:', e);
+    }
   }
 
   // --- PROMISE TRACKING (For Graceful Shutdown) ---

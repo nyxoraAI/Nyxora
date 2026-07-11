@@ -101,8 +101,8 @@ export async function chatInteractive() {
                 process.stdout.write(`\x1b[2K\r${pc.italic(pc.gray(data.progress))}`);
               }
               if (data.chunk) {
-                if (data.chunk === '[CLEAR_STREAM]') {
-                  // Ignore the clear stream token in TUI, but clear the current line just in case
+                if (data.chunk === '[CLEAR_STREAM]' || data.chunk === '[TOOL_CALL_FINISHED]') {
+                  // Ignore control tokens in TUI, but clear the current line just in case
                   process.stdout.write('\x1b[2K\r');
                   continue;
                 }

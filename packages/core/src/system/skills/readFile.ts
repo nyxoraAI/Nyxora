@@ -67,7 +67,7 @@ export const readLocalFileToolDefinition = {
       properties: {
         filePath: {
           type: "string",
-          description: "The absolute or relative path to the file.",
+          description: "The absolute path to the file. ALWAYS use absolute paths based on the user's environment or preferred working directory.",
         },
         startLine: {
           type: "number",

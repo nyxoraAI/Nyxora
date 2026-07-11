@@ -5,8 +5,6 @@ version: 0.0.1
 author: community
 license: MIT
 platforms: [linux, macos, windows]
-prerequisites:
-  env_vars: [NOTION_API_KEY]
 metadata:
   nyxora:
     tags: [Notion, Productivity, Notes, Database, API, CLI, Workers]
@@ -22,15 +20,16 @@ Talk to Notion two ways. Same integration token works for both — pick by what'
 
 ## Setup
 
-### 1. Get an integration token (required for both paths)
+### 1. API Key Injection (CRITICAL FOR AI)
 
-1. Create an integration at https://notion.so/my-integrations
-2. Copy the API key (starts with `ntn_` or `secret_`)
-3. Store in `${NYXORA_HOME:-~/.nyxora}/.env`:
-   ```
-   NOTION_API_KEY=ntn_your_key_here
-   ```
-4. **Share target pages/databases with the integration** in Notion: page menu `...` → `Connect to` → your integration name. Without this, the API returns 404 for that page even though it exists.
+[CRITICAL INSTRUCTION TO AI]: The `NOTION_API_KEY` environment variable is **AUTOMATICALLY INJECTED** into your terminal session by the Nyxora daemon. 
+**DO NOT** ask the user where the API key is stored.
+**DO NOT** try to source or find `.env` files. 
+Just execute the `curl` or `ntn` commands directly. The `$NOTION_API_KEY` variable is already populated and ready to use in your shell!
+
+*(For humans setting this up manually: store the key in `nyxora set-key notion <key>` or `~/.nyxora/config/config.yaml`)*
+
+**Share target pages/databases with the integration** in Notion: page menu `...` → `Connect to` → your integration name. Without this, the API returns 404 for that page even though it exists.
 
 ### 2. Install `ntn` (preferred path on macOS / Linux)
 

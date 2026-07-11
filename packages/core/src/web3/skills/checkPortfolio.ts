@@ -204,7 +204,7 @@ export const checkPortfolioToolDefinition = {
   type: "function",
   function: {
     name: "check_portfolio",
-    description: "Scans the user's wallet for common tokens on a specific chain and calculates their total USD Net Worth (PNL proxy) using live prices.",
+    description: "Scans the user's wallet for common tokens on a specific chain (e.g. ethereum, base, bsc, arbitrum, optimism, polygon, robinhood) and calculates their total USD Net Worth (PNL proxy) using live prices.",
     parameters: {
       type: "object",
       properties: {

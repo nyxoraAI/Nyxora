@@ -115,6 +115,16 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       // P1: Capture <think> blocks for scratchpad, get clean content
       let cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
 
+      // --- ANTI-LOOP MECHANISM ---
+      const lastAsstMsg = sanitizedHistory.slice().reverse().find((m: any) => m.role === 'assistant');
+      if (lastAsstMsg && lastAsstMsg.content === cleanedContent && cleanedContent.trim() !== '') {
+         logger.addEntry({
+           role: 'system' as any,
+           content: '[SYSTEM WARNING] You just repeated your exact previous message. This means you ignored the latest user input or failed to recover from a tool error. READ the latest user message carefully and CHANGE your approach!'
+         }, sessionId);
+         console.log(pc.yellow(`[Anti-Loop] Detected identical response. Injected system warning.`));
+      }
+
       logger.addEntry({
         role: 'assistant',
         content: cleanedContent || '',
@@ -257,7 +267,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -345,7 +355,8 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         }, sessionId);
 
         accumulatedResults.push(result);
-        if (!fastReturnTools.includes(toolName)) {
+        const isErrorResult = typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]') || result.includes('[Security Blocked]'));
+        if (!fastReturnTools.includes(toolName) || isErrorResult) {
           canFastReturnAll = false;
         }
       }
@@ -560,8 +571,12 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       // Tool calls detected — pause stream visually and execute tools
       // BUG#1 FIX: Wipe turn-1 planning text. See osAgent.ts for full explanation.
       await onChunk('[TOOL_CALL_DETECTED]');
-      // FIX: Re-added send_telegram_file to prevent "typing" loop after file upload.
-      const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx', 'send_telegram_file'];
+      const fastReturnTools: string[] = [
+        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
+        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx',
+        'get_my_address', 'get_balance', 'get_tx_history', 'resolve_ens'
+      ];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
 
@@ -616,7 +631,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
 
         logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, name: toolName, content: result }, sessionId);
         accumulatedResults.push(result);
-        if (!fastReturnTools.includes(toolName)) canFastReturnAll = false;
+        
+        const isErrorResult = typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]') || result.includes('[Security Blocked]'));
+        if (!fastReturnTools.includes(toolName) || isErrorResult) canFastReturnAll = false;
       }
 
       await onChunk('[TOOL_CALL_FINISHED]');

@@ -161,22 +161,84 @@ async function searchSerpApi(query: string, apiKey: string, depth: number = 1): 
   return results;
 }
 
-export async function searchWeb(query: string, depth: number = 1): Promise<string> {
-  // Auto-inject current year for time-sensitive queries
-  const lowerQuery = String(query || "").toLowerCase();
-  const currentYear = new Date().getFullYear().toString();
+export async function searchWeb(query: string, depth: number = 2): Promise<string> {
+  const now = new Date();
+  const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // English date string works best for search engine queries regardless of user locale
+  const currentDateEn = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  // ISO date for unambiguous filtering
+  const currentDateISO = now.toISOString().split('T')[0]; // e.g. 2026-07-11
+  const currentYear    = now.getFullYear().toString();
+
+  const lowerQuery = String(query || '').toLowerCase();
   let finalQuery = query;
-  
-  if ((lowerQuery.includes('hari ini') || lowerQuery.includes('sekarang') || lowerQuery.includes('today') || lowerQuery.includes('saat ini') || lowerQuery.includes('terbaru')) && !lowerQuery.includes(currentYear)) {
-    finalQuery = `${query} ${currentYear}`;
-    console.log(`[WebSearch] Auto-injected current year: "${finalQuery}"`);
+
+  // Detect time-sensitive queries across multiple languages
+  const isTimeSensitive =
+    // Indonesian
+    lowerQuery.includes('hari ini') ||
+    lowerQuery.includes('sekarang') ||
+    lowerQuery.includes('saat ini') ||
+    lowerQuery.includes('terbaru') ||
+    lowerQuery.includes('terkini') ||
+    // English
+    lowerQuery.includes('today') ||
+    lowerQuery.includes('latest') ||
+    lowerQuery.includes('current') ||
+    lowerQuery.includes('live') ||
+    lowerQuery.includes('right now') ||
+    // Spanish
+    lowerQuery.includes('hoy') ||
+    lowerQuery.includes('ahora') ||
+    // French
+    lowerQuery.includes("aujourd'hui") ||
+    // German
+    lowerQuery.includes('heute') ||
+    // Japanese
+    lowerQuery.includes('今日') ||
+    lowerQuery.includes('現在') ||
+    // Korean
+    lowerQuery.includes('오늘') ||
+    // Chinese
+    lowerQuery.includes('今天') ||
+    lowerQuery.includes('现在');
+
+  if (isTimeSensitive) {
+    // Replace time-relative words with the actual English date for the search engine.
+    // English date format works universally across all search providers.
+    finalQuery = query
+      // Indonesian
+      .replace(/hari ini/gi, currentDateEn)
+      .replace(/sekarang/gi, currentDateEn)
+      .replace(/saat ini/gi, currentDateEn)
+      // English
+      .replace(/\btoday\b/gi, currentDateEn)
+      // Spanish
+      .replace(/\bhoy\b/gi, currentDateEn)
+      // French
+      .replace(/aujourd'hui/gi, currentDateEn)
+      // German
+      .replace(/\bheute\b/gi, currentDateEn)
+      // Japanese
+      .replace(/今日/g, currentDateEn)
+      // Korean
+      .replace(/오늘/g, currentDateEn)
+      // Chinese
+      .replace(/今天/g, currentDateEn);
+
+    // Append the date if it wasn't substituted in (e.g. for "terbaru", "latest")
+    if (!finalQuery.includes(currentYear)) finalQuery += ` ${currentDateEn}`;
+    console.log(`[WebSearch] Temporal injection (tz: ${tz}): "${query}" → "${finalQuery}"`);
   }
 
   const cacheKey = `${finalQuery.trim().toLowerCase()}_depth_${depth}`;
   const cached = searchCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp < 300000)) {
+  // Short TTL for time-sensitive queries, normal TTL for others
+  const cacheTTL = isTimeSensitive ? 60_000 : 300_000;
+  if (cached && (Date.now() - cached.timestamp < cacheTTL)) {
     console.log(`[WebSearch] Returning cached results for: "${finalQuery}" (Depth: ${depth})`);
-    let responseText = `Search Results for "${query}" (Cached):\n\n`;
+    let responseText = `[As of ${currentDateEn} | Timezone: ${tz}] Search Results for "${query}" (Cached):\n\n`;
     cached.data.forEach((r, index) => {
       responseText += `${index + 1}. ${r.title}\n`;
       responseText += `URL: ${r.url}\n`;
@@ -291,10 +353,12 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
   if (results.length > 0) {
     searchCache.set(cacheKey, { data: results, timestamp: Date.now() });
   } else {
-    return `Search Results for "${query}": No results found.`;
+    return `Search Results for "${query}": No results found. [Searched on ${currentDateEn} | Timezone: ${tz}]`;
   }
-  
-  let responseText = `Search Results for "${query}":\n\n`;
+
+  // Temporal context header so the LLM knows exactly when this search ran
+  let responseText = `[Search executed: ${currentDateEn} (${currentDateISO}) | Timezone: ${tz} | Results older than today may be outdated]\n`;
+  responseText += `Search Results for "${query}":\n\n`;
   for (let index = 0; index < results.length; index++) {
     const r = results[index];
     responseText += `${index + 1}. ${r.title}\n`;
@@ -303,7 +367,7 @@ export async function searchWeb(query: string, depth: number = 1): Promise<strin
     if (depth > 1 && index < 3) {
       const fullText = await scrapeUrl(r.url);
       if (fullText) {
-        responseText += `Extracted Content: ${fullText.replace(/\\s+/g, ' ').substring(0, 1500)}...\n\n`;
+        responseText += `Extracted Content: ${fullText.replace(/\\s+/g, ' ').substring(0, 4000)}...\n\n`;
         continue;
       }
     }
@@ -323,7 +387,7 @@ export const searchWebToolDefinition = {
       properties: {
         query: {
           type: "string",
-          description: "The highly optimized search query to look up (translate to English for global events).",
+          description: "The highly optimized search query to look up. Use the user's original language. Append 'wikipedia' for sports schedules or tabular data to get easily scrapable results, but DO NOT append it for daily breaking news or trending topics.",
         },
         depth: {
           type: "number",

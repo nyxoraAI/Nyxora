@@ -35,6 +35,40 @@ export interface LLMProvider {
   stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse>;
 }
 
+export function extractExecuteTool(content: string, existingToolCalls: any[]): { content: string, toolCalls: any[] } {
+  let newContent = content;
+  const toolCalls = [...existingToolCalls];
+  
+  if (newContent) {
+    const executeToolMatches = newContent.match(/<execute_tool>([\s\S]*?)<\/execute_tool>/gi);
+    if (executeToolMatches) {
+      for (const match of executeToolMatches) {
+        const innerMatch = match.match(/<execute_tool>([\s\S]*?)<\/execute_tool>/i);
+        if (innerMatch && innerMatch[1]) {
+          try {
+            const parsed = JSON.parse(innerMatch[1].trim());
+            if (parsed.tool_name) {
+              toolCalls.push({
+                id: `call_${Math.random().toString(36).substring(7)}`,
+                type: 'function',
+                function: {
+                  name: parsed.tool_name,
+                  arguments: JSON.stringify(parsed.tool_params || {})
+                }
+              });
+            }
+          } catch (e) {
+            console.warn('[LLM] Failed to parse <execute_tool> JSON', e);
+          }
+        }
+      }
+      newContent = newContent.replace(/<execute_tool>[\s\S]*?<\/execute_tool>\n?/gi, '').trim();
+    }
+  }
+  
+  return { content: newContent, toolCalls };
+}
+
 export class OpenAIAdapter implements LLMProvider {
   constructor(private client: OpenAI) {}
 
@@ -50,11 +84,16 @@ export class OpenAIAdapter implements LLMProvider {
       content = content.replace(/<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>\n?/i, '').trim();
     }
 
+    let finalToolCalls = response.choices[0].message.tool_calls as any || [];
+    const extracted = extractExecuteTool(content, finalToolCalls);
+    content = extracted.content;
+    finalToolCalls = extracted.toolCalls;
+
     return {
       message: {
         content: content || null,
         reasoning_content: reasoning || null,
-        tool_calls: response.choices[0].message.tool_calls as any
+        tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined
       },
       usage: response.usage ? { total_tokens: response.usage.total_tokens } : undefined
     };
@@ -98,11 +137,16 @@ export class OpenAIAdapter implements LLMProvider {
         fullContent = fullContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?<\/\1>\n?/i, '').trim();
       }
 
+      let finalToolCalls = toolCalls;
+      const extracted = extractExecuteTool(fullContent, finalToolCalls);
+      fullContent = extracted.content;
+      finalToolCalls = extracted.toolCalls;
+
       return {
         message: {
           content: fullContent || null,
           reasoning_content: reasoningContent || null,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+          tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined
         }
       };
     } catch (e) {
@@ -227,11 +271,18 @@ export class AnthropicAdapter implements LLMProvider {
       }
     }
 
+    let finalToolCalls = toolCalls;
+    if (contentStr) {
+      const extracted = extractExecuteTool(contentStr, finalToolCalls);
+      contentStr = extracted.content;
+      finalToolCalls = extracted.toolCalls;
+    }
+
     return {
       message: {
         content: contentStr || null,
         reasoning_content: reasoningStr || null,
-        tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+        tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined
       },
       usage: response.usage ? { total_tokens: response.usage.input_tokens + response.usage.output_tokens } : undefined
     };
@@ -309,7 +360,14 @@ export class AnthropicAdapter implements LLMProvider {
         }
       }
 
-      return { message: { content: fullContent || null, reasoning_content: reasoningContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined } };
+      let finalToolCalls = toolCalls;
+      if (fullContent) {
+        const extracted = extractExecuteTool(fullContent, finalToolCalls);
+        fullContent = extracted.content;
+        finalToolCalls = extracted.toolCalls;
+      }
+
+      return { message: { content: fullContent || null, reasoning_content: reasoningContent || null, tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined } };
     } catch {
       const chatRes = await this.chat(request);
       if (chatRes.message.content) {
@@ -467,11 +525,18 @@ export class GeminiAdapter implements LLMProvider {
       }
     }
 
+    let finalToolCalls = toolCalls;
+    if (contentStr) {
+      const extracted = extractExecuteTool(contentStr, finalToolCalls);
+      contentStr = extracted.content;
+      finalToolCalls = extracted.toolCalls;
+    }
+
     return {
       message: {
         content: contentStr || null,
         reasoning_content: reasoningContent || null,
-        tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+        tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined
       },
       usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
     };
@@ -589,8 +654,15 @@ export class GeminiAdapter implements LLMProvider {
         }
       }
 
+      let finalToolCalls = toolCalls;
+      if (contentStr) {
+        const extracted = extractExecuteTool(contentStr, finalToolCalls);
+        contentStr = extracted.content;
+        finalToolCalls = extracted.toolCalls;
+      }
+
       return {
-        message: { content: contentStr || null, reasoning_content: reasoningContent || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined },
+        message: { content: contentStr || null, reasoning_content: reasoningContent || null, tool_calls: finalToolCalls.length > 0 ? finalToolCalls : undefined },
         usage: totalTokens > 0 ? { total_tokens: totalTokens } : undefined
       };
     } catch {

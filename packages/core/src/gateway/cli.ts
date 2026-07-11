@@ -14,7 +14,6 @@ import open from 'open';
 import { getAppDir, getPath } from '../config/paths';
 console.log(`--- CLI.TS STARTED (PID: ${process.pid}) ---`);
 import { loadConfig, saveApiKeys } from '../config/parser';
-import { startServer } from './server';
 import { runSetupWizard } from './setup';
 import { password, isCancel, confirm } from '@clack/prompts';
 import { getSessionToken } from '../utils/state';
@@ -231,6 +230,7 @@ console.log(`================================`);
   }
 
   // 4. Start the Express API Server (which also serves the static dashboard and Telegram bot)
+  const { startServer } = await import('./server');
   await startServer();
   const token = getSessionToken(); // Initialize token file
   setTimeout(() => {

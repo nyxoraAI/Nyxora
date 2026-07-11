@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepashangelog.com/en/1.0.0/),
 
+## [26.7.11]
+### Bug Fixes & Stability
+- **Ghost Daemon & Stale Transactions Fix**: Resolved a critical issue where the `Nyx Daemon` leaked into the interactive CLI chat due to a static top-level import in `cli.ts`. Replaced with a dynamic import to keep the CLI environment pure. Additionally, overhauled the SQLite transaction manager by introducing a 3-minute transaction timeout (previously there was no expiration), and implemented an `auto-cleanup` mechanism that forcefully purges (`failed`) all stale pending transactions upon daemon startup to prevent persistent "ghost" transaction prompts after forced system shutdowns.
+
 ## [26.7.10]
 ### Web3 Integrations
 - **Robinhood Chain Support**: Officially integrated `Robinhood Chain` (Mainnet) and `Robinhood Testnet` support natively via `viem` `v2.55.0` upgrade. Added seamless RPC mappings, updated the dashboard network selectors with official SVG branding, and ensured high-frequency trading capabilities in the Signer remain stable.

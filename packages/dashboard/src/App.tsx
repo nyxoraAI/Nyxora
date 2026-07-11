@@ -544,10 +544,23 @@ function App() {
         };
       });
 
+      // Sanitize final response to remove any LLM artifact tags that leaked through
+      const sanitizeResponse = (text: string) => text
+        .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '')
+        .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+        .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '')
+        .replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '')
+        .trim();
+      fullResponse = sanitizeResponse(fullResponse);
+      renderedResponse = sanitizeResponse(renderedResponse);
+
       // Mark streaming as done and clean up placeholder field
       setMessages(prev => prev.map((m: any) =>
-        m.id === streamingId ? { ...m, isStreaming: false, progress: undefined } : m
+        m.id === streamingId ? { ...m, content: fullResponse, isStreaming: false, progress: undefined } : m
       ));
+
 
       // Auto-rename on first prompt
       if (messages.length === 0 && currentSessionId) {
@@ -595,7 +608,21 @@ function App() {
   }
   
   const renderMessageContent = (content: string) => {
-    const cleanContent = content.replace(/(?:```(?:xml|html)?\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?|```think[\s\S]*?```/gi, '').trim();
+    let cleanContent = content
+      // Strip <think> blocks
+      .replace(/(?:```(?:xml|html)?\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?|```think[\s\S]*?```/gi, '')
+      // Strip <tool_code> blocks (LLM pseudo-code leakage)
+      .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '')
+      // Strip <tool_call> blocks
+      .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+      // Strip <execute_bash> / <execute> blocks
+      .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
+      // Strip raw JSON tool arrays that leaked into text: [{"tool_name": ...}]
+      .replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '')
+      // Strip raw JSON tool arrays: [{"function_name": ...}]
+      .replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '')
+      .trim();
+
 
     const parseBold = (text: string) => {
       return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
@@ -654,9 +681,22 @@ function App() {
 
   // Pick a random greeting every time the component renders an empty chat state
   // We use the activeSessionId as a dependency so it changes when you switch/create chats
-  const currentGreeting = useMemo(() => {
-    return greetings[Math.floor(Math.random() * greetings.length)];
-  }, [activeSessionId, messages.length]);
+  const [greetingIndex, setGreetingIndex] = useState(0);
+
+  useEffect(() => {
+    // Rotate every 2 minutes (120,000 ms) for better UX
+    const interval = setInterval(() => {
+      setGreetingIndex(prev => (prev + 1) % greetings.length);
+    }, 120000);
+    return () => clearInterval(interval);
+  }, [greetings.length]);
+
+  useEffect(() => {
+    // Reset to random on new session or empty chat
+    setGreetingIndex(Math.floor(Math.random() * greetings.length));
+  }, [activeSessionId, messages.length === 0, greetings.length]);
+
+  const currentGreeting = greetings[greetingIndex];
 
   if (!isAuthenticated) {
     return <Login onLogin={() => {
@@ -854,7 +894,7 @@ function App() {
               <div className={`chat-wrapper ${messages.length === 0 ? 'empty-state-wrapper' : ''}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
                 
                 {messages.length === 0 && (
-                  <div className="empty-state-container" style={{
+                  <div key={greetingIndex} className="empty-state-container" style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',

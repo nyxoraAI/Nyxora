@@ -202,7 +202,7 @@ export class Logger {
     const rows = this.db.prepare(`
       SELECT id, title, timestamp 
       FROM sessions 
-      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%'
+      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'cli-chat%'
       ORDER BY timestamp DESC
     `).all();
     return rows as unknown as ChatSession[];
@@ -232,7 +232,7 @@ export class Logger {
       FROM sessions s
       LEFT JOIN messages m ON s.id = m.session_id
       WHERE (s.title LIKE ? OR m.content LIKE ?)
-      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%'
+      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%' AND s.id NOT LIKE 'cli-chat%'
       ORDER BY s.timestamp DESC
     `).all(term, term);
   }
@@ -312,6 +312,7 @@ export class Logger {
           let title = 'New Session';
           if (sessionId.startsWith('telegram_')) title = 'Telegram Chat';
           else if (sessionId.startsWith('discord_')) title = 'Discord Chat';
+          else if (sessionId.startsWith('cli-chat')) title = 'CLI Chat';
           this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(sessionId, title);
         }
       } catch {}
@@ -446,7 +447,8 @@ export class Logger {
   }
 
   public getPendingTransactions(): any[] {
-    const rows = this.db.prepare(`SELECT * FROM pending_transactions WHERE status = 'pending'`).all() as any[];
+    const cutoff = Date.now() - 3 * 60 * 1000; // 3 minutes expiration
+    const rows = this.db.prepare(`SELECT * FROM pending_transactions WHERE status = 'pending' AND created_at > ?`).all(cutoff) as any[];
     return rows.map(r => ({
       id: r.id,
       type: r.type,
@@ -457,6 +459,10 @@ export class Logger {
       nonce: r.nonce,
       createdAt: r.created_at
     }));
+  }
+  
+  public cancelAllPendingTransactions() {
+    this.db.prepare(`UPDATE pending_transactions SET status = 'failed', result = 'Cancelled due to system restart' WHERE status = 'pending'`).run();
   }
 
   public getTransaction(id: string): any {

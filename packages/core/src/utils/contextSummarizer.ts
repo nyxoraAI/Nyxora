@@ -9,6 +9,7 @@
 import { executeWithRetry } from './llmUtils';
 import { loadConfig } from '../config/parser';
 import pc from 'picocolors';
+import crypto from 'crypto';
 
 export interface Message {
   role: string;
@@ -21,17 +22,20 @@ export interface Message {
 const VERBATIM_TAIL = 20;
 const SUMMARISE_THRESHOLD = 40;
 
-const compressionCache = new Map<string, { textCount: number; compressed: Message[] }>();
+const compressionCache = new Map<string, { hash: string; compressed: Message[] }>();
 
 export async function compressHistory(history: Message[], sessionId?: string): Promise<Message[]> {
   if (history.length < SUMMARISE_THRESHOLD) {
     return history;
   }
 
+  // Create a simple hash of the history to reliably detect changes (since history.length caps at 70)
+  const historyHash = crypto.createHash('sha256').update(JSON.stringify(history)).digest('hex');
+
   if (sessionId) {
     const cached = compressionCache.get(sessionId);
-    // FIX: Invalidate cache if ANY message is added to history, including tool calls
-    if (cached && cached.textCount === history.length) {
+    // FIX: Invalidate cache based on exact history content, not length which caps at 70
+    if (cached && cached.hash === historyHash) {
       return cached.compressed;
     }
   }
@@ -84,7 +88,7 @@ Write in third person. Be factual, not narrative.`
     ];
 
     if (sessionId) {
-      compressionCache.set(sessionId, { textCount: history.length, compressed });
+      compressionCache.set(sessionId, { hash: historyHash, compressed });
     }
 
     return compressed;

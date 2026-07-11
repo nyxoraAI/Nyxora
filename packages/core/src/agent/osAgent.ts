@@ -27,8 +27,11 @@ pluginManager.registerHook({
       const responseMessage = context.responseMessage || {};
       const hasThinkingTag = /<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>/i.test(responseMessage.content || '');
       const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
-      if (!hasThinkingTag && !hasNativeReasoning) {
-        const msg = `[System Error] BLOCKED BY REASONING GATE: You MUST output a <think>...</think> block to plan your actions BEFORE calling the '${toolName}' tool. Please rethink and try again.`;
+      // Allow smart models (like Claude 3.5 Sonnet) to pass if they output standard chain-of-thought text before the tool call.
+      const hasStandardCoT = (responseMessage.content || '').trim().length > 30;
+      
+      if (!hasThinkingTag && !hasNativeReasoning && !hasStandardCoT) {
+        const msg = `[System Error] BLOCKED BY REASONING GATE: You MUST explain your plan (or use a <think> block) BEFORE calling the '${toolName}' tool. Please rethink and try again.`;
         console.log(pc.red(`[❌ Blocked] Tool ${toolName} blocked by Reasoning Gate.`));
         return { block: true, reason: msg };
       }
@@ -39,10 +42,14 @@ pluginManager.registerHook({
 pluginManager.registerHook({
   name: 'Web3FastReturn',
   afterToolCall: async (toolName, args, result, context) => {
-    // FIX: Only financial Web3 transactions need fast-return (to show approval popup ASAP).
-    // FIX: Re-added send_telegram_file so the agent stops "typing" after file is successfully uploaded.
-    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'];
+    const fastReturnTools = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'];
     if (fastReturnTools.includes(toolName)) {
+      // FIX: Only trigger fast-return if the tool succeeded!
+      // If the tool returns an error, we MUST let the LLM see it and reflect/retry.
+      if (typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]'))) {
+        console.log(pc.yellow(`[Fast Return] Cancelled for ${toolName} due to error result.`));
+        return { terminate: false };
+      }
       return { terminate: true };
     }
   }
@@ -197,6 +204,16 @@ CRITICAL INSTRUCTIONS:
       // P1: Capture <think> blocks for scratchpad, get clean content
       let cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
 
+      // --- ANTI-LOOP MECHANISM ---
+      const lastAsstMsg = sanitizedHistory.slice().reverse().find((m: any) => m.role === 'assistant');
+      if (lastAsstMsg && lastAsstMsg.content === cleanedContent && cleanedContent.trim() !== '') {
+         logger.addEntry({
+           role: 'system' as any,
+           content: '[SYSTEM WARNING] You just repeated your exact previous message. This means you ignored the latest user input or failed to recover from a tool error. READ the latest user message carefully and CHANGE your approach!'
+         }, sessionId);
+         console.log(pc.yellow(`[Anti-Loop] Detected identical response. Injected system warning.`));
+      }
+
       logger.addEntry({
         role: 'assistant',
         content: cleanedContent || '',
@@ -345,7 +362,8 @@ CRITICAL INSTRUCTIONS:
       const fastReturnTools: string[] = [
         'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
         'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'send_telegram_file'
+        'deposit_yield_vault', 'provide_liquidity_v3',
+        'get_my_address', 'get_balance', 'get_tx_history', 'resolve_ens'
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -354,25 +372,31 @@ CRITICAL INSTRUCTIONS:
         let args: any = {};
         const toolName = toolCall.function.name;
 
-        const getToolEmoji = (n: string) => {
-          if (n.includes('file') || n.includes('read') || n.includes('write')) return '📄';
-          if (n.includes('dir') || n.includes('folder')) return '📁';
-          if (n.includes('cmd') || n.includes('shell') || n.includes('run')) return '🖥️';
-          if (n.includes('search') || n.includes('find')) return '🔍';
-          if (n.includes('git')) return '🐙';
-          return '⚙️';
+        const getToolLabel = (n: string, firstArgValue: string) => {
+          if (n === 'run_terminal_command') return `💻 terminal\n\`${firstArgValue.substring(0, 60)}${firstArgValue.length > 60 ? '...' : ''}\``;
+          if (n === 'write_local_file') return `✍️ Writing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
+          if (n === 'read_local_file') return `📖 Reading ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
+          if (n === 'edit_local_file') return `✏️ Editing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
+          if (n === 'search_web' || n === 'search_files') return `🔍 Searching: _${firstArgValue.substring(0, 50)}_`;
+          if (n === 'send_telegram_file') return `📤 Sending file to Telegram...`;
+          if (n.includes('git')) return `🐙 Git: ${firstArgValue}`;
+          if (n === 'generate_image') return `🎨 Generating image...`;
+          if (n === 'analyze_local_image') return `👁️ Analyzing image...`;
+          if (n.includes('write') || n.includes('create')) return `✍️ Creating ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
+          if (n.includes('read')) return `📖 Reading...`;
+          return `⚙️ Running: ${n}`;
         };
-        const emoji = getToolEmoji(toolName);
-        let argsPreview = "";
+        let argsPreview = '';
+        let firstArgValue = '';
         try {
-            const parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+            const parsedArgs = JSON.parse(toolCall.function.arguments || '{}');
             const firstKey = Object.keys(parsedArgs)[0];
-            if (firstKey) argsPreview = `"${parsedArgs[firstKey]}"`;
+            if (firstKey) { firstArgValue = String(parsedArgs[firstKey]); argsPreview = firstArgValue; }
         } catch(e) {}
-        const previewMsg = argsPreview ? `${toolName}: ${argsPreview}` : toolName;
+        const previewMsg = getToolLabel(toolName, firstArgValue);
 
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`*${emoji} ${previewMsg}*`);
+        if (onProgress) onProgress(`${previewMsg}`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -433,8 +457,8 @@ CRITICAL INSTRUCTIONS:
         }, sessionId);
 
         accumulatedResults.push(result);
-        // FIX: Removed send_telegram_file from fast-return set
-        if (!['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'].includes(toolName)) {
+        const isErrorResult = typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]') || result.includes('[Security Blocked]'));
+        if (!['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'].includes(toolName) || isErrorResult) {
           canFastReturnAll = false;
         }
       }
@@ -780,7 +804,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         if (!finalContent.includes('[SILENT_FAST_RETURN]')) {
           await onChunk(finalContent);
         }
-        fullResponse = cleanContent;
+        fullResponse = finalContent; // Return the unstripped content so caller knows it's silent
         triggerBackgroundReview(sessionId);
         break;
       }
