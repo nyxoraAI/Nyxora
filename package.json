@@ -54,9 +54,7 @@
     "test": "npm run test --workspace=packages/core",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
-    "desktop:dev": "npm run start --workspace=nyxora-desktop",
-    "desktop:build": "npm run build --workspace=nyxora-desktop"
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",
@@ -124,8 +122,5 @@
   },
   "engines": {
     "node": ">=22.0.0"
-  },
-  "allowScripts": {
-    "electron@30.5.1": true
   }
 }
