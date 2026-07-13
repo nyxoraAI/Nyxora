@@ -550,8 +550,8 @@ function App() {
         .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
         .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
         .replace(/<think>[\s\S]*?<\/think>/gi, '')
-        .replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '')
-        .replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '')
+        .replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '')
+        .replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '')
         .trim();
       fullResponse = sanitizeResponse(fullResponse);
       renderedResponse = sanitizeResponse(renderedResponse);
@@ -617,10 +617,10 @@ function App() {
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
       // Strip <execute_bash> / <execute> blocks
       .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
-      // Strip raw JSON tool arrays that leaked into text: [{"tool_name": ...}]
-      .replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '')
-      // Strip raw JSON tool arrays: [{"function_name": ...}]
-      .replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '')
+      // Strip markdown tool calls
+      .replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '')
+      // Strip raw JSON tool arrays
+      .replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '')
       .trim();
 
 

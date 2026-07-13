@@ -74,10 +74,10 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
       cleanText = cleanText.replace(/<tool_code>[\s\S]*$/i, '');
       cleanText = cleanText.replace(/<tool_call>[\s\S]*$/i, '');
 
-      // Strip raw JSON tool arrays leaking as text: [{"tool_name": ... or [{"function_name": ...
-      // We suppress from the opening bracket until the closing one is seen
-      cleanText = cleanText.replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '');
-      cleanText = cleanText.replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '');
+      // Strip markdown tool calls leaking as text
+      cleanText = cleanText.replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '');
+      // Strip raw JSON tool arrays
+      cleanText = cleanText.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
       // Suppress open bracket that looks like start of a tool array
       cleanText = cleanText.replace(/\[\s*\{[\s\S]*?"tool_(?:name|code)"[\s\S]*$/i, '');
 

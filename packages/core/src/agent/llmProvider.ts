@@ -414,7 +414,7 @@ export class GeminiAdapter implements LLMProvider {
         }
       } else if (m.role === 'tool') {
         contents.push({
-          role: 'user',
+          role: 'function',
           parts: [{
             functionResponse: {
               name: m.name || 'unknown_tool',
@@ -563,7 +563,7 @@ export class GeminiAdapter implements LLMProvider {
         }
         if (parts.length > 0) contents.push({ role: 'model', parts });
       } else if (m.role === 'tool') {
-        contents.push({ role: 'user', parts: [{ functionResponse: { name: m.name || 'unknown_tool', response: { result: m.content } } }] });
+        contents.push({ role: 'function', parts: [{ functionResponse: { name: m.name || 'unknown_tool', response: { result: m.content } } }] });
       }
     }
 

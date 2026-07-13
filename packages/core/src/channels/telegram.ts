@@ -46,9 +46,10 @@ export function formatToTelegramHTML(text: string): string {
   html = html.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
   html = html.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*$`, 'gi'), '');
 
-  // Strip raw JSON tool arrays that leaked as text
-  html = html.replace(/\[[\s\S]*?"tool_name"[\s\S]*?\]/g, '');
-  html = html.replace(/\[[\s\S]*?"function_name"[\s\S]*?\]/g, '');
+  // Strip markdown tool calls
+  html = html.replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '');
+  // Strip raw JSON tool arrays
+  html = html.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
 
   // Convert markdown formatting
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
