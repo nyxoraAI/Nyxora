@@ -39,8 +39,13 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 # Install ONLY runtime OS dependencies (saves massive space)
+# We also temporarily install build tools for native node modules (node-pty, keyring)
 RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
     libsecret-1-0 \
+    libsecret-1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package metadata
@@ -54,6 +59,11 @@ COPY packages/signer/package*.json ./packages/signer/
 # Install ONLY production dependencies (--omit=dev)
 ENV NODE_ENV=production
 RUN npm install --omit=dev --legacy-peer-deps
+
+# Remove build tools to keep image slim
+RUN apt-get remove -y python3 make g++ libsecret-1-dev \
+    && apt-get autoremove -y \
+    && apt-get clean
 
 # Copy source code
 COPY . .
