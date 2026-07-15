@@ -157,7 +157,8 @@ setTimeout(() => {
     const IS_WINDOWS_LAUNCHER = process.platform === 'win32';
     const pythonBinDir = IS_WINDOWS_LAUNCHER ? 'Scripts' : 'bin';
     const pythonExe = IS_WINDOWS_LAUNCHER ? 'python.exe' : 'python';
-    const pythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', pythonBinDir, pythonExe);
+    const defaultPythonPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'ml-engine', 'venv', pythonBinDir, pythonExe);
+    const pythonPath = process.env.ML_ENGINE_PYTHON_PATH || defaultPythonPath;
     if (fs.existsSync(pythonPath)) {
       let mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
       if (!fs.existsSync(mlDir)) mlDir = path.join(__dirnameResolved, '..', 'packages', 'ml-engine');

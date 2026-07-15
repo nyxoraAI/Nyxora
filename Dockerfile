@@ -42,6 +42,8 @@ WORKDIR /app
 # We also temporarily install build tools for native node modules (node-pty, keyring)
 RUN apt-get update && apt-get install -y \
     python3 \
+    python3-pip \
+    python3-venv \
     make \
     g++ \
     libsecret-1-0 \
@@ -60,8 +62,8 @@ COPY packages/signer/package*.json ./packages/signer/
 ENV NODE_ENV=production
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Remove build tools to keep image slim
-RUN apt-get remove -y python3 make g++ libsecret-1-dev \
+# Remove build tools to keep image slim (but KEEP python3 for ML Engine)
+RUN apt-get remove -y make g++ libsecret-1-dev \
     && apt-get autoremove -y \
     && apt-get clean
 
@@ -70,6 +72,12 @@ COPY . .
 
 # Inject the compiled frontend dashboard from the Builder stage
 COPY --from=builder /app/packages/dashboard/dist ./packages/dashboard/dist
+
+# Setup ML Engine globally in Docker
+RUN python3 -m venv /app/ml-venv \
+    && /app/ml-venv/bin/pip install -r packages/ml-engine/requirements.txt
+
+ENV ML_ENGINE_PYTHON_PATH=/app/ml-venv/bin/python
 
 # Expose the ports used by Core/Dashboard and Policy Engine
 EXPOSE 3000
