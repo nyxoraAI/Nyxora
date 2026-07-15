@@ -1,0 +1,443 @@
+/* Light Mode (Apple macOS Clean) */
+:root {
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  --vp-c-bg: #ffffff !important;
+  --vp-c-bg-alt: #f5f5f7 !important;
+  --vp-c-bg-soft: #f5f5f7 !important;
+  --vp-c-text-1: #1d1d1f !important;
+  --vp-c-text-2: #86868b !important;
+  --vp-c-text-3: #86868b !important;
+  --vp-c-brand-1: #007aff !important;
+  --vp-c-brand-2: #0062cc !important;
+  --vp-c-brand-3: #005cbf !important;
+  --vp-sidebar-hover-bg: rgba(0, 122, 255, 0.1) !important;
+  --vp-sidebar-active-bg: rgba(0, 122, 255, 0.15) !important;
+  --vp-c-divider: rgba(0, 0, 0, 0.08) !important;
+  --vp-sidebar-bg-color: transparent !important;
+  --vp-c-gutter: var(--vp-c-divider) !important;
+  --vp-c-border: var(--vp-c-divider) !important;
+}
+
+/* Dark Mode (Apple macOS Dark) */
+.dark {
+  --vp-c-bg: #000000 !important;
+  --vp-c-bg-alt: #1c1c1e !important;
+  --vp-c-bg-soft: #1c1c1e !important;
+  --vp-c-text-1: #f5f5f7 !important;
+  --vp-c-text-2: #98989d !important;
+  --vp-c-text-3: #98989d !important;
+  --vp-c-brand-1: #88c0d0 !important;
+  --vp-c-brand-2: #81a1c1 !important;
+  --vp-c-brand-3: #5e81ac !important;
+  --vp-sidebar-hover-bg: rgba(136, 192, 208, 0.1) !important;
+  --vp-sidebar-active-bg: rgba(136, 192, 208, 0.15) !important;
+  --vp-c-divider: rgba(255, 255, 255, 0.15) !important;
+  --vp-sidebar-bg-color: transparent !important;
+  --vp-c-gutter: var(--vp-c-divider) !important;
+  --vp-c-border: var(--vp-c-divider) !important;
+}
+
+/* =========================================
+   macOS Terminal Style for Code Blocks
+   ========================================= */
+.vp-doc div[class*="language-"] {
+  position: relative;
+  padding-top: 36px !important; /* Space for the macOS header */
+  border-radius: 8px !important;
+}
+
+/* Draw the Red, Yellow, Green buttons */
+.vp-doc div[class*="language-"]::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 15px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff5f56; /* Close button */
+  box-shadow: 18px 0 0 #ffbd2e, 36px 0 0 #27c93f; /* Minimize & Maximize buttons */
+  z-index: 2;
+}
+
+/* Reposition VitePress default language label to align with buttons */
+.vp-doc div[class*="language-"] > span.lang {
+  top: 10px !important;
+  right: 50px !important;
+}
+
+/* Reposition VitePress default copy button to align with buttons */
+.vp-doc div[class*="language-"] > button.copy {
+  top: 6px !important;
+}
+
+
+
+/* Make hr elements look softer and match the sidebar divider */
+.vp-doc hr, hr {
+  border: none !important;
+  border-top: 1px solid var(--vp-c-divider) !important;
+  margin: 24px 0 !important;
+  background: transparent !important;
+}
+
+/* Remove default Vitepress border on h2 so it doesn't create double-lines with <hr> */
+.vp-doc h2 {
+  border-top: none !important;
+}
+
+/* Fix navbar border to sync with the theme */
+.VPNav, .VPNavBar {
+  border-bottom: 1px solid var(--vp-c-divider) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+}
+
+.dark .VPNav, .dark .VPNavBar {
+  background-color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.VPSidebar {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-right: 1px solid var(--vp-c-divider) !important;
+}
+
+.dark .VPSidebar {
+  background-color: rgba(0, 0, 0, 0.88) !important;
+}
+
+/* =========================================
+   Two-Tier Navbar (ElizaOS Style)
+   ========================================= */
+@media (min-width: 768px) {
+  :root {
+    --vp-nav-height: 64px !important; /* Revert top tier to 64px so Vitepress flex layout centers perfectly */
+    --vp-nav-logo-height: 34px !important; /* Make the SVG logo much larger */
+  }
+
+  /* Push main content down to accommodate the 112px total height (64px + 48px menu) */
+  .VPContent {
+    padding-top: 112px !important;
+  }
+
+  .VPNav, .VPNavBar {
+    z-index: 100 !important;
+  }
+
+  .VPNavBar {
+    position: relative !important;
+    border-bottom: none !important;
+  }
+
+  /* Hide Vitepress default vertical divider between Logo and Content */
+  .VPNavBar.has-sidebar .content::before {
+    display: none !important;
+  }
+
+  /* --- Bottom Tier (Menu) --- */
+  /* We use fixed positioning to detach it from Vitepress's complex flex/absolute flow */
+  .VPNavBarMenu {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 48px !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    
+    /* Solid background is required to block out the sidebar border behind it */
+    background-color: rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+    z-index: 100 !important;
+    
+    /* Align with Vitepress container: max-width is usually 1376px 
+       We subtract 8px on the left to perfectly neutralize the 8px padding of the first menu item, 
+       so the text aligns exactly with the logo above it. */
+    padding-left: max(24px, calc((100vw - 1376px) / 2 - 8px)) !important;
+    padding-right: max(32px, calc((100vw - 1376px) / 2)) !important;
+  }
+
+  /* Keep menu items horizontal, set full height for active indicator */
+  .VPNavBarMenu > * {
+    margin-right: 12px !important;
+    margin-left: 0 !important;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+  }
+  
+  .VPNavBarMenu .VPNavBarMenuLink {
+    padding: 0 8px !important;
+    color: var(--vp-c-text-2) !important;
+    transition: color 0.25s !important;
+  }
+  
+  .VPNavBarMenu .VPNavBarMenuLink:hover {
+    color: var(--vp-c-text-1) !important;
+  }
+
+  /* Active Menu Item Styling */
+  .VPNavBarMenu .VPNavBarMenuLink.active {
+    color: var(--vp-c-text-1) !important;
+  }
+
+  /* Solid bottom line indicator for active item */
+  .VPNavBarMenu .VPNavBarMenuLink.active::after {
+    content: "";
+    position: absolute;
+    bottom: -1px; /* Overlap the container's bottom border exactly */
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--vp-c-brand-1) !important;
+  }
+
+  /* Remove the long horizontal divider line under the navbar on ALL pages EXCEPT Home */
+  /* Using Vitepress native .home class instead of :has() to ensure browser compatibility */
+  .VPNavBar:not(.home),
+  .VPNavBar:not(.home) .wrapper,
+  .VPNavBar:not(.home) .container,
+  .VPNavBar:not(.home) .content,
+  .VPLocalNav {
+    border-bottom: none !important;
+    border-top: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+  
+  /* Also hide Vitepress specific divider elements */
+  .VPNavBar:not(.home) .divider-line,
+  .VPNavBar:not(.home) .divider,
+  .VPLocalNav .divider {
+    display: none !important;
+  }
+
+  /* Make logo text slightly larger */
+  .VPNavBarTitle > a {
+    font-size: 20px !important;
+  }
+
+  /* --- Top Tier (Search Bar) --- */
+  /* Fixed positioning allows it to center on the screen without overlapping Socials */
+  .VPNavBarSearch {
+    position: fixed !important;
+    top: 10px !important; /* Center vertically (64px - 44px) / 2 = 10px */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 40vw !important;
+    max-width: 600px !important;
+    min-width: 300px !important;
+    display: flex !important;
+    z-index: 100 !important;
+  }
+
+  .VPNavBarSearch button {
+    width: 100% !important;
+    height: 44px !important; 
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    border-radius: 8px !important;
+    padding: 0 16px !important;
+    background-color: var(--vp-c-bg-soft) !important;
+    border: 1px solid var(--vp-c-divider) !important;
+  }
+
+  .VPNavBarSearch button:hover {
+    border-color: var(--vp-c-brand-1) !important;
+  }
+
+  /* Push the shortcut keys (Ctrl K) to the far right */
+  .VPNavBarSearch button .DocSearch-Button-Keys,
+  .VPNavBarSearch button .vpi-square,
+  .VPNavBarSearch button > span:last-child {
+    margin-left: auto !important;
+  }
+
+  /* --- Home Page Specific Overrides --- */
+  /* Hide the bottom tier menu and search bar on the home page */
+  :root:has(.VPHome) .VPNavBarMenu,
+  :root:has(.VPHome) .VPNavBarSearch {
+    display: none !important;
+  }
+
+  /* Revert the padding-top on the home page since the bottom tier menu is hidden */
+  :root:has(.VPHome) .VPContent {
+    padding-top: 64px !important;
+  }
+}
+
+/* =========================================
+   Custom Scrollbar & Sidebar Scroll Fix
+   ========================================= */
+
+/* Custom Scrollbar (ElizaOS / Mintlify Style) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.6);
+}
+
+/* Force the main window scrollbar to start BELOW the navbar */
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  margin-top: 112px !important; 
+}
+
+/* On the home page, the navbar is only 64px tall, so adjust the track to hit it exactly */
+html:has(.VPHome)::-webkit-scrollbar-track,
+body:has(.VPHome)::-webkit-scrollbar-track {
+  margin-top: 64px !important; 
+}
+
+/* Fix Sidebar scrollbar so it doesn't extend under the navbar */
+@media (min-width: 960px) {
+  .VPSidebar {
+    top: 112px !important; /* Start precisely below the 112px two-tier navbar */
+    padding-top: 32px !important; /* Restore normal internal padding */
+    height: calc(100vh - 112px) !important;
+  }
+}
+
+/* =========================================
+   Layout Adjustments
+   ========================================= */
+
+/* Reduce the excessive gap between the left sidebar and main content on wide screens */
+@media (min-width: 960px) {
+  .VPDoc.has-sidebar .content {
+    padding-left: 16px !important; /* Overrides default 32px/48px left padding to make it tight */
+  }
+}
+
+@media (min-width: 1280px) {
+  .VPDoc.has-sidebar .container {
+    justify-content: flex-start !important;
+  }
+  
+  .VPDoc.has-sidebar .content-container {
+    margin: 0 !important; /* This removes the auto-centering that was causing the huge left gap */
+    max-width: 850px !important; /* Increase readability width slightly */
+  }
+}
+
+/* =========================================
+   Home Page Wide (Compact) Layout
+   ========================================= */
+
+/* Override default max-width for the Home layout containers (wider than default, but not infinitely stretched) */
+.VPHome,
+.VPHome .container,
+.VPHero,
+.VPHero .container {
+  max-width: 1400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Add dynamic padding so it aligns perfectly with the Navbar */
+.VPHero .container {
+  padding-left: 2vw !important;
+  padding-right: 2vw !important;
+}
+
+/* Allow the main text container to expand */
+.VPHero .main {
+  max-width: 60% !important; /* Allow the text to take up more space on wide screens */
+}
+
+/* Also make the Why Nyxora section wide and align padding */
+.why-nyxora {
+  max-width: 1400px !important;
+  margin: 64px auto !important;
+  padding: 0 2vw !important;
+}
+
+/* Make the Top Navbar wide on the home page to match the content */
+:root:has(.VPHome) .VPNavBar .wrapper,
+:root:has(.VPHome) .VPNavBar .container {
+  max-width: 1400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+:root:has(.VPHome) .VPNavBar .wrapper {
+  padding-left: 2vw !important;
+  padding-right: 2vw !important;
+}
+
+/* =========================================
+   Sidebar Styling Overrides
+   ========================================= */
+
+/* Make top-level sidebar group titles smaller and styled like Mintlify/GitBook */
+.VPSidebarItem.level-0 > .item .text {
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  opacity: 0.9 !important;
+}
+
+/* Make sidebar sub-items (links) smaller for a cleaner look */
+.VPSidebarItem.level-1 .item .text,
+.VPSidebarItem.level-2 .item .text,
+.VPSidebarItem.level-3 .item .text,
+.VPSidebarItem .link .text {
+  font-size: 13px !important;
+}
+
+/* Apple Pill-Style Sidebar Items (Ultra Tight Layout) */
+.VPSidebarItem {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.VPSidebarItem .item {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.VPSidebarItem.level-0 {
+  padding-bottom: 8px !important; /* Minimal space between main sections */
+}
+
+.VPSidebarItem .link {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  padding: 0px 12px !important;
+  margin: 0px 8px !important;
+  line-height: 1.1 !important;
+  min-height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.VPSidebarItem .link:hover {
+  background-color: var(--vp-sidebar-hover-bg) !important;
+}
+
+.VPSidebarItem .item.is-active > .link {
+  background-color: var(--vp-sidebar-active-bg) !important;
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 500 !important;
+}
+
+.dark .VPNavBarMenu {
+  background-color: rgba(0, 0, 0, 0.88) !important;
+}

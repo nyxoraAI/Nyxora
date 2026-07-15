@@ -1,0 +1,63 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+memory.json
+memory.json.bak
+memory.db*
+keystore.json
+config.yaml
+rpc_key.yaml
+*.token
+*.pid
+user.md
+IDENTITY.md
+security_policy.md
+
+# Workspace ignores
+packages/dashboard/node_modules/
+packages/dashboard/.env
+packages/dashboard/.env.*
+packages/dashboard/.eslintcache
+packages/policy/policy.yaml
+docs/.vitepress/cache/
+/wiki/
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+.cursorrules
+
+# Google Workspace Secrets
+credentials.json
+google-tokens.json
+google-credentials.json
+
+# NPM Secrets
+.npmrc
+*.tgz
+
+# Build Caches
+**/*.tsbuildinfo
+**/*.d.ts.map
+packages/core/src/utils/safeLogger.js
+launcher.js
+migrate_keys.*
+
+# Secret Private Tests
+**/__tests__/
+vitest.config.*
+
+# Unreleased Strategy Documents
+GOVERNANCE.md
+
+# Foundry Smart Contracts
+packages/registry-contract/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+.git/config
+scratch/

@@ -1,0 +1,70 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+const CACHE_FILE = path.join(os.homedir(), '.nyxora', 'dynamic_tokens.json');
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+const TOKEN_LIST_URLS: Record<string, string> = {
+  ethereum: 'https://tokens.coingecko.com/uniswap/all.json',
+  base: 'https://raw.githubusercontent.com/ethereum-optimism/ethereum-optimism.github.io/master/optimism.tokenlist.json',
+  arbitrum: 'https://bridge.arbitrum.io/token-list-42161.json',
+  optimism: 'https://static.optimism.io/optimism.tokenlist.json',
+  bsc: 'https://tokens.pancakeswap.finance/pancakeswap-extended.json'
+};
+
+export interface DynamicTokens {
+  [chainName: string]: Array<{ symbol: string, address: string }>;
+}
+
+export async function fetchDynamicTokens(): Promise<DynamicTokens> {
+  // Check cache first
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const stats = fs.statSync(CACHE_FILE);
+      if (Date.now() - stats.mtimeMs < CACHE_TTL) {
+        return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+      }
+    }
+  } catch {}
+
+  const result: DynamicTokens = {};
+  console.log('[DynamicTokenUpdater] Fetching updated token lists...');
+
+  for (const [chain, url] of Object.entries(TOKEN_LIST_URLS)) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      let tokens: Array<{symbol: string, address: string}> = [];
+      
+      if (data && data.tokens && Array.isArray(data.tokens)) {
+        // Limit to top 50 to avoid massive multicall
+        const topTokens = data.tokens.slice(0, 50);
+        tokens = topTokens.map((t: any) => ({
+          symbol: t.symbol,
+          address: t.address
+        }));
+      }
+      
+      result[chain] = tokens;
+    } catch (err) {
+      console.warn(`[DynamicTokenUpdater] Failed to fetch list for ${chain}:`, err);
+      result[chain] = [];
+    }
+  }
+
+  // Save to cache
+  try {
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(result, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[DynamicTokenUpdater] Failed to write cache', e);
+  }
+
+  return result;
+}
+
+export async function getDynamicTokensForChain(chainName: string): Promise<Array<{symbol: string, address: string}>> {
+  const allTokens = await fetchDynamicTokens();
+  return allTokens[chainName] || [];
+}

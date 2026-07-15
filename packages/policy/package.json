@@ -1,0 +1,29 @@
+{
+  "name": "@nyxora-sdk/policy-sdk",
+  "version": "26.7.14",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^3.1.3",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "chokidar": "^5.0.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "typescript": "^6.0.3",
+    "viem": "^2.55.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  }
+}
