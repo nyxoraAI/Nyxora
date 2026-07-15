@@ -7,7 +7,7 @@ import { getPath } from '../config/paths';
 
 export interface MemoryEntry {
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
+  content: string | any[];
   reasoning_content?: string;
   name?: string;
   tool_call_id?: string;
@@ -342,7 +342,7 @@ export class Logger {
     return rows.map((row: any) => {
       const entry: MemoryEntry = {
         role: row.role,
-        content: row.content,
+        content: (row.content && row.content.startsWith('[') && row.content.endsWith(']')) ? (()=>{try{return JSON.parse(row.content)}catch(e){return row.content}})() : row.content,
       };
       if (row.reasoning_content) entry.reasoning_content = row.reasoning_content;
       if (row.name) entry.name = row.name;
@@ -377,7 +377,7 @@ export class Logger {
     insert.run({
       session_id: sessionId || null,
       role: entry.role,
-      content: entry.content || '',
+      content: Array.isArray(entry.content) ? JSON.stringify(entry.content) : (entry.content || ''),
       reasoning_content: entry.reasoning_content || null,
       name: entry.name || null,
       tool_call_id: entry.tool_call_id || null,

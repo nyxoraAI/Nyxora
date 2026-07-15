@@ -77,6 +77,10 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
         delete payload.reasoning_effort;
     }
+    // Suppress token-level repetition loops. 0.6 is aggressive enough to stop
+    // phrase-echoing but not so high that it degrades coherent prose.
+    if (payload.frequency_penalty === undefined) payload.frequency_penalty = 0.6;
+    if (payload.presence_penalty === undefined) payload.presence_penalty = 0.3;
     const response = await this.client.chat.completions.create(payload);
     let content = response.choices[0].message.content || '';
     let reasoning = (response.choices[0].message as any).reasoning_content || null;
@@ -109,6 +113,9 @@ export class OpenAIAdapter implements LLMProvider {
       if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
           delete payload.reasoning_effort;
       }
+      // Suppress token-level repetition loops (same as chat())
+      if (payload.frequency_penalty === undefined) payload.frequency_penalty = 0.6;
+      if (payload.presence_penalty === undefined) payload.presence_penalty = 0.3;
       const streamRes = await this.client.chat.completions.create(payload) as any as AsyncIterable<any>;
       let fullContent = '';
       let reasoningContent = '';
@@ -401,7 +408,19 @@ export class GeminiAdapter implements LLMProvider {
       }
       
       if (m.role === 'user') {
-        contents.push({ role: 'user', parts: [{ text: m.content }] });
+        if (Array.isArray(m.content)) {
+          const parts: any[] = [];
+          for (const block of m.content) {
+            if (block.type === 'text') parts.push({ text: block.text });
+            else if (block.type === 'image_url') {
+              const bData = block.image_url.url.replace(/^data:image\/[a-z]+;base64,/, '');
+              parts.push({ inlineData: { mimeType: 'image/png', data: bData } });
+            }
+          }
+          contents.push({ role: 'user', parts });
+        } else {
+          contents.push({ role: 'user', parts: [{ text: m.content }] });
+        }
       } else if (m.role === 'assistant') {
         const parts: any[] = [];
         if (m.content) parts.push({ text: m.content });

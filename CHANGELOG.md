@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.15]
+### Bug Fixes
+
+#### Sudo Command Refused by LLM
+- **Root Cause**: The `[SUDO & PACKAGE INSTALL STRATEGY]` section in `promptBuilder.ts` was written before `run_terminal_command_pty` existed. It told the LLM "this tool runs in a NON-INTERACTIVE shell" and instructed it to tell the user to run sudo manually — causing the LLM to refuse all sudo commands.
+- **Fix (`promptBuilder.ts`)**: Rewrote the SUDO section. LLM now knows it has two terminal tools (`run_terminal_command` for non-interactive, `run_terminal_command_pty` for sudo/interactive), is instructed to ALWAYS use PTY for sudo, and is explicitly told it is "FULLY CAPABLE of running sudo commands." Password injection from `config.yaml → security.sudo_password` is handled automatically by the PTY tool.
+
+#### LLM Output Repetition Loop
+- **Root Cause**: When the LLM was corrected by the user (e.g., after giving wrong sports results), it entered an uncertain state and looped — echoing the same phrase in multiple rephrasings within a single response (e.g., "gue kabarin hasilnya kalo mau, gue kabarin hasilnya begitu selesai, gue kabarin aja kabarin aja...").
+- **Fix #1 (`llmProvider.ts`)**: Added `frequency_penalty: 0.6` and `presence_penalty: 0.3` to all `OpenAIAdapter.chat()` and `.stream()` calls. These parameters suppress token-level repetition at the API level, effective for all OpenAI-compatible providers (Groq, OpenRouter, xAI, Mistral, DeepSeek, etc.).
+- **Fix #2 (`promptBuilder.ts`)**: Added `[ANTI-REPETITION]` rule to the universal discipline prompt: LLM is instructed to never repeat the same phrase, clause, or sentence more than once per response — if it catches itself echoing, it must STOP immediately.
+
+#### Search Inaccuracy / Hallucination on Factual Queries
+- **Root Cause (5 bugs identified)**:
+  1. Temporal keyword `"tadi"` (and others: `kemarin`, `besok`, `pagi ini`, etc.) not detected → date not injected → search engine returned mixed results from multiple years.
+  2. LLM frequently ignored `depth=2` instruction in tool description → only snippets fetched → scores/data in article body never reached LLM context.
+  3. No `isFactualQuery` detection → sport/news/journal queries not auto-upgraded to `depth=2`.
+  4. No rule forbidding LLM from filling data gaps using training memory after an ambiguous search result.
+  5. No source citation enforcement → LLM gave hallucinated facts without accountability.
+- **Fix #1 (`searchWeb.ts`)**: Expanded `isTimeSensitive` detection with 15+ new Indonesian/English temporal keywords (`tadi`, `kemarin`, `besok`, `malam ini`, `pagi ini`, `sore ini`, `minggu ini`, `bulan ini`, `baru saja`, `habis`, `sudah selesai`, `yesterday`, `tomorrow`, `this week`, `recent`, `breaking`). Added proper date arithmetic for `kemarin`/`yesterday` (now−1 day) and `besok`/`tomorrow` (now+1 day).
+- **Fix #2 (`searchWeb.ts`)**: Added `isFactualQuery` detector covering sports (skor, hasil, pertandingan, piala, liga, klasemen), news (berita, kejadian), journals (jurnal, penelitian, paper, studi), and finance (harga, saham, inflasi). Factual queries auto-upgrade to `effectiveDepth = Math.max(depth, 2)` regardless of LLM's depth argument.
+- **Fix #3 (`searchWeb.ts`)**: Added `[SEARCH_CONFIDENCE: HIGH/MEDIUM/LOW]` signal to all search outputs. Confidence is derived from how many top-3 articles were successfully scraped. If `LOW` on a factual/temporal query, an explicit warning is injected into the tool result instructing the LLM to admit data unavailability instead of guessing.
+- **Fix #4 (`promptBuilder.ts`)**: Replaced `<web_search_accuracy>` section with stronger `[GROUNDED ANSWERS ONLY]` rule: after calling `search_web`, answers must be based strictly on search results. If `[SEARCH_CONFIDENCE: LOW]` or the specific fact is absent, LLM must say "Gue belum nemu data yang spesifik dari search" — never fill gaps from training memory for 2024–2026 events.
+- **Fix #5 (`promptBuilder.ts`)**: Added `[SOURCE CITATION]` enforcement: when stating any specific fact (score, result, date, statistic), LLM must include the source URL. Format: "Menurut [URL], ..."
+
 ## [26.7.14]
 ### Agent Identity & Execution Discipline Overhaul
 - **Semantic Intent Router Refactor (`reasoning.ts`)**: Upgraded the intent router to utilize a strict \`CLASSIFICATION MATRIX\` and Context Hierarchy Rules. This completely eradicates intent misclassification between Web3 and OS workflows, especially during context-switching.

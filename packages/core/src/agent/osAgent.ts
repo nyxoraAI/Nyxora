@@ -82,16 +82,17 @@ import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 import crypto from 'crypto';
 
 function getToolLabel(n: string, firstArgValue: string): string {
-  if (n === 'run_terminal_command') return `💻 terminal\n\`${firstArgValue.substring(0, 60)}${firstArgValue.length > 60 ? '...' : ''}\``;
+  if (n === 'run_terminal_command' || n === 'run_terminal_command_pty') return `💻 terminal\n\`\`\`shell\n${firstArgValue.substring(0, 100)}${firstArgValue.length > 100 ? '...' : ''}\n\`\`\``;
   if (n === 'write_local_file') return `✍️ Writing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
   if (n === 'read_local_file') return `📖 Reading ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
   if (n === 'edit_local_file') return `✏️ Editing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
-  if (n === 'search_web' || n === 'search_files') return `🔍 Searching: _${firstArgValue.substring(0, 50)}_`;
+  if (n === 'search_web' || n === 'search_files') return `🔍 Searching the web for: ${firstArgValue.substring(0, 50)}...`;
   if (n === 'todo_write' || n === 'todo_read') return `📋 Task tracker: ${n}`;
   if (n === 'send_telegram_file') return `📤 Sending file to Telegram...`;
   if (n.includes('git')) return `🐙 Git: ${firstArgValue}`;
   if (n === 'generate_image') return `🎨 Generating image...`;
   if (n === 'analyze_local_image') return `👁️ Analyzing image...`;
+  if (n === 'computer') return `🖱️ Computer Use: ${firstArgValue}`;
   if (n.includes('write') || n.includes('create')) return `✍️ Creating ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
   if (n.includes('read')) return `📖 Reading...`;
   return `⚙️ Running: ${n}`;
@@ -177,6 +178,19 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     // Anti-loop: track (toolName+argsHash) pairs from the PREVIOUS turn to
     // detect identical-call repetitions across turns.
     let prevTurnCallSigs = new Set<string>();
+
+    // ── Per-tool-name call count tracker ──────────────────────────────────────────────
+    // Catches loops where args differ per turn (e.g. search_web different query each time).
+    const osToolCallCounts = new Map<string, number>();
+    const OS_TOOL_CALL_LIMITS: Record<string, number> = {
+      'search_web':            5,
+      'search_files':          8,
+      'read_local_file':      10,
+      'run_terminal_command':  8,
+      'edit_local_file':       6,
+      'write_local_file':      6,
+      '__default__':          12,
+    };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const initialHistory = logger.getHistory(sessionId);
@@ -503,24 +517,40 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         return { toolCall, result };
       };
 
-      // ── Enhanced Anti-Loop: identical call detection across turns ──────────
-      // If ALL calls in this turn are identical to the previous turn's calls,
-      // inject a strong blocking message before executing them.
-      const allSigsIdentical =
-        prevTurnCallSigs.size > 0 &&
-        responseMessage.tool_calls.every((tc: any) => {
+      // ── Enhanced Anti-Loop: any-sig repeat + per-tool-name count ──────────────
+      // Fix A: ANY repeat (not ALL) — catches partial loops where LLM adds one new
+      // call to evade the "all identical" check.
+      const anyRepeatSig = prevTurnCallSigs.size > 0 &&
+        responseMessage.tool_calls.some((tc: any) => {
           const s = `${tc.function.name}:${crypto.createHash('md5').update(tc.function.arguments ?? '').digest('hex')}`;
           return prevTurnCallSigs.has(s);
         });
-      if (allSigsIdentical) {
+      if (anyRepeatSig) {
         logger.addEntry({
           role: 'system' as any,
-          content: '[SYSTEM BLOCK] You are repeating the EXACT same tool call(s) that failed or returned unhelpful results in the previous turn. ' +
-            'This is an infinite loop. You MUST change your approach: use a different tool, correct the parameters, or explain to the user why you cannot proceed. ' +
+          content: '[SYSTEM BLOCK] One or more tool calls this turn are identical to the previous turn. ' +
+            'This indicates a loop. Change your approach: use a different tool, fix parameters, or explain to the user. ' +
             'Do NOT emit the same call again.'
         }, sessionId);
-        console.log(pc.red('[Anti-Loop] Identical tool call signature detected across turns. Injecting block.'));
+        console.log(pc.red('[Anti-Loop] Repeat tool call signature detected across turns. Injecting block.'));
       }
+
+      // Fix B: Per-tool-name count guard — stops loops even when args change each turn
+      for (const tc of responseMessage.tool_calls) {
+        const tn = (tc as any).function.name as string;
+        const count = osToolCallCounts.get(tn) || 0;
+        const limit = OS_TOOL_CALL_LIMITS[tn] ?? OS_TOOL_CALL_LIMITS['__default__'];
+        if (count >= limit) {
+          const stopMsg = `[SYSTEM: LOOP DETECTED] '${tn}' has been called ${count} times this session (limit: ${limit}). ` +
+            `You are stuck in a loop. STOP calling this tool and produce your final answer using data already collected.`;
+          logger.addEntry({ role: 'system' as any, content: stopMsg }, sessionId);
+          const forceStop = `⚠️ Loop breaker: '${tn}' called ${count}x (limit ${limit}). Stopping.`;
+          logger.addEntry({ role: 'assistant', content: forceStop }, sessionId);
+          triggerBackgroundReview(sessionId);
+          return forceStop;
+        }
+      }
+
 
       // ── Partition into parallel (read-only) and serial (write) batches ───
       const parallelCalls: any[] = [];
@@ -585,6 +615,11 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
               'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault',
               'provide_liquidity_v3'].includes(tc.function?.name ?? '') || isErrorResult) {
           canFastReturnAll = false;
+        }
+        // Increment per-tool-name count on success
+        if (!isErrorResult && tc.function?.name) {
+          const tn = tc.function.name as string;
+          osToolCallCounts.set(tn, (osToolCallCounts.get(tn) || 0) + 1);
         }
       }
 
@@ -698,12 +733,28 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   try {
     let turnCount = 0;
     let nudgeCount = 0;
-    const MAX_TURNS = 15; // Increased from 10 — complex tasks need more turns
+    const MAX_TURNS = 10; // Reduced from 15 — match non-stream, limits loop blast radius
     let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
 
     let fullResponse = '';
     let criticHasFiredStream = false; // Critic Pass hanya aktif 1x per request
-    const historicalToolCallSigs = new Set(); // Track tool calls across turns to prevent infinite loops
+    const historicalToolCallSigs = new Set<string>(); // exact-sig tracker (existing)
+
+    // ── Per-tool-name call count tracker (stream) ─────────────────────────────────────
+    // Catches loops where args differ per turn (e.g. search_web with different queries).
+    const osToolCallCountsStream = new Map<string, number>();
+    const OS_TOOL_CALL_LIMITS_STREAM: Record<string, number> = {
+      'search_web':            5,
+      'search_files':          8,
+      'read_local_file':      10,
+      'run_terminal_command':  8,
+      'edit_local_file':       6,
+      'write_local_file':      6,
+      'search_playbook':       2,
+      'read_gmail_inbox':      3,
+      'search_gmail':          3,
+      '__default__':          12,
+    };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const initialHistoryStream = logger.getHistory(sessionId);
@@ -798,7 +849,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 You completed your internal reasoning but produced NO output (no tool call, no text).
 This is a silent stop — it is not acceptable.
 
-Task: "${recentUserMsg.substring(0, 200)}"
+Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
 You MUST act RIGHT NOW. Do one of these:
   A) Call the first required tool immediately (e.g., write_local_file, run_terminal_command, send_telegram_file)
@@ -809,7 +860,7 @@ Do NOT think again. Execute step 1 of the task NOW.`;
               console.warn(`[OsAgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
               nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
-Task: "${recentUserMsg.substring(0, 200)}"
+Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
 Available tools: write_local_file, run_terminal_command, send_telegram_file, search_web and others.
 You MUST either:
@@ -862,8 +913,25 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
 
       for (const tc of responseMessage.tool_calls) {
         const sig = `${tc.function.name}:${tc.function.arguments}`;
+
+        // Per-tool-name count guard — stop before executing if limit reached
+        const tnS = (tc as any).function.name as string;
+        const countS = osToolCallCountsStream.get(tnS) || 0;
+        const limitS = OS_TOOL_CALL_LIMITS_STREAM[tnS] ?? OS_TOOL_CALL_LIMITS_STREAM['__default__'];
+        if (countS >= limitS) {
+          console.warn(`[OsAgentStream] ⚠️ ANTI-LOOP: '${tnS}' called ${countS}x (limit: ${limitS}). Blocking.`);
+          const stopMsg = `[SYSTEM: LOOP DETECTED] '${tnS}' has been called ${countS} times (limit: ${limitS}). ` +
+            `STOP calling this tool. Produce your final answer using data already collected.`;
+          logger.addEntry({ role: 'system' as any, content: stopMsg }, sessionId);
+          const forceMsg = `⚠️ Loop breaker: '${tnS}' called ${countS}x (limit ${limitS}). Stopping.`;
+          logger.addEntry({ role: 'assistant', content: forceMsg }, sessionId);
+          await onChunk(forceMsg);
+          triggerBackgroundReview(sessionId);
+          return forceMsg;
+        }
+
         if (historicalToolCallSigs.has(sig)) {
-          // If the LLM generates the exact same tool call (same tool, same arguments) in a subsequent turn
+          // Exact-sig repeat across turns
           console.warn(`[OsAgentStream] ⚠️ ANTI-LOOP TRIGGERED: Blocked identical repeat tool call ${sig}`);
           const errorResult = `[System Anti-Loop] You have already executed this exact tool call earlier. Do NOT repeat identical actions. Either analyze the previous result or stop.`;
           logger.addEntry({ role: 'tool', tool_call_id: tc.id, content: errorResult }, sessionId);
@@ -885,8 +953,15 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       }
 
       if (uniqueToolCalls.length > 0 && onProgress) {
-        const combinedProgress = uniqueToolCalls.map((tc: any) => `⚡ Running tool: ${tc.function.name}...`).join(' + ');
-        onProgress(combinedProgress);
+        uniqueToolCalls.forEach((tc: any) => {
+          let firstArgValue = '';
+          try {
+            const parsedPreview = JSON.parse(tc.function.arguments || '{}');
+            const firstKey = Object.keys(parsedPreview)[0];
+            if (firstKey) firstArgValue = String(parsedPreview[firstKey]);
+          } catch { /* ignore */ }
+          onProgress(getToolLabel(tc.function.name, firstArgValue));
+        });
       }
 
       const promises = uniqueToolCalls.map(async (_toolCall: any) => {
@@ -960,6 +1035,13 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         }
 
         logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, name: toolName, content: result }, sessionId);
+
+        // Increment per-tool-name count on success
+        if (typeof result === 'string' && !result.includes('[System Error]') &&
+            !result.startsWith('Error:') && !result.includes('[Security Blocked]')) {
+          osToolCallCountsStream.set(toolName, (osToolCallCountsStream.get(toolName) || 0) + 1);
+        }
+
         return { toolName, result };
       });
 

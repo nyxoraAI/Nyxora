@@ -20,11 +20,36 @@ import os from 'os';
 
 let globalBotInstance: Bot | null = null;
 let runnerInstance: any = null;
+const activeTypingIntervals = new Map<string, NodeJS.Timeout>();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Telegram Rich Markdown Formatter
+// Keeps raw Markdown but strips LLM artifacts for sendRichMessage
+// ─────────────────────────────────────────────────────────────────────────────
+export function formatToRichMarkdown(text: string): string {
+  if (!text) return '';
+  let md = text;
+
+  // Strip reasoning blocks
+  const reasoningTags = 'think|thought|thinking|reasoning|analysis|reflection';
+  md = md.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
+  md = md.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*$`, 'gi'), '');
+
+  // Strip tool execution artifact blocks
+  const artifactTags = 'tool_code|tool_call|execute_tool|execute_bash|execute';
+  md = md.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
+  md = md.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*$`, 'gi'), '');
+
+  // Strip markdown tool calls
+  md = md.replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '');
+  // Strip raw JSON tool arrays
+  md = md.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
+
+  return md;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Telegram HTML Formatter
-// Converts markdown to Telegram-safe HTML and strips all LLM artifact tags.
-// ─────────────────────────────────────────────────────────────────────────────
 export function formatToTelegramHTML(text: string): string {
   if (!text) return '';
   let html = text
@@ -52,6 +77,9 @@ export function formatToTelegramHTML(text: string): string {
   html = html.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
 
   // Convert markdown formatting
+  html = html.replace(/```(\w+)\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<pre><code class="language-${lang}">${code.trimEnd()}</code></pre>`;
+  });
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*([\s\S]*?)\*\*/g, (match, p1) => {
@@ -105,6 +133,8 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
   let pendingFlushTimer: NodeJS.Timeout | null = null;
   let lastProgressHtml = '';               // dedup: skip edit if content unchanged
   let lastEditTime = 0;
+  let currentDraftId = Date.now() + Math.floor(Math.random() * 1000);
+  let hasEmittedPreamble = false;
 
   const MIN_EDIT_MS = 1100;   // Telegram safe edit interval
   const COOLDOWN_MS = 800;    // min gap between consecutive sends
@@ -189,20 +219,87 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
     }
   };
 
-  /** Edit Bubble A (initial text). */
-  const editTextBubble = async (html: string): Promise<void> => {
-    if (!html || html.trim() === '') return;
-    if (!textMsgId) {
-      textMsgId = await sendNew(html);
-      return;
-    }
-    try {
-      await ctx.api.editMessageText(ctx.chat.id, textMsgId, html, { parse_mode: 'HTML' });
-    } catch (e: any) {
-      if (!e?.description?.includes('message is not modified')) {
-        console.warn('[Telegram] editTextBubble failed:', e?.description || e?.message);
+  let richDraftDisabled = false;
+
+  /** Edit Bubble A (initial text) using sendRichMessageDraft. */
+  const editTextBubble = async (bufferStr: string): Promise<void> => {
+    if (!bufferStr || bufferStr.trim() === '') return;
+    const md = formatToRichMarkdown(bufferStr);
+    const htmlFallback = formatToTelegramHTML(bufferStr);
+    if (!md || md.trim() === '') return;
+
+    if (!richDraftDisabled) {
+      try {
+        // Send as Rich Message Draft. If textMsgId exists (due to fallback or pre-existing),
+        // we can still use it as draft_id, or just use currentDraftId if textMsgId is null.
+        await (ctx.api.raw as any).sendRichMessageDraft({
+          chat_id: ctx.chat.id,
+          draft_id: textMsgId || currentDraftId,
+          rich_message: { markdown: md }
+        });
+        return; // Success! No need to create a real message during streaming.
+      } catch (e: any) {
+        const errMsg = e?.description || e?.message || '';
+        if (errMsg.includes('method not found') || errMsg.includes('unsupported')) {
+          richDraftDisabled = true;
+          console.warn('[Telegram] sendRichMessageDraft unsupported, falling back to legacy edits.');
+        } else {
+          // Transient error, just return and let the next chunk try again
+          return;
+        }
       }
     }
+
+    // Fallback: Legacy HTML edit/create
+    if (!textMsgId) {
+      textMsgId = await sendNew(htmlFallback);
+      return;
+    }
+
+    try {
+      await ctx.api.editMessageText(ctx.chat.id, textMsgId, htmlFallback, { parse_mode: 'HTML' });
+    } catch (fe: any) {
+      if (!fe?.description?.includes('message is not modified')) {
+        console.warn('[Telegram] editTextBubble fallback failed:', fe?.description || fe?.message);
+      }
+    }
+  };
+
+  // ── Helper: finalizeBuffer ──────────────────────────────────────────────────
+  const finalizeBuffer = async (markup?: any): Promise<void> => {
+    if (!buffer.trim()) return;
+
+    if (!richDraftDisabled) {
+      const md = formatToRichMarkdown(buffer);
+      if (md && md.trim() !== '') {
+        try {
+          const payload: any = {
+            chat_id: ctx.chat.id,
+            rich_message: { markdown: md },
+            ...(markup ? { reply_markup: markup } : {})
+          };
+          if (replyToMsgId && !hasRepliedToUser) {
+            payload.reply_parameters = { message_id: replyToMsgId };
+            hasRepliedToUser = true;
+          }
+          await (ctx.api.raw as any).sendRichMessage(payload);
+        } catch (e: any) {
+          console.warn('[Telegram] finalizeBuffer rich delivery failed:', e?.message);
+        }
+      }
+    } else {
+      // HTML fallback mode: textMsgId is already the final message.
+      if (markup && textMsgId) {
+        try {
+          await ctx.api.editMessageReplyMarkup(ctx.chat.id, textMsgId, { reply_markup: markup });
+        } catch(e) {}
+      }
+    }
+
+    // Reset state so the next streamed text creates a NEW, chronologically ordered bubble
+    buffer = '';
+    textMsgId = null;
+    currentDraftId = Date.now() + Math.floor(Math.random() * 1000);
   };
 
   // ── Debounced flush of streaming text → Bubble A or B ─────────────────────
@@ -212,9 +309,7 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
       pendingFlushTimer = null;
       enqueue(async () => {
         if (isFinalized) return;
-        const html = formatToTelegramHTML(buffer);
-        if (!html || !html.trim()) return;
-        await editTextBubble(html);
+        await editTextBubble(buffer);
       });
     }, MIN_EDIT_MS);
   };
@@ -228,30 +323,24 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
         // New agent turn starting.
         if (pendingFlushTimer) { clearTimeout(pendingFlushTimer); pendingFlushTimer = null; }
         
-        // Flush any remaining buffer before starting a new message bubble
-        if (buffer.trim()) {
-          await editTextBubble(formatToTelegramHTML(buffer));
-        }
-        
-        buffer = '';
-        lastProgressHtml = '';
+        // Finalize any remaining text from the previous turn into a real message
+        await finalizeBuffer();
         
         // Sequential workflow: Reset message IDs so the next turn creates NEW bubbles
         // instead of editing the previous turn's bubbles.
-        textMsgId = null;
         progressMsgId = null;
+        lastProgressHtml = '';
         return;
       }
 
       if (chunk === '[TOOL_CALL_DETECTED]') {
         if (pendingFlushTimer) { clearTimeout(pendingFlushTimer); pendingFlushTimer = null; }
 
-        // Flush accumulated text to Bubble A
-        const currentHtml = formatToTelegramHTML(buffer);
-        if (currentHtml.trim()) await editTextBubble(currentHtml);
-
+        // Flush and finalize any conversational text (initial preamble or failure recovery text)
+        await finalizeBuffer();
+        
         // Create or reset Bubble B with ⏳
-        // This is the first time Bubble B appears — always AFTER Bubble A was sent
+        // This is the first time Bubble B appears — always AFTER the previous text was finalized
         lastProgressHtml = '';
         await editProgressBubble('⏳ Processing...');
         return;
@@ -280,12 +369,21 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
   };
 
   // ── Public: onProgress ─────────────────────────────────────────────────────
-  // Always edits Bubble B. Serialized by queue — no races from parallel tools.
+  // Always creates a new Bubble B if one is already occupied by a tool, to support multiple distinct tool bubbles.
   const onProgress = (msg: string): void => {
     enqueue(async () => {
       if (isFinalized) return;
       if (pendingFlushTimer) { clearTimeout(pendingFlushTimer); pendingFlushTimer = null; }
-      await editProgressBubble(formatToTelegramHTML(msg));
+      const newHtml = formatToTelegramHTML(msg);
+      if (lastProgressHtml === '⏳ Processing...') {
+        await editProgressBubble(newHtml);
+      } else {
+        const newMsgId = await sendNew(newHtml);
+        if (newMsgId) {
+          progressMsgId = newMsgId;
+          lastProgressHtml = newHtml;
+        }
+      }
     });
   };
 
@@ -336,53 +434,15 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
   };
 
   // ── Public: sendFinal ─────────────────────────────────────────────────────
-  // Waits for queue to drain, then edits the right bubble with the final answer.
-  // Priority: Bubble B (progressMsgId) → Bubble A (textMsgId) → new message
+  // Waits for queue to drain, then finalizes the last text bubble.
   const sendFinal = async (response: string, markup?: any): Promise<void> => {
     await new Promise<void>(resolve => enqueue(async () => { resolve(); }));
 
     if (response.includes('[SILENT_FAST_RETURN]')) return;
-    const html = formatToTelegramHTML(response);
-    if (!html || html.trim() === '') return;
-    const parts = splitMessage(html);
-
-    // For pure conversational replies (no tools), only Bubble A exists.
-    // Edit Bubble A directly rather than creating a new Bubble B below it.
-    const targetMsgId = progressMsgId ?? textMsgId;
-
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const partMarkup = i === parts.length - 1 ? markup : undefined;
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          if (i === 0 && targetMsgId) {
-            await ctx.api.editMessageText(ctx.chat.id, targetMsgId, part, {
-              parse_mode: 'HTML',
-              ...(partMarkup ? { reply_markup: partMarkup } : {}),
-            });
-          } else {
-            const sent = (replyToMsgId && !hasRepliedToUser)
-              ? await ctx.reply(part, { parse_mode: 'HTML', reply_markup: partMarkup, reply_parameters: { message_id: replyToMsgId } as any })
-              : await ctx.reply(part, { parse_mode: 'HTML', reply_markup: partMarkup });
-            if (replyToMsgId && !hasRepliedToUser) hasRepliedToUser = true;
-            if (i === 0) progressMsgId = sent.message_id;
-          }
-          break;
-        } catch (e: any) {
-          const is429     = e?.error_code === 429 || e?.description?.includes('Too Many Requests');
-          const isUnchanged = e?.description?.includes('message is not modified');
-          if (isUnchanged) break;
-          if (is429 && attempt < MAX_RETRIES - 1) {
-            await new Promise(r => setTimeout(r, (attempt + 1) * 2000));
-            continue;
-          }
-          await ctx.reply(part, { parse_mode: 'HTML', reply_markup: partMarkup }).catch((fe: any) => {
-            console.error('[Telegram] CRITICAL: sendFinal fallback failed:', fe.message);
-          });
-          break;
-        }
-      }
-    }
+    
+    // The final answer text is already in the buffer from the last streamed turn.
+    // Finalize it into a real message.
+    await finalizeBuffer(markup);
   };
 
   // ── Public: dispose — clean up timers ─────────────────────────────────────
@@ -507,9 +567,15 @@ export function startTelegramBot() {
       console.log(`[Telegram] Received from ${ctx.from?.first_name || 'User'}: ${text}`);
       await ctx.replyWithChatAction('typing');
 
-      const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
       const threadId = ctx.message.message_thread_id ? `_${ctx.message.message_thread_id}` : '';
       const sessionId = `telegram_${ctx.chat?.id}${threadId}`;
+
+      if (activeTypingIntervals.has(sessionId)) {
+        clearInterval(activeTypingIntervals.get(sessionId));
+      }
+      const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
+      activeTypingIntervals.set(sessionId, typingInterval);
+      
       const bubble = createStreamBubble(ctx, ctx.message.message_id);
 
       try {
@@ -547,10 +613,16 @@ export function startTelegramBot() {
       if (!ctx.chat) return;
       await ctx.replyWithChatAction('typing');
 
-      const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
       const msg = ctx.callbackQuery.message as any;
       const threadId = msg?.message_thread_id ? `_${msg.message_thread_id}` : '';
       const sessionId = `telegram_${ctx.chat.id}${threadId}`;
+
+      if (activeTypingIntervals.has(sessionId)) {
+        clearInterval(activeTypingIntervals.get(sessionId));
+      }
+      const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
+      activeTypingIntervals.set(sessionId, typingInterval);
+
       const bubble = createStreamBubble(ctx);
 
       try {
@@ -578,7 +650,13 @@ export function startTelegramBot() {
       console.log(`[Telegram] Received document from ${ctx.from?.first_name || 'User'}: ${doc.file_name}`);
       await ctx.replyWithChatAction('typing');
 
+      const sessionId = `telegram_${ctx.chat?.id}`;
+      if (activeTypingIntervals.has(sessionId)) {
+        clearInterval(activeTypingIntervals.get(sessionId));
+      }
       const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
+      activeTypingIntervals.set(sessionId, typingInterval);
+
       const bubble = createStreamBubble(ctx, ctx.message.message_id);
 
       try {
@@ -616,7 +694,13 @@ export function startTelegramBot() {
       console.log(`[Telegram] Received photo from ${ctx.from?.first_name || 'User'}`);
       await ctx.replyWithChatAction('typing');
 
+      const sessionId = `telegram_${ctx.chat?.id}`;
+      if (activeTypingIntervals.has(sessionId)) {
+        clearInterval(activeTypingIntervals.get(sessionId));
+      }
       const typingInterval = setInterval(() => ctx.replyWithChatAction('typing').catch(() => {}), 5000);
+      activeTypingIntervals.set(sessionId, typingInterval);
+
       const bubble = createStreamBubble(ctx, ctx.message.message_id);
 
       try {

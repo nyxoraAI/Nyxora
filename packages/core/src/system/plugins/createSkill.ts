@@ -12,7 +12,7 @@ export class CreateSkillPlugin implements Plugin {
       type: 'function',
       function: {
         name: 'extract_and_create_skill',
-        description: 'Autonomously extracts a skill from the user intent and chat history, generating a new persistent skill for the agent.',
+        description: 'Autonomously extracts a skill from the user intent and chat history, generating a new instruction-based playbook skill for the agent. NOTE: Skills are just markdown playbooks, NOT executable scripts. Do NOT try to run chmod, bun, or ts-node on them.',
         parameters: {
           type: 'object',
           properties: {
@@ -32,7 +32,7 @@ export class CreateSkillPlugin implements Plugin {
       const success = await skillExtractor.generateSkill(args.skillName, args.description, args.userIntent, history);
       
       if (success) {
-        return `Successfully synthesized and deployed the skill '${args.skillName}'. It is now available for use in future requests.`;
+        return `Successfully synthesized and deployed the skill '${args.skillName}'. It is an instruction-based playbook. To use it, simply call the tool named '${args.skillName}' in your next turn, and follow the instructions it returns. Do NOT try to run chmod or bun on it.`;
       } else {
         return `Failed to create the skill '${args.skillName}'. It may already exist or the generation failed.`;
       }

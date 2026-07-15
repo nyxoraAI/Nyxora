@@ -7,7 +7,7 @@ export const createAgentSkillToolDefinition = {
   type: "function",
   function: {
     name: "create_agent_skill",
-    description: "Create a new programmatic external skill for the Nyxora Agent. This will automatically generate a SKILL.md with correct YAML frontmatter and an execute.ts script in the ~/.nyxora/skills/ folder.",
+    description: "Create a new programmatic external skill for the Nyxora Agent. This will automatically generate a SKILL.md with correct YAML frontmatter and the execution instructions in the ~/.nyxora/skills/ folder. Skills are just markdown playbooks, NOT executable scripts. Do NOT try to run chmod, bun, or ts-node on them.",
     parameters: {
       type: "object",
       properties: {
@@ -28,30 +28,26 @@ export const createAgentSkillToolDefinition = {
           items: { type: "string" },
           description: "An array of required parameter names."
         },
-        scriptContent: {
+        instructions: {
           type: "string",
-          description: "The complete TypeScript source code for scripts/execute.ts. Must export an 'execute' function."
+          description: "The step-by-step markdown instructions for how the AI should execute this skill using its native tools (like run_terminal_command, curl, python3). Provide the exact commands needed. Do NOT write any TypeScript or Node.js code. Make it an instruction-based playbook."
         }
       },
-      required: ["name", "description", "parameters", "required", "scriptContent"]
+      required: ["name", "description", "parameters", "required", "instructions"]
     }
   }
 };
 
-export async function createAgentSkill(name: string, description: string, parameters: any, required: string[], scriptContent: string): Promise<string> {
+export async function createAgentSkill(name: string, description: string, parameters: any, required: string[], instructions: string): Promise<string> {
   try {
     const safeName = name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
     if (!safeName) throw new Error("Invalid skill name.");
 
     const skillsDir = getPath('skills');
     const targetDir = path.join(skillsDir, safeName);
-    const scriptsDir = path.join(targetDir, 'scripts');
 
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
-    }
-    if (!fs.existsSync(scriptsDir)) {
-      fs.mkdirSync(scriptsDir, { recursive: true });
     }
 
     // 1. Generate YAML Frontmatter
@@ -65,20 +61,22 @@ export async function createAgentSkill(name: string, description: string, parame
       description: description,
       version: '1.0.0',
       author: 'NyxoraAI',
-      main: 'scripts/execute.ts',
       parameters: finalParameters,
       required: required
     };
 
     const frontmatterYaml = yaml.stringify(frontmatterObj);
-    const skillMdContent = `---\n${frontmatterYaml}---\n\n# ${safeName}\n\n${description}\n`;
+    const skillMdContent = `---\n${frontmatterYaml}---\n\n# ${safeName}\n\n${description}\n\n## Instructions\n\n${instructions}\n`;
     
     fs.writeFileSync(path.join(targetDir, 'SKILL.md'), skillMdContent, 'utf8');
 
-    // 2. Write the execute.ts script
-    fs.writeFileSync(path.join(scriptsDir, 'execute.ts'), scriptContent, 'utf8');
+    // Hot-reload skills
+    const { pluginManager } = require('../../plugin/registry');
+    if (pluginManager && pluginManager.agentSkills) {
+      await pluginManager.agentSkills.discoverSkills();
+    }
 
-    return `[Success] Programmatic Skill '${safeName}' has been successfully created. The SKILL.md file has been formatted with the correct YAML frontmatter and the execution script was saved to scripts/execute.ts. The skill is now ready to be loaded by Nyxora's AgentSkills scanner.`;
+    return `[Success] Programmatic Skill '${safeName}' has been successfully created. The SKILL.md file has been formatted with the correct YAML frontmatter and the execution instructions. The skill is now ready to be loaded by Nyxora's AgentSkills scanner.`;
   } catch (error: any) {
     return `[Error] Failed to create programmatic skill: ${error.message}`;
   }

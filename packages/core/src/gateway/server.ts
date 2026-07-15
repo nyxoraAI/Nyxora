@@ -1087,18 +1087,25 @@ app.get('/api/portfolio', async (req, res) => {
 });
 
 // --- Memory Triggers ---
-let messageCounter = 0;
-let idleTimer: NodeJS.Timeout | null = null;
+// Per-session message counters and idle timers to avoid cross-session pollution.
+// A single global counter would blend counts from Telegram, CLI, and web sessions,
+// causing reflection to fire at wrong times or not at all for single-platform setups.
+const sessionMessageCounts = new Map<string, number>();
+const sessionIdleTimers = new Map<string, NodeJS.Timeout>();
 
 function resetIdleTimer(sessionId?: string) {
-  if (idleTimer) clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => {
-    console.log('[Memory] Idle trigger activated. Running Reflection Engine...');
+  const key = sessionId || '__global__';
+  const existing = sessionIdleTimers.get(key);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    console.log(`[Memory] Idle trigger activated for session "${key}". Running Reflection Engine...`);
+    sessionIdleTimers.delete(key);
     ReflectionEngine.runReflection(sessionId).then(() => {
       const { PromotionEngine } = require('../memory/promotionEngine');
       PromotionEngine.runPromotionAndDecay();
     }).catch(console.error);
   }, 3 * 60 * 1000); // 3 minutes idle
+  sessionIdleTimers.set(key, timer);
 }
 
 app.post('/api/v1/trade', async (req, res) => {
@@ -1129,17 +1136,20 @@ app.post('/api/chat', async (req, res) => {
     // Process input (this will automatically add to memory)
     const response = await processUserInput(message, 'user', undefined, session_id);
     
-    // Memory Triggers
+    // Memory Triggers (per-session)
     resetIdleTimer(session_id);
-    messageCounter++;
-    if (messageCounter >= 5) {
-      console.log('[Memory] N-Message threshold reached. Running Reflection Engine...');
-      messageCounter = 0;
+    const chatKey = session_id || '__global__';
+    const chatCount = (sessionMessageCounts.get(chatKey) || 0) + 1;
+    if (chatCount >= 5) {
+      console.log(`[Memory] N-Message threshold reached for session "${chatKey}". Running Reflection Engine...`);
+      sessionMessageCounts.delete(chatKey); // clean up to avoid unbounded map growth
       // Run asynchronously
       ReflectionEngine.runReflection(session_id).then(() => {
         const { PromotionEngine } = require('../memory/promotionEngine');
         PromotionEngine.runPromotionAndDecay();
       }).catch(console.error);
+    } else {
+      sessionMessageCounts.set(chatKey, chatCount);
     }
 
     res.json({ response });
@@ -1174,15 +1184,19 @@ app.get('/api/chat/stream', async (req, res) => {
 
   try {
     await processUserInputStream(message, onChunk, onProgress, session_id);
-    // Trigger memory mechanisms after response completes
+    // Trigger memory mechanisms after response completes (per-session)
     resetIdleTimer(session_id);
-    messageCounter++;
-    if (messageCounter >= 5) {
-      messageCounter = 0;
+    const streamKey = session_id || '__global__';
+    const streamCount = (sessionMessageCounts.get(streamKey) || 0) + 1;
+    if (streamCount >= 5) {
+      console.log(`[Memory] N-Message threshold reached for session "${streamKey}". Running Reflection Engine...`);
+      sessionMessageCounts.delete(streamKey); // clean up to avoid unbounded map growth
       ReflectionEngine.runReflection(session_id).then(() => {
         const { PromotionEngine } = require('../memory/promotionEngine');
         PromotionEngine.runPromotionAndDecay();
       }).catch(console.error);
+    } else {
+      sessionMessageCounts.set(streamKey, streamCount);
     }
   } catch (err: any) {
     sendEvent({ error: err.message });

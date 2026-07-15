@@ -13,6 +13,7 @@ import { generateImageToolDefinition, generateImage } from '../skills/generateIm
 import { sendTelegramFileToolDefinition, sendTelegramFile } from '../skills/telegramUpload';
 import { searchFilesToolDefinition, searchFiles } from '../skills/searchFiles';
 import { todoWriteToolDefinition, todoReadToolDefinition, todoWrite, todoRead } from '../skills/todoTool';
+import { computerUseToolDefinition, computerUse } from '../skills/computerUse';
 
 // ---------------------------------------------------------------------------
 // CWD resolution — multi-source, with sentinel rejection.
@@ -70,6 +71,7 @@ export class SystemWorkspacePlugin implements Plugin {
     searchFilesToolDefinition,
     todoWriteToolDefinition,
     todoReadToolDefinition,
+    computerUseToolDefinition
   ];
 
   public handlers = {
@@ -112,6 +114,9 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['generate_image']: async (args: any) => {
       return await generateImage(args.prompt);
+    },
+    ['computer']: async (args: any) => {
+      return await computerUse(args);
     },
     ['send_telegram_file']: async (args: any) => {
       return await sendTelegramFile(args.absolutePath);

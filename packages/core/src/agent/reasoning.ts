@@ -238,7 +238,7 @@ export async function processUserInput(input: string, role: 'user' | 'system' = 
     if (isConfirm && textOnlyHistory.length > 0) {
       const lastMsg = textOnlyHistory[textOnlyHistory.length - 1];
       if (lastMsg.role === 'assistant') {
-        const lastContent = lastMsg.content.toLowerCase();
+        const lastContent = typeof lastMsg.content === 'string' ? lastMsg.content.toLowerCase() : '';
         // Check if the assistant was asking for permission to run an OS command
         if (lastContent.includes('sudo ') || lastContent.includes('terminal') || lastContent.includes('apt') || lastContent.includes('perintah') || lastContent.includes('install') || lastContent.includes('command')) {
           context = 'os';
@@ -396,7 +396,7 @@ export async function processUserInputStream(
       if (isConfirm && textOnlyHistory.length > 0) {
         const lastMsg = textOnlyHistory[textOnlyHistory.length - 1];
         if (lastMsg.role === 'assistant') {
-          const lastContent = lastMsg.content.toLowerCase();
+          const lastContent = typeof lastMsg.content === 'string' ? lastMsg.content.toLowerCase() : '';
           // Check if the assistant was asking for permission to run an OS command
           if (lastContent.includes('sudo ') || lastContent.includes('terminal') || lastContent.includes('apt') || lastContent.includes('perintah') || lastContent.includes('install') || lastContent.includes('command')) {
             context = 'os';

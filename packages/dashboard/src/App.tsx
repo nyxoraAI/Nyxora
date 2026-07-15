@@ -1,5 +1,7 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
@@ -551,15 +553,16 @@ function App() {
           try {
             const data = JSON.parse(event.data);
             if (data.chunk) {
-              if (data.chunk === '[CLEAR_STREAM]') {
+              let cleanChunk = data.chunk;
+              if (cleanChunk.includes('[CLEAR_STREAM]')) {
                 fullResponse = '';
                 renderedResponse = '';
-              } else if (data.chunk === '[TOOL_CALL_DETECTED]' || data.chunk === '[TOOL_CALL_FINISHED]') {
-                // Ignore internal engine markers
-              } else {
-                fullResponse += data.chunk;
+                cleanChunk = cleanChunk.split('[CLEAR_STREAM]').pop() || '';
               }
-              // We do not immediately setMessages here to avoid React frame drops.
+              cleanChunk = cleanChunk.replace(/\[TOOL_CALL_DETECTED\]|\[TOOL_CALL_FINISHED\]/g, '');
+              if (cleanChunk) {
+                fullResponse += cleanChunk;
+              }
               // The intervalId loop will pick up fullResponse and smoothly render it.
             }
             if (data.progress) {
@@ -662,21 +665,12 @@ function App() {
       .trim();
 
 
-    const parseBold = (text: string) => {
-      return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} style={{ color: 'var(--text-primary)' }}>{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
-    };
-
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="markdown-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowWrap: 'anywhere' }}>
         {cleanContent && (
-          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-            {parseBold(cleanContent)}
-          </div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {cleanContent}
+          </ReactMarkdown>
         )}
       </div>
     );
@@ -1132,12 +1126,23 @@ function App() {
                       </div>
                     )}
 
-                    {msg.tool_calls && msg.tool_calls.map((tool: any, tIdx: number) => (
-                      <div key={`t-${tIdx}`} className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
-                        <Activity size={16} color="#22c55e" />
-                        Executing: <code>{tool.function.name}</code>
+                    {msg.tool_calls && msg.tool_calls.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: msg.content ? '4px' : '0' }}>
+                        {msg.tool_calls
+                          .filter((tool: any, index: number, self: any[]) => index === self.findIndex((t) => t.function.name === tool.function.name))
+                          .map((tool: any, tIdx: number) => {
+                             const count = msg.tool_calls.filter((t: any) => t.function.name === tool.function.name).length;
+                             return (
+                               <div key={`t-${tIdx}`} className="tool-call" style={{ margin: 0 }}>
+                                 <Activity size={16} color="#22c55e" />
+                                 Executing: <code>{tool.function.name}</code>
+                                 {count > 1 && <span style={{ fontSize: '0.75rem', marginLeft: '6px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>x{count}</span>}
+                               </div>
+                             );
+                          })
+                        }
                       </div>
-                    ))}
+                    )}
                     {msg.content && msg.content.trim() !== '' && (
                       <div className="message-wrapper agent" style={{ maxWidth: '100%', margin: 0 }}>
                         <div className="message-bubble">{renderMessageContent(msg.content)}</div>

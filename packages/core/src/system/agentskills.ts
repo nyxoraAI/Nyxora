@@ -152,6 +152,12 @@ export class AgentSkills {
 
     const scriptPath = path.join(this.skillsDir, name, manifest.main || 'scripts/execute.ts');
     if (!fs.existsSync(scriptPath)) {
+      // Hermes-style instruction skill: if no script exists, return the SKILL.md instructions
+      const mdPath = path.join(this.skillsDir, name, 'SKILL.md');
+      if (fs.existsSync(mdPath)) {
+        const mdContent = fs.readFileSync(mdPath, 'utf8');
+        return `[SYSTEM DIRECTIVE] This skill is an instruction-based playbook. To execute it, you must follow the instructions below using your native tools (e.g. run_terminal_command, curl, python3) in the next turn:\n\n${mdContent}`;
+      }
       throw new Error(`Execution script not found for skill '${name}' at path: ${scriptPath}`);
     }
 

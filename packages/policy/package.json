@@ -1,6 +1,6 @@
 {
   "name": "@nyxora-sdk/policy-sdk",
-  "version": "26.7.14",
+  "version": "26.7.15",
   "license": "MIT",
   "publishConfig": {
     "access": "public"

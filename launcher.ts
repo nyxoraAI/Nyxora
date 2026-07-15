@@ -68,9 +68,13 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
       
       crashCount++;
       if (crashCount > 5) {
+        if (name === 'ML Engine') {
+           console.error(`[Launcher] ML Engine crashed 5 times. Disabling it to prevent system shutdown.`);
+           isShuttingDown = true;
+           return;
+        }
         console.error(`[Launcher] FATAL: ${name} crashed 5 times in 1 minute. Initiating emergency shutdown.`);
         isShuttingDown = true;
-        
         try {
           const yaml = require('yaml');
           const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.nyxora', 'config', 'config.yaml');

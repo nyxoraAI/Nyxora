@@ -58,7 +58,7 @@ export async function getAddress(): Promise<string> {
       reject(new Error(`Failed to get address from vault: ${error.message}`));
     });
 
-    req.setTimeout(30000, () => {
+    req.setTimeout(120000, () => {
       req.destroy(new Error('Timeout'));
     });
 
@@ -121,7 +121,7 @@ export async function submitTransaction(txPayload: any): Promise<string> {
       reject(new Error(`Transaction submission failed: ${error.message}`));
     });
 
-    req.setTimeout(30000, () => {
+    req.setTimeout(120000, () => {
       req.destroy(new Error('Timeout'));
     });
 

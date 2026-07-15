@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config import config
-from routers import market, cognitive, memory, critic, background_review, skill_manager, memory_writer
+from routers import market, cognitive, memory, critic, background_review, skill_manager, memory_writer, os_agent
 
 app = FastAPI(
     title="Nyxora ML Engine",
@@ -25,6 +25,7 @@ app.include_router(background_review.router, prefix="/cognitive")
 app.include_router(memory.router, prefix="/memory")
 app.include_router(memory_writer.router, prefix="/memory")
 app.include_router(skill_manager.router, prefix="/skills")
+app.include_router(os_agent.router, prefix="/os")
 
 @app.get("/health")
 async def health_check():

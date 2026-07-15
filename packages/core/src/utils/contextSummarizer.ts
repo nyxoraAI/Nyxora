@@ -29,8 +29,8 @@ import crypto from 'crypto';
 // ---------------------------------------------------------------------------
 
 export interface Message {
-  role: string;
-  content?: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string | any[];
   tool_calls?: any[];
   tool_call_id?: string;
   name?: string;
@@ -111,7 +111,7 @@ function _prunePassed(messages: Message[]): Message[] {
   for (let i = pruned.length - 1; i >= 0; i--) {
     const m = pruned[i];
     if (m.role !== 'tool' || !m.content) continue;
-    const h = crypto.createHash('md5').update(m.content).digest('hex');
+    const h = crypto.createHash('md5').update(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).digest('hex');
     if (seenToolHashes.has(h)) {
       // This is an older duplicate — prune it
       pruned[i] = { ...m, content: PRUNED_TOOL_PLACEHOLDER };
@@ -126,8 +126,9 @@ function _prunePassed(messages: Message[]): Message[] {
     if (m.content === PRUNED_TOOL_PLACEHOLDER) continue;
     if (m.content.length > MAX_TOOL_RESULT_CHARS) {
       const toolName = m.name ?? 'tool';
-      const preview  = m.content.slice(0, 80).replace(/\n/g, ' ');
-      const lines    = (m.content.match(/\n/g) ?? []).length + 1;
+      const contentStr = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      const preview  = contentStr.slice(0, 80).replace(/\n/g, ' ');
+      const lines    = (contentStr.match(/\n/g) ?? []).length + 1;
       m.content = `[${toolName}] output: ${preview}… (${lines} lines, condensed)`;
     }
   }
@@ -230,9 +231,10 @@ export async function compressHistory(
   const existingSummaryMsg = head.find(
     m => m.role === 'system' && m.content?.includes(SUMMARY_PREFIX.slice(0, 30))
   );
-  const existingSummaryText = existingSummaryMsg?.content
-    ?.replace(SUMMARY_PREFIX, '')
-    .replace(SUMMARY_SUFFIX, '')
+  const oldSummary = typeof existingSummaryMsg?.content === 'string' 
+    ? existingSummaryMsg.content.replace(SUMMARY_PREFIX, '') 
+    : '';
+  const existingSummaryText = oldSummary.replace(SUMMARY_SUFFIX, '')
     .trim();
 
   let summaryText: string | null = null;

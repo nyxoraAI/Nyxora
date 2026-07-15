@@ -68,8 +68,23 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 20;
+    const MAX_TURNS = 10;
     let consecutiveToolErrors = 0;
+
+    // ── Per-tool-name call count tracker ─────────────────────────────────────────────
+    // Counts how many times each tool has been called SUCCESSFULLY this session.
+    // If a single tool exceeds its limit, we inject a hard-stop and force final answer.
+    // This catches loops even when tool args differ per call (e.g. different chainName).
+    const toolCallCounts = new Map<string, number>();
+    const TOOL_CALL_LIMITS: Record<string, number> = {
+      'check_portfolio': 8,      // 7 mainnets + 1 retry buffer
+      'get_balance': 8,
+      'get_token_balance': 10,
+      'get_token_price': 12,
+      'get_gas_price': 8,
+      'get_nft_holdings': 8,
+      '__default__': 15,         // fallback for any other tool
+    };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const initialHistory = logger.getHistory(sessionId);
@@ -273,10 +288,17 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
 
       let canFastReturnAll = true;
       let accumulatedResults: string[] = [];
+      // Read-only / informational tools: fast-return after success so LLM doesn't
+      // loop back and call them again unnecessarily.
       const fastReturnTools: string[] = [
-        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
-        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
-        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx'
+        // Transactions (existing)
+        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token',
+        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave',
+        'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx',
+        // Read-only info fetches (new) — these NEVER need a follow-up LLM turn
+        'check_portfolio', 'get_balance', 'get_token_balance', 'get_wallet_balance',
+        'get_token_price', 'get_gas_price', 'get_network_stats',
+        'check_allowance', 'get_transaction_status', 'get_nft_holdings',
       ];
 
       for (const _toolCall of responseMessage.tool_calls) {
@@ -337,6 +359,22 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         }
 
         try {
+          // ── Per-tool-name call count guard ────────────────────────────────────────
+          const currentCount = toolCallCounts.get(toolName) || 0;
+          const maxAllowed = TOOL_CALL_LIMITS[toolName] ?? TOOL_CALL_LIMITS['__default__'];
+          if (currentCount >= maxAllowed) {
+            console.log(pc.yellow(`[Anti-Loop] ${toolName} has been called ${currentCount} times (limit: ${maxAllowed}). Injecting hard stop.`));
+            const stopWarning = `[SYSTEM: LOOP DETECTED] '${toolName}' has been called ${currentCount} times this session, which exceeds the safe limit. ` +
+              `This indicates you are stuck in a loop. ` +
+              `You MUST stop calling tools and produce your FINAL answer to the user using the data you have already collected. ` +
+              `DO NOT call '${toolName}' or any other tool again.`;
+            logger.addEntry({ role: 'system' as any, content: stopWarning }, sessionId);
+            const forceStopMsg = `⚠️ Loop breaker: '${toolName}' was called too many times (${currentCount}). Stopping. Please try again.`;
+            logger.addEntry({ role: 'assistant', content: forceStopMsg }, sessionId);
+            return forceStopMsg;
+          }
+          // ────────────────────────────────────────────────────────────────
+
           // 1. Execute via PluginManager
           const pluginResult = await pluginManager.executeTool(toolName, args, { sessionId });
           if (pluginResult !== null) {
@@ -349,6 +387,8 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
             console.log(pc.red(`[❌ Failed] Tool ${toolName} returned an error or was blocked.`));
           } else {
             console.log(pc.green(`[✅ Success] Tool ${toolName} executed successfully.`));
+            // Increment count on success
+            toolCallCounts.set(toolName, (toolCallCounts.get(toolName) || 0) + 1);
           }
 
         } catch (toolError: any) {
@@ -393,9 +433,44 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       }
 
       if (canFastReturnAll && accumulatedResults.length > 0) {
-        const finalContent = accumulatedResults.join('\n\n---\n\n');
-        logger.addEntry({ role: 'user', content: `[System Notification: The tool executed successfully and returned the following result directly to the user]\n${finalContent}` }, sessionId);
-        return finalContent;
+        const rawData = accumulatedResults.join('\n\n---\n\n');
+
+        // ── Opsi A: Final summary pass (no tools) ──────────────────────────────
+        // Tool results are already in history. Make ONE final LLM call with
+        // tools=[] (no tools) so the LLM narrates the results naturally.
+        // Since tools are disabled, looping is physically impossible.
+        logger.addEntry({
+          role: 'system' as any,
+          content: `[SUMMARY PASS] All tool calls completed. Tools are now DISABLED for this turn. ` +
+            `Produce a clear, concise, conversational final answer to the user using ONLY the data above. ` +
+            `Do NOT call any tools. Do NOT mention that tools are disabled.`
+        }, sessionId);
+
+        const summaryHistory = logger.getHistory(sessionId).slice(baseHistoryLength);
+        const summaryMessages: any[] = [
+          { role: 'system', content: cachedSystemPrompt },
+          ...sanitizeHistoryForLLM([...baseHistory, ...summaryHistory], [], config.llm.provider)
+        ];
+
+        try {
+          const summaryResponse = await executeWithRetry(async (client) =>
+            client.chat({
+              model: config.llm.model,
+              temperature: config.llm.temperature,
+              messages: summaryMessages,
+              tools: [],  // physically disables tool calls
+            })
+          );
+          const narrative = (summaryResponse.message.content || rawData)
+            .replace(/<(think|thought|thinking|reasoning)[\s\S]*?<\/\1>/gi, '').trim();
+          logger.addEntry({ role: 'assistant', content: narrative }, sessionId);
+          return narrative;
+        } catch {
+          // If summary call fails, fall back to raw data
+          logger.addEntry({ role: 'assistant', content: rawData }, sessionId);
+          return rawData;
+        }
+        // ────────────────────────────────────────────────────────────────
       }
       
       // Loop continues, sending tool results in the next turn
@@ -449,9 +524,21 @@ export async function processWeb3IntentStream(
   try {
     let turnCount = 0;
     let nudgeCount = 0;
-    const MAX_TURNS = 20;
-    let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
+    const MAX_TURNS = 10; // Reduced from 20
+    let thinkingPrefillRetries = 0;
     let fullResponse = '';
+
+    // ── Per-tool-name call count tracker (same as non-stream) ──────────────────────────
+    const toolCallCountsStream = new Map<string, number>();
+    const TOOL_CALL_LIMITS_STREAM: Record<string, number> = {
+      'check_portfolio': 8,
+      'get_balance': 8,
+      'get_token_balance': 10,
+      'get_token_price': 12,
+      'get_gas_price': 8,
+      'get_nft_holdings': 8,
+      '__default__': 15,
+    };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const initialHistoryStream = logger.getHistory(sessionId);
@@ -540,7 +627,7 @@ export async function processWeb3IntentStream(
 You completed your internal reasoning but produced NO output (no tool call, no text).
 This is a silent stop — it is not acceptable.
 
-Task: "${recentUserMsg.substring(0, 200)}"
+Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
 You MUST act RIGHT NOW. Do one of these:
   A) Call the first required tool immediately (e.g., get_price, analyze_market, get_balance)
@@ -551,7 +638,7 @@ Do NOT think again. Execute step 1 of the task NOW.`;
               console.warn(`[Web3AgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
               nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
-Task: "${recentUserMsg.substring(0, 200)}"
+Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
 Available tools: swap_token, get_portfolio, etc.
 You MUST either:
@@ -590,11 +677,15 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       // BUG#1 FIX: Wipe turn-1 planning text. See osAgent.ts for full explanation.
       await onChunk('[TOOL_CALL_DETECTED]');
       const fastReturnTools: string[] = [
-        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 
-        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 
+        // Transactions
+        'transfer_token', 'transfer_native', 'swap_token', 'bridge_token',
+        'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave',
         'deposit_yield_vault', 'provide_liquidity_v3', 'confirm_pending_tx',
-        'get_my_address', 'get_balance', 'get_tx_history', 'resolve_ens',
-        'send_telegram_file'
+        'get_my_address', 'get_tx_history', 'resolve_ens', 'send_telegram_file',
+        // Read-only info fetches — never need follow-up LLM turn
+        'check_portfolio', 'get_balance', 'get_token_balance', 'get_wallet_balance',
+        'get_token_price', 'get_gas_price', 'get_network_stats',
+        'check_allowance', 'get_transaction_status', 'get_nft_holdings',
       ];
       let canFastReturnAll = true;
       const accumulatedResults: string[] = [];
@@ -630,7 +721,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         const context = { sessionId, toolCallId: toolCall.id, responseMessage, cwd };
 
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
-        if (onProgress) onProgress(`⚡ Running tool: ${toolName}...`);
+        if (onProgress) onProgress(`⚙️ Running: ${toolName}`);
 
         try {
           let argStr = toolCall.function.arguments;
@@ -649,12 +740,28 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         }
 
         try {
+          // ── Per-tool-name call count guard (stream) ──────────────────────────
+          const currentCountS = toolCallCountsStream.get(toolName) || 0;
+          const maxAllowedS = TOOL_CALL_LIMITS_STREAM[toolName] ?? TOOL_CALL_LIMITS_STREAM['__default__'];
+          if (currentCountS >= maxAllowedS) {
+            console.log(pc.yellow(`[Anti-Loop Stream] ${toolName} called ${currentCountS} times (limit: ${maxAllowedS}). Hard stop.`));
+            const stopWarning = `[SYSTEM: LOOP DETECTED] '${toolName}' has been called ${currentCountS} times, exceeding the safe limit. ` +
+              `You MUST produce your FINAL answer using data already collected. DO NOT call any tool again.`;
+            logger.addEntry({ role: 'system' as any, content: stopWarning }, sessionId);
+            const forceMsg = `⚠️ Loop breaker: '${toolName}' called too many times (${currentCountS}x). Please try again.`;
+            logger.addEntry({ role: 'assistant', content: forceMsg }, sessionId);
+            await onChunk(forceMsg);
+            return forceMsg;
+          }
+          // ────────────────────────────────────────────────────────────────
+
           const pluginResult = await pluginManager.executeTool(toolName, args, context);
           result = pluginResult !== null ? pluginResult : `Error: Tool ${toolName} is not implemented.`;
           if (result.includes('[Security Blocked]') || result.startsWith('Error:')) {
             console.log(pc.red(`[❌ Failed] Tool ${toolName} returned an error or was blocked.`));
           } else {
             console.log(pc.green(`[✅ Success] Tool ${toolName} executed successfully.`));
+            toolCallCountsStream.set(toolName, (toolCallCountsStream.get(toolName) || 0) + 1);
           }
         } catch (toolError: any) {
           result = `Error executing ${toolName}: ${toolError.message}`;
@@ -671,20 +778,58 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       await onChunk('[TOOL_CALL_FINISHED]');
 
       if (canFastReturnAll && accumulatedResults.length > 0) {
-        const finalContent = accumulatedResults.join('\n\n---\n\n');
-        const cleanContent = finalContent.replace(/\[SILENT_FAST_RETURN\] /g, '');
-        logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
-        
-        if (!finalContent.includes('[SILENT_FAST_RETURN]')) {
-          await onChunk(finalContent);
+        const rawData = accumulatedResults.join('\n\n---\n\n');
+        const isSilent = rawData.includes('[SILENT_FAST_RETURN]');
+
+        if (isSilent) {
+          // Transaction confirmations: send raw, no narration needed
+          const cleanContent = rawData.replace(/\[SILENT_FAST_RETURN\] /g, '');
+          logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
+          fullResponse = cleanContent;
+          break;
         }
-        fullResponse = cleanContent;
+
+        // ── Opsi A: Final summary pass (no tools, stream) ─────────────────────
+        logger.addEntry({
+          role: 'system' as any,
+          content: `[SUMMARY PASS] All tool calls completed. Tools are now DISABLED for this turn. ` +
+            `Produce a clear, concise, conversational final answer to the user using ONLY the data above. ` +
+            `Do NOT call any tools. Do NOT mention that tools are disabled.`
+        }, sessionId);
+
+        const summaryHistoryS = logger.getHistory(sessionId).slice(baseHistoryLengthStream);
+        const summaryMessagesS: any[] = [
+          { role: 'system', content: cachedWeb3SystemPrompt },
+          ...sanitizeHistoryForLLM([...baseHistoryStream, ...summaryHistoryS], [], config.llm.provider)
+        ];
+
+        try {
+          let narrativeStream = '';
+          await executeWithRetry(async (client) => {
+            narrativeStream = '';
+            onChunk('[CLEAR_STREAM]');
+            return await client.stream(
+              { model: config.llm.model, temperature: config.llm.temperature, messages: summaryMessagesS, tools: [] },
+              (chunk: string) => { narrativeStream += chunk; onChunk(chunk); }
+            );
+          });
+          const cleanNarrative = narrativeStream
+            .replace(/<(think|thought|thinking|reasoning)[\s\S]*?<\/\1>/gi, '').trim();
+          logger.addEntry({ role: 'assistant', content: cleanNarrative }, sessionId);
+          fullResponse = cleanNarrative;
+        } catch {
+          // Fallback to raw data if summary call fails
+          await onChunk(rawData);
+          logger.addEntry({ role: 'assistant', content: rawData }, sessionId);
+          fullResponse = rawData;
+        }
+        // ────────────────────────────────────────────────────────────────
         break;
       }
     }
 
     if (!fullResponse) {
-      const maxTurnMsg = '⚠️ Reached maximum interaction limit (20 turns). Please be more specific.';
+      const maxTurnMsg = `⚠️ Reached maximum interaction limit (${MAX_TURNS} turns). Please be more specific.`;
       logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
       fullResponse = maxTurnMsg;
     }

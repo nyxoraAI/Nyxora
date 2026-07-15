@@ -23,7 +23,7 @@ export class SkillExtractor {
     console.log(pc.cyan(`[SkillExtractor] Synthesizing new skill: ${safeName}...`));
     
     // 1. Generate SKILL.md
-    const promptMd = `Generate the agentskills.io SKILL.md file for a new skill called '${safeName}'.
+    const promptMd = `Generate the SKILL.md file for a new skill called '${safeName}'.
 Description: ${description}
 User Intent / Logic: ${userIntent}
 Chat Traces (if any):
@@ -46,54 +46,28 @@ parameters:
 
 CRITICAL: The 'required' array MUST be indented exactly inside the 'parameters' block as shown above. Do NOT put 'required' at the root level of the YAML.
 
-Do NOT write anything outside the frontmatter except an optional markdown description below it.
+Below the frontmatter, write the step-by-step markdown instructions for how the AI should execute this skill using its native tools (like run_terminal_command, curl, python3). Provide the exact commands needed. Do NOT write any TypeScript or Node.js code. Make it an instruction-based playbook.
 Output ONLY the raw SKILL.md content.`;
 
-    // 2. Generate script.ts
-    const promptTs = `Generate the TypeScript execution logic for a new skill called '${safeName}'.
-Description: ${description}
-User Intent / Logic: ${userIntent}
-
-Requirements:
-- Must export a default async function that takes 'args' (matching the parameters) and an optional 'context'.
-- Do NOT use python. Must be 100% Node.js / TypeScript.
-- Return a string result.
-- Handle basic errors.
-- You can import typical node modules (fs, path, axios/fetch if needed).
-Output ONLY the raw TypeScript code, no markdown code blocks formatting if possible, just the raw code.`;
-
     try {
-      const [resMd, resTs] = await Promise.all([
-        executeWithRetry(async (client) => {
-          return await client.chat({
-            model: config.llm.model,
-            messages: [{ role: 'system', content: promptMd }],
-            temperature: 0.1
-          });
-        }),
-        executeWithRetry(async (client) => {
-          return await client.chat({
-            model: config.llm.model,
-            messages: [{ role: 'system', content: promptTs }],
-            temperature: 0.1
-          });
-        })
-      ]);
+      const resMd = await executeWithRetry(async (client) => {
+        return await client.chat({
+          model: config.llm.model,
+          messages: [{ role: 'system', content: promptMd }],
+          temperature: 0.1
+        });
+      });
       
       let mdContent = resMd.message.content || '';
-      let tsContent = resTs.message.content || '';
       
       // Clean markdown fences
       mdContent = mdContent.replace(/\`\`\`markdown/g, '').replace(/\`\`\`yaml/g, '').replace(/\`\`\`/g, '').trim();
-      tsContent = tsContent.replace(/\`\`\`typescript/g, '').replace(/\`\`\`ts/g, '').replace(/\`\`\`/g, '').trim();
       
       fs.mkdirSync(skillDir, { recursive: true });
-      fs.mkdirSync(path.join(skillDir, 'scripts'), { recursive: true });
       
       fs.writeFileSync(path.join(skillDir, 'SKILL.md'), mdContent);
-      fs.writeFileSync(path.join(skillDir, 'scripts', 'execute.ts'), tsContent);
       
-      console.log(pc.green(`[SkillExtractor] Successfully synthesized skill '${safeName}'.`));
+      console.log(pc.green(`[SkillExtractor] Successfully synthesized instruction-based skill '${safeName}'.`));
       
       // Hot-reload skills
       const { pluginManager } = require('../plugin/registry');

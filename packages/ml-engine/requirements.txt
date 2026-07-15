@@ -20,3 +20,6 @@ langchain-anthropic
 langchain-chroma
 langchain-community
 langchain-huggingface
+pyautogui
+mss
+Pillow

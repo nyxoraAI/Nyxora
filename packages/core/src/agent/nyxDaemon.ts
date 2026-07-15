@@ -53,7 +53,7 @@ export class NyxDaemon {
       const conversationOnly = history.filter(m =>
         (m.role === 'user' || m.role === 'assistant') &&
         m.content &&
-        m.content.trim().length > 0 &&
+        typeof m.content === 'string' && m.content.trim().length > 0 &&
         !m.tool_calls
       );
 

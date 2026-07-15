@@ -51,7 +51,7 @@ export async function runTerminalCommand(command: string, cwd?: string): Promise
       }
     }
 
-    exec(finalCommand, { maxBuffer: 1024 * 1024 * 10, env, cwd }, (error, stdout, stderr) => {
+    exec(finalCommand, { maxBuffer: 1024 * 1024 * 10, env, cwd, timeout: 120000 }, (error, stdout, stderr) => {
       let output = "";
       if (stdout) output += `STDOUT:\n${stdout}\n`;
 
