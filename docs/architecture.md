@@ -59,6 +59,7 @@ The Core is the front-facing gateway. It serves the Dashboard UI, connects to th
 *   **NLP Intelligence ("Context Overrides Defaults"):** The Core is designed to prioritize your explicit natural language commands over the static Dashboard configurations. If your Dashboard is locked to `Base` and `Uniswap V2`, but you chat via Telegram asking to *"Swap on Arbitrum using Li.Fi"*, the Brain dynamically overrides the default fallback variables in real-time, executing the specific intent without permanently altering your Dashboard settings.
 *   **Asynchronous Watchdog Agents (Sub-Agents):** Nyxora supports spawning detached background instances for long-running monitoring tasks. When requested (e.g., *"Monitor $ETH and notify me if it drops below $2500"*), the Core invokes a lightweight Sub-Agent that loops asynchronously, leaving your primary session free for other tasks.
 *   **Time-Based AI Scheduler (CronManager):** The Core Runtime operates an internal Cron engine (`croner`). It can schedule recurring AI tasks entirely decoupled from the active chat session. When a background task fires, the result is natively pushed directly to your smartphone via the Telegram Gateway API.
+*   **Trajectory Generation (Automated Dataset):** The agent loop proactively hooks into the `TrajectoryLogger` to save execution histories as JSONL files (`~/.nyxora/trajectories.jsonl`), formatting them with `<tool_call>` and `<tool_response>` tags to create datasets ready for next-gen tool-calling model fine-tuning.
 *   **[Playbooks (Markdown SOPs)](/playbooks):** Aside from code-based skills, Nyxora possesses a unique `PlaybookManager` which acts as an SOP (Standard Operating Procedure) interpreter. The LLM natively searches and reads instruction manuals written in plain Markdown (`.md`) from `packages/core/playbooks/` (synced to `~/.nyxora/playbooks/`). This allows the agent to execute complex workflows (like Social Fetch data gathering) by strictly following predefined human-readable steps without requiring hardcoded TypeScript logic.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
@@ -67,6 +68,7 @@ The ML Engine is a local Python FastAPI backend dedicated to heavy cognitive and
 *   **Role:** Executes Semantic Search (RAG) and performs deterministic market calculations without clogging the Node.js event loop.
 *   **Semantic Memory & RAG:** Operates `langchain_huggingface` using the `all-MiniLM-L6-v2` embedding model. It synchronizes the SQLite episodic memory into a fast local ChromaDB vector store, enabling lightning-fast semantic context retrieval.
 *   **Market Intelligence Delegation:** Utilizes Pandas (`pandas-ta`) to calculate advanced technical indicators (RSI, MA50) directly from Binance K-Lines, feeding deterministic market scores back to the Core Runtime to prevent LLM hallucinations.
+*   **Proactive Skill Evolution (Background Review):** After every 10 tool iterations, the ML engine autonomously analyzes the last 100 conversational turns (via LangChain), identifies frustration or user corrections, and aggressively patches or writes new Python/Node.js skills to self-improve across sessions.
 *   **Reinforcement Learning (RL):** Menjalankan PPOAgent untuk mengevaluasi strategi eksekusi token.
 
 ### 3. MCP Server (Context Provider) - Port 3001
@@ -74,10 +76,11 @@ The MCP (Model Context Protocol) Server acts as an open standard interface betwe
 *   **Role:** Allows Nyxora to read files, execute terminal commands, and search local knowledge bases natively.
 *   **Extensibility:** Developers can plug in any standard MCP tool into Nyxora seamlessly.
 
-### 4. Analytical Dashboard - Port 5173
-A beautiful, highly interactive React (Vite) interface tailored for real-time monitoring and conversational execution.
-*   **Role:** Visualizes Web3 portfolios, handles real-time WebSockets, and provides the chat interface for interacting with the Core Runtime.
-*   **Local First:** Served locally directly from the Nyxora daemon.
+### 4. Client Interfaces - Port 5173 / CLI
+A suite of beautiful, highly interactive client interfaces tailored for real-time monitoring and conversational execution.
+*   **Web Dashboard:** A local React (Vite) interface that visualizes Web3 portfolios and handles real-time WebSockets.
+*   **Nyxora Desktop MVP:** A native standalone Electron application mirroring the web dashboard with a localized OS-level experience (auto-bootstraps the daemon on launch).
+*   **Terminal UI (TUI):** A native terminal multi-pane interface using `blessed` and SSE streaming for non-GUI or VPS users (`nyxora chat`).
 
 ### 5. Policy Engine (The Guard) - Unix Socket
 The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It communicates via a combination of Hyper-Optimized IPC (Unix Socket) at `/tmp/nyxora-policy.sock` and local TCP Loopback (`127.0.0.1`) for secure internal routing.

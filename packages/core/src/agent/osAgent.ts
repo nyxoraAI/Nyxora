@@ -10,6 +10,7 @@ import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
 import { sanitizeHistoryForLLM } from '../utils/historySanitizer';
+import { TrajectoryLogger } from '../memory/trajectoryLogger';
 
 import { promptBuilder } from './promptBuilder';
 
@@ -59,19 +60,32 @@ pluginManager.registerHook({
 
 export const logger = new Logger();
 
+const sessionItersSinceSkill = new Map<string, number>();
+
 // Helper to trigger background review async
 const triggerBackgroundReview = async (sessionId?: string) => {
   try {
-    const history = logger.getHistory(sessionId, 30);
-    fetch('http://127.0.0.1:8000/cognitive/review', {
+    const history = logger.getHistory(sessionId, 100);
+    const sid = sessionId || 'default';
+    const res = await fetch('http://127.0.0.1:8000/cognitive/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: history,
-        session_id: sessionId || 'default',
+        session_id: sid,
         trigger: 'turn_end'
       })
-    }).catch(() => {});
+    });
+    if (res.ok) {
+      const data = await res.json() as any;
+      if (data.success && data.actions && data.actions.length > 0) {
+        const summary = data.actions.join(' · ');
+        logger.addEntry({
+          role: 'system' as any,
+          content: `💾 Self-improvement review: ${summary}`
+        }, sid);
+      }
+    }
   } catch (e) {
     // silently fail
   }
@@ -82,18 +96,24 @@ import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
 import crypto from 'crypto';
 
 function getToolLabel(n: string, firstArgValue: string): string {
-  if (n === 'run_terminal_command' || n === 'run_terminal_command_pty') return `💻 terminal\n\`\`\`shell\n${firstArgValue.substring(0, 100)}${firstArgValue.length > 100 ? '...' : ''}\n\`\`\``;
-  if (n === 'write_local_file') return `✍️ Writing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
-  if (n === 'read_local_file') return `📖 Reading ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
-  if (n === 'edit_local_file') return `✏️ Editing ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
-  if (n === 'search_web' || n === 'search_files') return `🔍 Searching the web for: ${firstArgValue.substring(0, 50)}...`;
+  const safeArg = firstArgValue ? String(firstArgValue) : '';
+  if (n === 'run_terminal_command' || n === 'run_terminal_command_pty') return `💻 terminal\n\`\`\`shell\n${safeArg.substring(0, 100)}${safeArg.length > 100 ? '...' : ''}\n\`\`\``;
+  if (n === 'write_local_file') return `✍️ Writing ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
+  if (n === 'read_local_file') return `📖 Reading ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
+  if (n === 'edit_local_file') return `✏️ Editing ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
+  if (n === 'search_web' || n === 'search_files') return `🔍 Searching for: ${safeArg.substring(0, 50)}...`;
   if (n === 'todo_write' || n === 'todo_read') return `📋 Task tracker: ${n}`;
   if (n === 'send_telegram_file') return `📤 Sending file to Telegram...`;
-  if (n.includes('git')) return `🐙 Git: ${firstArgValue}`;
+  if (n.includes('git')) return `🐙 Git: ${safeArg.substring(0, 50)}`;
   if (n === 'generate_image') return `🎨 Generating image...`;
   if (n === 'analyze_local_image') return `👁️ Analyzing image...`;
-  if (n === 'computer') return `🖱️ Computer Use: ${firstArgValue}`;
-  if (n.includes('write') || n.includes('create')) return `✍️ Creating ${firstArgValue ? firstArgValue.split('/').pop() : 'file'}...`;
+  if (n === 'computer') return `🖱️ Computer Use: ${safeArg.substring(0, 50)}`;
+  if (n.includes('skill') || n.includes('playbook')) return `🧠 Updating AI Knowledge (${n})...`;
+  if (n.includes('write') || n.includes('create')) {
+    let name = safeArg ? safeArg.split('/').pop() || 'item' : 'item';
+    if (name.length > 30) name = name.substring(0, 30) + '...';
+    return `✍️ Creating ${name}...`;
+  }
   if (n.includes('read')) return `📖 Reading...`;
   return `⚙️ Running: ${n}`;
 }
@@ -620,7 +640,21 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         if (!isErrorResult && tc.function?.name) {
           const tn = tc.function.name as string;
           osToolCallCounts.set(tn, (osToolCallCounts.get(tn) || 0) + 1);
+          
+          const sid = sessionId || 'default';
+          if (tn !== 'skill_manage') {
+             sessionItersSinceSkill.set(sid, (sessionItersSinceSkill.get(sid) || 0) + 1);
+          } else {
+             sessionItersSinceSkill.set(sid, 0); // Reset if they used skill manage
+          }
         }
+      }
+
+      // Proactive trigger for background review
+      const sid = sessionId || 'default';
+      if ((sessionItersSinceSkill.get(sid) || 0) >= 10) {
+        triggerBackgroundReview(sessionId);
+        sessionItersSinceSkill.set(sid, 0);
       }
 
       // Update anti-loop state
@@ -1070,6 +1104,21 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       fullResponse = maxTurnMsg;
       triggerBackgroundReview(sessionId);
     }
+
+    // --- Trajectory Logging ---
+    const finalHistory = logger.getHistory(sessionId);
+    // Find the current interaction span (from the user input forward)
+    const turnMessages = [
+      { role: 'user', content: input },
+      ...finalHistory.slice(initialHistoryStream.length)
+    ];
+    TrajectoryLogger.logTurn(
+      input, 
+      turnMessages, 
+      turnCount < 10, 
+      turnCount, 
+      { model: config.llm.model }
+    );
 
     return fullResponse;
   } catch (error: any) {

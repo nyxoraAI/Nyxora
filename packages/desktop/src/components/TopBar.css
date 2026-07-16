@@ -1,0 +1,96 @@
+.desktop-top-bar {
+  height: 48px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  background-color: transparent;
+  z-index: 100;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.top-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-bar-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.window-controls.macos-style {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.window-control-btn {
+  background: transparent;
+  border: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  position: relative;
+}
+
+.control-icon {
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.window-controls.macos-style:hover .control-icon {
+  opacity: 1;
+}
+
+/* Colors for macOS style */
+.minimize-btn {
+  background-color: #ffbd2e;
+}
+
+.maximize-btn {
+  background-color: #27c93f;
+}
+
+.close-btn {
+  background-color: #ff5f56;
+}
+
+.minimize-btn:hover {
+  background-color: #e0a628;
+}
+
+.maximize-btn:hover {
+  background-color: #22b137;
+}
+
+.close-btn:hover {
+  background-color: #e0534b;
+}
+
+/* Dark mode adjustments for icon colors */
+body:not(.light-theme) .control-icon {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Drag regions */
+.draggable-region {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}

@@ -1,6 +1,6 @@
 {
   "name": "nyxora",
-  "version": "26.7.15",
+  "version": "26.7.16",
   "description": "Your Personal Web3 Assistant",
   "keywords": [
     "web3",
@@ -46,8 +46,10 @@
     "stop": "node ./bin/nyxora.mjs stop",
     "restart": "node ./bin/nyxora.mjs restart",
     "dashboard": "node ./bin/nyxora.mjs dashboard",
+    "desktop": "node ./bin/nyxora.mjs desktop",
     "chat": "node ./bin/nyxora.mjs chat",
     "setup": "node ./bin/nyxora.mjs setup",
+    "tui": "node ./bin/nyxora.mjs tui",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
     "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",

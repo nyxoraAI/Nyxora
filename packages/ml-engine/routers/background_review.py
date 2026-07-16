@@ -51,7 +51,7 @@ _COMBINED_REVIEW_PROMPT = """Review the conversation above and update two things
 Target shape of the skill library: CLASS-LEVEL skills with a rich SKILL.md and a `references/` directory for session-specific detail.
 
 Signals that warrant a skill update (any one is enough):
-- User corrected your style, tone, format, legibility, verbosity, or approach.
+- User corrected your style, tone, format, legibility, verbosity, or approach. Frustration is a FIRST-CLASS skill signal, not just a memory signal. 'stop doing X', 'don't format like this' — embed the lesson in the skill that governs that task so the next session starts fixed.
 - Non-trivial technique, fix, workaround, or debugging path emerged.
 - A skill that was loaded or consulted turned out wrong, missing, or outdated — patch it now.
 
@@ -88,8 +88,8 @@ async def background_review(req: ReviewRequest):
         ("user", "Conversation History:\n{history}")
     ])
     
-    # Format history (keep last 30 to bound context window)
-    history_str = "\n".join([f"{'USER' if m.role == 'user' else 'NYXORA'}: {m.content}" for m in req.messages[-30:]])
+    # Format history (keep last 100 to bound context window)
+    history_str = "\n".join([f"{'USER' if m.role == 'user' else 'NYXORA'}: {m.content}" for m in req.messages[-100:]])
     
     try:
         chain = prompt | llm_with_tools

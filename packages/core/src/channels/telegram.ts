@@ -33,19 +33,17 @@ export function formatToRichMarkdown(text: string): string {
   // Strip reasoning blocks
   const reasoningTags = 'think|thought|thinking|reasoning|analysis|reflection';
   md = md.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
-  md = md.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*$`, 'gi'), '');
 
   // Strip tool execution artifact blocks
   const artifactTags = 'tool_code|tool_call|execute_tool|execute_bash|execute';
   md = md.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
-  md = md.replace(new RegExp(`<(${artifactTags})>[\\s\\S]*$`, 'gi'), '');
 
   // Strip markdown tool calls
   md = md.replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '');
   // Strip raw JSON tool arrays
   md = md.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
 
-  return md;
+  return md.trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,12 +55,10 @@ export function formatToTelegramHTML(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // Strip reasoning blocks (escaped and raw forms)
+  // Strip reasoning blocks (escaped and raw forms) ONLY if they are properly closed.
   const reasoningTags = 'think|thought|thinking|reasoning|analysis|reflection';
   html = html.replace(new RegExp(`&lt;(${reasoningTags})&gt;[\\s\\S]*?&lt;\\/\\1&gt;\\n?`, 'gi'), '');
-  html = html.replace(new RegExp(`&lt;(${reasoningTags})&gt;[\\s\\S]*$`, 'gi'), '');
   html = html.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*?<\\/\\1>\\n?`, 'gi'), '');
-  html = html.replace(new RegExp(`<(${reasoningTags})>[\\s\\S]*$`, 'gi'), '');
 
   // Strip tool execution artifact blocks (escaped and raw forms)
   const artifactTags = 'tool_code|tool_call|execute_tool|execute_bash|execute';
@@ -280,19 +276,38 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
           };
           if (replyToMsgId && !hasRepliedToUser) {
             payload.reply_parameters = { message_id: replyToMsgId };
-            hasRepliedToUser = true;
           }
           await (ctx.api.raw as any).sendRichMessage(payload);
+          // Only set to true if it succeeds
+          if (payload.reply_parameters) {
+            hasRepliedToUser = true;
+          }
         } catch (e: any) {
           console.warn('[Telegram] finalizeBuffer rich delivery failed:', e?.message);
+          richDraftDisabled = true;
+          const htmlFallback = formatToTelegramHTML(buffer);
+          if (htmlFallback && htmlFallback.trim() !== '') {
+            if (textMsgId) {
+              try {
+                await ctx.api.editMessageText(ctx.chat.id, textMsgId, htmlFallback, { parse_mode: 'HTML', ...(markup ? { reply_markup: markup } : {}) });
+              } catch (fe) {}
+            } else {
+              textMsgId = await sendNew(htmlFallback);
+            }
+          }
         }
       }
     } else {
-      // HTML fallback mode: textMsgId is already the final message.
-      if (markup && textMsgId) {
-        try {
-          await ctx.api.editMessageReplyMarkup(ctx.chat.id, textMsgId, { reply_markup: markup });
-        } catch(e) {}
+      // HTML fallback mode: textMsgId might be null if stream was fast
+      const htmlFallback = formatToTelegramHTML(buffer);
+      if (htmlFallback && htmlFallback.trim() !== '') {
+        if (textMsgId) {
+          try {
+            await ctx.api.editMessageText(ctx.chat.id, textMsgId, htmlFallback, { parse_mode: 'HTML', ...(markup ? { reply_markup: markup } : {}) });
+          } catch (fe) {}
+        } else {
+          textMsgId = await sendNew(htmlFallback);
+        }
       }
     }
 

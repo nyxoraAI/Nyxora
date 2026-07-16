@@ -68,13 +68,20 @@ import * as lockfile from 'proper-lockfile';
 function flushState() {
   if (!trackerFile) return;
   try {
-    if (!fs.existsSync(trackerFile)) fs.writeFileSync(trackerFile, '{}');
+    if (!fs.existsSync(trackerFile)) {
+      fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+      return;
+    }
     const release = lockfile.lockSync(trackerFile, { retries: 5 });
-    fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+    const tempFile = trackerFile + '.tmp.' + Date.now();
+    fs.writeFileSync(tempFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+    fs.renameSync(tempFile, trackerFile);
     release();
   } catch (e) {
     try {
-      fs.writeFileSync(trackerFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+      const tempFile = trackerFile + '.tmp.' + Date.now();
+      fs.writeFileSync(tempFile, JSON.stringify({ stats, eventLogs, gatewayLogs }));
+      fs.renameSync(tempFile, trackerFile);
     } catch {}
   }
 }

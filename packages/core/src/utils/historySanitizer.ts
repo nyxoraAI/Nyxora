@@ -1,5 +1,14 @@
 export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provider: string = 'openai'): any[] {
   const activeToolNames = activeTools.map(t => t.function?.name || t.name);
+  
+  // PASS 1: Collect all available tool response IDs
+  const availableToolResponseIds = new Set<string>();
+  for (const m of history) {
+    if ((m.role === 'tool' || m.tool_call_id) && m.tool_call_id) {
+      availableToolResponseIds.add(m.tool_call_id);
+    }
+  }
+
   const keptToolCallIds = new Set<string>();
   const processedHistory: any[] = [];
 
@@ -14,7 +23,9 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
     let msg: any = { ...m, role, content };
     
     if (m.tool_calls && m.tool_calls.length > 0) {
-        msg.tool_calls = m.tool_calls.filter((tc: any) => activeToolNames.includes(tc.function?.name));
+        msg.tool_calls = m.tool_calls.filter((tc: any) => 
+            activeToolNames.includes(tc.function?.name) && availableToolResponseIds.has(tc.id)
+        );
         if (msg.tool_calls.length === 0) {
             delete msg.tool_calls;
             msg.content = msg.content || `[Executed external tools]`;

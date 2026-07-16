@@ -14,6 +14,7 @@ import { sendTelegramFileToolDefinition, sendTelegramFile } from '../skills/tele
 import { searchFilesToolDefinition, searchFiles } from '../skills/searchFiles';
 import { todoWriteToolDefinition, todoReadToolDefinition, todoWrite, todoRead } from '../skills/todoTool';
 import { computerUseToolDefinition, computerUse } from '../skills/computerUse';
+import { delegateSubagentToolDefinition, delegateSubagent } from '../skills/delegateSubagent';
 
 // ---------------------------------------------------------------------------
 // CWD resolution — multi-source, with sentinel rejection.
@@ -71,7 +72,8 @@ export class SystemWorkspacePlugin implements Plugin {
     searchFilesToolDefinition,
     todoWriteToolDefinition,
     todoReadToolDefinition,
-    computerUseToolDefinition
+    computerUseToolDefinition,
+    delegateSubagentToolDefinition
   ];
 
   public handlers = {
@@ -90,7 +92,7 @@ export class SystemWorkspacePlugin implements Plugin {
     ['run_terminal_command']: async (args: any, context?: any) => {
       const cwd = resolveCwd(context, args);
       if (cwd) updateLastKnownCwd(context, cwd);
-      return await runTerminalCommand(args.command, cwd);
+      return await runTerminalCommand(args.command, cwd, args.envType, args.dockerImage);
     },
     ['run_terminal_command_pty']: async (args: any, context?: any) => {
       const cwd = resolveCwd(context, args);
@@ -131,6 +133,9 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['todo_read']: async (_args: any, context?: any) => {
       return todoRead(context?.sessionId);
+    },
+    ['delegate_subagent']: async (args: any) => {
+      return await delegateSubagent(args.task, args.roleName);
     },
   };
 }

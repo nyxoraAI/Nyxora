@@ -133,10 +133,13 @@ const apiLimiter = rateLimit({
 app.set('trust proxy', 1);
 app.use('/api/', apiLimiter);
 
+// Health check — no auth required, used by Desktop to poll readiness
+app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
+
 // API Auth Middleware
 app.use('/api', (req, res, next) => {
-  // Bypass auth for Google OAuth callback and URLs since they are handled externally or by the browser
-  const allowedPaths = ['/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google', '/api/download'];
+  // Bypass auth for login endpoint and Google OAuth (handled externally or before token exists)
+  const allowedPaths = ['/api/auth', '/api/auth/google/url', '/api/auth/google/callback', '/api/auth/google/status', '/api/auth/google', '/api/download'];
   const currentPath = req.originalUrl.split('?')[0];
   if (allowedPaths.includes(currentPath) || allowedPaths.includes(currentPath.replace(/\/$/, ''))) {
     return next();
@@ -645,7 +648,9 @@ app.post('/api/auth', (req, res) => {
     const config = loadConfig();
     const currentPass = config.security?.dashboard_password || '123456';
     if (req.body?.password === currentPass) {
-      res.json({ success: true });
+      // Return the session token so the client can authenticate all subsequent requests
+      const token = getSessionToken();
+      res.json({ success: true, token });
     } else {
       res.status(401).json({ error: 'Invalid password' });
     }

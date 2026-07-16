@@ -45,6 +45,12 @@ nyxora start
 
 # 🖥️ Open the interactive UI dashboard
 nyxora dashboard
+
+# Open the Native Desktop App (Electron)
+nyxora desktop
+
+# Open the Terminal UI (TUI) for VPS/CLI users
+nyxora chat
 ```
 
 The interactive command-line wizard (`nyxora setup`) acts as a smart system doctor that automatically validates your Node.js installation (and automatically downloads an isolated Portable Python runtime if missing) before guiding you through:
@@ -85,6 +91,9 @@ npm run setup
 
 # Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
 npm start
+
+# (Optional) Run the Desktop App locally
+npm run desktop
 ```
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 

@@ -97,7 +97,9 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ### 💻 OS & Web2 Skills (Off-Chain)
 *   **Google Workspace Automation 🚀**: Transform Nyxora into your ultimate personal assistant. The agent can read your latest Gmail inbox, check your Google Calendar, extract text from Google Docs, and even append expense/trading logs directly to your Google Sheets.
-*   **System Automation & Full OS Access**: Instruct the agent to read/write local files, run terminal commands, and browse the web natively.
+*   **System Automation & Full OS Access**: Instruct the agent to read/write local files, run interactive terminal commands (with secure `sudo` password auto-injection), and browse the web natively.
+*   **Docker Sandbox Execution**: Safely run untrusted code and manipulate files inside an isolated, ephemeral Docker container environment to protect your host OS.
+*   **Recursive Subagent Delegation**: Dispatch long-running or highly complex tasks to isolated clone subagents that run in parallel without clogging your main conversational context window.
 *   **Automated Excel Reporting**: Instruct the agent to compile its Web3 portfolio or transaction history findings and autonomously generate beautiful `.xlsx` spreadsheet reports saved directly to your local machine.
 *   **Unstoppable Synergy**: Combine both engines with a single prompt. Example: *"Read the latest presale token email from my Gmail, automatically set a Take Profit limit order on Uniswap, and log the execution result to my Google Sheets."*
 *   **Autonomous Skill Synthesizing (`skillExtractor.ts`)**: Instruct the AI to learn a new workflow, and it will autonomously write the Node.js execution logic and schema, saving it locally as a custom skill following the **`agentskills.io`** standard!
@@ -217,6 +219,12 @@ nyxora start
 
 # Open the interactive UI dashboard
 nyxora dashboard
+
+# Open the Native Desktop App (Electron)
+nyxora desktop
+
+# Open the Terminal UI (TUI) for VPS/CLI users
+nyxora chat
 ```
 
 ### Option 2: Local Development (Source Code)
@@ -237,6 +245,9 @@ npm run setup
 
 # 4. Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
 npm start
+
+# 5. (Optional) Run the Desktop App locally
+npm run desktop
 ```
 
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*

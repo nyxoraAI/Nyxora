@@ -362,6 +362,41 @@ async function serveMcp() {
   await new Promise(resolve => child.on('close', resolve));
 }
 
+async function desktop() {
+  console.log("Preparing Nyxora Desktop MVP...");
+  
+  // Auto-install dependencies if node_modules for desktop doesn't exist
+  const desktopNodeModules = path.join(projectRoot, 'packages', 'desktop', 'node_modules');
+  if (!fs.existsSync(desktopNodeModules)) {
+    console.log("Installing Desktop dependencies...");
+    const install = spawn('npm', ['install'], {
+      cwd: projectRoot,
+      stdio: 'inherit'
+    });
+    await new Promise(resolve => install.on('close', resolve));
+  }
+
+  // Build the desktop app if it hasn't been built yet
+  const distElectron = path.join(projectRoot, 'packages', 'desktop', 'dist-electron');
+  if (!fs.existsSync(distElectron)) {
+    console.log("Building Nyxora Desktop...");
+    const build = spawn('npm', ['run', 'build:electron', '--workspace=nyxora-desktop'], {
+      cwd: projectRoot,
+      stdio: 'inherit'
+    });
+    await new Promise(resolve => build.on('close', resolve));
+  }
+
+  console.log("Starting Nyxora Desktop...");
+  const child = spawn('npm', ['run', 'dev', '--workspace=nyxora-desktop'], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env: { ...process.env, ELECTRON_ARGS: '--no-sandbox' }
+  });
+  
+  await new Promise(resolve => child.on('close', resolve));
+}
+
 async function main() {
   switch(command) {
     case 'doctor': await runDoctor(); break;
@@ -379,6 +414,19 @@ async function main() {
     case 'clean-logs': await cleanLogs(); break;
     case 'autostart': await autostart(process.argv[3]); break;
     case 'mcp': await serveMcp(); break;
+    case 'desktop': await desktop(); break;
+    case 'tui': 
+      const compiledCliTui = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
+      const useCompiledTui = fs.existsSync(compiledCliTui);
+      const cmdTui = useCompiledTui ? 'node' : 'npx';
+      const argsTui = useCompiledTui ? [compiledCliTui, 'tui', ...process.argv.slice(3)] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'tui', ...process.argv.slice(3)];
+      const childTui = spawn(cmdTui, argsTui, {
+        cwd: projectRoot,
+        stdio: 'inherit',
+        env: { ...process.env, TS_NODE_CACHE: 'false' }
+      });
+      await new Promise(resolve => childTui.on('close', resolve));
+      break;
     case '-v':
     case '--v':
     case '--version':

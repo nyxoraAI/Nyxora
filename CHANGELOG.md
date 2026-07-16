@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.16]
+### Architecture Upgrade
+- **Docker Sandbox Execution (`run_terminal_command`)**: Upgraded terminal execution tool to support an isolated environment (`envType: "docker"`). When enabled, commands run inside an ephemeral Docker container (default: `python:3.11-slim`), safely sandboxing code execution and file manipulation from the host OS.
+- **Trajectory Generation (`TrajectoryLogger`)**: Implemented automated dataset generation. The agent loop now hooks into `TrajectoryLogger` to save execution histories as JSONL files (`~/.nyxora/trajectories.jsonl`). Trajectories are formatted with `<tool_call>` and `<tool_response>` tags, ready for next-gen tool-calling model fine-tuning.
+- **Subagent Delegation (`delegate_subagent`)**: Empowered the core agent with the ability to recursively spawn isolated clone instances. Using the new `delegate_subagent` skill, the agent can dispatch long-running or complex tasks in parallel without polluting the main context window.
+- **Terminal User Interface (TUI)**: Developed a native TUI using `blessed` for non-GUI / VPS users. Features a multi-pane layout (Chat, Active Tools, Subagents) and utilizes SSE streaming to render real-time LLM responses identically to the Web Dashboard. Launch via `nyxora tui`.
+
+### Features & Platform Expansion
+- **Nyxora Desktop MVP**: Successfully engineered and launched a native, standalone Desktop Application using Electron, Vite, and React.
+  - The desktop client seamlessly mirrors the sleek aesthetic of the web dashboard while providing a native OS-level experience.
+  - Introduced the new `nyxora desktop` CLI command. Running this command autonomously fetches dependencies, builds the renderer, and launches the Electron wrapper.
+  - **Zero-Touch Daemon Sync**: Implemented an intelligent lifecycle manager within the Electron main process. The app autonomously bootstraps the Nyxora background daemon (`nyxora start`) upon launch and securely tears it down when closed.
+  - **Race Condition & Auth Security Fix**: Engineered a robust asynchronous waiting mechanism and internal Vite proxy (`vite.config.ts`) to flawlessly synchronize the `runtime.token` injection between the backend daemon and the frontend UI, completely eradicating startup race conditions and CORS origin blocks.
+
+### Self-Learning & Continuous Improvement
+- **Proactive Tool-Iteration Trigger**: Refactored the core agent loop (`osAgent.ts`) to proactively trigger the background review engine (`ml-engine`) after every 10 tool iterations, rather than waiting for an arbitrary session end or a 3-minute idle timeout.
+- **Aggressive Skill Creation**: Upgraded the `_COMBINED_REVIEW_PROMPT` in `ml-engine` to explicitly command the AI to be highly active in creating and patching skills. Frustration and user corrections are now treated as "FIRST-CLASS skill signals".
+- **Deep Context Window**: Expanded the history payload sent to the background review engine from 30 messages to 100 messages, ensuring the background reviewer has the complete context of long debugging struggles.
+- **UI Learning Notifications**: The core gateway now awaits the background review's execution result. When the AI successfully creates or patches a skill, a `💾 Self-improvement review` system message is automatically injected into the chat UI, providing immediate transparency that the agent is learning.
+- **Persistent System Corrections**: Upgraded the Reflection Engine's schema (`reflection.ts`) to extract and permanently store `system_correction` memories. The AI now actively remembers explicit user rules regarding tool limitations or preferred workflows across all future sessions.
+- **UI Tool Status Sanitization**: Fixed a visual bug where raw JSON tool arguments and execution states were leaking into the chat interface. Upgraded `getToolLabel` (`osAgent.ts`) to aggressively truncate tool outputs and provide clean status indicators.
+
 ## [26.7.15]
 ### Bug Fixes
 
@@ -27,8 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Fix #2 (`searchWeb.ts`)**: Added `isFactualQuery` detector covering sports (skor, hasil, pertandingan, piala, liga, klasemen), news (berita, kejadian), journals (jurnal, penelitian, paper, studi), and finance (harga, saham, inflasi). Factual queries auto-upgrade to `effectiveDepth = Math.max(depth, 2)` regardless of LLM's depth argument.
 - **Fix #3 (`searchWeb.ts`)**: Added `[SEARCH_CONFIDENCE: HIGH/MEDIUM/LOW]` signal to all search outputs. Confidence is derived from how many top-3 articles were successfully scraped. If `LOW` on a factual/temporal query, an explicit warning is injected into the tool result instructing the LLM to admit data unavailability instead of guessing.
 - **Fix #4 (`promptBuilder.ts`)**: Replaced `<web_search_accuracy>` section with stronger `[GROUNDED ANSWERS ONLY]` rule: after calling `search_web`, answers must be based strictly on search results. If `[SEARCH_CONFIDENCE: LOW]` or the specific fact is absent, LLM must say "Gue belum nemu data yang spesifik dari search" — never fill gaps from training memory for 2024–2026 events.
-- **Fix #5 (`promptBuilder.ts`)**: Added `[SOURCE CITATION]` enforcement: when stating any specific fact (score, result, date, statistic), LLM must include the source URL. Format: "Menurut [URL], ..."
-
+- **Fix #5 (`promptBuilder.ts`)**: Added `[SOURCE CITATION]` enforcement: when stating any specific fact (score, result, date, statistic), LLM must include the source URL.
 ## [26.7.14]
 ### Agent Identity & Execution Discipline Overhaul
 - **Semantic Intent Router Refactor (`reasoning.ts`)**: Upgraded the intent router to utilize a strict \`CLASSIFICATION MATRIX\` and Context Hierarchy Rules. This completely eradicates intent misclassification between Web3 and OS workflows, especially during context-switching.

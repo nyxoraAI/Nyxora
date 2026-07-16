@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { loadConfig, loadApiKeys } from '../../config/parser';
 
-export async function runTerminalCommand(command: string, cwd?: string): Promise<string> {
+export async function runTerminalCommand(command: string, cwd?: string, envType: 'local' | 'docker' = 'local', dockerImage: string = 'python:3.11-slim'): Promise<string> {
   // --- AUTO-REDIRECT TO PTY FOR SUDO ---
   // If command starts with sudo but was called via non-PTY tool, auto-redirect to PTY
   const needsSudo = /^\s*sudo\s/.test(command);
@@ -49,6 +49,14 @@ export async function runTerminalCommand(command: string, cwd?: string): Promise
       } catch (e) {
         // config load failed, proceed without password injection
       }
+    }
+
+    if (envType === 'docker') {
+      // Escape single quotes for bash -c
+      const escapedCommand = finalCommand.replace(/'/g, "'\\''");
+      const cwdArg = cwd ? `-w ${cwd}` : '';
+      const volumeArg = cwd ? `-v ${cwd}:${cwd}` : '';
+      finalCommand = `docker run --rm ${cwdArg} ${volumeArg} ${dockerImage} bash -c '${escapedCommand}'`;
     }
 
     exec(finalCommand, { maxBuffer: 1024 * 1024 * 10, env, cwd, timeout: 120000 }, (error, stdout, stderr) => {
@@ -113,17 +121,25 @@ export const runTerminalCommandToolDefinition = {
   type: "function",
   function: {
     name: "run_terminal_command",
-    description: "Execute NON-INTERACTIVE shell commands on the local machine. Use this for: simple commands (ls, cat, grep, ps), pipes/redirects, background processes. DO NOT use for: sudo commands (use run_terminal_command_pty instead), interactive editors (vim, nano), or interactive programs (python REPL). This is faster but has no TTY.",
+    description: "Execute NON-INTERACTIVE shell commands. Support local and docker isolated environments. Use this for: simple commands (ls, cat, grep, ps), pipes/redirects, background processes. DO NOT use for: sudo commands (use run_terminal_command_pty instead), interactive editors (vim, nano), or interactive programs.",
     parameters: {
       type: "object",
       properties: {
         command: {
           type: "string",
           description: "The terminal command to execute.",
+        },
+        envType: {
+          type: "string",
+          enum: ["local", "docker"],
+          description: "The execution environment. Use 'docker' for isolated/sandboxed operations, 'local' for host operations.",
+        },
+        dockerImage: {
+          type: "string",
+          description: "If envType is 'docker', specify the image to use (e.g. 'python:3.11-slim' or 'ubuntu:latest'). Default is 'python:3.11-slim'.",
         }
       },
       required: ["command"],
     },
   },
 };
-

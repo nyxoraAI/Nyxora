@@ -133,11 +133,12 @@ console.log(`================================`);
     }
   }
 
-  // Check for chat command
-  if (process.argv.includes('chat')) {
-    const { chatInteractive } = await import('./chat');
-    await chatInteractive();
-    process.exit(0);
+  // Check for chat or TUI command
+  if (process.argv.includes('chat') || process.argv.includes('tui')) {
+    const { runTUI } = await import('./tui');
+    await runTUI();
+    // Do not process.exit(0) here because TUI uses an event loop
+    return;
   }
 
   // Check for uninstall command

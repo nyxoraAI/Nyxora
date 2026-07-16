@@ -46,7 +46,8 @@ export class ArbitrumBridgeProvider implements DefiAggregatorProvider {
       maxSubmissionCost = 50000000000000n; // Default 0.00005 ETH
 
       try {
-        const client = createPublicClient({ chain: sepolia, transport: http() });
+        const { getPublicClient } = await import('../../utils/rpcEngine');
+        const client = getPublicClient('sepolia');
         const feeData = await client.estimateFeesPerGas();
         const maxFeePerGas = feeData.maxFeePerGas || feeData.gasPrice || 2000000000n;
         // Formula buffer: 300% of L1 base fee * 1000 for safety overhead on testnet
