@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.17]
+### NPM Global Publishing & Monorepo Enhancements
+- **Global `npm install` Support**: Merged `packages/desktop` dependencies (`react`, `electron`, `vite`, etc.) into the root `package.json`. This ensures that when users run `npm install -g nyxora`, all dependencies required for the Desktop MVP are installed gracefully without causing read-only permission errors in the global directory.
+- **ML Engine Auto-Setup (`postinstall`)**: Engineered `scripts/install-ml-engine.js` and hooked it into NPM's `postinstall` lifecycle. The framework now automatically spins up an isolated Python virtual environment at `~/.nyxora/ml-engine/venv` and installs all AI dependencies in the background during global installation.
+- **CLI Desktop Hardening**: Stripped out the dynamic `npm install` mechanism from the `nyxora desktop` command, relying entirely on the new robust global dependency resolution to prevent `EACCES` permission errors for end-users.
+
 ## [26.7.16]
 ### Architecture Upgrade
 - **Docker Sandbox Execution (`run_terminal_command`)**: Upgraded terminal execution tool to support an isolated environment (`envType: "docker"`). When enabled, commands run inside an ephemeral Docker container (default: `python:3.11-slim`), safely sandboxing code execution and file manipulation from the host OS.
