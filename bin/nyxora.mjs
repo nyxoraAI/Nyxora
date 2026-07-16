@@ -364,17 +364,7 @@ async function serveMcp() {
 
 async function desktop() {
   console.log("Preparing Nyxora Desktop MVP...");
-  
-  // Auto-install dependencies if node_modules for desktop doesn't exist
-  const desktopNodeModules = path.join(projectRoot, 'packages', 'desktop', 'node_modules');
-  if (!fs.existsSync(desktopNodeModules)) {
-    console.log("Installing Desktop dependencies...");
-    const install = spawn('npm', ['install'], {
-      cwd: projectRoot,
-      stdio: 'inherit'
-    });
-    await new Promise(resolve => install.on('close', resolve));
-  }
+
 
   // Build the desktop app if it hasn't been built yet
   const distElectron = path.join(projectRoot, 'packages', 'desktop', 'dist-electron');
