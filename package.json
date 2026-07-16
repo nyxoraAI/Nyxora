@@ -34,7 +34,8 @@
     "packages/mcp-server/package.json",
     "packages/dashboard/dist",
     "packages/dashboard/package.json",
-    "packages/ml-engine"
+    "packages/ml-engine",
+    "scripts"
   ],
   "bin": {
     "nyxora": "bin/nyxora.mjs"
