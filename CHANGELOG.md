@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.18]
+### NPM Global Installation Fixes
+- **Drastic Installation Size Reduction**: Moved UI and Desktop build tools (`electron-builder`, `vite`, `tailwindcss`, `react`, etc.) from `dependencies` to `devDependencies` in the root `package.json`. This ensures global installations (`npm install -g nyxora`) are lightweight and fast.
+- **Removed Deprecation Warnings**: By moving `electron-builder` to `devDependencies`, end-users will no longer see deprecation warnings from legacy upstream dependencies (`inflight`, `rimraf@2`, `glob@7`) during global installation.
+- **Documentation Update**: Removed the `nyxora desktop` command from public CLI documentation, as this command is designed exclusively for local development and standalone distribution, not for global NPM installations.
+
 ## [26.7.17]
 ### NPM Global Publishing & Monorepo Enhancements
 - **Global `npm install` Support**: Merged `packages/desktop` dependencies (`react`, `electron`, `vite`, etc.) into the root `package.json`. This ensures that when users run `npm install -g nyxora`, all dependencies required for the Desktop MVP are installed gracefully without causing read-only permission errors in the global directory.
