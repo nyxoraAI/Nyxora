@@ -63,7 +63,6 @@ nyxora model
 nyxora doctor
 
 # Other surfaces
-nyxora desktop                 # launch the native desktop app (alias: nyxora gui)
 nyxora dashboard               # web admin panel + embedded chat
 nyxora proxy                   # OpenAI-compatible local proxy backed by your OAuth provider
 ```
@@ -240,7 +239,6 @@ Multiple credentials per provider form a pool that rotates automatically and ski
 ```
 nyxora insights [--days N]  Usage analytics
 nyxora update               Update to latest version
-nyxora desktop / gui        Launch the native desktop app
 nyxora dashboard            Web admin panel + embedded chat
 nyxora proxy                OpenAI-compatible local proxy backed by an OAuth provider
 nyxora portal               Quick setup / sign in via Nous Portal
@@ -803,12 +801,6 @@ User docs: https://nyxora-agent.nousresearch.com/docs/user-guide/features/kanban
 
 Beyond the CLI and gateway, a few things worth knowing about:
 
-- **Desktop app** (`nyxora desktop` / `nyxora gui`) — native Electron app
-  for macOS/Linux/Windows: streaming chat, session list, drag-and-drop +
-  clipboard-paste files, Cmd+K palette, status-bar model picker,
-  rebindable shortcuts, native notifications, live subagent watch-windows,
-  VS Code Marketplace themes, and per-profile remote-gateway login (OAuth
-  or username/password) so a thin local GUI can drive a heavy remote agent.
 - **Web dashboard** (`nyxora dashboard`) — full admin panel: configure
   every messaging channel, the MCP catalog, webhooks/hooks, memory, and a
   complete profile builder (model + skills + MCPs) from the browser, plus

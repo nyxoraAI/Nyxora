@@ -46,9 +46,6 @@ nyxora start
 # 🖥️ Open the interactive UI dashboard
 nyxora dashboard
 
-# Open the Native Desktop App (Electron)
-nyxora desktop
-
 # Open the Terminal UI (TUI) for VPS/CLI users
 nyxora chat
 ```
