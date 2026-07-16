@@ -6,7 +6,7 @@ Nyxora is designed for a frictionless onboarding experience. We provide a CLI-ba
 
 ## 🛠️ Prerequisites
 Before installing Nyxora, ensure your system meets the following requirements:
-1. **Node.js** (Version 18 or higher).
+1. **Node.js** (Version 22 or higher).
 2. **Python 3.10+** (Optional. Nyxora will automatically download a sandboxed Portable Python runtime if missing).
 3. A minimum of 2GB RAM.
 4. A valid API Key from one of the supported providers (OpenAI, Gemini, Anthropic, OpenRouter, 9Router, Custom Provider, Groq, Mistral, xAI, DeepSeek) or a local Ollama instance.
