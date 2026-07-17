@@ -18,7 +18,7 @@
     "@slack/bolt": "^4.7.3",
     "@slack/types": "^2.22.0",
     "@slack/web-api": "^7.18.0",
-    "@tencent-connect/qqbot-connector": "^1.1.0",
+    "@tencent-connect/qqbot-connector": "^1.2.0",
     "@twurple/api": "^8.1.4",
     "@twurple/auth": "^8.1.4",
     "@twurple/chat": "^8.1.4",
