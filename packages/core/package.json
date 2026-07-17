@@ -37,7 +37,7 @@
     "jsonwebtoken": "^9.0.3",
     "linkedom": "^0.18.12",
     "markdown-it": "^14.3.0",
-    "matrix-js-sdk": "^41.9.0-rc.0",
+    "matrix-js-sdk": "^41.9.0",
     "mpg123-decoder": "^1.0.3",
     "multer": "^2.2.0",
     "music-metadata": "^11.13.0",
