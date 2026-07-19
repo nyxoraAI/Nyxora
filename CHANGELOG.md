@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [26.7.19]
+### Web3 & Market Intelligence
+- **Super-Report & AI Financial Advisor**: Merged GoPlus Security data directly into the `analyze_market` tool to eliminate duplicate API requests. The LLM now receives a comprehensive dataset including Liquidity, 24h Volume, Pool Age, Holder Concentration (real-time from GoPlus), and smart contract security status (Honeypot, Taxes) in a single unified execution.
+- **Advisor Persona Nudge**: Injected a "Sharp Crypto Financial Advisor" persona into the LLM's system note. The AI is now instructed to actively evaluate the combined fundamental and security metrics to provide concrete, strategic recommendations (e.g., Quick Flip, Hold, DCA, Avoid) rather than just passively reciting numbers.
+
 ### Agent Intelligence & Context Engine
 - **Gen-AI Execution & Discipline Upgrade**: Completely overhauled `promptBuilder.ts` by injecting advanced cognitive discipline instructions (including *Execution Bias* and *Output Directives*). The AI is now significantly more proactive in utilizing tools, highly resilient to failures (*varies strategy* instead of giving up), and responds with a strict, senior-developer brevity (*anti-loop*, *anti-repetition*).
 - **Date/Time Context Optimization**: Removed deprecated instructions that forced the LLM to execute a terminal command to check the current time. The system datetime context is now dynamically injected during prompt building, allowing the AI to read it instantly from memory. This saves unnecessary tool calls and reduces API quota consumption.

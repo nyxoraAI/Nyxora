@@ -2,7 +2,7 @@ import { normalizeChainName } from '../utils/chains';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 
-const CHAIN_IDS: Record<ChainName, number> = {
+export const CHAIN_IDS: Record<ChainName, number> = {
   ethereum: 1,
   base: 8453,
   bsc: 56,
@@ -17,22 +17,41 @@ const CHAIN_IDS: Record<ChainName, number> = {
   robinhood_testnet: 46630,
 };
 
+export async function fetchTokenSecurityData(chainName: ChainName, contractAddress: string): Promise<any> {
+  const chainId = CHAIN_IDS[chainName];
+  if (!chainId || chainName === 'sepolia') {
+    return null;
+  }
+  const url = `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${contractAddress}`;
+  const data = await safeFetchJson<any>(url);
+  
+  if (data.code !== 1 || !data.result) {
+    return null;
+  }
+  return data.result[String(contractAddress || "").toLowerCase()];
+}
+
+export function formatSecurityReport(tokenData: any): string {
+  if (!tokenData) return `[Security Data Not Available]`;
+  let report = `**5. Security & Smart Contract (GoPlus):**\n`;
+  report += `- Is Honeypot: ${tokenData.is_honeypot === "1" ? "⚠️ YES (DANGER)" : "✅ NO"}\n`;
+  report += `- Buy Tax: ${tokenData.buy_tax ? (parseFloat(tokenData.buy_tax) * 100).toFixed(2) + '%' : 'Unknown'} | Sell Tax: ${tokenData.sell_tax ? (parseFloat(tokenData.sell_tax) * 100).toFixed(2) + '%' : 'Unknown'}\n`;
+  report += `- Cannot Sell All: ${tokenData.cannot_sell_all === "1" ? "⚠️ YES" : "✅ NO"}\n`;
+  report += `- Proxy Contract: ${tokenData.is_proxy === "1" ? "⚠️ YES (Upgradable)" : "✅ NO"}\n`;
+  report += `- Owner Can Change Balance: ${tokenData.owner_change_balance === "1" ? "⚠️ YES" : "✅ NO"}\n`;
+  report += `- Open Source: ${tokenData.is_open_source === "1" ? "✅ YES" : "⚠️ NO (Code is hidden)"}\n`;
+  return report;
+}
+
 export async function checkTokenSecurity(chainName: ChainName, contractAddress: string): Promise<string> {
   try {
     chainName = normalizeChainName(chainName);
-    const chainId = CHAIN_IDS[chainName];
+    
     if (chainName === 'sepolia') {
       return `Security check API (GoPlus) does not support Sepolia testnet. Try a mainnet token.`;
     }
 
-    const url = `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${contractAddress}`;
-    const data = await safeFetchJson<any>(url);
-    
-    if (data.code !== 1 || !data.result) {
-      throw new Error(`API returned error: ${data.message || 'Unknown error'}`);
-    }
-
-    const tokenData = data.result[String(contractAddress || "").toLowerCase()];
+    const tokenData = await fetchTokenSecurityData(chainName, contractAddress);
     if (!tokenData) {
       return `Token security data not found for ${contractAddress} on ${chainName}.`;
     }

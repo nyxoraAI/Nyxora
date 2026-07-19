@@ -35,6 +35,9 @@ class MarketResponse(BaseModel):
     volume24h: float
     priceChange24h: float
     
+    poolCreatedAt: Optional[int] = None
+    txns24h: Optional[int] = None
+    
     # New indicators
     rsi: Optional[float]
     ma50: Optional[float]
@@ -374,6 +377,9 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
     price_change_24h = 0.0
     is_cex_asset = False
     
+    pool_created_at = None
+    txns_24h = None
+    
     mom = {}
     
     if is_address:
@@ -387,6 +393,10 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
             liquidity_usd = float(pair.get('liquidity', {}).get('usd', 0))
             volume_24h = float(pair.get('volume', {}).get('h24', 0))
             price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
+            
+            pool_created_at = pair.get('pairCreatedAt')
+            txns = pair.get('txns', {}).get('h24', {})
+            txns_24h = txns.get('buys', 0) + txns.get('sells', 0)
             
             mom = await calculate_momentum(official_symbol, current_price)
         else:
@@ -415,6 +425,11 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
                 liquidity_usd = float(pair.get('liquidity', {}).get('usd', 0))
                 volume_24h = float(pair.get('volume', {}).get('h24', 0))
                 price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
+                
+                pool_created_at = pair.get('pairCreatedAt')
+                txns = pair.get('txns', {}).get('h24', {})
+                txns_24h = txns.get('buys', 0) + txns.get('sells', 0)
+                
                 mom = await calculate_momentum(official_symbol, current_price)
             else:
                 raise HTTPException(status_code=404, detail="Token not found anywhere")
@@ -428,6 +443,9 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
         liquidityUsd=liquidity_usd,
         volume24h=volume_24h,
         priceChange24h=price_change_24h,
+        
+        poolCreatedAt=pool_created_at,
+        txns24h=txns_24h,
         
         rsi=mom.get('rsi'),
         ma50=mom.get('ma50'),

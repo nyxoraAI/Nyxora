@@ -2,6 +2,7 @@ import { normalizeChainName } from '../utils/chains';
 import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 import { generateMarketHealthReport, MarketHealthResult } from '../utils/riskIntelligence';
+import { fetchTokenSecurityData, formatSecurityReport, CHAIN_IDS } from './checkSecurity';
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
@@ -43,17 +44,44 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
         trendClassification,
         trendConfidence,
         narrative,
-        isCexAsset
+        isCexAsset,
+        poolCreatedAt,
+        txns24h
     } = mlData;
 
     // ==========================================
     // PHASE 2: HEALTH & RISK SCORING (NODE.JS)
     // ==========================================
-    // Dummy TVL and concentration for now, Python can augment this later
+    let poolAgeText = 'Unknown';
+    if (poolCreatedAt) {
+        const days = Math.floor((Date.now() - poolCreatedAt) / (1000 * 60 * 60 * 24));
+        const dateStr = new Date(poolCreatedAt).toISOString().split('T')[0];
+        poolAgeText = `${days} days (created ${dateStr})`;
+        if (days <= 7) poolAgeText += ' - Note: Very New';
+    }
+
+    // Dummy TVL for now, Python can augment this later
     let tvlChange7d: number | null = null;
-    let top10HoldersPercent: number | null = 45; // Default medium risk
-    if (mcapUsd > 100000000) top10HoldersPercent = 15;
-    else if (mcapUsd < 500000) top10HoldersPercent = 85;
+    let top10HoldersPercent: number | null = null;
+    let securityData: any = null;
+
+    if (contractAddress && CHAIN_IDS[chainName] && chainName !== 'sepolia') {
+        try {
+            securityData = await fetchTokenSecurityData(chainName, contractAddress);
+            if (securityData && securityData.holders && Array.isArray(securityData.holders)) {
+                let sumPercent = 0;
+                const holdersList = securityData.holders.slice(0, 10);
+                for (const h of holdersList) {
+                    sumPercent += parseFloat(h.percent || "0");
+                }
+                if (sumPercent > 0) {
+                    top10HoldersPercent = parseFloat((sumPercent * 100).toFixed(2));
+                }
+            }
+        } catch (e) {
+            console.warn(`[Market Intelligence] Failed to fetch GoPlus holders data`);
+        }
+    }
 
     let healthResult: MarketHealthResult = { 
         liquidityScore: 5.0, smartMoneyScore: 5.0, concentrationScore: 5.0, momentumScore: 5.0, overallScore: 5.0 
@@ -80,7 +108,14 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     
     report += `**2. Liquidity & Flow:** ${healthResult.liquidityScore !== null ? healthResult.liquidityScore + '/10' : '[ N/A ]'}\n`;
     report += `- Liquidity: $${liquidityUsd.toLocaleString()} vs FDV: $${mcapUsd.toLocaleString()}\n`;
-    report += `- 24h Volume: $${volume24h.toLocaleString()} | OBV Trend: ${obvTrend || 'N/A'}\n\n`;
+    report += `- 24h Volume: $${volume24h.toLocaleString()} | OBV Trend: ${obvTrend || 'N/A'}\n`;
+    if (txns24h !== undefined && txns24h !== null) {
+        report += `- 24h Transactions: ${txns24h.toLocaleString()} txns\n`;
+    }
+    if (poolCreatedAt) {
+        report += `- Pool Age: ${poolAgeText}\n`;
+    }
+    report += `\n`;
     
     report += `**3. Holder Concentration:** ${healthResult.concentrationScore !== null ? healthResult.concentrationScore + '/10' : '[ N/A - RPC Pending ]'}\n`;
     report += `- Top 10 Holders: ${top10HoldersPercent !== null ? top10HoldersPercent + '%' : 'N/A'}\n\n`;
@@ -93,7 +128,11 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     report += `- Bollinger Bandwidth: ${bollingerBandwidth ? bollingerBandwidth.toFixed(2)+'%' : 'N/A'}\n`;
     report += `- ATR (14): ${atr14 ? '$'+atr14.toFixed(4) : 'N/A'}\n\n`;
 
-    report += `*System Note for LLM: Use this exact data to provide a "Market Summary" and "Suggested Autonomous Actions" in the user's native language. The narrative provided is pre-computed by the ML engine. Incorporate the ML engine's narrative into your summary. IMPORTANT: Always include a clear disclaimer at the end (translated into the user's native language) stating that this analysis is NOT financial advice (NFA).*`;
+    if (securityData) {
+        report += formatSecurityReport(securityData) + '\n';
+    }
+
+    report += `*System Note for LLM: You are a sharp, expert crypto financial advisor (Penasihat Keuangan Kripto). Use this exact data to provide a comprehensive "Market & Security Summary" in the user's native language. You MUST explicitly state the Token's Market Cap, Liquidity, 24h Volume, 24h Transactions, Pool Age, Holder Concentration, and Security/Honeypot status.\n\nCRITICAL TASK: Based on the combined technical indicators, liquidity risks, holder concentration, and smart contract security, you MUST provide a clear, strategic, and actionable recommendation on what the user should do with this token. Use terms like 'Quick Flip / Scalp', 'Hold for mid-term', 'Avoid at all costs (High Risk)', or 'DCA cautiously'. Justify your perspective logically using the provided data and the ML engine's narrative.\n\nIMPORTANT: Always include a clear disclaimer at the end (translated into the user's native language) stating that this analysis is NOT financial advice (NFA).*`;
 
     return report;
 
