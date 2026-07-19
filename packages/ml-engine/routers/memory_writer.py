@@ -9,7 +9,7 @@ from config import get_app_dir
 router = APIRouter()
 
 def get_memory_dir() -> Path:
-    mem_dir = get_app_dir() / 'memory'
+    mem_dir = get_app_dir() / 'data'
     mem_dir.mkdir(parents=True, exist_ok=True)
     return mem_dir
 
@@ -25,8 +25,8 @@ class NarrativeResponse(BaseModel):
 
 @router.get("/narrative", response_model=NarrativeResponse)
 async def get_narrative():
-    mem_path = get_memory_dir() / 'MEMORY.md'
-    user_path = get_memory_dir() / 'USER.md'
+    mem_path = get_memory_dir() / 'narrative_memory.md'
+    user_path = get_memory_dir() / 'narrative_user.md'
     
     memory_md = mem_path.read_text(encoding='utf-8') if mem_path.exists() else ""
     user_md = user_path.read_text(encoding='utf-8') if user_path.exists() else ""
@@ -38,7 +38,7 @@ async def manage_memory(req: MemoryManageRequest):
     if req.target not in ["memory", "user"]:
         return {"success": False, "message": "Invalid target. Must be 'memory' or 'user'."}
         
-    file_name = f"{req.target.upper()}.md"
+    file_name = f"narrative_{req.target.lower()}.md"
     file_path = get_memory_dir() / file_name
     
     current_content = file_path.read_text(encoding='utf-8') if file_path.exists() else ""

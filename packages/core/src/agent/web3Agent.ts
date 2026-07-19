@@ -77,7 +77,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     // This catches loops even when tool args differ per call (e.g. different chainName).
     const toolCallCounts = new Map<string, number>();
     const TOOL_CALL_LIMITS: Record<string, number> = {
-      'check_portfolio': 8,      // 7 mainnets + 1 retry buffer
+      'check_portfolio': 15,     // 12 networks + 3 retry buffer
       'get_balance': 8,
       'get_token_balance': 10,
       'get_token_price': 12,
@@ -528,7 +528,7 @@ export async function processWeb3IntentStream(
     // ── Per-tool-name call count tracker (same as non-stream) ──────────────────────────
     const toolCallCountsStream = new Map<string, number>();
     const TOOL_CALL_LIMITS_STREAM: Record<string, number> = {
-      'check_portfolio': 8,
+      'check_portfolio': 15,
       'get_balance': 8,
       'get_token_balance': 10,
       'get_token_price': 12,
@@ -605,22 +605,26 @@ export async function processWeb3IntentStream(
           const isThinkOnlyResponse = hasNativeReasoning || hasThinkTagInStream;
 
           // ── THINKING-PREFILL CONTINUATION ──
-          if (isThinkOnlyResponse && thinkingPrefillRetries < 2) {
+          // Gemini tends to need more prefill attempts — allow up to 4.
+          const maxPrefillRetriesW = (config.llm.provider === 'gemini') ? 4 : 2;
+          if (isThinkOnlyResponse && thinkingPrefillRetries < maxPrefillRetriesW) {
             thinkingPrefillRetries++;
-            console.warn(`[Web3AgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/2)...`);
+            console.warn(`[Web3AgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/${maxPrefillRetriesW})...`);
             continue;
           }
 
           // ── NUDGE FALLBACK (after prefill exhaustion or truly empty) ──
-          if (nudgeCount < 3) {
+          // Gemini needs more nudges — allow up to 5 for Gemini, 3 for others
+          const maxNudgesW = (config.llm.provider === 'gemini') ? 5 : 3;
+          if (nudgeCount < maxNudgesW) {
             nudgeCount++;
             const recentUserMsg = logger.getHistory(sessionId)
               .filter((m: any) => m.role === 'user').slice(-1)[0]?.content || 'the user request';
 
             let nudgeContent: string;
             if (isThinkOnlyResponse) {
-              console.warn(`[Web3AgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3 — SILENT STOP DETECTED]
+              console.warn(`[Web3AgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/${maxNudgesW}) for ${config.llm.provider}...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/${maxNudgesW} — SILENT STOP DETECTED]
 You completed your internal reasoning but produced NO output (no tool call, no text).
 This is a silent stop — it is not acceptable.
 
@@ -632,8 +636,8 @@ You MUST act RIGHT NOW. Do one of these:
 
 Do NOT think again. Execute step 1 of the task NOW.`;
             } else {
-              console.warn(`[Web3AgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
+              console.warn(`[Web3AgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/${maxNudgesW}) for ${config.llm.provider}...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/${maxNudgesW}] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
 Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
@@ -651,7 +655,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
             }, sessionId);
             continue;
           } else {
-            console.error('[Web3AgentStream] ❌ LLM failed to recover after prefill + 3 nudges. Aborting.');
+            console.error(`[Web3AgentStream] ❌ LLM (${config.llm.provider}) failed to recover after prefill + ${maxNudgesW} nudges. Aborting.`);
             const reasoningContent = (responseMessage as any).reasoning_content || '';
             if (reasoningContent && reasoningContent.length > 50) {
               console.warn('[Web3AgentStream] Using reasoning_content as fallback response.');

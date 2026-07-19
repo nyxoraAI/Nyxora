@@ -560,11 +560,37 @@ function App() {
             const data = JSON.parse(event.data);
             if (data.chunk) {
               let cleanChunk = data.chunk;
-              if (cleanChunk.includes('[CLEAR_STREAM]')) {
+              
+              if (cleanChunk.includes('[TOOL_CALL_DETECTED]') || cleanChunk.includes('[CLEAR_STREAM]')) {
+                const signal = cleanChunk.includes('[CLEAR_STREAM]') ? '[CLEAR_STREAM]' : '[TOOL_CALL_DETECTED]';
+                const parts = cleanChunk.split(signal);
+                const beforeSignal = parts[0];
+                const afterSignal = parts.slice(1).join(signal);
+                
+                if (beforeSignal) {
+                  fullResponse += beforeSignal.replace(/\[TOOL_CALL_DETECTED\]|\[TOOL_CALL_FINISHED\]/g, '');
+                }
+                
+                const finalizedContent = fullResponse;
+                renderedResponse = finalizedContent;
+                
+                setMessages(prev => {
+                  const currentMsg = prev.find((m: any) => m.id === streamingId);
+                  if (currentMsg && finalizedContent.trim()) {
+                    const finalizedMessages = prev.map((m: any) =>
+                      m.id === streamingId ? { ...m, content: finalizedContent, isStreaming: false, id: `final-${Date.now()}-${Math.random()}` } : m
+                    );
+                    const newStreamingMsg = { role: 'assistant', content: '', id: streamingId, isStreaming: true };
+                    return [...finalizedMessages, newStreamingMsg];
+                  }
+                  return prev; 
+                });
+                
                 fullResponse = '';
                 renderedResponse = '';
-                cleanChunk = cleanChunk.split('[CLEAR_STREAM]').pop() || '';
+                cleanChunk = afterSignal;
               }
+              
               cleanChunk = cleanChunk.replace(/\[TOOL_CALL_DETECTED\]|\[TOOL_CALL_FINISHED\]/g, '');
               if (cleanChunk) {
                 fullResponse += cleanChunk;
@@ -1088,49 +1114,7 @@ function App() {
 
                 <div className="chat-container" ref={chatContainerRef} style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
                   <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-
-                {(() => {
-                  const getMergedMessages = (msgs: any[]) => {
-                    const merged: any[] = [];
-                    let currentAssistantMsg: any = null;
-                    
-                    for (const m of msgs) {
-                      if (m.role === 'user') {
-                        if (currentAssistantMsg) {
-                          merged.push(currentAssistantMsg);
-                          currentAssistantMsg = null;
-                        }
-                        merged.push(m);
-                      } else if (m.role === 'assistant') {
-                        if (currentAssistantMsg) {
-                          if (m.tool_calls) {
-                            currentAssistantMsg.tool_calls = [...(currentAssistantMsg.tool_calls || []), ...m.tool_calls];
-                          }
-                          if (m.content && m.content.trim() !== '') {
-                            if (currentAssistantMsg.tool_calls && currentAssistantMsg.tool_calls.length > 0) {
-                               currentAssistantMsg.content = m.content.trim();
-                            } else {
-                               currentAssistantMsg.content = (currentAssistantMsg.content && currentAssistantMsg.content.trim() !== '')
-                                 ? currentAssistantMsg.content.trim() + '\n\n' + m.content.trim() 
-                                 : m.content.trim();
-                            }
-                          }
-                          if (m.reasoning_content) {
-                            currentAssistantMsg.reasoning_content = (currentAssistantMsg.reasoning_content || '') + m.reasoning_content;
-                          }
-                          currentAssistantMsg.isStreaming = currentAssistantMsg.isStreaming || m.isStreaming;
-                        } else {
-                          currentAssistantMsg = { ...m };
-                        }
-                      }
-                      // Ignored roles (e.g., 'tool') to maintain exact same array indices (keys) between streaming and history states.
-                    }
-                    if (currentAssistantMsg) {
-                      merged.push(currentAssistantMsg);
-                    }
-                    return merged;
-                  };
-                  return getMergedMessages(messages).map((msg, idx) => {
+                {messages.map((msg: any, idx: number) => {
                   const handleCopy = () => {
                   navigator.clipboard.writeText(msg.content);
                 setCopiedIndex(idx);
@@ -1151,9 +1135,17 @@ function App() {
                 return (
                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignSelf: 'flex-start', maxWidth: '95%' }}>
                     {msg.progress && (
-                      <div className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
+                      <div className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: (msg.content || msg.reasoning_content) ? '4px' : '0' }}>
                         <Activity size={16} color="#22c55e" />
                         <span dangerouslySetInnerHTML={{ __html: msg.progress.replace(/_([^_]+)_/g, '<i>$1</i>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
+                      </div>
+                    )}
+
+                    {msg.reasoning_content && msg.reasoning_content.trim() !== '' && (
+                      <div className="message-wrapper agent" style={{ maxWidth: '100%', margin: 0, marginBottom: '8px' }}>
+                        <div className="message-bubble" style={{ opacity: 0.9, borderLeft: '3px solid #6366f1', borderTopLeftRadius: '2px', borderBottomLeftRadius: '2px' }}>
+                          {renderMessageContent(msg.reasoning_content)}
+                        </div>
                       </div>
                     )}
 
@@ -1186,8 +1178,7 @@ function App() {
                 );
               }
               return null;
-            });
-            })()}
+            })}
 
             {isLoading && !messages.some(m => m.isStreaming && (m.content || m.progress)) && (
               <div className="typing-indicator">

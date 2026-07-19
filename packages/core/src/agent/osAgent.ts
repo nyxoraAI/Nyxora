@@ -192,7 +192,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 10;
+    const MAX_TURNS = 30;
     let consecutiveToolErrors = 0;
     let criticHasFired = false; // Critic Pass hanya aktif 1x per request
     // Anti-loop: track (toolName+argsHash) pairs from the PREVIOUS turn to
@@ -697,7 +697,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       // Loop continues, sending tool results in the next turn
     }
     
-    const maxTurnMsg = "⚠️ Reached maximum interaction limit (10 turns). Please be more specific.";
+    const maxTurnMsg = "⚠️ Reached maximum interaction limit (30 turns). Please be more specific.";
     logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
     triggerBackgroundReview(sessionId);
     return maxTurnMsg;
@@ -770,7 +770,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   try {
     let turnCount = 0;
     let nudgeCount = 0;
-    const MAX_TURNS = 10; // Reduced from 15 — match non-stream, limits loop blast radius
+    const MAX_TURNS = 30; // Increased to 30 to support long loops like multi-chain portfolios
     let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
     let antiLoopStrikes = 0;
 
@@ -866,24 +866,28 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
           // If model produced reasoning but no visible output, append the assistant message as-is
           // so the model sees its own reasoning on the next turn and continues naturally.
           // This avoids restarting the reasoning chain from scratch (which is what nudges do).
-          if (isThinkOnlyResponse && thinkingPrefillRetries < 2) {
+          // Gemini tends to need more prefill attempts — allow up to 4.
+          const maxPrefillRetries = (config.llm.provider === 'gemini') ? 4 : 2;
+          if (isThinkOnlyResponse && thinkingPrefillRetries < maxPrefillRetries) {
             thinkingPrefillRetries++;
-            console.warn(`[OsAgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/2)...`);
+            console.warn(`[OsAgentStream] ⚠️ Think-only silent stop — prefilling to continue (${thinkingPrefillRetries}/${maxPrefillRetries})...`);
             // The assistant message is already in logger from the addEntry above.
             // The model will see its own reasoning and produce a tool call or text next turn.
             continue;
           }
 
           // ── NUDGE FALLBACK (after prefill exhaustion or truly empty) ──
-          if (nudgeCount < 3) {
+          // Gemini needs more nudges — allow up to 5 for Gemini, 3 for others
+          const maxNudges = (config.llm.provider === 'gemini') ? 5 : 3;
+          if (nudgeCount < maxNudges) {
             nudgeCount++;
             const recentUserMsg = logger.getHistory(sessionId)
               .filter((m: any) => m.role === 'user').slice(-1)[0]?.content || 'the user request';
 
             let nudgeContent: string;
             if (isThinkOnlyResponse) {
-              console.warn(`[OsAgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3 — SILENT STOP DETECTED]
+            console.warn(`[OsAgentStream] ⚠️ Think-only prefill exhausted. System nudge (${nudgeCount}/${maxNudges}) for ${config.llm.provider}...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/${maxNudges} — SILENT STOP DETECTED]
 You completed your internal reasoning but produced NO output (no tool call, no text).
 This is a silent stop — it is not acceptable.
 
@@ -895,8 +899,8 @@ You MUST act RIGHT NOW. Do one of these:
 
 Do NOT think again. Execute step 1 of the task NOW.`;
             } else {
-              console.warn(`[OsAgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/3)...`);
-              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/3] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
+              console.warn(`[OsAgentStream] ⚠️ Empty or filler response. System nudge (${nudgeCount}/${maxNudges}) for ${config.llm.provider}...`);
+              nudgeContent = `[SYSTEM NUDGE ${nudgeCount}/${maxNudges}] Your last response was empty or contained conversational filler without tool calls. You MUST take action now.
 
 Task: "${(typeof recentUserMsg === 'string' ? recentUserMsg : JSON.stringify(recentUserMsg)).substring(0, 200)}"
 
@@ -915,7 +919,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
             continue;
 
           } else {
-            console.error('[OsAgentStream] ❌ LLM failed to recover after prefill + 3 nudges. Aborting.');
+            console.warn(`[OsAgentStream] ⚠️ LLM (${config.llm.provider}) failed to recover after prefill + ${maxNudges} nudges. Using fallback.`);
             // Last-resort recovery: surface reasoning_content if available
             const reasoningContent = (responseMessage as any).reasoning_content || '';
             if (reasoningContent && reasoningContent.length > 50) {
@@ -1138,7 +1142,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
     }
 
     if (!fullResponse) {
-      const maxTurnMsg = '⚠️ Reached maximum interaction limit (10 turns). Please be more specific.';
+      const maxTurnMsg = '⚠️ Reached maximum interaction limit (30 turns). Please be more specific.';
       logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
       fullResponse = maxTurnMsg;
       triggerBackgroundReview(sessionId);

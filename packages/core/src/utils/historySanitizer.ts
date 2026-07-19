@@ -13,7 +13,20 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
   const processedHistory: any[] = [];
 
   for (const m of history) {
-    let role = m.role === 'system' ? 'user' : m.role;
+    let role = m.role;
+    // Only convert system → user for NON-summary system messages.
+    // Summary messages (from contextSummarizer) must STAY as 'system' role
+    // so the LLM treats them as background context, not as user instructions.
+    if (role === 'system') {
+      const contentStr = typeof m.content === 'string' ? m.content : '';
+      const isSummary = contentStr.includes('[CONVERSATION SUMMARY') 
+        || contentStr.includes('BACKGROUND CONTEXT ONLY')
+        || contentStr.includes('[PREVIOUS ATTEMPT');
+      if (!isSummary) {
+        role = 'user';
+      }
+      // If it IS a summary, keep role as 'system'.
+    }
     let content = m.content || "";
 
     if (role === 'assistant' && typeof content === 'string') {
@@ -202,7 +215,8 @@ export function pruneLoopedHistory(history: any[]): any[] {
           ? `[PREVIOUS ATTEMPT — User asked: "${userText}". Tool execution encountered repeated failures and was stopped. Partial results: ${toolResults.join(' | ').substring(0, 500)}. Do NOT retry this action unless explicitly asked again.]`
           : `[PREVIOUS ATTEMPT — User asked: "${userText}". This request failed with repeated tool errors and was stopped. Do NOT retry unless explicitly asked again.]`;
 
-        result.push({ role: 'user', content: summary });
+        // Use 'system' role so LLM treats this as context, not as a user request to retry.
+        result.push({ role: 'system', content: summary });
         // Skip the entire failed run
         i = j;
       } else {

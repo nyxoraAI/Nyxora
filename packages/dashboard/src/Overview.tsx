@@ -62,8 +62,8 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
       const logsRes = await apiFetch('/api/logs');
       if (logsRes.ok) {
         const logs = await logsRes.json();
-        setEvents(logs.events);
-        setGatewayLogs(logs.gateway);
+        setEvents(logs.events || []);
+        setGatewayLogs(logs.gateway || []);
       }
 
       const cronRes = await apiFetch('/api/cron');
@@ -74,7 +74,8 @@ const Overview: React.FC<OverviewProps> = ({ config, sessionsCount }) => {
 
       const memRes = await apiFetch('/api/memory');
       if (memRes.ok) {
-        setMemories(await memRes.json());
+        const memData = await memRes.json();
+        setMemories(Array.isArray(memData) ? memData : []);
       }
     } catch (err) {
       console.error("Failed to fetch analytics");

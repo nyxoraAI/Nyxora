@@ -57,7 +57,7 @@ export const getBalanceToolDefinition = {
   type: "function",
   function: {
     name: "get_balance",
-    description: "Get the native or ERC-20 token balance of a wallet address on a specific chain. If address is omitted, it returns the balance of the agent's own wallet.",
+    description: "Get the native or ERC-20 token balance of a wallet address on a specific chain (ethereum, base, bsc, arbitrum, optimism, polygon, robinhood, sepolia, base_sepolia, arbitrum_sepolia, optimism_sepolia, robinhood_testnet). If address is omitted, it returns the balance of the agent's own wallet.",
     parameters: {
       type: "object",
       properties: {

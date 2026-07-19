@@ -405,10 +405,10 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 'bold', fontSize: '0.9rem', overflow: 'hidden'
                       }}>
-                        <span style={{ position: 'absolute', zIndex: 1 }}>{t.symbol.substring(0, 3)}</span>
+                        <span style={{ position: 'absolute', zIndex: 1 }}>{(t.symbol || '???').substring(0, 3)}</span>
                         <img 
                           src={getTokenLogoUrl(t.chain, t.address, t.isNative)} 
-                          alt={t.symbol} 
+                          alt={t.symbol || 'token'} 
                           style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 2, background: 'var(--bg-secondary)' }} 
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
@@ -432,7 +432,7 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
                         </div>
                       </div>
                     </div>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '1.1rem' }}>{t.symbol}</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '1.1rem' }}>{t.symbol || 'Unknown'}</span>
                   </div>
                   
                   <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500' }}>
@@ -440,7 +440,7 @@ export const Portfolio: React.FC<{ baseFiat?: string }> = ({ baseFiat = 'usd' })
                   </div>
                   
                   <div style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: '600' }}>
-                    {formatBalance(t.balanceRaw, t.decimals)} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{t.symbol}</span>
+                    {formatBalance(t.balanceRaw, t.decimals)} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{t.symbol || ''}</span>
                   </div>
                   
                   <div style={{ textAlign: 'right', color: '#A3BE8C', fontWeight: '600', fontSize: '1.1rem' }}>

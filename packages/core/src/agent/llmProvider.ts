@@ -478,6 +478,9 @@ export class GeminiAdapter implements LLMProvider {
       contents: mergedContents,
       generationConfig: {
         temperature: request.temperature || 0.7,
+        // Anti-repetition: penalize repetitive output patterns
+        topP: 0.95,
+        topK: 40,
       },
       safetySettings: [
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -608,7 +611,13 @@ export class GeminiAdapter implements LLMProvider {
 
     const payload: any = {
       contents: mergedContents,
-      generationConfig: { temperature: request.temperature || 0.7 },
+      generationConfig: {
+        temperature: request.temperature || 0.7,
+        // Anti-repetition: penalize repetitive output patterns
+        topP: 0.95,
+        topK: 40,
+        // Gemini doesn't have frequency_penalty, but we can use candidateCount=1 + topP/topK
+      },
       safetySettings: [
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },

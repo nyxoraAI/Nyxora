@@ -7,6 +7,7 @@ import Overview from './Overview';
 import Settings from './Settings';
 import SearchChat from './SearchChat';
 import { Portfolio } from './Portfolio';
+import { AgentTrace } from './AgentTrace';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
 import PendingTransactions from './PendingTransactions';
@@ -567,7 +568,11 @@ function App() {
             }
             if (data.progress) {
               setMessages(prev => prev.map((m: any) =>
-                m.id === streamingId ? { ...m, progress: data.progress } : m
+                m.id === streamingId ? { 
+                  ...m, 
+                  progress: data.progress,
+                  progressLogs: [...(m.progressLogs || []), { text: data.progress, time: Date.now() }]
+                } : m
               ));
             }
             if (data.error) {
@@ -599,7 +604,7 @@ function App() {
 
       // Mark streaming as done and clean up placeholder field
       setMessages(prev => prev.map((m: any) =>
-        m.id === streamingId ? { ...m, content: fullResponse, isStreaming: false, progress: undefined } : m
+        m.id === streamingId ? { ...m, content: fullResponse, isStreaming: false } : m
       ));
 
 
@@ -830,97 +835,7 @@ function App() {
             </div>
           </nav>
 
-          <div className="sidebar-section" style={{ marginTop: '0px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Workspaces</span>
-            {!isSidebarCollapsed && (
-              <button 
-                onClick={importProject}
-                title="Import Project"
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: 'var(--text-secondary)', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  padding: '4px', 
-                  borderRadius: '4px' 
-                }}
-                onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-              >
-                <Plus size={16} strokeWidth={2} />
-              </button>
-            )}
-          </div>
-          
-          <nav className="sidebar-nav sessions-list">
-            {projects.map((project) => {
-              const isExpanded = expandedProjects[project.id];
-              const projectSessions = chatSessions.filter(s => s.project_id === project.id);
-              
-              return (
-                <div key={project.id}>
-                  <div 
-                    className="nav-item project-item"
-                    onClick={() => setExpandedProjects(prev => ({ ...prev, [project.id]: !isExpanded }))}
-                    style={{ fontWeight: 600, color: 'var(--text-primary)', padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Folder size={15} className="nav-icon" />
-                      <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.9rem' }}>{project.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          createNewSession(project.id);
-                          setExpandedProjects(prev => ({ ...prev, [project.id]: true })); 
-                        }} 
-                        title="New Chat in Workspace"
-                        style={{ padding: '4px', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}
-                        onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                      >
-                        <Plus size={14} />
-                      </button>
-                      <button 
-                        onClick={(e) => deleteProject(project.id, e)} 
-                        title="Remove Workspace"
-                        style={{ padding: '4px', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}
-                        onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
-                        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {isExpanded && projectSessions.map(session => (
-                    <div 
-                      key={session.id}
-                      className={`nav-item session-item ${activeSessionId === session.id && currentView === 'chat' ? 'active' : ''}`}
-                      onClick={() => { setActiveSessionId(session.id); setCurrentView('chat'); }}
-                      style={{ paddingLeft: '32px' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
-                        <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem', opacity: 0.8 }}>{session.title}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
-                          <Edit2 size={12} strokeWidth={1.5} />
-                        </button>
-                        <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
-                          <Trash2 size={14} strokeWidth={1.5} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </nav>
-          
+
           <div className="sidebar-section" style={{ marginTop: '0px' }}>
             <span>Recent</span>
           </div>
@@ -1058,7 +973,7 @@ function App() {
                 )}
 
                 <div className="chat-container" ref={chatContainerRef} style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
-                  <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                  <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
                 {(() => {
                   const getMergedMessages = (msgs: any[]) => {
@@ -1089,6 +1004,9 @@ function App() {
                           if (m.reasoning_content) {
                             currentAssistantMsg.reasoning_content = (currentAssistantMsg.reasoning_content || '') + m.reasoning_content;
                           }
+                          if (m.progressLogs) {
+                            currentAssistantMsg.progressLogs = [...(currentAssistantMsg.progressLogs || []), ...m.progressLogs];
+                          }
                           currentAssistantMsg.isStreaming = currentAssistantMsg.isStreaming || m.isStreaming;
                         } else {
                           currentAssistantMsg = { ...m };
@@ -1118,32 +1036,15 @@ function App() {
                   </div>
                 );
               }
-              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progress || msg.reasoning_content)) {
+              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progressLogs || msg.reasoning_content)) {
                 return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignSelf: 'flex-start', maxWidth: '95%' }}>
-                    {msg.progress && (
-                      <div className="tool-call" style={{ alignSelf: 'flex-start', marginBottom: msg.content ? '4px' : '0' }}>
-                        <Activity size={16} color="#22c55e" />
-                        <span dangerouslySetInnerHTML={{ __html: msg.progress.replace(/_([^_]+)_/g, '<i>$1</i>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
-                      </div>
-                    )}
-
-                    {msg.tool_calls && msg.tool_calls.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: msg.content ? '4px' : '0' }}>
-                        {msg.tool_calls
-                          .filter((tool: any, index: number, self: any[]) => index === self.findIndex((t) => t.function.name === tool.function.name))
-                          .map((tool: any, tIdx: number) => {
-                             const count = msg.tool_calls.filter((t: any) => t.function.name === tool.function.name).length;
-                             return (
-                               <div key={`t-${tIdx}`} className="tool-call" style={{ margin: 0 }}>
-                                 <Activity size={16} color="#22c55e" />
-                                 Executing: <code>{tool.function.name}</code>
-                                 {count > 1 && <span style={{ fontSize: '0.75rem', marginLeft: '6px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>x{count}</span>}
-                               </div>
-                             );
-                          })
-                        }
-                      </div>
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}>
+                    {(msg.tool_calls?.length > 0 || msg.progressLogs?.length > 0) && (
+                      <AgentTrace 
+                        toolCalls={msg.tool_calls} 
+                        progressLogs={msg.progressLogs} 
+                        isStreaming={msg.isStreaming} 
+                      />
                     )}
                     {msg.content && msg.content.trim() !== '' && (
                       <div className="message-wrapper agent" style={{ maxWidth: '100%', margin: 0 }}>
@@ -1160,11 +1061,9 @@ function App() {
             });
             })()}
 
-            {isLoading && !messages.some(m => m.isStreaming && (m.content || m.progress)) && (
-              <div className="typing-indicator">
-                <div className="dot"></div>
-                <div className="dot"></div>
-                <div className="dot"></div>
+            {isLoading && !messages.some(m => m.isStreaming && (m.content || m.progressLogs)) && (
+              <div className="working-indicator">
+                <span className="working-dots">Working</span>
               </div>
             )}
             {activeWidget && (

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.19]
+### Agent Intelligence & Context Engine
+- **Gen-AI Execution & Discipline Upgrade**: Completely overhauled `promptBuilder.ts` by injecting advanced cognitive discipline instructions (including *Execution Bias* and *Output Directives*). The AI is now significantly more proactive in utilizing tools, highly resilient to failures (*varies strategy* instead of giving up), and responds with a strict, senior-developer brevity (*anti-loop*, *anti-repetition*).
+- **Date/Time Context Optimization**: Removed deprecated instructions that forced the LLM to execute a terminal command to check the current time. The system datetime context is now dynamically injected during prompt building, allowing the AI to read it instantly from memory. This saves unnecessary tool calls and reduces API quota consumption.
+
+### Architecture & Memory Unification
+- **Memory Fragmentation Cleanup**: Resolved a cross-language memory storage architectural conflict. Previously, the Node.js core wrote explicit preferences to `.nyxora/data/user.md` while the Python ML Engine wrote inferred narrative memories to `.nyxora/memory/USER.md`, creating severe overwrite risks on case-insensitive operating systems (Windows/Mac).
+- **ML Engine Refactor**: Modified Python endpoints to exclusively read and write to the `data` directory. AI-generated narrative files have been systematically renamed to `narrative_user.md` and `narrative_memory.md` to cleanly separate them from explicit user profiles.
+- **LLM Prompt Header Clarification**: Updated memory injection headers in the Node.js `system prompt` to be strictly descriptive (`EXPLICIT USER PREFERENCES` vs `AI INFERRED USER NARRATIVE`), eliminating LLM context confusion.
+
+### Bug Fixes & Stability
+- **Tool Loop Limit Expansion**: Increased the `MAX_TURNS` threshold in `osAgent.ts` from 10 to 30. This empowers the agent to autonomously execute significantly longer chained processes and complex coding refactors without being prematurely interrupted by system limits.
+- **System Nudge UI Leak Remediation**: Prevented internal error logs from leaking into the user interface. When the LLM hallucinates or enters a prolonged *Silent Stop* that exhausts the Nudge tolerance, the agent no longer spews raw logs (`{"level":"error"}`). Instead, it gracefully intercepts the failure and returns a polite fallback response to the user.
+
 ## [26.7.18]
 ### NPM Global Installation Fixes
 - **Drastic Installation Size Reduction**: Moved UI and Desktop build tools (`electron-builder`, `vite`, `tailwindcss`, `react`, etc.) from `dependencies` to `devDependencies` in the root `package.json`. This ensures global installations (`npm install -g nyxora`) are lightweight and fast.

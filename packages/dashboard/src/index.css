@@ -590,14 +590,22 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 .message-wrapper.agent {
   align-self: flex-start;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
+  width: 100%;
 }
 .message-wrapper.user {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-  align-items: flex-end;
-  gap: 8px;
+  align-self: flex-start;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-sizing: border-box;
 }
 
 .copy-btn {
@@ -612,6 +620,7 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 2px;
 }
 .copy-btn:hover {
   background: var(--bg-secondary);
@@ -622,54 +631,29 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 }
 
 .message-bubble {
-  padding: 10px 16px;
-  border-radius: 20px;
-  line-height: 1.4;
+  padding: 8px 0;
+  line-height: 1.5;
   font-size: 0.95rem;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
-  max-width: fit-content;
+  max-width: 100%;
+  flex: 1;
 }
 
 .user .message-bubble {
-  position: relative;
-  background-color: var(--chat-user);
-  color: var(--chat-user-text);
-  border-bottom-right-radius: 4px;
-  margin-right: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+  padding: 0;
+  flex: 1;
 }
 
-.user .message-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: -6px;
-  width: 12px;
-  height: 16px;
-  background-color: var(--chat-user);
-  mask-image: radial-gradient(circle at top right, transparent 12px, black 12.5px);
-  -webkit-mask-image: radial-gradient(circle at top right, transparent 12px, black 12.5px);
+.message-wrapper.user .copy-btn {
+  margin: 0;
 }
 
 .agent .message-bubble {
-  position: relative;
-  background-color: var(--chat-agent);
-  border-bottom-left-radius: 4px;
   color: var(--text-primary);
-  margin-left: 6px;
-}
-
-.agent .message-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: -6px;
-  width: 12px;
-  height: 16px;
-  background-color: var(--chat-agent);
-  mask-image: radial-gradient(circle at top left, transparent 12px, black 12.5px);
-  -webkit-mask-image: radial-gradient(circle at top left, transparent 12px, black 12.5px);
 }
 
 .tool-call {
@@ -1349,4 +1333,181 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   background: transparent;
   padding: 0;
   border: none;
+}
+
+/* Agent Trace Styles */
+.agent-trace-container {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  color: #a3a3a3;
+  font-family: inherit;
+  font-size: 0.85rem;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.agent-trace-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  user-select: none;
+  color: #e5e5e5;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.agent-trace-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.agent-trace-summary {
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.agent-trace-icon {
+  color: #94a3b8;
+}
+
+.agent-trace-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.agent-trace-body {
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  margin-left: 12px;
+  margin-top: 4px;
+}
+
+.trace-item-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.trace-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: #9ca3af;
+}
+
+.trace-item.thought-header {
+  cursor: pointer;
+}
+.trace-item.thought-header:hover {
+  color: #e5e5e5;
+}
+
+.trace-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.trace-icon-chev {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.trace-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.trace-thought-content {
+  padding: 8px 12px;
+  margin: 4px 0 8px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  color: #d4d4d4;
+  border-left: 2px solid var(--accent);
+}
+
+.trace-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Light theme overrides for Agent Trace */
+body.light-theme .agent-trace-container {
+  color: #4b5563;
+}
+
+body.light-theme .agent-trace-header {
+  color: #1f2937;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .agent-trace-summary {
+  color: #4b5563;
+}
+
+body.light-theme .agent-trace-icon {
+  color: #6b7280;
+}
+
+body.light-theme .agent-trace-header:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .agent-trace-body {
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .trace-item {
+  color: #6b7280;
+}
+
+body.light-theme .trace-item.thought-header:hover {
+  color: #1f2937;
+}
+
+body.light-theme .trace-thought-content {
+  background: rgba(0, 0, 0, 0.03);
+  color: #374151;
+}
+.working-indicator {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
+  padding-left: 8px;
+  align-self: flex-start;
+}
+.working-dots::after {
+  content: '.';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+@keyframes dots {
+  0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+  40% { color: inherit; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+  60% { text-shadow: .25em 0 0 inherit, .5em 0 0 rgba(0,0,0,0); }
+  80%, 100% { text-shadow: .25em 0 0 inherit, .5em 0 0 inherit; }
+}
+body.dark-theme .working-dots::after {
+  animation: dots-dark 1.5s steps(5, end) infinite;
+}
+@keyframes dots-dark {
+  0%, 20% { color: rgba(255,255,255,0); text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0); }
+  40% { color: inherit; text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0); }
+  60% { text-shadow: .25em 0 0 inherit, .5em 0 0 rgba(255,255,255,0); }
+  80%, 100% { text-shadow: .25em 0 0 inherit, .5em 0 0 inherit; }
 }
