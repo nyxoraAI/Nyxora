@@ -8,6 +8,8 @@ WORKDIR /app
 # Install native dependencies required for isolated-vm, keyring, etc.
 RUN apt-get update && apt-get install -y \
     python3 \
+    python3-pip \
+    python3-venv \
     make \
     g++ \
     libsecret-1-dev \
@@ -20,6 +22,10 @@ COPY packages/dashboard/package*.json ./packages/dashboard/
 COPY packages/mcp-server/package*.json ./packages/mcp-server/
 COPY packages/policy/package*.json ./packages/policy/
 COPY packages/signer/package*.json ./packages/signer/
+COPY packages/desktop/package*.json ./packages/desktop/
+COPY packages/tui/package*.json ./packages/tui/
+COPY packages/nyxora-ink/package*.json ./packages/nyxora-ink/
+COPY scripts/install-ml-engine.js ./scripts/install-ml-engine.js
 
 # Install ALL dependencies (including devDependencies for Vite)
 RUN npm install --legacy-peer-deps
@@ -57,6 +63,10 @@ COPY packages/dashboard/package*.json ./packages/dashboard/
 COPY packages/mcp-server/package*.json ./packages/mcp-server/
 COPY packages/policy/package*.json ./packages/policy/
 COPY packages/signer/package*.json ./packages/signer/
+COPY packages/desktop/package*.json ./packages/desktop/
+COPY packages/tui/package*.json ./packages/tui/
+COPY packages/nyxora-ink/package*.json ./packages/nyxora-ink/
+COPY scripts/install-ml-engine.js ./scripts/install-ml-engine.js
 
 # Install ONLY production dependencies (--omit=dev)
 ENV NODE_ENV=production
