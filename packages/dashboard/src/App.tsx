@@ -1,7 +1,5 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
@@ -665,12 +663,21 @@ function App() {
       .trim();
 
 
+    const parseBold = (text: string) => {
+      return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} style={{ color: 'var(--text-primary)' }}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+    };
+
     return (
-      <div className="markdown-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowWrap: 'anywhere' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {cleanContent && (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {cleanContent}
-          </ReactMarkdown>
+          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {parseBold(cleanContent)}
+          </div>
         )}
       </div>
     );
