@@ -1,0 +1,29 @@
+{
+  "name": "nyxora-dashboard-backup",
+  "description": "Nyxora Dashboard & Settings UI",
+  "version": "26.7.18",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^1.22.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "viem": "^2.55.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.3",
+    "globals": "^17.7.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0"
+  }
+}

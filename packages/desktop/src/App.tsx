@@ -321,7 +321,7 @@ function App() {
 
   const fetchSessions = async () => {
     try {
-      const res = await apiFetch(`/api/sessions`);
+      const res = await apiFetch(`/api/sessions?client=desktop`);
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data);
@@ -368,7 +368,7 @@ function App() {
 
   const createNewSession = async (projectId?: string) => {
     try {
-      const body: any = { title: 'New Chat' };
+      const body: any = { title: 'New Chat', client: 'desktop' };
       if (projectId) body.project_id = projectId;
       
       const res = await apiFetch(`/api/sessions`, {
@@ -496,7 +496,7 @@ function App() {
         const res = await apiFetch(`/api/sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title })
+          body: JSON.stringify({ title, client: 'desktop' })
         });
         if (res.ok) {
           const { id } = await res.json();

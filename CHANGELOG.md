@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Removed Deprecation Warnings**: By moving `electron-builder` to `devDependencies`, end-users will no longer see deprecation warnings from legacy upstream dependencies (`inflight`, `rimraf@2`, `glob@7`) during global installation.
 - **Documentation Update**: Removed the `nyxora desktop` command from public CLI documentation, as this command is designed exclusively for local development and standalone distribution, not for global NPM installations.
 
+### Core Agent Enhancements
+- **Robust Context Compression**: Overhauled the context summarizer to eliminate silent API errors (HTTP 400) during long sessions. Introduced `Boundary Snapping` to guarantee that LLM tool calls and tool responses are never split during truncation. Implemented `Soft Archiving` in the SQLite `messages` table, allowing the UI to transparently render the entire conversation history while keeping the LLM context efficiently compressed.
+
 ## [26.7.17]
 ### NPM Global Publishing & Monorepo Enhancements
 - **Global `npm install` Support**: Merged `packages/desktop` dependencies (`react`, `electron`, `vite`, etc.) into the root `package.json`. This ensures that when users run `npm install -g nyxora`, all dependencies required for the Desktop MVP are installed gracefully without causing read-only permission errors in the global directory.

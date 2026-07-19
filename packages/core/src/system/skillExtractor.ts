@@ -35,19 +35,25 @@ name: ${safeName}
 version: 1.0.0
 description: <Your generated description>
 parameters:
-  type: object
-  properties:
-    param1:
-      type: string
-      description: ...
-  required:
-    - param1
+  param1:
+    type: string
+    description: ...
+required:
+  - param1
 ---
 
-CRITICAL: The 'required' array MUST be indented exactly inside the 'parameters' block as shown above. Do NOT put 'required' at the root level of the YAML.
+CRITICAL: The 'required' array MUST be at the ROOT level of the YAML frontmatter (same level as 'name', 'version', 'parameters'). Do NOT nest it inside 'parameters'.
 
-Below the frontmatter, write the step-by-step markdown instructions for how the AI should execute this skill using its native tools (like run_terminal_command, curl, python3). Provide the exact commands needed. Do NOT write any TypeScript or Node.js code. Make it an instruction-based playbook.
-Output ONLY the raw SKILL.md content.`;
+Below the frontmatter, write the step-by-step instructions for how the AI should execute this skill.
+If this skill requires running a terminal command (e.g. curl, python, node), you MUST instruct the AI to output an <execute_bash> block.
+Example:
+"To execute this skill, run the following command in the terminal:
+<execute_bash>
+curl -s 'https://api.example.com/data?param={{param1}}'
+</execute_bash>"
+
+Do NOT write any TypeScript code or try to create a Node.js module. This is an instruction-based playbook.
+Output ONLY the raw SKILL.md content, without any markdown formatting wrappers (like \`\`\`yaml).`;
 
     try {
       const resMd = await executeWithRetry(async (client) => {

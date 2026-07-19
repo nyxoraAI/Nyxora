@@ -21,6 +21,8 @@
     "chokidar": "^5.0.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^6.0.3",
     "viem": "^2.55.0",
     "yaml": "^2.9.0",

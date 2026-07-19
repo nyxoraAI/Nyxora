@@ -1,7 +1,7 @@
 {
   "name": "nyxora-dashboard",
   "description": "Nyxora Dashboard & Settings UI",
-  "version": "26.7.18",
+  "version": "26.7.17",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,14 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dompurify": "^3.4.12",
     "lucide-react": "^1.22.0",
+    "marked": "^18.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
     "viem": "^2.55.0"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
     "@types/node": "^26.0.1",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",

@@ -259,7 +259,7 @@ app.post('/api/upload-google-credentials', (req, res) => {
 app.get('/api/history', (req, res) => {
   try {
     const sessionId = req.query.session_id as string | undefined;
-    const history = logger.getHistory(sessionId, 1000);
+    const history = logger.getHistory(sessionId, 1000, true);
     // Filter out internal system prompt for the frontend
     const cleanHistory = history.filter((msg: any) => msg.role !== 'system');
     res.json(cleanHistory);
@@ -281,7 +281,8 @@ app.delete('/api/history', (req, res) => {
 
 app.get('/api/sessions', (req, res) => {
   try {
-    res.json(logger.getSessions());
+    const client = req.query.client as string | undefined;
+    res.json(logger.getSessions(client));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -290,8 +291,9 @@ app.get('/api/sessions', (req, res) => {
 app.get('/api/sessions/search', (req, res) => {
   try {
     const q = req.query.q as string;
+    const client = req.query.client as string | undefined;
     if (!q) {
-      return res.json(logger.getSessions());
+      return res.json(logger.getSessions(client));
     }
     res.json(logger.searchSessions(q));
   } catch (error: any) {
@@ -301,8 +303,8 @@ app.get('/api/sessions/search', (req, res) => {
 
 app.post('/api/sessions', (req, res) => {
   try {
-    const { title, project_id } = req.body;
-    const id = logger.createSession(title || 'New Chat', project_id);
+    const { title, project_id, client } = req.body;
+    const id = logger.createSession(title || 'New Chat', project_id, client);
     res.json({ id });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

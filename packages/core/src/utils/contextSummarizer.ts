@@ -23,12 +23,14 @@ import { executeWithRetry } from './llmUtils';
 import { loadConfig } from '../config/parser';
 import pc from 'picocolors';
 import crypto from 'crypto';
+import { logger } from '../memory/logger';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface Message {
+  id?: number;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string | any[];
   tool_calls?: any[];
@@ -41,7 +43,7 @@ export interface Message {
 // ---------------------------------------------------------------------------
 
 /** Minimum history length before compression is considered. */
-const SUMMARISE_THRESHOLD = 40;
+const SUMMARISE_THRESHOLD = 50;
 
 /** Number of most-recent messages to always keep verbatim (protect_last_n). */
 const VERBATIM_TAIL = 20;
@@ -54,17 +56,6 @@ const MAX_TOOL_RESULT_CHARS = 500;
 
 /** Placeholder for completely pruned (deduplicated) tool results. */
 const PRUNED_TOOL_PLACEHOLDER = '[Old tool output cleared — identical result seen in a later turn]';
-
-// ---------------------------------------------------------------------------
-// Anti-thrash guards (per-session)
-// ---------------------------------------------------------------------------
-
-const _ineffectiveCount  = new Map<string, number>();  // compressions that didn't help
-const _fallbackStreak    = new Map<string, number>();  // consecutive LLM-call failures
-const _compressionCache  = new Map<string, { hash: string; compressed: Message[] }>();
-
-/** After this many ineffective rounds, skip compression entirely. */
-const MAX_INEFFECTIVE = 2;
 
 // ---------------------------------------------------------------------------
 // SUMMARY_PREFIX — injected into every summary message.
@@ -83,15 +74,28 @@ This is a compressed summary of earlier conversation turns.
 
 const SUMMARY_SUFFIX = '\n--- END SUMMARY ---';
 
-// ---------------------------------------------------------------------------
-// Utility: compute stable hash for a message list segment
+// Utility functions
 // ---------------------------------------------------------------------------
 
-function _hashMessages(messages: Message[]): string {
-  return crypto
-    .createHash('md5')
-    .update(JSON.stringify(messages))
-    .digest('hex');
+function _snapBoundary(messages: Message[], index: number): number {
+  let snapped = index;
+  while (snapped > 0 && snapped < messages.length) {
+    const prev = messages[snapped - 1];
+    const curr = messages[snapped];
+    
+    // Rule 1: Never split 'assistant' with tool_calls from its 'tool' response
+    if (prev.role === 'assistant' && prev.tool_calls && prev.tool_calls.length > 0 && curr.role === 'tool') {
+      snapped++;
+    }
+    // Rule 2: Never split multiple consecutive 'tool' responses from each other
+    else if (prev.role === 'tool' && curr.role === 'tool') {
+      snapped++;
+    }
+    else {
+      break;
+    }
+  }
+  return snapped;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,90 +203,72 @@ export async function compressHistory(
 ): Promise<Message[]> {
   if (history.length < SUMMARISE_THRESHOLD) return history;
 
-  // --- Anti-thrash guard ---
-  const sessKey = sessionId ?? '__global__';
-  const ineffective = _ineffectiveCount.get(sessKey) ?? 0;
-  const fallbackStreak = _fallbackStreak.get(sessKey) ?? 0;
-  if (ineffective >= MAX_INEFFECTIVE && fallbackStreak >= MAX_INEFFECTIVE) {
-    console.log(pc.yellow('[ContextSummarizer] Skipping compression — anti-thrash guard active.'));
-    return history.slice(-VERBATIM_TAIL * 2);
-  }
-
-  // --- Cache check (skip if history unchanged) ---
-  const currentHash = _hashMessages(history);
-  const cached = _compressionCache.get(sessKey);
-  if (cached && cached.hash === currentHash) return cached.compressed;
-
   // ── Step 1: PRUNE PASS ──────────────────────────────────────────────────
   const pruned = _prunePassed(history);
 
-  // ── Step 2 & 3: PROTECT HEAD + TAIL ─────────────────────────────────────
-  const head   = pruned.slice(0, PROTECT_HEAD);
-  const tail   = pruned.slice(-VERBATIM_TAIL);
-  const middle = pruned.slice(PROTECT_HEAD, pruned.length - VERBATIM_TAIL);
+  // ── Step 2: BOUNDARY SNAPPING ───────────────────────────────────────────
+  let headIdx = _snapBoundary(pruned, PROTECT_HEAD);
+  let tailIdx = _snapBoundary(pruned, pruned.length - VERBATIM_TAIL);
 
-  if (middle.length === 0) {
-    // Nothing to compress — history is dominated by head/tail
+  // Prevent overlap
+  if (headIdx >= tailIdx) {
     return history;
   }
 
-  // ── Step 4 & 5: SUMMARIZE MIDDLE ────────────────────────────────────────
+  const head   = pruned.slice(0, headIdx);
+  const tail   = pruned.slice(tailIdx);
+  const middle = pruned.slice(headIdx, tailIdx);
+
+  if (middle.length === 0) {
+    return history;
+  }
+
+  // ── Step 3: SUMMARIZE MIDDLE ────────────────────────────────────────────
   // Check if a prior summary message exists in the head so we can merge it.
   const existingSummaryMsg = head.find(
-    m => m.role === 'system' && m.content?.includes(SUMMARY_PREFIX.slice(0, 30))
+    m => m.role === 'system' && typeof m.content === 'string' && m.content.includes(SUMMARY_PREFIX.slice(0, 30))
   );
   const oldSummary = typeof existingSummaryMsg?.content === 'string' 
     ? existingSummaryMsg.content.replace(SUMMARY_PREFIX, '') 
     : '';
-  const existingSummaryText = oldSummary.replace(SUMMARY_SUFFIX, '')
-    .trim();
+  const existingSummaryText = oldSummary.replace(SUMMARY_SUFFIX, '').trim();
 
   let summaryText: string | null = null;
   try {
     summaryText = await _summarizeMiddle(middle, existingSummaryText);
-    _fallbackStreak.set(sessKey, 0); // reset on success
   } catch {
-    _fallbackStreak.set(sessKey, (_fallbackStreak.get(sessKey) ?? 0) + 1);
-    console.warn(pc.yellow('[ContextSummarizer] LLM summarization failed, falling back to tail-only.'));
-    // Fallback: return head + tail without middle
-    return [...head, ...tail];
+    console.warn(pc.yellow('[ContextSummarizer] LLM summarization failed, falling back.'));
+    return history;
   }
 
   if (!summaryText) {
-    // LLM returned empty — same fallback
-    _fallbackStreak.set(sessKey, (_fallbackStreak.get(sessKey) ?? 0) + 1);
-    return [...head, ...tail];
+    return history;
   }
 
-  _fallbackStreak.set(sessKey, 0);
+  const newSummaryContent = `${SUMMARY_PREFIX}\n${summaryText}\n${SUMMARY_SUFFIX}`;
 
-  // ── Assemble compressed history ──────────────────────────────────────────
-  const summaryMessage: Message = {
-    role: 'system',
-    content: `${SUMMARY_PREFIX}${summaryText}${SUMMARY_SUFFIX}`,
-  };
-
-  // Replace the existing summary message in head if present, else prepend
-  const cleanHead = head.filter(m => m !== existingSummaryMsg);
-  const compressed: Message[] = [summaryMessage, ...cleanHead, ...tail];
-
-  console.log(
-    pc.magenta(
-      `[ContextSummarizer] Compressed ${middle.length} middle turns → summary. ` +
-      `Result: ${compressed.length} messages (was ${history.length}).`
-    )
-  );
-
-  // --- Update anti-thrash counter if compression wasn't effective ---
-  if (compressed.length >= history.length * 0.9) {
-    _ineffectiveCount.set(sessKey, ineffective + 1);
-    console.log(pc.yellow(`[ContextSummarizer] Compression ineffective (${ineffective + 1}/${MAX_INEFFECTIVE} rounds).`));
-  } else {
-    _ineffectiveCount.set(sessKey, 0);
+  // ── Step 4: PERSIST TO DB (SOFT ARCHIVE) ────────────────────────────────
+  const middleIds = middle.map(m => m.id).filter((id): id is number => typeof id === 'number');
+  if (middleIds.length > 0) {
+    try {
+      logger.archiveAndCompact(sessionId || '__global__', middleIds, newSummaryContent);
+      console.log(pc.cyan(`[ContextSummarizer] Compressed ${middle.length} turns via Soft Archiving.`));
+    } catch (e) {
+      console.error(pc.red('[ContextSummarizer] Failed to persist soft-archive:'), e);
+      return history; // abort compression if DB write fails
+    }
   }
 
-  _compressionCache.set(sessKey, { hash: currentHash, compressed });
-  return compressed;
+  // Filter out any OLD summary message from head so we don't have duplicates
+  const finalHead = head.filter(m => !(m.role === 'system' && typeof m.content === 'string' && m.content.includes(SUMMARY_PREFIX.slice(0, 30))));
+
+  const newHistory: Message[] = [
+    ...finalHead,
+    { role: 'system', content: newSummaryContent },
+    ...tail
+  ];
+
+  return newHistory;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,15 +277,4 @@ export async function compressHistory(
 
 export function needsCompression(history: Message[]): boolean {
   return history.length >= SUMMARISE_THRESHOLD;
-}
-
-// ---------------------------------------------------------------------------
-// clearCompressionSession() — call on session end to free memory
-// ---------------------------------------------------------------------------
-
-export function clearCompressionSession(sessionId?: string): void {
-  const key = sessionId ?? '__global__';
-  _compressionCache.delete(key);
-  _ineffectiveCount.delete(key);
-  _fallbackStreak.delete(key);
 }

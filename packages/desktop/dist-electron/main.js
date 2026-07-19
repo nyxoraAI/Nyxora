@@ -52,22 +52,13 @@ function startNyxoraDaemon() {
 		});
 	});
 }
-function stopNyxoraDaemon() {
-	console.log("Stopping Nyxora Daemon...");
-	exec(`node "${app.isPackaged ? path.join(process.resourcesPath, "bin/nyxora.mjs") : path.resolve(__dirname, "../../../bin/nyxora.mjs")}" stop`, (error, stdout, stderr) => {
-		if (error) {
-			console.error(`Error stopping daemon: ${error.message}`);
-			return;
-		}
-		console.log(`Daemon stdout: ${stdout}`);
-	});
-}
 function createWindow() {
 	win = new BrowserWindow({
 		width: 1200,
 		height: 800,
 		title: "Nyxora Desktop",
 		titleBarStyle: "hidden",
+		frame: process.platform === "darwin",
 		icon: path.join(process.env.VITE_PUBLIC || "", "icon.png"),
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
@@ -109,9 +100,6 @@ ipcMain.on("window-control", (event, action) => {
 app.on("window-all-closed", () => {
 	win = null;
 	if (process.platform !== "darwin") app.quit();
-});
-app.on("will-quit", () => {
-	stopNyxoraDaemon();
 });
 app.whenReady().then(async () => {
 	await startNyxoraDaemon();

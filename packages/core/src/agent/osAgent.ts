@@ -9,7 +9,7 @@ import { isSkillActive } from '../utils/skillManager';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
-import { sanitizeHistoryForLLM } from '../utils/historySanitizer';
+import { sanitizeHistoryForLLM, pruneLoopedHistory } from '../utils/historySanitizer';
 import { TrajectoryLogger } from '../memory/trajectoryLogger';
 
 import { promptBuilder } from './promptBuilder';
@@ -213,11 +213,13 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
-    const initialHistory = logger.getHistory(sessionId);
+    const rawHistory = logger.getHistory(sessionId);
+    const initialHistory = pruneLoopedHistory(rawHistory); // Collapse any failed loop runs
     const baseHistory = needsCompression(initialHistory)
       ? await compressHistory(initialHistory, sessionId)
       : initialHistory;
-    const baseHistoryLength = logger.getHistory(sessionId).length; // Track original length for new message detection
+    
+    let loopMessages: any[] = [];
 
     let accumulatedResults: string[] = [];
     let canFastReturnAll = true;
@@ -228,14 +230,9 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       accumulatedResults = [];
       canFastReturnAll = true;
 
-      // Get only NEW messages added during loop execution
-      const fullHistory = logger.getHistory(sessionId);
-      const newMessages = fullHistory.slice(baseHistoryLength);
-
-      
       // Combine: compressed base + new messages from loop
-      const historyToUse = newMessages.length > 0 
-        ? [...baseHistory, ...newMessages]
+      const historyToUse = loopMessages.length > 0 
+        ? [...baseHistory, ...loopMessages]
         : baseHistory;
 
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -285,11 +282,13 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
          console.log(pc.yellow(`[Anti-Loop] Detected identical response. Injected system warning.`));
       }
 
-      logger.addEntry({
-        role: 'assistant',
+      const asstMsg = {
+        role: 'assistant' as any,
         content: cleanedContent || '',
         tool_calls: responseMessage.tool_calls,
-      }, sessionId);
+      };
+      logger.addEntry(asstMsg, sessionId);
+      loopMessages.push(asstMsg);
 
       // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
       if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
@@ -430,12 +429,14 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
           responseMessage.tool_calls = fallbacks;
           responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').replace(/<tool_code>([\s\S]*?)<\/tool_code>/g, '').replace(/<(?:execute_bash|execute)>([\s\S]*?)<\/(?:execute_bash|execute)>/g, '').trim();
           console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
-          // Update logger entry with the intercepted tool calls
-          logger.addEntry({
-             role: 'assistant',
+          const fbAsstMsg = {
+             role: 'assistant' as any,
              content: responseMessage.content || "",
              tool_calls: responseMessage.tool_calls,
-          }, sessionId);
+          };
+          // Update logger entry with the intercepted tool calls
+          logger.addEntry(fbAsstMsg, sessionId);
+          loopMessages.push(fbAsstMsg);
         }
       }
       // -----------------------------------------------------
@@ -621,12 +622,14 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
       for (const { toolCall: tc, result } of allOutputs) {
         if (!tc) continue;
-        logger.addEntry({
-          role: 'tool',
+        const toolMsg = {
+          role: 'tool' as any,
           tool_call_id: tc.id,
           name: tc.function?.name,
           content: result,
-        }, sessionId);
+        };
+        logger.addEntry(toolMsg, sessionId);
+        loopMessages.push(toolMsg);
         accumulatedResults.push(result);
         const isErrorResult = typeof result === 'string' &&
           (result.includes('[System Error]') || result.startsWith('Error:') ||
@@ -769,6 +772,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     let nudgeCount = 0;
     const MAX_TURNS = 10; // Reduced from 15 — match non-stream, limits loop blast radius
     let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
+    let antiLoopStrikes = 0;
 
     let fullResponse = '';
     let criticHasFiredStream = false; // Critic Pass hanya aktif 1x per request
@@ -791,22 +795,20 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
-    const initialHistoryStream = logger.getHistory(sessionId);
+    const rawHistoryStream = logger.getHistory(sessionId);
+    const initialHistoryStream = pruneLoopedHistory(rawHistoryStream); // Collapse any failed loop runs
     const baseHistoryStream = needsCompression(initialHistoryStream)
       ? await compressHistory(initialHistoryStream, sessionId)
       : initialHistoryStream;
-    const baseHistoryLengthStream = logger.getHistory(sessionId).length;
+    
+    let loopMessagesStream: any[] = [];
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       
-      // Get only NEW messages added during loop execution
-      const fullHistoryStream = logger.getHistory(sessionId);
-      const newMessagesStream = fullHistoryStream.slice(baseHistoryLengthStream);
-      
       // Combine: compressed base + new messages from loop
-      const historyToUse = newMessagesStream.length > 0
-        ? [...baseHistoryStream, ...newMessagesStream]
+      const historyToUse = loopMessagesStream.length > 0
+        ? [...baseHistoryStream, ...loopMessagesStream]
         : baseHistoryStream;
         
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -837,12 +839,14 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       if (response.usage?.total_tokens) Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
       Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
-      logger.addEntry({
-        role: 'assistant',
+      const asstMsgStream = {
+        role: 'assistant' as any,
         content: responseMessage.content || '',
         reasoning_content: (responseMessage as any).reasoning_content,
         tool_calls: responseMessage.tool_calls,
-      }, sessionId);
+      };
+      logger.addEntry(asstMsgStream, sessionId);
+      loopMessagesStream.push(asstMsgStream);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         let finalContent = responseMessage.content || '';
@@ -945,8 +949,19 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       const seenToolCalls = new Set();
       let hasAntiLoopError = false;
 
+      // Helper to normalize JSON arguments for smarter duplicate detection
+      const normalizeArgs = (argsStr: string): string => {
+        try {
+          const parsed = JSON.parse(argsStr);
+          return JSON.stringify(parsed); // Re-stringify in canonical form
+        } catch {
+          return argsStr.trim(); // Fallback: just trim whitespace
+        }
+      };
+
       for (const tc of responseMessage.tool_calls) {
-        const sig = `${tc.function.name}:${tc.function.arguments}`;
+        const normalizedArgs = normalizeArgs(tc.function.arguments);
+        const sig = `${tc.function.name}:${normalizedArgs}`;
 
         // Per-tool-name count guard — stop before executing if limit reached
         const tnS = (tc as any).function.name as string;
@@ -983,8 +998,22 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       if (hasAntiLoopError && uniqueToolCalls.length === 0) {
         // If all tool calls were blocked by anti-loop, skip executing tools and go to next turn
         // The LLM will see the Anti-Loop error message we just injected above.
+        await onChunk('[TOOL_CALL_FINISHED]');
+        
+        // Track consecutive identical loops to prevent wasting tokens
+        antiLoopStrikes++;
+        console.warn(`[OsAgentStream] Anti-loop strike ${antiLoopStrikes}/3 — all tool calls were blocked as duplicates`);
+        if (antiLoopStrikes >= 3) {
+          const forceMsg = `⚠️ I stopped myself from repeating the exact same action. Let me know if you want me to try a different approach.`;
+          logger.addEntry({ role: 'assistant', content: forceMsg }, sessionId);
+          await onChunk('\\n\\n' + forceMsg);
+          fullResponse = forceMsg;
+          triggerBackgroundReview(sessionId);
+          break;
+        }
         continue;
       }
+      antiLoopStrikes = 0;
 
       if (uniqueToolCalls.length > 0 && onProgress) {
         uniqueToolCalls.forEach((tc: any) => {
@@ -1025,13 +1054,17 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           args = JSON.parse(argStr);
         } catch (parseError: any) {
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
-          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          const errToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+          logger.addEntry(errToolMsg, sessionId);
+          loopMessagesStream.push(errToolMsg);
           return { toolName, result };
         }
 
         if (!isSkillActive(toolName)) {
           result = `[System Error] Access denied: Skill '${toolName}' is currently disabled.`;
-          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          const skillErrToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+          logger.addEntry(skillErrToolMsg, sessionId);
+          loopMessagesStream.push(skillErrToolMsg);
           return { toolName, result };
         }
 
@@ -1039,7 +1072,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         const beforeRes = await pluginManager.triggerBeforeHooks(toolName, args, context);
         if (beforeRes && beforeRes.block) {
           result = beforeRes.reason || `[System Error] Blocked by hook for ${toolName}`;
-          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          const hookErrToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+          logger.addEntry(hookErrToolMsg, sessionId);
+          loopMessagesStream.push(hookErrToolMsg);
           return { toolName, result };
         }
 
@@ -1068,7 +1103,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           shouldFastReturn = true;
         }
 
-        logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, name: toolName, content: result }, sessionId);
+        const okToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+        logger.addEntry(okToolMsg, sessionId);
+        loopMessagesStream.push(okToolMsg);
 
         // Increment per-tool-name count on success
         if (typeof result === 'string' && !result.includes('[System Error]') &&
@@ -1087,7 +1124,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       if (shouldFastReturn && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
         const cleanContent = finalContent.replace(/\[SILENT_FAST_RETURN\] /g, '');
-        logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
+        const fastReturnMsg = { role: 'assistant' as any, content: cleanContent };
+        logger.addEntry(fastReturnMsg, sessionId);
+        loopMessagesStream.push(fastReturnMsg);
         
         if (!finalContent.includes('[SILENT_FAST_RETURN]')) {
           await onChunk(finalContent);

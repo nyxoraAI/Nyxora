@@ -93,6 +93,7 @@ function createWindow() {
     height: 800,
     title: 'Nyxora Desktop',
     titleBarStyle: 'hidden',
+    frame: process.platform === 'darwin',
     icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -162,9 +163,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('will-quit', () => {
-  stopNyxoraDaemon()
-})
+// Removed app.on('will-quit') to keep the daemon running after desktop is closed
 
 app.whenReady().then(async () => {
   await startNyxoraDaemon()

@@ -107,5 +107,115 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
     processedHistory.shift();
   }
 
-  return processedHistory;
+  // ── Merge consecutive user messages ────────────────────────────────────────
+  // Root cause: compressHistory emits a system summary that we convert to 'user'
+  // above (role === 'system' → 'user'). If head[0] is also a user message, or
+  // pruneLoopedHistory stacked multiple user summaries, we end up with back-to-back
+  // user turns — which strict providers (Claude, Gemini) silently reject, causing
+  // the LLM to produce NO response at all.
+  // Fix: fold any consecutive user messages into a single message.
+  const merged: any[] = [];
+  for (const msg of processedHistory) {
+    const prev = merged[merged.length - 1];
+    if (msg.role === 'user' && prev?.role === 'user') {
+      // Merge into previous user message
+      if (typeof prev.content === 'string' && typeof msg.content === 'string') {
+        prev.content = prev.content + '\n\n---\n\n' + msg.content;
+      } else {
+        // Fallback for multimodal content — just keep the newer one
+        merged[merged.length - 1] = msg;
+      }
+    } else {
+      merged.push(msg);
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * pruneLoopedHistory — collapses failed/looped tool call runs into compact summaries.
+ *
+ * Problem: after a loop-break fires (⚠️ Loop breaker / [System Anti-Loop]), all the failed
+ * tool call attempts stay in the session history. On the next user request in the same session,
+ * the LLM sees the noise and gets confused → repeats the bad pattern again.
+ *
+ * Fix: scan for "runs" (user → assistant+tool_calls → ... → loop-break-assistant).
+ * Replace each failed run with a single compact [PREVIOUS ATTEMPT SUMMARY] user message.
+ */
+export function pruneLoopedHistory(history: any[]): any[] {
+  if (!history || history.length === 0) return history;
+
+  // Markers that indicate a run ended in failure/loop-break
+  const LOOP_MARKERS = [
+    '⚠️ Loop breaker',
+    '[System Anti-Loop]',
+    'LOOP DETECTED',
+    'I stopped myself from repeating',
+    'Loop breaker:',
+  ];
+
+  const isLoopBreak = (msg: any): boolean => {
+    if (!msg || msg.role !== 'assistant') return false;
+    const c = typeof msg.content === 'string' ? msg.content : '';
+    return LOOP_MARKERS.some(m => c.includes(m));
+  };
+
+  // Walk through and find user-message indices to segment runs
+  const result: any[] = [];
+  let i = 0;
+
+  while (i < history.length) {
+    const msg = history[i];
+
+    // Start of a user-triggered run
+    if (msg.role === 'user') {
+      // Collect everything until the next user message (or end)
+      const runStart = i;
+      let j = i + 1;
+      while (j < history.length && history[j].role !== 'user') {
+        j++;
+      }
+      const run = history.slice(runStart, j);
+
+      // Check if this run contains a loop-break at any point
+      const hasLoopBreak = run.some(isLoopBreak);
+
+      if (hasLoopBreak) {
+        // Extract what the user asked
+        const userText = typeof msg.content === 'string'
+          ? msg.content.substring(0, 200)
+          : '[user request]';
+
+        // Extract any successful tool results before things went bad
+        const toolResults: string[] = [];
+        for (const m of run) {
+          if ((m.role === 'tool' || m.tool_call_id) && m.content) {
+            const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+            if (!c.includes('[System Anti-Loop]') && !c.includes('LOOP DETECTED')) {
+              toolResults.push(c.substring(0, 300));
+            }
+          }
+        }
+
+        const summary = toolResults.length > 0
+          ? `[PREVIOUS ATTEMPT — User asked: "${userText}". Tool execution encountered repeated failures and was stopped. Partial results: ${toolResults.join(' | ').substring(0, 500)}. Do NOT retry this action unless explicitly asked again.]`
+          : `[PREVIOUS ATTEMPT — User asked: "${userText}". This request failed with repeated tool errors and was stopped. Do NOT retry unless explicitly asked again.]`;
+
+        result.push({ role: 'user', content: summary });
+        // Skip the entire failed run
+        i = j;
+      } else {
+        // Clean run — keep as-is
+        result.push(...run);
+        i = j;
+      }
+    } else {
+      // Shouldn't happen at the top level, but push anyway
+      result.push(msg);
+      i++;
+    }
+  }
+
+  return result;
 }

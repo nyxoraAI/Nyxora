@@ -1,5 +1,7 @@
 import { apiFetch } from './utils/api';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder } from 'lucide-react';
 import Overview from './Overview';
 import Settings from './Settings';
@@ -663,21 +665,14 @@ function App() {
       .trim();
 
 
-    const parseBold = (text: string) => {
-      return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} style={{ color: 'var(--text-primary)' }}>{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
-    };
-
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="markdown-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {cleanContent && (
-          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-            {parseBold(cleanContent)}
-          </div>
+          <div 
+            className="markdown-body"
+            style={{ overflowWrap: 'anywhere' }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(cleanContent) as string) }}
+          />
         )}
       </div>
     );

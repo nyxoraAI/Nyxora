@@ -135,9 +135,17 @@ console.log(`================================`);
 
   // Check for chat or TUI command
   if (process.argv.includes('chat') || process.argv.includes('tui')) {
-    const { runTUI } = await import('./tui');
-    await runTUI();
-    // Do not process.exit(0) here because TUI uses an event loop
+    const { spawn } = await import('child_process');
+    // If running from dist/, we need to go up 5 levels. If from src/, 4 levels.
+    const rootDir = __dirname.includes('dist') 
+      ? path.resolve(__dirname, '../../../../..') 
+      : path.resolve(__dirname, '../../../..');
+      
+    const child = spawn('npm', ['run', 'start', '--workspace=packages/tui'], {
+      cwd: rootDir,
+      stdio: 'inherit'
+    });
+    await new Promise(resolve => child.on('close', resolve));
     return;
   }
 

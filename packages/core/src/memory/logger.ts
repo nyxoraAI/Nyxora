@@ -13,6 +13,7 @@ export interface MemoryEntry {
   tool_call_id?: string;
   tool_calls?: any[];
   session_id?: string;
+  id?: number;
 }
 
 export interface ChatSession {
@@ -72,6 +73,8 @@ export class Logger {
         name TEXT,
         tool_call_id TEXT,
         tool_calls TEXT,
+        active INTEGER DEFAULT 1,
+        compacted INTEGER DEFAULT 0,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -164,6 +167,17 @@ export class Logger {
       this.db.prepare('ALTER TABLE messages ADD COLUMN reasoning_content TEXT').run();
     } catch {}
 
+    // Ensure client column exists (dashboard / desktop / telegram / etc)
+    try {
+      this.db.prepare('ALTER TABLE sessions ADD COLUMN client TEXT').run();
+    } catch {}
+
+    // Add active and compacted columns for Context Compression
+    try {
+      this.db.prepare('ALTER TABLE messages ADD COLUMN active INTEGER DEFAULT 1').run();
+      this.db.prepare('ALTER TABLE messages ADD COLUMN compacted INTEGER DEFAULT 0').run();
+    } catch {}
+
     // Migration logic from old memory.json to SQLite
     const config = loadConfig() || {};
     const oldJsonPath = getPath((config && (config as any).memory && (config as any).memory.path) ? (config as any).memory.path : 'memory.json');
@@ -240,11 +254,23 @@ export class Logger {
     return row as any || null;
   }
 
-  public getSessions(): ChatSession[] {
+  public getSessions(client?: string): ChatSession[] {
+    if (client === 'desktop') {
+      // Desktop: only show sessions explicitly created by desktop
+      const rows = this.db.prepare(`
+        SELECT id, title, timestamp, project_id
+        FROM sessions
+        WHERE client = 'desktop'
+        ORDER BY timestamp DESC
+      `).all();
+      return rows as unknown as ChatSession[];
+    }
+    // Dashboard (default): show dashboard sessions + legacy null-client sessions
     const rows = this.db.prepare(`
-      SELECT id, title, timestamp, project_id 
-      FROM sessions 
+      SELECT id, title, timestamp, project_id
+      FROM sessions
       WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'cli-chat%'
+        AND (client = 'dashboard' OR client IS NULL)
       ORDER BY timestamp DESC
     `).all();
     return rows as unknown as ChatSession[];
@@ -255,12 +281,12 @@ export class Logger {
     return row as any || null;
   }
 
-  public createSession(title: string, projectId?: string | null): string {
+  public createSession(title: string, projectId?: string | null, client?: string): string {
     const id = crypto.randomUUID();
     if (projectId) {
-      this.db.prepare('INSERT INTO sessions (id, title, project_id) VALUES (?, ?, ?)').run(id, title, projectId);
+      this.db.prepare('INSERT INTO sessions (id, title, project_id, client) VALUES (?, ?, ?, ?)').run(id, title, projectId, client || null);
     } else {
-      this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(id, title);
+      this.db.prepare('INSERT INTO sessions (id, title, client) VALUES (?, ?, ?)').run(id, title, client || null);
     }
     return id;
   }
@@ -288,8 +314,9 @@ export class Logger {
     `).all(term, term);
   }
 
-  public getHistory(sessionId?: string, limit: number = 70): MemoryEntry[] {
+  public getHistory(sessionId?: string, limit: number = 70, includeInactive: boolean = false): MemoryEntry[] {
     let rows;
+    const activeClause = includeInactive ? "" : " AND active = 1";
     // Phase 2: Sliding Window Algorithm (LLM Context Limit)
     // Fetch only the last X messages, then order them chronologically
     if (sessionId) {
@@ -297,7 +324,7 @@ export class Logger {
         SELECT * FROM (
           SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
-          WHERE session_id = ? 
+          WHERE session_id = ?${activeClause}
           ORDER BY id DESC LIMIT ?
         ) ORDER BY id ASC
       `).all(sessionId, limit);
@@ -306,7 +333,7 @@ export class Logger {
         SELECT * FROM (
           SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
           FROM messages 
-          WHERE session_id IS NULL
+          WHERE session_id IS NULL${activeClause}
           ORDER BY id DESC LIMIT ?
         ) ORDER BY id ASC
       `).all(limit);
@@ -322,6 +349,7 @@ export class Logger {
       if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
       if (row.session_id) entry.session_id = row.session_id;
+      if (row.id) entry.id = row.id;
       return entry;
     });
   }
@@ -385,12 +413,52 @@ export class Logger {
     });
   }
 
-  public clear(sessionId?: string) {
+  public clear(sessionId?: string): void {
     if (sessionId) {
       this.db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
     } else {
       this.db.prepare('DELETE FROM messages WHERE session_id IS NULL').run();
     }
+  }
+
+  public archiveAndCompact(sessionId: string, rangeIds: number[], summaryMessage: string): void {
+    if (rangeIds.length === 0) return;
+    
+    // Execute as transaction
+    try {
+      this.db.exec('BEGIN TRANSACTION');
+      // 1. Soft-archive the specified messages
+      const placeholders = rangeIds.map(() => '?').join(',');
+      this.db.prepare(`UPDATE messages SET active = 0, compacted = 1 WHERE id IN (${placeholders})`).run(...rangeIds);
+      
+      // 2. Insert the new summary message
+      this.db.prepare(`
+        INSERT INTO messages (session_id, role, content)
+        VALUES (?, 'system', ?)
+      `).run(sessionId, summaryMessage);
+      
+      this.db.exec('COMMIT');
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      console.error('[Nyxora Memory] Failed to archive and compact:', err);
+    }
+  }
+
+  // Used to extract tools executed in past 24h
+  public getRecentTools(hours = 24): any[] {
+    const rows = this.db.prepare(`
+      SELECT tool_calls, timestamp FROM messages 
+      WHERE tool_calls IS NOT NULL AND timestamp >= datetime('now', ?)
+    `).all('-' + hours + ' hours');
+
+    let allTools: any[] = [];
+    rows.forEach((r: any) => {
+      try {
+        const calls = JSON.parse(r.tool_calls);
+        if (Array.isArray(calls)) allTools.push(...calls);
+      } catch {}
+    });
+    return allTools;
   }
 
   public close() {

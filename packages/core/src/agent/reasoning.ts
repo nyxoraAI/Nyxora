@@ -123,8 +123,15 @@ function determinePrimaryIntent(
   // Score-based detection to pick the single most appropriate agent.
   // Both agents share the same toolset, so picking the dominant one
   // is sufficient and prevents dangerous concurrent double-execution.
-  const osScore = osKeywords.filter(kw => lowerInput.includes(kw)).length;
-  const web3Score = web3Keywords.filter(kw => lowerInput.includes(kw)).length;
+
+  // Helper to escape regex special characters from keywords
+  const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+  
+  // Use word boundaries to prevent substring false positives (e.g. "stop" matching "op")
+  const matchKeyword = (kw: string) => new RegExp(`\\\\b${escapeRegExp(kw)}\\\\b`, 'i').test(lowerInput);
+
+  const osScore = osKeywords.filter(matchKeyword).length;
+  const web3Score = web3Keywords.filter(matchKeyword).length;
 
   if (osScore === 0 && web3Score === 0) return 'os';
   

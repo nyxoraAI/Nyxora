@@ -10,7 +10,7 @@ import { pluginManager, initializePlugins } from '../plugin/registry';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
-import { sanitizeHistoryForLLM } from '../utils/historySanitizer';
+import { sanitizeHistoryForLLM, pruneLoopedHistory } from '../utils/historySanitizer';
 
 import { promptBuilder } from './promptBuilder';
 
@@ -87,22 +87,20 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
     };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
-    const initialHistory = logger.getHistory(sessionId);
+    const rawHistory = logger.getHistory(sessionId);
+    const initialHistory = pruneLoopedHistory(rawHistory); // Collapse any failed loop runs
     const baseHistory = needsCompression(initialHistory)
       ? await compressHistory(initialHistory, sessionId)
       : initialHistory;
-    const baseHistoryLength = logger.getHistory(sessionId).length; // Track original length for new message detection
+    
+    let loopMessages: any[] = [];
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       
-      // Get only NEW messages added during loop execution
-      const fullHistory = logger.getHistory(sessionId);
-      const newMessages = fullHistory.slice(baseHistoryLength);
-      
       // Combine: compressed base + new messages from loop
-      const historyToUse = newMessages.length > 0 
-        ? [...baseHistory, ...newMessages]
+      const historyToUse = loopMessages.length > 0 
+        ? [...baseHistory, ...loopMessages]
         : baseHistory;
 
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -150,11 +148,13 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
          console.log(pc.yellow(`[Anti-Loop] Detected identical response. Injected system warning.`));
       }
 
-      logger.addEntry({
-        role: 'assistant',
+      const asstMsg = {
+        role: 'assistant' as any,
         content: cleanedContent || '',
         tool_calls: responseMessage.tool_calls,
-      }, sessionId);
+      };
+      logger.addEntry(asstMsg, sessionId);
+      loopMessages.push(asstMsg);
 
       // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
       if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
@@ -254,12 +254,14 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           responseMessage.tool_calls = fallbacks;
           responseMessage.content = responseMessage.content.replace(/^\/[a-zA-Z0-9_]+\s+.*$/gm, '').replace(/```(?:bash|sh|zsh)?\n([\s\S]*?)```/g, '').replace(/<tool_code>([\s\S]*?)<\/tool_code>/g, '').replace(/<(?:execute_bash|execute)>([\s\S]*?)<\/(?:execute_bash|execute)>/g, '').trim();
           console.log(pc.cyan(`[Fallback Parser] Intercepted ${fallbacks.length} raw text commands and converted to tool_calls.`));
-          // Update logger entry with the intercepted tool calls
-          logger.addEntry({
-             role: 'assistant',
+          const fbAsstMsg = {
+             role: 'assistant' as any,
              content: responseMessage.content || "",
              tool_calls: responseMessage.tool_calls,
-          }, sessionId);
+          };
+          // Update logger entry with the intercepted tool calls
+          logger.addEntry(fbAsstMsg, sessionId);
+          loopMessages.push(fbAsstMsg);
         }
       }
       // ---------------------------------------------------------------
@@ -396,12 +398,14 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           console.error(pc.red(`[❌ Error Crash] Execution of ${toolName} failed completely: ${toolError.message}`));
         }
 
-        logger.addEntry({
-          role: 'tool',
+        const toolMsg = {
+          role: 'tool' as any,
           tool_call_id: toolCall.id,
-          name: toolName,
+          name: toolCall.function?.name,
           content: result,
-        }, sessionId);
+        };
+        logger.addEntry(toolMsg, sessionId);
+        loopMessages.push(toolMsg);
 
         accumulatedResults.push(result);
         const isErrorResult = typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]') || result.includes('[Security Blocked]'));
@@ -439,17 +443,10 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         // Tool results are already in history. Make ONE final LLM call with
         // tools=[] (no tools) so the LLM narrates the results naturally.
         // Since tools are disabled, looping is physically impossible.
-        logger.addEntry({
-          role: 'system' as any,
-          content: `[SUMMARY PASS] All tool calls completed. Tools are now DISABLED for this turn. ` +
-            `Produce a clear, concise, conversational final answer to the user using ONLY the data above. ` +
-            `Do NOT call any tools. Do NOT mention that tools are disabled.`
-        }, sessionId);
-
-        const summaryHistory = logger.getHistory(sessionId).slice(baseHistoryLength);
         const summaryMessages: any[] = [
           { role: 'system', content: cachedSystemPrompt },
-          ...sanitizeHistoryForLLM([...baseHistory, ...summaryHistory], [], config.llm.provider)
+          ...sanitizeHistoryForLLM([...baseHistory, ...loopMessages], [], config.llm.provider),
+          { role: 'user', content: `All requested tasks are complete. Based on the data gathered, provide a clear, concise, conversational final answer to me. Do NOT mention tools, internal processes, or that tools are disabled.` }
         ];
 
         try {
@@ -541,22 +538,20 @@ export async function processWeb3IntentStream(
     };
 
     // P6: Compress history ONCE before loop starts (not per iteration)
-    const initialHistoryStream = logger.getHistory(sessionId);
+    const rawHistoryStream = logger.getHistory(sessionId);
+    const initialHistoryStream = pruneLoopedHistory(rawHistoryStream); // Collapse any failed loop runs
     const baseHistoryStream = needsCompression(initialHistoryStream)
       ? await compressHistory(initialHistoryStream, sessionId)
       : initialHistoryStream;
-    const baseHistoryLengthStream = logger.getHistory(sessionId).length;
+    
+    let loopMessagesStream: any[] = [];
 
     while (turnCount < MAX_TURNS) {
       turnCount++;
       
-      // Get only NEW messages added during loop execution
-      const fullHistoryStream = logger.getHistory(sessionId);
-      const newMessagesStream = fullHistoryStream.slice(baseHistoryLengthStream);
-      
       // Combine: compressed base + new messages from loop
-      const historyToUse = newMessagesStream.length > 0
-        ? [...baseHistoryStream, ...newMessagesStream]
+      const historyToUse = loopMessagesStream.length > 0
+        ? [...baseHistoryStream, ...loopMessagesStream]
         : baseHistoryStream;
         
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
@@ -587,12 +582,14 @@ export async function processWeb3IntentStream(
       if (response.usage?.total_tokens) Tracker.addTokens(response.usage.total_tokens, config.llm.provider);
       Tracker.addEvent('llm.response', { provider: config.llm.provider, tool_calls: responseMessage.tool_calls?.length || 0 });
 
-      logger.addEntry({
-        role: 'assistant',
+      const asstMsgStream = {
+        role: 'assistant' as any,
         content: responseMessage.content || '',
         reasoning_content: (responseMessage as any).reasoning_content,
         tool_calls: responseMessage.tool_calls,
-      }, sessionId);
+      };
+      logger.addEntry(asstMsgStream, sessionId);
+      loopMessagesStream.push(asstMsgStream);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
         let finalContent = responseMessage.content || '';
@@ -693,8 +690,20 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       // Deduplicate identical tool calls to prevent double execution bugs
       const uniqueToolCalls = [];
       const seenToolCalls = new Set();
+      
+      // Helper to normalize JSON arguments for smarter duplicate detection
+      const normalizeArgs = (argsStr: string): string => {
+        try {
+          const parsed = JSON.parse(argsStr);
+          return JSON.stringify(parsed); // Re-stringify in canonical form
+        } catch {
+          return argsStr.trim(); // Fallback: just trim whitespace
+        }
+      };
+      
       for (const tc of responseMessage.tool_calls) {
-        const sig = `${tc.function.name}:${tc.function.arguments}`;
+        const normalizedArgs = normalizeArgs(tc.function.arguments);
+        const sig = `${tc.function.name}:${normalizedArgs}`;
         if (!seenToolCalls.has(sig)) {
           seenToolCalls.add(sig);
           uniqueToolCalls.push(tc);
@@ -729,13 +738,17 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           args = JSON.parse(argStr);
         } catch (parseError: any) {
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
-          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          const errToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+          logger.addEntry(errToolMsg, sessionId);
+          loopMessagesStream.push(errToolMsg);
           continue;
         }
 
         if (!isSkillActive(toolName)) {
           result = `[System Error] Access denied: Skill '${toolName}' is currently disabled.`;
-          logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, content: result }, sessionId);
+          const skillErrToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+          logger.addEntry(skillErrToolMsg, sessionId);
+          loopMessagesStream.push(skillErrToolMsg);
           continue;
         }
 
@@ -768,7 +781,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           console.error(pc.red(`[❌ Error Crash] Execution of ${toolName} failed: ${toolError.message}`));
         }
 
-        logger.addEntry({ role: 'tool', tool_call_id: toolCall.id, name: toolName, content: result }, sessionId);
+        const okToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
+        logger.addEntry(okToolMsg, sessionId);
+        loopMessagesStream.push(okToolMsg);
         accumulatedResults.push(result);
         
         const isErrorResult = typeof result === 'string' && (result.includes('[System Error]') || result.startsWith('Error:') || result.includes('[Error]') || result.includes('[Security Blocked]'));
@@ -784,23 +799,18 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         if (isSilent) {
           // Transaction confirmations: send raw, no narration needed
           const cleanContent = rawData.replace(/\[SILENT_FAST_RETURN\] /g, '');
-          logger.addEntry({ role: 'assistant', content: cleanContent }, sessionId);
+          const fastReturnMsg = { role: 'assistant' as any, content: cleanContent };
+          logger.addEntry(fastReturnMsg, sessionId);
+          loopMessagesStream.push(fastReturnMsg);
           fullResponse = cleanContent;
           break;
         }
 
         // ── Opsi A: Final summary pass (no tools, stream) ─────────────────────
-        logger.addEntry({
-          role: 'system' as any,
-          content: `[SUMMARY PASS] All tool calls completed. Tools are now DISABLED for this turn. ` +
-            `Produce a clear, concise, conversational final answer to the user using ONLY the data above. ` +
-            `Do NOT call any tools. Do NOT mention that tools are disabled.`
-        }, sessionId);
-
-        const summaryHistoryS = logger.getHistory(sessionId).slice(baseHistoryLengthStream);
         const summaryMessagesS: any[] = [
           { role: 'system', content: cachedWeb3SystemPrompt },
-          ...sanitizeHistoryForLLM([...baseHistoryStream, ...summaryHistoryS], [], config.llm.provider)
+          ...sanitizeHistoryForLLM([...baseHistoryStream, ...loopMessagesStream], [], config.llm.provider),
+          { role: 'user', content: `All requested tasks are complete. Based on the data gathered, provide a clear, concise, conversational final answer to me. Do NOT mention tools, internal processes, or that tools are disabled.` }
         ];
 
         try {

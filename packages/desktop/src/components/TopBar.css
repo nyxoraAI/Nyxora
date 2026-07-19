@@ -51,6 +51,10 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
+.window-controls.macos-style .close-btn .control-icon {
+  opacity: 1;
+}
+
 .window-controls.macos-style:hover .control-icon {
   opacity: 1;
 }
