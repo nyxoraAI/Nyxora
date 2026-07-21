@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.20]
+### Desktop App MVP: UI/UX & Architecture Overhaul
+- **Premium Interface Scaling**: Completely redesigned the Settings modal dimensions for desktop viewing. Expanded the modal wrapper to `w-[92vw]` with a maximum width of `1400px`, and removed legacy mobile constraints (`max-w-3xl`) from all submenu components (Agent Profile, LLM Engine, etc.) to utilize the full horizontal workspace natively.
+- **Scroll Hierarchy Fixes**: Resolved a severe UX issue where scrolling inside long submenus (like Playbooks) would scroll the entire modal out of view. Enforced a strict height constraint (`h-[72vh]`) and `min-h-0` on inner containers, allowing localized, independent scrolling within the content pane.
+- **Svelte 5 Reactivity Migration**: Refactored legacy Svelte 4 `<svelte:component>` dynamic imports within `SettingsModal.svelte`. Replaced them with modern Svelte 5 `{@const}` tags to eliminate compile-time deprecation warnings and ensure full compatibility with the new Runes architecture.
+- **Asset Pipeline Synchronization**: Fixed pervasive `404 Not Found` errors for network/router icons (1inch, LiFi, CoinGecko, 0x) in the Desktop app by properly synchronizing the `public/routers/` directory from the Dashboard into the Desktop's `static/routers/` distribution folder.
+
+### Desktop App MVP: Core Features Porting
+- **Voice Mode & File Upload**: Successfully ported Dashboard Web features to the SvelteKit Desktop app. The chat composer now fully supports **Voice Mode** (via Web Speech API for TTS/STT) and **File Upload** (document analysis via `/api/upload`).
+- **Advanced Risk Policies**: Integrated missing risk settings into the Desktop `Risk & Policy` menu, including **Daily Spend Limit**, **Strictly Avoid Memecoins** toggle, and **Allowed Contracts Whitelist**.
+- **Auto-Lock Session (Idle Timeout)**: Added global idle timeout protection to the Desktop app. Users can configure auto-lock (15, 30, or 60 minutes) in `Security & Privacy`. Once locked, a glassmorphism overlay blocks the UI until authorized via the terminal (`nyxora unlock`).
+
+### Desktop Bug Fixes & Semantic Alignment
+- **Settings Auto-Save Illusion (Critical Fix)**: Fixed a severe UX logic flaw where settings were retained in memory even if the user cancelled/closed the modal. Introduced an explicit **Save Configuration** and **Cancel** button mechanism. The settings modal now safely fetches a fresh configuration state from the backend upon closing, guaranteeing that unsaved edits are flawlessly discarded.
+- **Semantic Text Refinement**: Updated Desktop wording in the Security tab from "Dashboard Access" to "App Access" to accurately reflect the native application environment.
+
+### Frontend Architecture & Core Refactoring
+- **SvelteKit Migration (Desktop)**: Overhauled the native desktop interface by migrating from React to SvelteKit. Unified the component design system under `packages/desktop/src/lib/components`.
+- **State Management**: Upgraded from React hooks to native Svelte Stores (`stores/app.ts`, `stores/wallet.ts`) for seamless state propagation.
+- **Core Integrations**: Updated `osAgent.ts`, `llmProvider.ts`, and `logger.ts` to seamlessly plug into the new architectural layout.
+
 ## [26.7.19]
 ### Web3 & Market Intelligence
 - **Super-Report & AI Financial Advisor**: Merged GoPlus Security data directly into the `analyze_market` tool to eliminate duplicate API requests. The LLM now receives a comprehensive dataset including Liquidity, 24h Volume, Pool Age, Holder Concentration (real-time from GoPlus), and smart contract security status (Honeypot, Taxes) in a single unified execution.

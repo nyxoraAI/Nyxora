@@ -355,7 +355,8 @@ export async function processUserInputStream(
   input: string,
   originalOnChunk: (text: string) => void,
   onProgress?: (msg: string) => void,
-  sessionId?: string
+  sessionId?: string,
+  onReasoning?: (text: string) => void
 ): Promise<string> {
   const smartStream = createSmartStreamWrapper(originalOnChunk);
   const onChunk = smartStream.onChunk;
@@ -484,7 +485,7 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
           logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
         }
       }
-      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId);
+      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId, onReasoning);
     }
     
     return finalResult;

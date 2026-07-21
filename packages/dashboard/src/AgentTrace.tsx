@@ -10,9 +10,10 @@ export interface AgentTraceProps {
   toolCalls?: any[];
   progressLogs?: ProgressLog[];
   isStreaming?: boolean;
+  durationMs?: number;
 }
 
-export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progressLogs = [], isStreaming = false }) => {
+export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progressLogs = [], isStreaming = false, durationMs = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [startTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -41,10 +42,21 @@ export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progress
 
   const getSummaryText = () => {
     if (isStreaming) {
-      return `Thinking for ${elapsedTime}s`;
+      return `Working for ${elapsedTime}s`;
     }
-    const count = toolCalls.length > 0 ? toolCalls.length : (progressLogs.filter(p => p.text.includes('Ran') || p.text.includes('Running') || p.text.includes('Explored')).length || 1);
-    return `Worked for ${count} step${count > 1 ? 's' : ''}`;
+    if (elapsedTime > 0) {
+      return `Worked for ${elapsedTime}s`;
+    }
+    if (durationMs > 0) {
+      return `Worked for ${Math.max(1, Math.round(durationMs / 1000))}s`;
+    }
+    if (progressLogs && progressLogs.length > 1) {
+      const firstTime = progressLogs[0].time;
+      const lastTime = progressLogs[progressLogs.length - 1].time;
+      const seconds = Math.max(1, Math.round((lastTime - firstTime) / 1000));
+      return `Worked for ${seconds}s`;
+    }
+    return `Completed`;
   };
 
   const getIconForStep = (text: string) => {

@@ -32,7 +32,7 @@ export interface NormalizedChatResponse {
 
 export interface LLMProvider {
   chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse>;
-  stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse>;
+  stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse>;
 }
 
 export function extractExecuteTool(content: string, existingToolCalls: any[]): { content: string, toolCalls: any[] } {
@@ -107,7 +107,7 @@ export class OpenAIAdapter implements LLMProvider {
     };
   }
 
-  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse> {
     try {
       const payload = { ...request, stream: true } as any;
       if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
@@ -128,7 +128,9 @@ export class OpenAIAdapter implements LLMProvider {
           onChunk(delta.content);
         }
         if (delta?.reasoning_content || (delta as any)?.reasoning) {
-          reasoningContent += (delta.reasoning_content || (delta as any).reasoning);
+          const rText = (delta.reasoning_content || (delta as any).reasoning);
+          reasoningContent += rText;
+          if (onReasoning) onReasoning(rText);
         }
         if (delta?.tool_calls) {
           for (const tc of delta.tool_calls) {
@@ -303,7 +305,7 @@ export class AnthropicAdapter implements LLMProvider {
     };
   }
 
-  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse> {
     try {
       // Build the same message format as chat()
       let systemPrompt = '';
@@ -356,7 +358,9 @@ export class AnthropicAdapter implements LLMProvider {
           onChunk(event.delta.text);
         }
         if (event.type === 'content_block_delta' && (event.delta as any).type === 'thinking_delta') {
-          reasoningContent += (event.delta as any).thinking;
+          const rText = (event.delta as any).thinking;
+          reasoningContent += rText;
+          if (onReasoning) onReasoning(rText);
         }
         if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
           toolCalls.push({ id: event.content_block.id, type: 'function', function: { name: event.content_block.name, arguments: '' } });
@@ -572,7 +576,7 @@ export class GeminiAdapter implements LLMProvider {
     };
   }
 
-  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void): Promise<NormalizedChatResponse> {
+  async stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse> {
     let systemInstruction = '';
     const contents: any[] = [];
     

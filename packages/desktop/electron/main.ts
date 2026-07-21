@@ -1,182 +1,117 @@
-import { app, BrowserWindow, shell, ipcMain, Tray, Menu } from 'electron'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { exec } from 'node:child_process'
-import http from 'node:http'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawn, type ChildProcess } from 'node:child_process';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.js    > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
-//
-process.env.DIST_ELECTRON = path.join(__dirname, '..')
-process.env.DIST = path.join(process.env.DIST_ELECTRON, 'dist')
-process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
-  ? path.join(process.env.DIST_ELECTRON, 'public')
-  : process.env.DIST
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu-compositing');
 
-let win: BrowserWindow | null = null
-let tray: Tray | null = null
+process.env.APP_ROOT = path.join(__dirname, '..');
 
-// VITE_DEV_SERVER_URL is injected by vite-plugin-electron
-const url = process.env.VITE_DEV_SERVER_URL
+// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
+export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
+export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'build');
 
-// Poll until daemon is ready (port 3000 responds) or timeout
-function waitForDaemon(maxWaitMs = 15000): Promise<void> {
-  return new Promise((resolve) => {
-    const start = Date.now()
-    const interval = setInterval(() => {
-      const req = http.get('http://127.0.0.1:3000/api/health', (_res) => {
-        clearInterval(interval)
-        console.log('[Desktop] Daemon is ready ✅')
-        resolve()
-      })
-      req.on('error', () => {
-        if (Date.now() - start >= maxWaitMs) {
-          clearInterval(interval)
-          console.warn('[Desktop] Daemon did not respond in time, opening window anyway.')
-          resolve()
-        }
-      })
-      req.setTimeout(400, () => req.destroy())
-    }, 500)
-  })
-}
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST;
 
-function startNyxoraDaemon(): Promise<void> {
-  return new Promise((resolve) => {
-    console.log('Starting Nyxora Daemon...')
-    const binPath = app.isPackaged 
-      ? path.join(process.resourcesPath, 'bin/nyxora.mjs')
-      : path.resolve(__dirname, '../../../bin/nyxora.mjs')
-      
-    exec(`node "${binPath}" start`, async (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error starting daemon: ${error.message}`)
-        resolve()
-        return
-      }
-      console.log(`Daemon stdout: ${stdout}`)
-      // Always poll for readiness — whether freshly started or already running
-      await waitForDaemon(15000)
-      resolve()
-    })
-  })
-}
+let win: BrowserWindow | null;
+let daemonProcess: ChildProcess | null = null;
 
-function stopNyxoraDaemon() {
-  console.log('Stopping Nyxora Daemon...')
-  const binPath = app.isPackaged 
-    ? path.join(process.resourcesPath, 'bin/nyxora.mjs')
-    : path.resolve(__dirname, '../../../bin/nyxora.mjs')
-    
-  exec(`node "${binPath}" stop`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error stopping daemon: ${error.message}`)
-      return
-    }
-    console.log(`Daemon stdout: ${stdout}`)
-  })
+function startNyxoraDaemon() {
+  const monorepoRoot = path.join(process.env.APP_ROOT, '../..');
+  
+  daemonProcess = spawn('node', ['./bin/nyxora.mjs', 'start'], {
+    cwd: monorepoRoot,
+    stdio: 'ignore', // 'ignore' is required for detached processes to survive without parent console
+    detached: true,
+    env: { ...process.env, PORT: '3000' }
+  });
+
+  // unref allows the parent to exit independently of the child
+  daemonProcess.unref();
+
+  daemonProcess.on('error', (err) => {
+    console.error('[Nyxora Daemon Error]:', err);
+  });
 }
 
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Nyxora Desktop',
     titleBarStyle: 'hidden',
-    frame: process.platform === 'darwin',
-    icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
-      nodeIntegration: false,
       contextIsolation: true,
+      nodeIntegration: false,
     },
-  })
+  });
 
-  let finalUrl = url
-  let finalPath = path.join(process.env.DIST || '', 'index.html')
-  
-  try {
-    const fs = require('node:fs')
-    const os = require('node:os')
-    const tokenFile = path.join(os.homedir(), '.nyxora', 'auth', 'runtime.token')
-    if (fs.existsSync(tokenFile)) {
-      let token = fs.readFileSync(tokenFile, 'utf8').trim()
-      if (token.startsWith('{')) {
-        token = JSON.parse(token).token
-      }
-      if (finalUrl) {
-        finalUrl = `${finalUrl}?token=${token}`
-      } else {
-        finalPath = `${finalPath}?token=${token}`
-      }
-    }
-  } catch(e) {}
-
-  if (finalUrl) {
-    win.loadURL(finalUrl)
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // Cannot pass query string to loadFile, but loadURL('file://...') works
-    win.loadURL(`file://${finalPath}`)
+    // win.loadFile('build/index.html')
+    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
   }
-
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-  })
-
-  // Make all links open with the browser, not with the application
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https:')) shell.openExternal(url)
-    return { action: 'deny' }
-  })
 }
 
-ipcMain.on('window-control', (event, action) => {
-  const window = BrowserWindow.fromWebContents(event.sender)
-  if (!window) return
-  
-  if (action === 'minimize') window.minimize()
-  if (action === 'maximize') {
-    if (window.isMaximized()) {
-      window.unmaximize()
-    } else {
-      window.maximize()
-    }
+ipcMain.on('window-minimize', (event) => {
+  const w = BrowserWindow.fromWebContents(event.sender);
+  if (w) w.minimize();
+});
+
+ipcMain.on('window-maximize', (event) => {
+  const w = BrowserWindow.fromWebContents(event.sender);
+  if (w) {
+    if (w.isMaximized()) w.unmaximize();
+    else w.maximize();
   }
-  if (action === 'close') window.close()
-})
+});
+
+ipcMain.on('window-close', (event) => {
+  const w = BrowserWindow.fromWebContents(event.sender);
+  if (w) w.close();
+});
+
+ipcMain.handle('open-directory', async (event) => {
+  const w = BrowserWindow.fromWebContents(event.sender);
+  if (!w) return null;
+  const result = await dialog.showOpenDialog(w, {
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
 
 app.on('window-all-closed', () => {
-  win = null
   if (process.platform !== 'darwin') {
-    app.quit()
+    app.quit();
+    win = null;
   }
-})
+});
 
-// Removed app.on('will-quit') to keep the daemon running after desktop is closed
+app.on('before-quit', () => {
+  // Let the daemon run in the background for testing
+  // if (daemonProcess) {
+  //   daemonProcess.kill();
+  //   daemonProcess = null;
+  // }
+});
 
-app.whenReady().then(async () => {
-  await startNyxoraDaemon()
-  createWindow()
-  
-  // Tray setup
-  /*
-  tray = new Tray(path.join(process.env.VITE_PUBLIC, 'favicon.ico'))
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show App', click: () => win?.show() },
-    { label: 'Quit', click: () => app.quit() }
-  ])
-  tray.setToolTip('Nyxora Agent')
-  tray.setContextMenu(contextMenu)
-  */
-})
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.whenReady().then(() => {
+  startNyxoraDaemon();
+  createWindow();
+});

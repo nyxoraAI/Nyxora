@@ -1,39 +1,32 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import electron from 'vite-plugin-electron/simple'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import adapter from '@sveltejs/adapter-static';
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+import electron from 'vite-plugin-electron/simple';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    electron({
-      main: {
-        entry: 'electron/main.ts',
-      },
-      preload: {
-        input: 'electron/preload.ts',
-      },
-    }),
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:3000',
-        changeOrigin: true
-      },
-      '/ws': {
-        target: 'ws://127.0.0.1:3000',
-        ws: true
-      }
-    }
-  }
-})
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			compilerOptions: {
+				runes: ({ filename }) =>
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
+			},
+			adapter: adapter({
+				pages: 'build',
+				assets: 'build',
+				fallback: 'index.html',
+				precompress: false,
+				strict: true
+			})
+		}),
+		electron({
+			main: {
+				entry: 'electron/main.ts',
+			},
+			preload: {
+				input: 'electron/preload.ts',
+			},
+		})
+	]
+});

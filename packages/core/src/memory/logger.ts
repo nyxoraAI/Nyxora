@@ -14,6 +14,7 @@ export interface MemoryEntry {
   tool_calls?: any[];
   session_id?: string;
   id?: number;
+  duration_ms?: number;
 }
 
 export interface ChatSession {
@@ -171,11 +172,21 @@ export class Logger {
     try {
       this.db.prepare('ALTER TABLE sessions ADD COLUMN client TEXT').run();
     } catch {}
+    
+    // Ensure client column exists for projects table
+    try {
+      this.db.prepare('ALTER TABLE projects ADD COLUMN client TEXT').run();
+    } catch {}
 
     // Add active and compacted columns for Context Compression
     try {
       this.db.prepare('ALTER TABLE messages ADD COLUMN active INTEGER DEFAULT 1').run();
       this.db.prepare('ALTER TABLE messages ADD COLUMN compacted INTEGER DEFAULT 0').run();
+    } catch {}
+
+    // Add duration_ms column
+    try {
+      this.db.prepare('ALTER TABLE messages ADD COLUMN duration_ms INTEGER').run();
     } catch {}
 
     // Migration logic from old memory.json to SQLite
@@ -190,8 +201,8 @@ export class Logger {
         const oldMemory = JSON.parse(data);
         if (Array.isArray(oldMemory) && oldMemory.length > 0) {
           const insert = this.db.prepare(`
-            INSERT INTO messages (role, content, reasoning_content, name, tool_call_id, tool_calls)
-            VALUES (@role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls)
+            INSERT INTO messages (role, content, reasoning_content, name, tool_call_id, tool_calls, duration_ms)
+            VALUES (@role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls, @duration_ms)
           `);
           
           const insertMany = (entries: any[]) => {
@@ -204,7 +215,8 @@ export class Logger {
                   reasoning_content: (entry as any).reasoning_content || null,
                   name: entry.name || null,
                   tool_call_id: entry.tool_call_id || null,
-                  tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null
+                  tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null,
+                  duration_ms: (entry as any).duration_ms || null
                 });
               }
               this.db.exec('COMMIT');
@@ -226,14 +238,19 @@ export class Logger {
     }
   }
 
-  public getProjects(): any[] {
-    const rows = this.db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all();
+  public getProjects(client?: string): any[] {
+    if (client === 'desktop') {
+      const rows = this.db.prepare('SELECT * FROM projects WHERE client = ? ORDER BY created_at DESC').all('desktop');
+      return rows;
+    }
+    // Dashboard: only show dashboard projects or legacy null-client projects
+    const rows = this.db.prepare('SELECT * FROM projects WHERE (client = ? OR client IS NULL) ORDER BY created_at DESC').all('dashboard');
     return rows;
   }
 
-  public addProject(name: string, path: string): string {
+  public addProject(name: string, path: string, client?: string): string {
     const id = crypto.randomUUID();
-    this.db.prepare('INSERT INTO projects (id, name, path) VALUES (?, ?, ?)').run(id, name, path);
+    this.db.prepare('INSERT INTO projects (id, name, path, client) VALUES (?, ?, ?, ?)').run(id, name, path, client || null);
     return id;
   }
 
@@ -322,7 +339,7 @@ export class Logger {
     if (sessionId) {
       rows = this.db.prepare(`
         SELECT * FROM (
-          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
+          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id, duration_ms 
           FROM messages 
           WHERE session_id = ?${activeClause}
           ORDER BY id DESC LIMIT ?
@@ -331,7 +348,7 @@ export class Logger {
     } else {
       rows = this.db.prepare(`
         SELECT * FROM (
-          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id 
+          SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id, duration_ms 
           FROM messages 
           WHERE session_id IS NULL${activeClause}
           ORDER BY id DESC LIMIT ?
@@ -350,6 +367,7 @@ export class Logger {
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
       if (row.session_id) entry.session_id = row.session_id;
       if (row.id) entry.id = row.id;
+      if (row.duration_ms != null) entry.duration_ms = row.duration_ms;
       return entry;
     });
   }
@@ -361,7 +379,7 @@ export class Logger {
   public getRecentMessagesAllSessions(limit: number = 30): MemoryEntry[] {
     const rows = this.db.prepare(`
       SELECT * FROM (
-        SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id
+        SELECT role, content, reasoning_content, name, tool_call_id, tool_calls, session_id, id, duration_ms
         FROM messages
         ORDER BY id DESC LIMIT ?
       ) ORDER BY id ASC
@@ -377,6 +395,7 @@ export class Logger {
       if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
       if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
       if (row.session_id) entry.session_id = row.session_id;
+      if (row.duration_ms != null) entry.duration_ms = row.duration_ms;
       return entry;
     });
   }
@@ -389,17 +408,28 @@ export class Logger {
         const sessionExists = this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId);
         if (!sessionExists) {
           let title = 'New Session';
-          if (sessionId.startsWith('telegram_')) title = 'Telegram Chat';
-          else if (sessionId.startsWith('discord_')) title = 'Discord Chat';
-          else if (sessionId.startsWith('cli-chat')) title = 'CLI Chat';
-          this.db.prepare('INSERT INTO sessions (id, title) VALUES (?, ?)').run(sessionId, title);
+          let client = null;
+          if (sessionId.startsWith('telegram_')) {
+            title = 'Telegram Chat';
+            client = 'telegram';
+          } else if (sessionId.startsWith('discord_')) {
+            title = 'Discord Chat';
+            client = 'discord';
+          } else if (sessionId.startsWith('cli-chat')) {
+            title = 'CLI Chat';
+            client = 'cli';
+          } else if (sessionId.startsWith('desktop-')) {
+            title = 'Desktop Chat';
+            client = 'desktop';
+          }
+          this.db.prepare('INSERT INTO sessions (id, title, client) VALUES (?, ?, ?)').run(sessionId, title, client);
         }
       } catch {}
     }
 
     const insert = this.db.prepare(`
-      INSERT INTO messages (session_id, role, content, reasoning_content, name, tool_call_id, tool_calls)
-      VALUES (@session_id, @role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls)
+      INSERT INTO messages (session_id, role, content, reasoning_content, name, tool_call_id, tool_calls, duration_ms)
+      VALUES (@session_id, @role, @content, @reasoning_content, @name, @tool_call_id, @tool_calls, @duration_ms)
     `);
     
     insert.run({
@@ -409,7 +439,8 @@ export class Logger {
       reasoning_content: entry.reasoning_content || null,
       name: entry.name || null,
       tool_call_id: entry.tool_call_id || null,
-      tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null
+      tool_calls: entry.tool_calls ? JSON.stringify(entry.tool_calls) : null,
+      duration_ms: entry.duration_ms || null
     });
   }
 

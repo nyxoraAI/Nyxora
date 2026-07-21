@@ -329,7 +329,7 @@ function App() {
 
   const fetchProjects = async () => {
     try {
-      const res = await apiFetch('/api/projects');
+      const res = await apiFetch('/api/projects?client=dashboard');
       if (res.ok) {
         setProjects(await res.json());
       }
@@ -345,7 +345,7 @@ function App() {
         await apiFetch('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, path })
+          body: JSON.stringify({ name, path, client: 'dashboard' })
         });
         await fetchProjects();
       }
@@ -836,6 +836,107 @@ function App() {
           </nav>
 
 
+          {/* Projects Section */}
+          <div className="sidebar-section" style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Projects</span>
+            <button 
+              onClick={importProject}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'var(--text-secondary)', 
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+              title="Import Project"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+          
+          {projects.length > 0 && (
+            <nav className="sidebar-nav" style={{ marginBottom: '12px' }}>
+              {projects.map((project) => (
+                <div key={project.id} style={{ marginBottom: '8px' }}>
+                  <div 
+                    className="nav-item"
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setExpandedProjects(prev => ({ ...prev, [project.id]: !prev[project.id] }))}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                      <Folder size={14} />
+                      <span className="nav-label" style={{ fontSize: '0.85rem', fontWeight: 500 }}>{project.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="delete-session-btn" 
+                        onClick={(e) => { e.stopPropagation(); createNewSession(project.id); }} 
+                        title="New Chat in Project"
+                      >
+                        <Plus size={12} strokeWidth={1.5} />
+                      </button>
+                      <button 
+                        className="delete-session-btn" 
+                        onClick={(e) => deleteProject(project.id, e)} 
+                        title="Remove Project"
+                      >
+                        <Trash2 size={12} strokeWidth={1.5} />
+                      </button>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', transition: 'transform 0.2s', display: 'inline-block', transform: expandedProjects[project.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                    </div>
+                  </div>
+                  
+                  {expandedProjects[project.id] && (
+                    <div style={{ paddingLeft: '24px', marginTop: '4px' }}>
+                      {chatSessions.filter(s => s.project_id === project.id).map((session) => (
+                        <div 
+                          key={session.id}
+                          className={`nav-item session-item ${activeSessionId === session.id && currentView === 'chat' ? 'active' : ''}`}
+                          onClick={() => {
+                            setActiveSessionId(session.id);
+                            setCurrentView('chat');
+                          }}
+                          style={{ fontSize: '0.8rem', padding: '6px 8px' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}>
+                            <MessageSquare size={12} />
+                            <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.title}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
+                              <Edit2 size={10} strokeWidth={1.5} />
+                            </button>
+                            <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
+                              <Trash2 size={10} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {chatSessions.filter(s => s.project_id === project.id).length === 0 && (
+                        <div style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          No chats yet
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </nav>
+          )}
+
           <div className="sidebar-section" style={{ marginTop: '0px' }}>
             <span>Recent</span>
           </div>
@@ -1044,6 +1145,7 @@ function App() {
                         toolCalls={msg.tool_calls} 
                         progressLogs={msg.progressLogs} 
                         isStreaming={msg.isStreaming} 
+                        durationMs={(msg as any).duration_ms}
                       />
                     )}
                     {msg.content && msg.content.trim() !== '' && (

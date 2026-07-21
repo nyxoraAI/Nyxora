@@ -34,7 +34,10 @@ export const simulateStream = async (text: string, onChunk: (chunk: string) => v
  * - No batching queue — chunks pass through immediately (Telegram has its own 1.1s debounce)
  * - All think-tag stripping is preserved
  */
-export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => void) => {
+export const createSmartStreamWrapper = (
+  originalOnChunk: (chunk: string) => void,
+  onReasoning?: (text: string) => void
+) => {
   let inflightCount = 0;
   const waiters: Array<() => void> = [];
 
@@ -46,18 +49,35 @@ export const createSmartStreamWrapper = (originalOnChunk: (chunk: string) => voi
 
   let accumulatedRaw = '';
   let sentLength = 0;
+  let sentReasoningLength = 0;
 
   return {
     onChunk: (chunk: string) => {
       if (chunk === '[CLEAR_STREAM]') {
-        // Reset accumulator when a new turn begins (turn 1 only, due to RC#1 fix)
         accumulatedRaw = '';
         sentLength = 0;
+        sentReasoningLength = 0;
         originalOnChunk('[CLEAR_STREAM]');
         return;
       }
 
       accumulatedRaw += chunk;
+
+      // Extract all content inside <think> tags to stream as reasoning
+      if (onReasoning) {
+        let extractedReasoning = '';
+        const regex = /<(?:think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)(?:<\/\1>|$)/gi;
+        let match;
+        while ((match = regex.exec(accumulatedRaw)) !== null) {
+          extractedReasoning += match[1];
+        }
+        
+        if (extractedReasoning.length > sentReasoningLength) {
+          const newReasoning = extractedReasoning.substring(sentReasoningLength);
+          sentReasoningLength = extractedReasoning.length;
+          onReasoning(newReasoning);
+        }
+      }
 
       // Strip fully-closed <think>...</think> blocks (reasoning traces should not stream)
       let cleanText = accumulatedRaw.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking|execute_tool|execute_bash|execute)[^>]*>[\s\S]*?<\/\1>/gi, '');

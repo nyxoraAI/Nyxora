@@ -362,30 +362,7 @@ async function serveMcp() {
   await new Promise(resolve => child.on('close', resolve));
 }
 
-async function desktop() {
-  console.log("Preparing Nyxora Desktop MVP...");
 
-
-  // Build the desktop app if it hasn't been built yet
-  const distElectron = path.join(projectRoot, 'packages', 'desktop', 'dist-electron');
-  if (!fs.existsSync(distElectron)) {
-    console.log("Building Nyxora Desktop...");
-    const build = spawn('npm', ['run', 'build:electron', '--workspace=nyxora-desktop'], {
-      cwd: projectRoot,
-      stdio: 'inherit'
-    });
-    await new Promise(resolve => build.on('close', resolve));
-  }
-
-  console.log("Starting Nyxora Desktop...");
-  const child = spawn('npm', ['run', 'dev', '--workspace=nyxora-desktop'], {
-    cwd: projectRoot,
-    stdio: 'inherit',
-    env: { ...process.env, ELECTRON_ARGS: '--no-sandbox' }
-  });
-  
-  await new Promise(resolve => child.on('close', resolve));
-}
 
 async function main() {
   switch(command) {
@@ -404,7 +381,7 @@ async function main() {
     case 'clean-logs': await cleanLogs(); break;
     case 'autostart': await autostart(process.argv[3]); break;
     case 'mcp': await serveMcp(); break;
-    case 'desktop': await desktop(); break;
+
     case 'tui': 
       const compiledCliTui = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
       const useCompiledTui = fs.existsSync(compiledCliTui);

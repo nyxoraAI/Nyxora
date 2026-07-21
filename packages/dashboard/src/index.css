@@ -1352,17 +1352,18 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px;
   border-radius: 4px;
   user-select: none;
-  color: #e5e5e5;
+  color: #a3a3a3;
   width: fit-content;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border: none;
+  transition: color 0.2s ease;
 }
 
 .agent-trace-header:hover {
-  background: rgba(255, 255, 255, 0.05);
+  color: #e5e5e5;
 }
 
 .agent-trace-summary {
@@ -1450,13 +1451,13 @@ body.light-theme .agent-trace-container {
 }
 
 body.light-theme .agent-trace-header {
-  color: #1f2937;
+  color: #6b7280;
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: none;
 }
 
 body.light-theme .agent-trace-summary {
-  color: #4b5563;
+  color: #6b7280;
 }
 
 body.light-theme .agent-trace-icon {
@@ -1464,7 +1465,8 @@ body.light-theme .agent-trace-icon {
 }
 
 body.light-theme .agent-trace-header:hover {
-  background: rgba(0, 0, 0, 0.05);
+  color: #1f2937;
+  background: transparent;
 }
 
 body.light-theme .agent-trace-body {

@@ -719,7 +719,8 @@ export async function processOsIntentStream(
   input: string,
   onChunk: (text: string) => void,
   onProgress?: (msg: string) => void,
-  sessionId?: string
+  sessionId?: string,
+  onReasoning?: (text: string) => void
 ): Promise<string> {
   const config = loadConfig();
   logger.addEntry({ role: 'user', content: input }, sessionId);
@@ -819,6 +820,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       ];
 
       let streamedContent = '';
+      const turnStartTime = Date.now();
       const response = await executeWithRetry(async (client) => {
         streamedContent = '';
         // RC#1 FIX: Always clear the buffer at the start of the stream turn.
@@ -829,9 +831,13 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
           (chunk: string) => {
             streamedContent += chunk;
             onChunk(chunk);
-          }
+          },
+          onReasoning ? (reasoning: string) => {
+            onReasoning(reasoning);
+          } : undefined
         );
       });
+      const duration_ms = Date.now() - turnStartTime;
 
       const responseMessage = response.message;
 
@@ -844,6 +850,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         content: responseMessage.content || '',
         reasoning_content: (responseMessage as any).reasoning_content,
         tool_calls: responseMessage.tool_calls,
+        duration_ms,
       };
       logger.addEntry(asstMsgStream, sessionId);
       loopMessagesStream.push(asstMsgStream);

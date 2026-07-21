@@ -322,7 +322,8 @@ app.delete('/api/sessions/:id', (req, res) => {
 
 app.get('/api/projects', (req, res) => {
   try {
-    res.json(logger.getProjects());
+    const client = req.query.client as string | undefined;
+    res.json(logger.getProjects(client));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -330,8 +331,8 @@ app.get('/api/projects', (req, res) => {
 
 app.post('/api/projects', (req, res) => {
   try {
-    const { name, path } = req.body;
-    const id = logger.addProject(name, path);
+    const { name, path, client } = req.body;
+    const id = logger.addProject(name, path, client);
     res.json({ id });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -1188,9 +1189,10 @@ app.get('/api/chat/stream', async (req, res) => {
 
   const onChunk = (text: string) => sendEvent({ chunk: text });
   const onProgress = (msg: string) => sendEvent({ progress: msg });
+  const onReasoning = (text: string) => sendEvent({ reasoning: text });
 
   try {
-    await processUserInputStream(message, onChunk, onProgress, session_id);
+    await processUserInputStream(message, onChunk, onProgress, session_id, onReasoning);
     // Trigger memory mechanisms after response completes (per-session)
     resetIdleTimer(session_id);
     const streamKey = session_id || '__global__';
@@ -1206,6 +1208,12 @@ app.get('/api/chat/stream', async (req, res) => {
       sessionMessageCounts.set(streamKey, streamCount);
     }
   } catch (err: any) {
+    console.error(`[SSE] Stream error for session "${session_id}":`, {
+      message: err.message,
+      stack: err.stack,
+      status: err?.status,
+      response: err?.response
+    });
     sendEvent({ error: err.message });
   } finally {
     res.write('data: [DONE]\n\n');

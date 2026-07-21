@@ -1,6 +1,6 @@
 {
   "name": "@nyxora/tui",
-  "version": "26.7.19",
+  "version": "26.7.20",
   "type": "module",
   "private": true,
   "main": "dist/index.js",
