@@ -35,6 +35,8 @@ function createWindow() {
 		width: 1200,
 		height: 800,
 		titleBarStyle: "hidden",
+		frame: process.platform === "darwin",
+		transparent: process.platform === "linux",
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
 			contextIsolation: true,

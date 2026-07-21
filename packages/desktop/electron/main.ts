@@ -45,6 +45,8 @@ function createWindow() {
     width: 1200,
     height: 800,
     titleBarStyle: 'hidden',
+    frame: process.platform === 'darwin',
+    transparent: process.platform === 'linux', // Trick to force GNOME compositing to respect frameless maximize bounds
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
