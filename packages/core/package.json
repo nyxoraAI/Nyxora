@@ -1,6 +1,6 @@
 {
   "name": "nyxora-agent-core",
-  "version": "26.7.20",
+  "version": "26.7.21",
   "private": true,
   "main": "src/gateway/server.ts",
   "dependencies": {
@@ -53,6 +53,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "silk-wasm": "^3.7.1",
+    "systeminformation": "^5.33.0",
     "viem": "^2.55.0",
     "write-excel-file": "^4.1.1",
     "ws": "^8.21.0",

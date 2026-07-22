@@ -49,10 +49,18 @@ interface SettingsProps {
   autoLockTime: number;
   setAutoLockTime: (val: number) => void;
   onLogout?: () => void;
+  initialCategory?: string;
 }
 
-const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime, onLogout }) => {
-  const [activeCategory, setActiveCategory] = useState<string>('agent');
+const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTime, setAutoLockTime, onLogout, initialCategory }) => {
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'agent');
+
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
   const [formData, setFormData] = useState<Config | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     risk_level: 'Moderate',
@@ -287,8 +295,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
   };
 
   return (
-    <div className="settings-layout" style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      <div className="settings-sidebar-menu" style={{ width: '260px', borderRight: '1px solid var(--glass-border)', padding: '24px 16px', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div className="settings-container" style={{ display: 'flex', height: '100%' }}>
+      {!initialCategory && (
+      <div className="settings-sidebar" style={{ width: '220px', borderRight: '1px solid var(--glass-border)', padding: '24px 0', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
         
         <div className="settings-section-title" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '4px', paddingLeft: '12px' }}>GENERAL</div>
         
@@ -336,6 +345,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
         </div>
 
       </div>
+      )}
 
       <div className="settings-content-area styled-scroll" style={{ flex: 1, padding: '32px 48px', overflowY: 'auto' }}>
         
@@ -361,8 +371,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.agent.default_chain}
                     onChange={(val) => handleChange('agent', 'default_chain', val)}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
                       { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
@@ -421,8 +431,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.provider}
                     onChange={(val) => handleChange('llm', 'provider', val)}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
                       { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
@@ -465,8 +475,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.reasoning_effort || 'medium'}
                     onChange={(val) => handleChange('llm', 'reasoning_effort', val)}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'low', label: 'Low' },
                       { id: 'medium', label: 'Medium' },
@@ -500,8 +510,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.image_provider || 'openai'}
                     onChange={(val) => handleChange('llm', 'image_provider', val)}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'openai', label: 'OpenAI (DALL-E)' },
                       { id: 'gemini', label: 'Google Gemini (Native)' }
@@ -521,13 +531,13 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
               </div>
 
               {formData.llm.provider === '9router' && (
-                <div style={{ background: 'rgba(136, 192, 208, 0.1)', border: '1px solid rgba(136, 192, 208, 0.3)', padding: '14px', borderRadius: '8px', marginTop: '16px' }}>
+                <div style={{ background: 'transparent', border: '1px dashed var(--text-secondary)', padding: '14px', marginTop: '16px' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--accent)' }}>ℹ️ Local Proxy Required:</strong> Ensure you have installed and started the 9Router proxy before saving.
+                    <strong style={{ color: 'var(--accent)' }}>[!] Local Proxy Required:</strong> Ensure you have installed and started the 9Router proxy before saving.
                     <br/><br/>
-                    <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'monospace' }}>npm install -g 9router</code>
+                    <code style={{ background: 'transparent', border: '1px solid var(--glass-border)', padding: '2px 6px', fontSize: '0.8rem', fontFamily: 'monospace' }}>npm install -g 9router</code>
                     <br/>
-                    <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', display: 'inline-block', fontSize: '0.8rem', fontFamily: 'monospace' }}>9router</code>
+                    <code style={{ background: 'transparent', border: '1px solid var(--glass-border)', padding: '2px 6px', marginTop: '6px', display: 'inline-block', fontSize: '0.8rem', fontFamily: 'monospace' }}>9router</code>
                   </p>
                 </div>
               )}
@@ -559,8 +569,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       localStorage.setItem('nyxora_theme', val);
                       window.location.reload();
                     }}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'auto', label: 'System (Auto)' },
                       { id: 'dark', label: 'Dark Mode' },
@@ -573,8 +583,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.agent.log_level || 'info'}
                     onChange={(val) => handleChange('agent', 'log_level', val)}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: 'info', label: 'Info (Standard)' },
                       { id: 'debug', label: 'Debug (Verbose)' }
@@ -596,8 +606,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={autoLockTime.toString()}
                     onChange={(val) => setAutoLockTime(parseInt(val))}
-                    pillColor="var(--accent)"
-                    textColor="var(--bg-secondary)"
+                    pillColor="transparent"
+                    textColor="var(--text-primary)"
                     options={[
                       { id: '0', label: 'Off' },
                       { id: '15', label: '15 Minutes' },
@@ -706,8 +716,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     <PillSelect 
                       value={userProfile.risk_level}
                       onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
-                      pillColor="var(--danger)"
-                      textColor="var(--text-primary)"
+                      pillColor="transparent"
+                      textColor="var(--danger)"
                       options={[
                         { id: 'Conservative', label: 'Conservative (Safe)' },
                         { id: 'Moderate', label: 'Moderate' },
@@ -988,7 +998,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           {/* Save Button for standard settings form */}
           {['agent', 'llm', 'appearance', 'security', 'risk', 'integrations'].includes(activeCategory) && (
             <div className="form-actions" style={{ justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid rgba(216, 222, 233, 0.05)' }}>
-              <button className="nord-btn-primary" style={{ background: 'var(--accent)', color: 'var(--bg-secondary)', fontWeight: 600 }} onClick={handleSave} disabled={isSaving}>
+              <button className="nord-btn-primary" style={{ background: 'var(--accent)', color: 'var(--accent-text)', fontWeight: 600 }} onClick={handleSave} disabled={isSaving}>
                 <Save size={16} style={{ marginRight: '8px' }} />
                 {isSaving ? 'Saving...' : 'Save Configuration'}
               </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, ShieldAlert, CheckCircle2, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { KeyRound, ShieldAlert, CheckCircle2, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { apiFetch } from './utils/api';
 import { getRouterLogoUrl } from './utils/logos';
 
@@ -11,7 +11,7 @@ interface ApiKeyRequirement {
   configured: boolean;
 }
 
-export const MarketOracles: React.FC = () => {
+export const DefiConfig: React.FC = () => {
   const [requirements, setRequirements] = useState<ApiKeyRequirement[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
@@ -20,13 +20,13 @@ export const MarketOracles: React.FC = () => {
   useEffect(() => {
     const fetchKeys = async () => {
       try {
-        const res = await apiFetch('/api/market-keys');
+        const res = await apiFetch('/api/defi-keys');
         const data = await res.json();
         if (data.requirements) {
           setRequirements(data.requirements);
         }
       } catch (err) {
-        console.error("Failed to fetch market keys");
+        console.error("Failed to fetch defi keys");
       }
     };
     fetchKeys();
@@ -38,7 +38,7 @@ export const MarketOracles: React.FC = () => {
       if (!value) return;
 
       const payload = { [id]: value };
-      const res = await apiFetch('/api/market-keys', {
+      const res = await apiFetch('/api/defi-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -64,7 +64,7 @@ export const MarketOracles: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await apiFetch(`/api/market-keys/${id}`, {
+      const res = await apiFetch(`/api/defi-keys/${id}`, {
         method: 'DELETE'
       });
 
@@ -83,13 +83,13 @@ export const MarketOracles: React.FC = () => {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-        <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', padding: '10px' }}>
-          <TrendingUp size={24} color="#3b82f6" />
+        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '10px' }}>
+          <KeyRound size={24} color="#f59e0b" />
         </div>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700 }}>Market Oracles</h2>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700 }}>DeFi Config</h2>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            Keys for price feeds and market intelligence
+            API keys for DeFi aggregator providers
           </p>
         </div>
       </div>
@@ -115,8 +115,8 @@ export const MarketOracles: React.FC = () => {
         <ShieldAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           <strong style={{ color: '#f59e0b' }}>Security Notice:</strong> Your keys are stored in plain text locally inside{' '}
-          <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '4px' }}>~/.nyxora/config/market_keys.yaml</code>.{' '}
-          They are highly isolated and never transmitted except directly to the respective Oracle API.
+          <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '4px' }}>~/.nyxora/config/defi_keys.yaml</code>.{' '}
+          They are highly isolated and never transmitted except directly to the respective provider's API.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export const MarketOracles: React.FC = () => {
         fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em',
         color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px'
       }}>
-        Market Intelligence Providers
+        Dynamic Provider Integrations
       </div>
 
       {/* Empty state */}
@@ -249,4 +249,4 @@ export const MarketOracles: React.FC = () => {
   );
 };
 
-export default MarketOracles;
+export default DefiConfig;

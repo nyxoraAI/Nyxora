@@ -1,34 +1,36 @@
-import { apiFetch } from './utils/api';
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder } from 'lucide-react';
-import Overview from './Overview';
-import Settings from './Settings';
-import SearchChat from './SearchChat';
-import { Portfolio } from './Portfolio';
-import { AgentTrace } from './AgentTrace';
+import { useState, useEffect, useRef } from 'react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder, Clock, Plug, Link, User, Landmark, LineChart, TrendingUp, Router, Share2 } from 'lucide-react';
+
+import NyxoraLogo from './NyxoraLogo';
 import { NetworkSelector } from './NetworkSelector';
 import { RouterSelector } from './RouterSelector';
-import PendingTransactions from './PendingTransactions';
-import BalanceWidget from './BalanceWidget';
-import MarketWidget from './MarketWidget';
-import NyxoraLogo from './NyxoraLogo';
-import SwapWidget from './SwapWidget';
 import ReconnectOverlay from './components/ReconnectOverlay';
 import Login from './Login';
-
-import { usePolling } from './utils/usePolling';
+import { apiFetch } from './utils/api';
 import './index.css';
 
-interface Message {
-  role: 'user' | 'assistant' | 'tool' | 'system';
-  content: string;
-  name?: string;
-  reasoning_content?: string;
-  tool_calls?: any[];
-  isOptimistic?: boolean;
-}
+// Feature Components
+import Sessions from './Sessions';
+import Models from './Models';
+import Logs from './Logs';
+import Cron from './Cron';
+import Skills from './Skills';
+import Plugins from './Plugins';
+import Mcp from './Mcp';
+import Webhooks from './Webhooks';
+import Pairing from './Pairing';
+import Profiles from './Profiles';
+import RpcConfig from './RpcConfig';
+import { DefiConfig } from './DefiConfig';
+import { MarketOracles } from './MarketOracles';
+import Memory from './Memory';
+import Security from './Security';
+import Wallets from './Wallets';
+import Workflows from './Workflows';
+import Gateway from './Gateway';
+import OsTerminal from './OsTerminal';
+import Swarm from './Swarm';
+import Hardware from './Hardware';
 
 interface Config {
   agent: { name: string; default_chain: string; default_router?: string };
@@ -37,42 +39,10 @@ interface Config {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
-  const [currentView, setCurrentView] = useState<'chat' | 'overview' | 'portfolio' | 'settings' | 'skills' | 'osskills' | 'defikeys' | 'marketoracles' | 'rpcconfig' | 'search' | 'playbooks'>('chat');
-  const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chatSessions, setChatSessions] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => localStorage.getItem('nyxora_active_session_id') || null);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editSessionTitle, setEditSessionTitle] = useState<string>('');
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const isVoiceModeRef = useRef(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'swarm' | 'hardware'>('sessions');
+  
   const [config, setConfig] = useState<Config | null>(null);
-  const [chatWidth, setChatWidth] = useState(70);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Autofocus the chat input when the LLM finishes responding
-  useEffect(() => {
-    if (!isLoading) {
-      // Use standard DOM query to bypass any Ref mounting race conditions
-      setTimeout(() => {
-        const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
-        if (textarea && !textarea.disabled) {
-          textarea.focus();
-        }
-      }, 150);
-    }
-  }, [isLoading]);
-
+  
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalInput, setAuthModalInput] = useState('');
@@ -87,15 +57,9 @@ function App() {
   const [theme, setTheme] = useState<'dark' | 'light' | 'auto'>(() => (localStorage.getItem('nyxora_theme') as 'dark' | 'light' | 'auto') || 'auto');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => localStorage.getItem('nyxora_sidebar_collapsed') === 'true');
 
-
   useEffect(() => {
     document.title = "Nyxora Dashboard";
-    if (activeSessionId) {
-      localStorage.setItem('nyxora_active_session_id', activeSessionId);
-    } else {
-      localStorage.removeItem('nyxora_active_session_id');
-    }
-  }, [activeSessionId]);
+  }, []);
 
   useEffect(() => {
     const applyTheme = (currentTheme: 'dark' | 'light' | 'auto') => {
@@ -132,12 +96,9 @@ function App() {
     const handleAuthError = () => {
       setShowAuthModal(true);
     };
-    
-    // Check initially if token exists
     if (!localStorage.getItem('nyxora_token')) {
       setShowAuthModal(true);
     }
-
     window.addEventListener('nyxora-auth-error', handleAuthError);
     return () => {
       window.removeEventListener('nyxora-auth-error', handleAuthError);
@@ -182,236 +143,6 @@ function App() {
     return () => clearInterval(unlockCheck);
   }, [isLocked, lockedAt]);
 
-  useEffect(() => {
-    // Initialize Speech Recognition
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-    }
-  }, []);
-
-  const startListening = () => {
-    try {
-      recognitionRef.current?.start();
-      setIsListening(true);
-    } catch {}
-  };
-
-  const speak = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    
-    // Clean markdown before speaking
-    const cleanText = text.replace(/[*#_`]/g, '');
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'en-US';
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      // Auto-listen if in voice mode
-      if (isVoiceModeRef.current) {
-        startListening();
-      }
-    };
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const toggleVoiceMode = () => {
-    const newMode = !isVoiceMode;
-    setIsVoiceMode(newMode);
-    isVoiceModeRef.current = newMode;
-    
-    if (newMode) {
-      startListening();
-    } else {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsLoading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await apiFetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const prompt = `Please analyze this document: ${data.filePath}`;
-        handleSend(null as any, prompt);
-      } else {
-        console.error('File upload failed');
-        setIsLoading(false);
-      }
-    } catch (err) {
-      console.error('Error uploading file', err);
-      setIsLoading(false);
-    }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const fetchHistory = async () => {
-    if (!activeSessionId) {
-      setMessages([]);
-      return;
-    }
-    try {
-      const url = `/api/history?session_id=${activeSessionId}`;
-      const res = await apiFetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(prev => {
-          const optimisticMsgs = prev.filter(m => m.isOptimistic);
-          const nonOptimisticPrev = prev.filter(m => !m.isOptimistic);
-          
-          if (JSON.stringify(nonOptimisticPrev) === JSON.stringify(data)) {
-            return prev;
-          }
-
-          if (optimisticMsgs.length > 0) {
-            const missingOptimistic = optimisticMsgs.filter(opt => !data.some((d: any) => d.role === 'user' && d.content === opt.content));
-            if (missingOptimistic.length > 0) {
-              return [...data, ...missingOptimistic];
-            }
-          }
-          return data;
-        });
-      }
-    } catch (err) {
-      console.warn('Backend not ready, retrying history fetch in 2s...');
-    }
-  };
-
-  const fetchSessions = async () => {
-    try {
-      const res = await apiFetch(`/api/sessions`);
-      if (res.ok) {
-        const data = await res.json();
-        setChatSessions(data);
-        if (data.length > 0 && !activeSessionId) {
-          setActiveSessionId(data[0].id);
-        }
-      }
-    } catch {}
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const res = await apiFetch('/api/projects?client=dashboard');
-      if (res.ok) {
-        setProjects(await res.json());
-      }
-    } catch {}
-  };
-
-  const importProject = async () => {
-    try {
-      const res = await apiFetch('/api/system/pick-folder');
-      if (res.ok) {
-        const { path } = await res.json();
-        const name = path.split('/').pop() || path;
-        await apiFetch('/api/projects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, path, client: 'dashboard' })
-        });
-        await fetchProjects();
-      }
-    } catch {}
-  };
-
-  const fetchTrendingTokens = async () => {
-    try {
-      const res = await apiFetch(`/api/trending`);
-      if (res.ok) {
-        setTrendingTokens(await res.json());
-      }
-    } catch {}
-  };
-
-  const createNewSession = async (projectId?: string) => {
-    try {
-      const body: any = { title: 'New Chat' };
-      if (projectId) body.project_id = projectId;
-      
-      const res = await apiFetch(`/api/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        const { id } = await res.json();
-        setActiveSessionId(id);
-        setMessages([]);
-        await fetchSessions();
-        setCurrentView('chat');
-      }
-    } catch {}
-  };
-
-  const renameSession = async (id: string, newTitle: string) => {
-    try {
-      await apiFetch(`/api/sessions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle })
-      });
-      setEditingSessionId(null);
-      await fetchSessions();
-    } catch {}
-  };
-  const deleteProject = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
-      await fetchProjects();
-      await fetchSessions();
-    } catch {}
-  };
-  const deleteSession = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await apiFetch(`/api/sessions/${id}`, { method: 'DELETE' });
-      if (activeSessionId === id) {
-        setActiveSessionId(null);
-        setMessages([]);
-      }
-      await fetchSessions();
-    } catch {}
-  };
-
   const fetchConfig = async () => {
     try {
       const res = await apiFetch(`/api/config`);
@@ -422,7 +153,6 @@ function App() {
         setTimeout(fetchConfig, 2000);
       }
     } catch (err) {
-      console.warn('Backend not ready, retrying config fetch in 2s...');
       setTimeout(fetchConfig, 2000);
     }
   };
@@ -440,530 +170,150 @@ function App() {
     }
   };
 
-
-
   useEffect(() => {
     fetchConfig();
   }, []);
 
-  useEffect(() => {
-    fetchHistory();
-    fetchSessions();
-    fetchProjects();
-    fetchTrendingTokens();
-  }, [activeSessionId]);
-
-  usePolling(() => {
-    if (!isLoading) {
-      fetchHistory();
-    }
-    fetchSessions();
-    fetchProjects();
-    fetchTrendingTokens();
-  }, 5000);
-
-  useEffect(() => {
-    // Adding a slight timeout to ensure DOM is fully rendered before scrolling
-    setTimeout(() => {
-      const isStreaming = messages.some(m => m.isStreaming);
-      if (isStreaming && chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 10);
-  }, [messages, isLoading, currentView]);
-
-  const handleSend = async (e: React.FormEvent, customMsg?: string) => {
-    e?.preventDefault();
-    const userMsg = customMsg || input;
-    if (!userMsg.trim() || isLoading) return;
-
-    setInput('');
-    setIsLoading(true);
-
-    let currentSessionId = activeSessionId;
-
-    // Auto-create session if null
-    if (!currentSessionId) {
-      try {
-        const title = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
-        const res = await apiFetch(`/api/sessions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title })
-        });
-        if (res.ok) {
-          const { id } = await res.json();
-          currentSessionId = id;
-          setActiveSessionId(id);
-          await fetchSessions();
-        }
-      } catch (err) {
-        console.error('Failed to auto-create session', err);
-      }
-    }
-
-    // Add user message optimistically
-    setMessages(prev => [...prev, { role: 'user', content: userMsg, isOptimistic: true }]);
-
-    // Add a streaming placeholder for the assistant message
-    const streamingId = `streaming-${Date.now()}`;
-    setMessages(prev => [...prev, { role: 'assistant', content: '', id: streamingId, isStreaming: true } as any]);
-
-    let fullResponse = '';
-    let renderedResponse = '';
-    let intervalId: NodeJS.Timeout | null = null;
-
-    try {
-      const token = localStorage.getItem('nyxora_token') || '';
-      const params = new URLSearchParams({
-        message: userMsg,
-        session_id: currentSessionId || '',
-        token,
-      });
-
-      await new Promise<void>((resolve, reject) => {
-        const source = new EventSource(`/api/chat/stream?${params}`);
-        let isSourceClosed = false;
-
-        // Smooth Markdown rendering buffer (~30 FPS) to prevent React DOM lag
-        intervalId = setInterval(() => {
-          if (renderedResponse.length < fullResponse.length) {
-            // Speed dynamically scales up if buffer gets too large, using natural easing
-            const remaining = fullResponse.length - renderedResponse.length;
-            const charsPerFrame = Math.max(2, Math.ceil(remaining / 4)); 
-            
-            const charsToAdd = fullResponse.slice(renderedResponse.length, renderedResponse.length + charsPerFrame);
-            renderedResponse += charsToAdd;
-            setMessages(prev => prev.map((m: any) =>
-              m.id === streamingId ? { ...m, content: renderedResponse } : m
-            ));
-          } else if (isSourceClosed) {
-            if (intervalId) clearInterval(intervalId);
-            resolve();
-          }
-        }, 30);
-
-        source.onmessage = (event) => {
-          if (event.data === '[DONE]') {
-            source.close();
-            isSourceClosed = true;
-            return;
-          }
-          try {
-            const data = JSON.parse(event.data);
-            if (data.chunk) {
-              let cleanChunk = data.chunk;
-              if (cleanChunk.includes('[CLEAR_STREAM]')) {
-                fullResponse = '';
-                renderedResponse = '';
-                cleanChunk = cleanChunk.split('[CLEAR_STREAM]').pop() || '';
-              }
-              cleanChunk = cleanChunk.replace(/\[TOOL_CALL_DETECTED\]|\[TOOL_CALL_FINISHED\]/g, '');
-              if (cleanChunk) {
-                fullResponse += cleanChunk;
-              }
-              // The intervalId loop will pick up fullResponse and smoothly render it.
-            }
-            if (data.progress) {
-              setMessages(prev => prev.map((m: any) =>
-                m.id === streamingId ? { 
-                  ...m, 
-                  progress: data.progress,
-                  progressLogs: [...(m.progressLogs || []), { text: data.progress, time: Date.now() }]
-                } : m
-              ));
-            }
-            if (data.error) {
-              source.close();
-              isSourceClosed = true;
-              if (intervalId) clearInterval(intervalId);
-              reject(new Error(data.error));
-            }
-          } catch {}
-        };
-
-        source.onerror = () => {
-          source.close();
-          isSourceClosed = true;
-        };
-      });
-
-      // Sanitize final response to remove any LLM artifact tags that leaked through
-      const sanitizeResponse = (text: string) => text
-        .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '')
-        .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
-        .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
-        .replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '')
-        .replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '')
-        .trim();
-      fullResponse = sanitizeResponse(fullResponse);
-      renderedResponse = sanitizeResponse(renderedResponse);
-
-      // Mark streaming as done and clean up placeholder field
-      setMessages(prev => prev.map((m: any) =>
-        m.id === streamingId ? { ...m, content: fullResponse, isStreaming: false } : m
-      ));
-
-
-      // Auto-rename on first prompt
-      if (messages.length === 0 && currentSessionId) {
-        const autoTitle = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
-        renameSession(currentSessionId, autoTitle);
-      }
-
-      // Sync history from server to get clean persisted state
-      await fetchHistory();
-
-      // Trigger TTS if in voice mode
-      if (isVoiceModeRef.current && fullResponse) {
-        speak(fullResponse);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Remove streaming placeholder on failure
-      setMessages(prev => prev.filter((m: any) => m.id !== streamingId));
-    } finally {
-      setIsLoading(false);
-      const textarea = document.querySelector('.chat-input') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.style.height = 'auto';
-        setTimeout(() => textarea.focus(), 150);
-      }
-    }
-  };
-
-
-
-  // Determine active widget for Canvas based on the latest tool call result
-  let activeWidget: React.ReactNode = null;
-  const latestToolMessage = [...messages].reverse().find(m => m.role === 'tool');
-  
-  if (latestToolMessage && latestToolMessage.name) {
-    if (latestToolMessage.name === 'get_balance') {
-      activeWidget = <BalanceWidget data={latestToolMessage.content} />;
-    } else if (['analyze_market'].includes(latestToolMessage.name)) {
-      activeWidget = <MarketWidget data={latestToolMessage.content} />;
-    } else if (latestToolMessage.name === 'swap_token') {
-      if (!latestToolMessage.content.startsWith('Failed') && !latestToolMessage.content.startsWith('Error')) {
-        activeWidget = <SwapWidget data={latestToolMessage.content} />;
-      }
-    }
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
-  
-  const renderMessageContent = (content: string) => {
-    let cleanContent = content
-      // Strip <think> blocks
-      .replace(/(?:```(?:xml|html)?\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?|```think[\s\S]*?```/gi, '')
-      // Strip <tool_code> blocks (LLM pseudo-code leakage)
-      .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '')
-      // Strip <tool_call> blocks
-      .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
-      // Strip <execute_bash> / <execute> blocks
-      .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
-      // Strip markdown tool calls
-      .replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '')
-      // Strip raw JSON tool arrays
-      .replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '')
-      .trim();
 
-
+  if (isLocked) {
     return (
-      <div className="markdown-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {cleanContent && (
-          <div 
-            className="markdown-body"
-            style={{ overflowWrap: 'anywhere' }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(cleanContent) as string) }}
-          />
-        )}
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', flexDirection: 'column' }}>
+        <Shield size={64} color="var(--accent)" style={{ marginBottom: '24px' }} />
+        <h2 style={{ marginBottom: '8px' }}>Dashboard Locked</h2>
+        <p style={{ color: 'var(--text-secondary)' }}>Awaiting unlock request from Terminal/Mobile App.</p>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '24px' }}>
+          Terminal command: <code>nyxora unlock</code>
+        </p>
       </div>
     );
-  };
-
-  const greetings = [
-    {
-      title: "What's on your mind?",
-      desc: "I am Nyxora, your autonomous Web3 assistant. Ask me to analyze tokens, manage your portfolio, or execute on-chain transactions."
-    },
-    {
-      title: "Ready to explore Web3?",
-      desc: "From swapping tokens to yield farming, just tell me what to do and I'll handle the complex smart contracts."
-    },
-    {
-      title: "How can I assist your portfolio today?",
-      desc: "I can read market sentiment, estimate gas fees, and protect your wallet from malicious allowances."
-    },
-    {
-      title: "Navigate the crypto markets with ease.",
-      desc: "Whether you need a bridge to Arbitrum, Optimism, Base, BSC, Polygon, or liquidity on Uniswap, I am ready to execute your commands."
-    },
-    {
-      title: "Your autonomous DeFi command center.",
-      desc: "I am Nyxora. I will securely route your trades and execute DeFi strategies without compromising your keys."
-    },
-    {
-      title: "Your autonomous Local System Assistant.",
-      desc: "I can read files on your computer, securely execute terminal commands, and manage your local directories natively."
-    },
-    {
-      title: "Automate your daily OS workflows.",
-      desc: "Whether you need to parse local PDFs, draft documents, or run background bash scripts, I am ready to execute your commands."
-    },
-    {
-      title: "Beyond the Blockchain.",
-      desc: "My capabilities extend to your local machine. Just ask me to analyze system logs, organize your workspace, or send an email."
-    }
-  ];
-
-  // Pick a random greeting every time the component renders an empty chat state
-  // We use the activeSessionId as a dependency so it changes when you switch/create chats
-  const [greetingIndex, setGreetingIndex] = useState(0);
-
-  useEffect(() => {
-    // Rotate every 2 minutes (120,000 ms) for better UX
-    const interval = setInterval(() => {
-      setGreetingIndex(prev => (prev + 1) % greetings.length);
-    }, 120000);
-    return () => clearInterval(interval);
-  }, [greetings.length]);
-
-  useEffect(() => {
-    // Reset to random on new session or empty chat
-    setGreetingIndex(Math.floor(Math.random() * greetings.length));
-  }, [activeSessionId, messages.length === 0, greetings.length]);
-
-  const currentGreeting = greetings[greetingIndex];
-
-  if (!isAuthenticated) {
-    return <Login onLogin={() => {
-      setIsAuthenticated(true);
-      localStorage.setItem('nyxora_auth', 'true');
-    }} />;
   }
 
   return (
     <>
       <ReconnectOverlay />
-      {isLocked && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-primary)',
-          fontFamily: 'sans-serif'
-        }}>
-          <Shield size={64} color="var(--accent)" style={{ marginBottom: '20px' }} />
-          <h1 style={{ fontSize: '2rem', marginBottom: '10px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Session Locked</h1>
-          <p style={{ color: '#e2e8f0', fontSize: '1.2rem', textShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>
-            Please open your terminal and run <code>nyxora unlock</code> to authorize unlock.
-          </p>
-        </div>
-      )}
+      
       <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="agent-identity-card" style={{ position: 'relative' }}>
-          <div className="agent-avatar">
-            <NyxoraLogo size={48} />
-          </div>
-          <div className="agent-info">
-            <div className="agent-name">Nyxora AI</div>
-            <div className="agent-status">
-              <span className="status-dot"></span> ONLINE
-                </div>
-          </div>
-          <button 
-            className="sidebar-toggle-btn"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            style={isSidebarCollapsed ? {
-              position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px'
-            } : { 
-              position: 'absolute', top: '24px', right: '12px', background: 'transparent', 
-              border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' 
-            }}
-          >
-            {isSidebarCollapsed ? <NyxoraLogo size={32} /> : <PanelLeftClose size={18} />}
-          </button>
-        </div>
-
-        <div className="sidebar-scroll-area">
-          <nav className="sidebar-nav" style={{ paddingTop: '16px' }}>
-            <div 
-              className="nav-item"
-              onClick={() => createNewSession()}
-              title={isSidebarCollapsed ? "New Chat" : undefined}
-            >
-              <Plus size={15} className="nav-icon" /> <span className="nav-label">New Chat</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'search' ? 'active' : ''}`}
-              onClick={() => setCurrentView('search')}
-              title={isSidebarCollapsed ? "Search Chat" : undefined}
-            >
-              <Search size={15} className="nav-icon" /> <span className="nav-label">Search Chat</span>
-            </div>
-            <div 
-              className={`nav-item ${currentView === 'overview' ? 'active' : ''}`}
-              onClick={() => setCurrentView('overview')}
-              title={isSidebarCollapsed ? "Overview" : undefined}
-            >
-              <LayoutDashboard size={15} className="nav-icon" /> <span className="nav-label">Overview</span>
-            </div>
-
-            <div 
-              className={`nav-item ${currentView === 'portfolio' ? 'active' : ''}`}
-              onClick={() => setCurrentView('portfolio')}
-              title={isSidebarCollapsed ? "Portfolio" : undefined}
-            >
-              <Wallet size={15} className="nav-icon" /> <span className="nav-label">Portfolio</span>
-            </div>
-
-            <div 
-              className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
-              onClick={() => setCurrentView('settings')}
-              title={isSidebarCollapsed ? "Settings" : undefined}
-            >
-              <SettingsIcon size={15} className="nav-icon" /> <span className="nav-label">Settings</span>
-            </div>
-          </nav>
+        <div className="sidebar-header" style={{ padding: '24px 16px', paddingBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', width: '100%' }}>
+            {!isSidebarCollapsed && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <NyxoraLogo size={28} />
+                <h2 style={{ margin: 0, fontSize: '1.1rem', letterSpacing: '-0.02em', color: 'var(--text-primary)', fontWeight: 700 }}>
+                  Nyxora<span style={{color: 'var(--accent)'}}>.</span>
+                </h2>
+              </div>
+            )}
 
 
-          {/* Projects Section */}
-          <div className="sidebar-section" style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Projects</span>
-            <button 
-              onClick={importProject}
-              style={{ 
-                background: 'transparent', 
-                border: 'none', 
-                color: 'var(--text-secondary)', 
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
-                padding: '4px',
+                padding: '5px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: '4px',
-                transition: 'all 0.2s'
+                flexShrink: 0,
+                transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-              title="Import Project"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border)'; }}
             >
-              <Plus size={16} />
+              {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
           </div>
-          
-          {projects.length > 0 && (
-            <nav className="sidebar-nav" style={{ marginBottom: '12px' }}>
-              {projects.map((project) => (
-                <div key={project.id} style={{ marginBottom: '8px' }}>
-                  <div 
-                    className="nav-item"
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setExpandedProjects(prev => ({ ...prev, [project.id]: !prev[project.id] }))}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
-                      <Folder size={14} />
-                      <span className="nav-label" style={{ fontSize: '0.85rem', fontWeight: 500 }}>{project.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <button 
-                        className="delete-session-btn" 
-                        onClick={(e) => { e.stopPropagation(); createNewSession(project.id); }} 
-                        title="New Chat in Project"
-                      >
-                        <Plus size={12} strokeWidth={1.5} />
-                      </button>
-                      <button 
-                        className="delete-session-btn" 
-                        onClick={(e) => deleteProject(project.id, e)} 
-                        title="Remove Project"
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                      </button>
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', transition: 'transform 0.2s', display: 'inline-block', transform: expandedProjects[project.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-                    </div>
-                  </div>
-                  
-                  {expandedProjects[project.id] && (
-                    <div style={{ paddingLeft: '24px', marginTop: '4px' }}>
-                      {chatSessions.filter(s => s.project_id === project.id).map((session) => (
-                        <div 
-                          key={session.id}
-                          className={`nav-item session-item ${activeSessionId === session.id && currentView === 'chat' ? 'active' : ''}`}
-                          onClick={() => {
-                            setActiveSessionId(session.id);
-                            setCurrentView('chat');
-                          }}
-                          style={{ fontSize: '0.8rem', padding: '6px 8px' }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}>
-                            <MessageSquare size={12} />
-                            <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.title}</span>
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
-                              <Edit2 size={10} strokeWidth={1.5} />
-                            </button>
-                            <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
-                              <Trash2 size={10} strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {chatSessions.filter(s => s.project_id === project.id).length === 0 && (
-                        <div style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                          No chats yet
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-          )}
+        </div>
 
-          <div className="sidebar-section" style={{ marginTop: '0px' }}>
-            <span>Recent</span>
-          </div>
-          <nav className="sidebar-nav sessions-list">
-            {chatSessions.filter(s => !s.project_id).map((session) => (
-              <div 
-                key={session.id}
-                className={`nav-item session-item ${activeSessionId === session.id && currentView === 'chat' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveSessionId(session.id);
-                  setCurrentView('chat');
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
-                  <span className="nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>{session.title}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <button className="delete-session-btn" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditSessionTitle(session.title); }} title="Rename Session">
-                    <Edit2 size={12} strokeWidth={1.5} />
-                  </button>
-                  <button className="delete-session-btn" onClick={(e) => deleteSession(session.id, e)} title="Delete Session">
-                    <Trash2 size={14} strokeWidth={1.5} />
-                  </button>
-                </div>
+        <div className="sidebar-scroll-area">
+          <nav className="sidebar-nav" style={{ paddingTop: '16px' }}>
+            <div className="nav-items-container">
+              <div className={`nav-item ${currentView === 'sessions' ? 'active' : ''}`} onClick={() => setCurrentView('sessions')} title={isSidebarCollapsed ? "SESSIONS" : undefined}>
+                <MessageSquare size={16} /> {!isSidebarCollapsed && "SESSIONS"}
               </div>
-            ))}
+              
+              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px' }}>AGENT CONTROL</div>}
+
+              <div className={`nav-item ${currentView === 'models' ? 'active' : ''}`} onClick={() => setCurrentView('models')} title={isSidebarCollapsed ? "MODELS" : undefined}>
+                <Cpu size={16} /> {!isSidebarCollapsed && "MODELS"}
+              </div>
+              <div className={`nav-item ${currentView === 'skills' ? 'active' : ''}`} onClick={() => setCurrentView('skills')} title={isSidebarCollapsed ? "SKILLS" : undefined}>
+                <Code size={16} /> {!isSidebarCollapsed && "SKILLS"}
+              </div>
+              <div className={`nav-item ${currentView === 'memory' ? 'active' : ''}`} onClick={() => setCurrentView('memory')} title={isSidebarCollapsed ? "MEMORY" : undefined}>
+                <Brain size={16} /> {!isSidebarCollapsed && "MEMORY"}
+              </div>
+              <div className={`nav-item ${currentView === 'security' ? 'active' : ''}`} onClick={() => setCurrentView('security')} title={isSidebarCollapsed ? "SECURITY" : undefined}>
+                <Shield size={16} /> {!isSidebarCollapsed && "SECURITY"}
+              </div>
+              <div className={`nav-item ${currentView === 'cron' ? 'active' : ''}`} onClick={() => setCurrentView('cron')} title={isSidebarCollapsed ? "CRON" : undefined}>
+                <Clock size={16} /> {!isSidebarCollapsed && "CRON"}
+              </div>
+              <div className={`nav-item ${currentView === 'workflows' ? 'active' : ''}`} onClick={() => setCurrentView('workflows')} title={isSidebarCollapsed ? "WORKFLOWS" : undefined}>
+                <Zap size={16} /> {!isSidebarCollapsed && "WORKFLOWS"}
+              </div>
+              <div className={`nav-item ${currentView === 'osterminal' ? 'active' : ''}`} onClick={() => setCurrentView('osterminal')} title={isSidebarCollapsed ? "OS TERMINAL" : undefined}>
+                <Terminal size={16} /> {!isSidebarCollapsed && "OS TERMINAL"}
+              </div>
+              <div className={`nav-item ${currentView === 'swarm' ? 'active' : ''}`} onClick={() => setCurrentView('swarm')} title={isSidebarCollapsed ? "SWARM" : undefined}>
+                <Share2 size={16} /> {!isSidebarCollapsed && "SWARM"}
+              </div>
+              
+              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px' }}>SYSTEM & INTEGRATION</div>}
+
+              <div className={`nav-item ${currentView === 'hardware' ? 'active' : ''}`} onClick={() => setCurrentView('hardware')} title={isSidebarCollapsed ? "HARDWARE" : undefined}>
+                <Monitor size={16} /> {!isSidebarCollapsed && "HARDWARE"}
+              </div>
+
+              <div className={`nav-item ${currentView === 'gateway' ? 'active' : ''}`} onClick={() => setCurrentView('gateway')} title={isSidebarCollapsed ? "GATEWAY" : undefined}>
+                <Router size={16} /> {!isSidebarCollapsed && "GATEWAY"}
+              </div>
+              <div className={`nav-item ${currentView === 'plugins' ? 'active' : ''}`} onClick={() => setCurrentView('plugins')} title={isSidebarCollapsed ? "PLUGINS" : undefined}>
+                <Plug size={16} /> {!isSidebarCollapsed && "PLUGINS"}
+              </div>
+              <div className={`nav-item ${currentView === 'mcp' ? 'active' : ''}`} onClick={() => setCurrentView('mcp')} title={isSidebarCollapsed ? "MCP" : undefined}>
+                <Server size={16} /> {!isSidebarCollapsed && "MCP"}
+              </div>
+              <div className={`nav-item ${currentView === 'webhooks' ? 'active' : ''}`} onClick={() => setCurrentView('webhooks')} title={isSidebarCollapsed ? "WEBHOOKS" : undefined}>
+                <Network size={16} /> {!isSidebarCollapsed && "WEBHOOKS"}
+              </div>
+              <div className={`nav-item ${currentView === 'pairing' ? 'active' : ''}`} onClick={() => setCurrentView('pairing')} title={isSidebarCollapsed ? "PAIRING" : undefined}>
+                <Link size={16} /> {!isSidebarCollapsed && "PAIRING"}
+              </div>
+              <div className={`nav-item ${currentView === 'profiles' ? 'active' : ''}`} onClick={() => setCurrentView('profiles')} title={isSidebarCollapsed ? "PROFILES" : undefined}>
+                <User size={16} /> {!isSidebarCollapsed && "PROFILES"}
+              </div>
+              <div className={`nav-item ${currentView === 'logs' ? 'active' : ''}`} onClick={() => setCurrentView('logs')} title={isSidebarCollapsed ? "LOGS" : undefined}>
+                <Activity size={16} /> {!isSidebarCollapsed && "LOGS"}
+              </div>
+
+              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px', textTransform: 'uppercase' }}>WEB3 & ASSETS</div>}
+              
+              <div className={`nav-item ${currentView === 'wallets' ? 'active' : ''}`} onClick={() => setCurrentView('wallets')} title={isSidebarCollapsed ? "WALLETS" : undefined}>
+                <Wallet size={16} /> {!isSidebarCollapsed && "WALLETS"}
+              </div>
+              <div className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`} onClick={() => setCurrentView('rpcconfig')} title={isSidebarCollapsed ? "RPC Config" : undefined}>
+                <Cpu size={16} /> {!isSidebarCollapsed && "RPC Config"}
+              </div>
+              <div className={`nav-item ${currentView === 'deficonfig' ? 'active' : ''}`} onClick={() => setCurrentView('deficonfig')} title={isSidebarCollapsed ? "DeFi Config" : undefined}>
+                <Landmark size={16} /> {!isSidebarCollapsed && "DeFi Config"}
+              </div>
+              <div className={`nav-item ${currentView === 'marketoracles' ? 'active' : ''}`} onClick={() => setCurrentView('marketoracles')} title={isSidebarCollapsed ? "Market Oracles" : undefined}>
+                <TrendingUp size={16} /> {!isSidebarCollapsed && "Market Oracles"}
+              </div>
+            </div>
           </nav>
+          
+          <div className="sidebar-section system-footer" style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--glass-border)' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>Gateway Status: <span style={{color: '#10b981'}}>Online</span></div>
+          </div>
         </div>
       </aside>
 
@@ -973,14 +323,14 @@ function App() {
             <span>Nyxora</span>
             <span style={{color: '#3b82f6'}}>•</span>
             <span style={{color: 'var(--text-primary)', textTransform: 'capitalize'}}>
-              {currentView === 'search' ? 'Search Chat' : currentView}
+              {currentView}
             </span>
           </div>
           
           <div className="topbar-right">
               <button 
                 className="network-selector-pill" 
-                style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text-primary)', width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                 onClick={() => {
                   if (theme === 'dark') setTheme('light');
                   else if (theme === 'light') setTheme('auto');
@@ -1013,270 +363,33 @@ function App() {
           </div>
         </header>
 
-        {currentView === 'search' ? (
-          <SearchChat chatSessions={chatSessions} onSelectSession={(id) => { setActiveSessionId(id); setCurrentView('chat'); }} />
-        ) : currentView === 'overview' ? (
-          <Overview config={config} sessionsCount={chatSessions.length} />
-        ) : currentView === 'portfolio' ? (
-          <Portfolio baseFiat={config?.agent?.base_fiat || 'usd'} />
-        ) : currentView === 'settings' ? (
-          <Settings 
-            config={config} 
-            onConfigChange={setConfig} 
-            autoLockTime={autoLockTime} 
-            setAutoLockTime={(val: number) => { setAutoLockTime(val); localStorage.setItem('nyxora_auto_lock', val.toString()); }}
-            onLogout={() => {
-              setIsAuthenticated(false);
-              localStorage.removeItem('nyxora_auth');
-              setCurrentView('chat');
-            }} 
-          />
-        ) : (
-            <div className="workspace-container">
-              <div className={`chat-wrapper ${messages.length === 0 ? 'empty-state-wrapper' : ''}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                
-                {messages.length === 0 && (
-                  <div key={greetingIndex} className="empty-state-container" style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: 0,
-                    animation: 'fadeInUp 0.8s ease-out forwards',
-                    textAlign: 'center',
-                    marginBottom: '40px'
-                  }}>
-                    <div style={{
-                      background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%)',
-                      padding: '40px',
-                      borderRadius: '50%',
-                      marginBottom: '20px'
-                    }}>
-                      <NyxoraLogo size={80} color="var(--accent)" />
-                    </div>
-                    <h1 className="empty-state-title" style={{
-                      fontSize: '3rem',
-                      fontWeight: 700,
-                      marginBottom: '16px',
-                      letterSpacing: '-1px'
-                    }}>
-                      {currentGreeting.title}
-                    </h1>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: '1.2rem',
-                      maxWidth: '500px',
-                      lineHeight: '1.6'
-                    }}>
-                      {currentGreeting.desc}
-                    </p>
-                  </div>
-                )}
+        {currentView === 'sessions' && <Sessions />}
 
-                <div className="chat-container" ref={chatContainerRef} style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
-                  <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-                {(() => {
-                  const getMergedMessages = (msgs: any[]) => {
-                    const merged: any[] = [];
-                    let currentAssistantMsg: any = null;
-                    
-                    for (const m of msgs) {
-                      if (m.role === 'user') {
-                        if (currentAssistantMsg) {
-                          merged.push(currentAssistantMsg);
-                          currentAssistantMsg = null;
-                        }
-                        merged.push(m);
-                      } else if (m.role === 'assistant') {
-                        if (currentAssistantMsg) {
-                          if (m.tool_calls) {
-                            currentAssistantMsg.tool_calls = [...(currentAssistantMsg.tool_calls || []), ...m.tool_calls];
-                          }
-                          if (m.content && m.content.trim() !== '') {
-                            if (currentAssistantMsg.tool_calls && currentAssistantMsg.tool_calls.length > 0) {
-                               currentAssistantMsg.content = m.content.trim();
-                            } else {
-                               currentAssistantMsg.content = (currentAssistantMsg.content && currentAssistantMsg.content.trim() !== '')
-                                 ? currentAssistantMsg.content.trim() + '\n\n' + m.content.trim() 
-                                 : m.content.trim();
-                            }
-                          }
-                          if (m.reasoning_content) {
-                            currentAssistantMsg.reasoning_content = (currentAssistantMsg.reasoning_content || '') + m.reasoning_content;
-                          }
-                          if (m.progressLogs) {
-                            currentAssistantMsg.progressLogs = [...(currentAssistantMsg.progressLogs || []), ...m.progressLogs];
-                          }
-                          currentAssistantMsg.isStreaming = currentAssistantMsg.isStreaming || m.isStreaming;
-                        } else {
-                          currentAssistantMsg = { ...m };
-                        }
-                      }
-                      // Ignored roles (e.g., 'tool') to maintain exact same array indices (keys) between streaming and history states.
-                    }
-                    if (currentAssistantMsg) {
-                      merged.push(currentAssistantMsg);
-                    }
-                    return merged;
-                  };
-                  return getMergedMessages(messages).map((msg, idx) => {
-                  const handleCopy = () => {
-                  navigator.clipboard.writeText(msg.content);
-                setCopiedIndex(idx);
-                setTimeout(() => setCopiedIndex(null), 2000);
-              };
-
-              if (msg.role === 'user') {
-                return (
-                  <div key={idx} className="message-wrapper user">
-                    <div className="message-bubble">{msg.content}</div>
-                    <button className="copy-btn" onClick={handleCopy} title="Copy message">
-                      {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
-                    </button>
-                  </div>
-                );
-              }
-              if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progressLogs || msg.reasoning_content)) {
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}>
-                    {(msg.tool_calls?.length > 0 || msg.progressLogs?.length > 0) && (
-                      <AgentTrace 
-                        toolCalls={msg.tool_calls} 
-                        progressLogs={msg.progressLogs} 
-                        isStreaming={msg.isStreaming} 
-                        durationMs={(msg as any).duration_ms}
-                      />
-                    )}
-                    {msg.content && msg.content.trim() !== '' && (
-                      <div className="message-wrapper agent" style={{ maxWidth: '100%', margin: 0 }}>
-                        <div className="message-bubble">{renderMessageContent(msg.content)}</div>
-                        <button className="copy-btn" onClick={handleCopy} title="Copy message">
-                          {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return null;
-            });
-            })()}
-
-            {isLoading && !messages.some(m => m.isStreaming && (m.content || m.progressLogs)) && (
-              <div className="working-indicator">
-                <span className="working-dots">Working</span>
-              </div>
-            )}
-            {activeWidget && (
-              <div className="widget-container-live" style={{ marginTop: '16px', marginBottom: '16px' }}>
-                {activeWidget}
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-            </div>
-            </div>
-
-            <div className="input-area">
-              <form className="input-form" onSubmit={handleSend}>
-                <div className="action-menu-container">
-                  <button type="button" className="voice-button plus-button" disabled={isLoading} title="More Actions">
-                    <Plus size={20} />
-                  </button>
-                  <div className="action-menu-items">
-                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
-                    <button type="button" className="voice-button" onClick={() => fileInputRef.current?.click()} disabled={isLoading} title="Upload Document" style={{ color: 'var(--text-secondary)' }}>
-                      <Paperclip size={18} />
-                    </button>
-                    <button type="button" className={`voice-button ${isVoiceMode ? 'active pulse' : ''}`} onClick={toggleVoiceMode} title={isVoiceMode ? "Disable Voice Mode" : "Enable Voice Mode"}>
-                      <Mic size={18} color={isVoiceMode ? 'var(--accent)' : 'currentColor'} />
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  className="chat-input styled-scroll"
-                  placeholder={isVoiceMode ? "Listening..." : "Ask Nyxora"}
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend(e as unknown as React.FormEvent);
-                    }
-                  }}
-                  disabled={isLoading}
-                  rows={1}
-                  style={{ resize: 'none', minHeight: '36px', paddingTop: '10px' }}
-                />
-                <button type="submit" className="send-button" disabled={isLoading || !input.trim()}>
-                  {isLoading ? (
-                    <Loader2 size={20} className="spinner" />
-                  ) : (
-                    <Send size={20} />
-                  )}
-                </button>
-              </form>
-              <div className="trending-tokens">
-                <span>Trending Tokens:</span>
-                {trendingTokens.map((token, idx) => (
-                  <span 
-                    key={idx} 
-                    className="token-tag" 
-                    onClick={() => setInput(`Please provide the latest market analysis for ${token}`)}
-                    title={`Click to analyze ${token}`}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {token}
-                  </span>
-                ))}
-              </div>
-            </div>
+        {currentView !== 'sessions' && (
+          <div className="page-scroll-container">
+            {currentView === 'models' && <Models config={config} onConfigChange={setConfig} />}
+            {currentView === 'logs' && <Logs config={config as any} sessionsCount={1} />}
+            {currentView === 'cron' && <Cron />}
+            {currentView === 'skills' && <Skills />}
+            {currentView === 'plugins' && <Plugins />}
+            {currentView === 'mcp' && <Mcp />}
+            {currentView === 'webhooks' && <Webhooks />}
+            {currentView === 'pairing' && <Pairing />}
+            {currentView === 'profiles' && <Profiles config={config} onConfigChange={setConfig} autoLockTime={autoLockTime} setAutoLockTime={(v) => { setAutoLockTime(v); localStorage.setItem('nyxora_auto_lock', v.toString()); }} onLogout={() => { setIsAuthenticated(false); localStorage.removeItem('nyxora_auth'); setCurrentView('sessions'); }} />}
+            {currentView === 'rpcconfig' && <RpcConfig />}
+            {currentView === 'deficonfig' && <DefiConfig />}
+            {currentView === 'marketoracles' && <MarketOracles />}
+            {currentView === 'memory' && <Memory />}
+            {currentView === 'security' && <Security />}
+            {currentView === 'wallets' && <Wallets />}
+            {currentView === 'workflows' && <Workflows />}
+            {currentView === 'osterminal' && <OsTerminal />}
+            {currentView === 'swarm' && <Swarm />}
+            {currentView === 'hardware' && <Hardware />}
+            {currentView === 'gateway' && <Gateway />}
           </div>
-        </div>
         )}
-        <PendingTransactions sessionId={activeSessionId} />
       </main>
-
-      {editingSessionId && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#1e1e24', borderRadius: '16px', padding: '24px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', color: '#e2e8f0', fontWeight: 500 }}>Rename this chat</h3>
-            <input 
-              type="text" 
-              value={editSessionTitle}
-              onChange={(e) => setEditSessionTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') renameSession(editingSessionId, editSessionTitle);
-                if (e.key === 'Escape') setEditingSessionId(null);
-              }}
-              autoFocus
-              style={{ width: '100%', boxSizing: 'border-box', background: '#2d2d3b', border: '1px solid #4a4a5a', borderRadius: '12px', padding: '12px 16px', color: '#f8fafc', fontSize: '1rem', outline: 'none', marginBottom: '20px' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button 
-                onClick={() => setEditingSessionId(null)}
-                style={{ background: 'transparent', border: '1px solid #4a4a5a', color: '#94a3b8', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 500, fontSize: '0.9rem' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#2d2d3b'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => renameSession(editingSessionId, editSessionTitle)}
-                style={{ background: 'var(--accent)', border: 'none', color: '#13131a', cursor: 'pointer', padding: '10px 20px', borderRadius: '24px', fontWeight: 600, fontSize: '0.9rem' }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-              >
-                Rename
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAuthModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>

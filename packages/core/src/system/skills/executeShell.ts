@@ -1,7 +1,18 @@
 import { exec } from 'child_process';
 import { loadConfig, loadApiKeys } from '../../config/parser';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 export async function runTerminalCommand(command: string, cwd?: string, envType: 'local' | 'docker' = 'local', dockerImage: string = 'python:3.11-slim'): Promise<string> {
+  try {
+    const logsPath = path.join(os.homedir(), '.nyxora', 'run', 'os_logs.txt');
+    const dir = path.dirname(logsPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logsPath, `[${timestamp}] nyxora-agent@local:~$ ${command}\n`);
+  } catch(e) {}
+
   // --- AUTO-REDIRECT TO PTY FOR SUDO ---
   // If command starts with sudo but was called via non-PTY tool, auto-redirect to PTY
   const needsSudo = /^\s*sudo\s/.test(command);
@@ -110,6 +121,11 @@ export async function runTerminalCommand(command: string, cwd?: string, envType:
       sensitivePathPatterns.forEach(pattern => {
         output = output.replace(pattern, '[REDACTED_SENSITIVE_PATH]');
       });
+
+      try {
+        const logsPath = path.join(os.homedir(), '.nyxora', 'run', 'os_logs.txt');
+        fs.appendFileSync(logsPath, `${output}\n`);
+      } catch(e) {}
 
       resolve(output);
     });

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.21]
+### Dashboard Features & UI
+- **Control Panel Expansion**: Engineered 4 brand new native dashboard menus (`Memory`, `Security`, `Wallets`, `Workflows`) transforming the dashboard into a full-fledged agent control panel.
+- **Backend API Integration**: Fully connected the new UI to real-time Nyxora Core APIs. The interface now dynamically fetches and manages state for episodic memory (`/api/memory`), security policies (`/api/policy`), EVM wallet and multi-chain portfolio (`/api/wallet`, `/api/portfolio`), and automated playbooks (`/api/playbooks`).
+- **Global Localization**: Ensured all new dashboard components are strictly in English to support the global user base natively.
+- **Design System Consistency**: Applied the modern, unified `overview-container` styling across all new pages, featuring consistent glassmorphism effects, responsive card grids, and proper token alignments. Unified the toggle switch design in `Workflows.tsx` to match the custom iOS-style pill toggle used across other menus (e.g., `Skills.tsx`).
+- **Playbook Editor (CRUD)**: Implemented full CRUD capabilities in the Workflows menu. Users can now directly create, edit, toggle, and delete scenarios via an integrated Markdown editor modal, with automatic local saving to `~/.nyxora/playbooks/`.
+- **Memory Document RAG Upload**: Upgraded the Memory UI with a document upload feature. Connected the Node.js gateway to Python ML Engine's new `/memory/document` RAG endpoint, allowing seamless PDF/TXT/MD file chunking and vectorization using `pypdf`.
+- **Wallet Security Enhancement**: Completely removed the raw Private Key display and toggle component from the Wallets UI to ensure maximum operational security.
+- **Bug Fix**: Resolved a critical render crash in `Workflows.tsx` caused by a missing lucide-react import (`RefreshCw`), and cleaned up obsolete Episodic Memory fetch logic from the Logs menu.
+
+### AI Memory & RAG Engine
+- **Native Document Ingestion**: Introduced a new `/document` endpoint in the Python ML Engine. The system now autonomously parses, chunks, and vectorizes user-uploaded documents (PDF, TXT, MD) utilizing Langchain (`PyPDFLoader`, `RecursiveCharacterTextSplitter`).
+- **Episodic Memory Sync**: Ingested document chunks are strictly categorized as `DOCUMENT` and seamlessly synchronized into both the SQLite episodic database and the local ChromaDB vector store for instant RAG retrieval.
+
+### Desktop & Dashboard UI
+- **Sidebar State Fix**: Resolved a visual bug in the SvelteKit Desktop app where active chat sessions remained highlighted even while the global Search modal was open.
+- **Dashboard Cleanup**: Removed deprecated components (e.g., `DefiKeys.tsx`) and optimized settings panels across the React dashboard.
+
 ## [26.7.20]
 ### Desktop App MVP: UI/UX & Architecture Overhaul
 - **Premium Interface Scaling**: Completely redesigned the Settings modal dimensions for desktop viewing. Expanded the modal wrapper to `w-[92vw]` with a maximum width of `1400px`, and removed legacy mobile constraints (`max-w-3xl`) from all submenu components (Agent Profile, LLM Engine, etc.) to utilize the full horizontal workspace natively.

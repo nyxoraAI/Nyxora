@@ -1,128 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { Server, ShieldAlert, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
+import { Cpu, ShieldAlert, CheckCircle, Save, AlertTriangle } from 'lucide-react';
 import { apiFetch } from './utils/api';
 import { getChainLogoUrl } from './utils/logos';
 
 const SUPPORTED_CHAINS = [
-  { id: 'ethereum', name: 'Ethereum Mainnet' },
-  { id: 'base', name: 'Base Mainnet' },
-  { id: 'optimism', name: 'Optimism Mainnet' },
-  { id: 'arbitrum', name: 'Arbitrum One' },
-  { id: 'robinhood', name: 'Robinhood Chain' },
-  { id: 'bsc', name: 'Binance Smart Chain' },
-  { id: 'polygon', name: 'Polygon Mainnet' },
-  { id: 'sepolia', name: 'Sepolia (Testnet)' },
-  { id: 'base_sepolia', name: 'Base Sepolia (Testnet)' },
-  { id: 'optimism_sepolia', name: 'OP Sepolia (Testnet)' },
-  { id: 'arbitrum_sepolia', name: 'Arbitrum Sepolia (Testnet)' },
-  { id: 'robinhood_testnet', name: 'Robinhood Testnet' }
+  { id: 'ethereum',          name: 'Ethereum Mainnet',      group: 'mainnet' },
+  { id: 'base',              name: 'Base Mainnet',           group: 'mainnet' },
+  { id: 'optimism',          name: 'Optimism Mainnet',       group: 'mainnet' },
+  { id: 'arbitrum',          name: 'Arbitrum One',           group: 'mainnet' },
+  { id: 'bsc',               name: 'Binance Smart Chain',    group: 'mainnet' },
+  { id: 'polygon',           name: 'Polygon Mainnet',        group: 'mainnet' },
+  { id: 'robinhood',         name: 'Robinhood Chain',        group: 'mainnet' },
+  { id: 'sepolia',           name: 'Sepolia',                group: 'testnet' },
+  { id: 'base_sepolia',      name: 'Base Sepolia',           group: 'testnet' },
+  { id: 'optimism_sepolia',  name: 'OP Sepolia',             group: 'testnet' },
+  { id: 'arbitrum_sepolia',  name: 'Arbitrum Sepolia',       group: 'testnet' },
+  { id: 'robinhood_testnet', name: 'Robinhood Testnet',      group: 'testnet' },
 ];
 
-export const RpcConfig: React.FC = () => {
+const inputStyle: React.CSSProperties = {
+  flex: 1, background: 'transparent', border: '1px solid var(--glass-border)',
+  color: 'var(--text-primary)', padding: '9px 12px', borderRadius: '6px',
+  fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', minWidth: 0,
+};
+
+const RpcConfig: React.FC = () => {
   const [rpcUrls, setRpcUrls] = useState<Record<string, string | string[]>>({});
-  const [status, setStatus] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [toast, setToast]   = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
 
   useEffect(() => {
-    const fetchRpc = async () => {
-      try {
-        const res = await apiFetch('/api/rpc');
-        const data = await res.json();
-        setRpcUrls(data || {});
-      } catch (err) {
-        console.error("Failed to fetch rpc config");
-      }
-    };
-    fetchRpc();
+    apiFetch('/api/rpc').then(r => r.json()).then(setRpcUrls).catch(() => {});
   }, []);
 
-  const handleSave = async (chainId: string, value: string) => {
+  const getVal = (v: string | string[] | undefined) => {
+    if (!v) return '';
+    return Array.isArray(v) ? v[0] || '' : v;
+  };
+
+  const showToast = (type: 'ok' | 'err', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleSave = async (chainId: string) => {
+    const value = getVal(rpcUrls[chainId]);
+    setSaving(chainId);
     try {
-      const payload = { [chainId]: value };
       const res = await apiFetch('/api/rpc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ [chainId]: value }),
       });
-      if (res.ok) {
-        setStatus(`Saved RPC for ${chainId} successfully!`);
-        setRpcUrls({ ...rpcUrls, [chainId]: value });
-        setTimeout(() => setStatus(null), 3000);
-      }
-    } catch (err) {
-      setStatus(`Failed to save RPC for ${chainId}`);
+      if (res.ok) showToast('ok', `Saved RPC for ${chainId}`);
+      else        showToast('err', `Failed to save ${chainId}`);
+    } catch {
+      showToast('err', 'Connection error');
+    } finally {
+      setSaving(null);
     }
   };
 
-  const getDisplayValue = (val: string | string[] | undefined) => {
-    if (!val) return '';
-    if (Array.isArray(val)) return val[0] || '';
-    return val;
+  const mainnets = SUPPORTED_CHAINS.filter(c => c.group === 'mainnet');
+  const testnets = SUPPORTED_CHAINS.filter(c => c.group === 'testnet');
+
+  const ChainRow: React.FC<{ chain: typeof SUPPORTED_CHAINS[0] }> = ({ chain }) => {
+    const val = getVal(rpcUrls[chain.id]);
+    const isConfigured = !!val;
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '16px',
+        background: 'var(--bg-secondary)', border: `1px solid ${isConfigured ? 'rgba(16,185,129,0.3)' : 'var(--glass-border)'}`,
+        borderRadius: '8px', padding: '14px 16px',
+      }}>
+        {/* Logo + name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '200px', flexShrink: 0 }}>
+          <img src={getChainLogoUrl(chain.id)} alt={chain.id} width={28} height={28}
+            style={{ borderRadius: '50%' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+          <div>
+            <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>{chain.name}</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', fontFamily: 'monospace' }}>{chain.id}</div>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <div style={{ width: '100px', flexShrink: 0 }}>
+          {isConfigured
+            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '999px' }}><CheckCircle size={10} /> SET</span>
+            : <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>public RPC</span>
+          }
+        </div>
+
+        {/* Input + save */}
+        <input
+          type="password"
+          style={inputStyle}
+          placeholder="https://…alchemy.com/v2/YOUR_KEY"
+          value={val}
+          onChange={e => setRpcUrls(p => ({ ...p, [chain.id]: e.target.value }))}
+        />
+        <button
+          onClick={() => handleSave(chain.id)}
+          disabled={saving === chain.id}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            background: 'var(--accent)', color: 'var(--accent-text)',
+            border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '0.82rem',
+            cursor: saving === chain.id ? 'not-allowed' : 'pointer', flexShrink: 0,
+            opacity: saving === chain.id ? 0.7 : 1,
+          }}
+        >
+          <Save size={14} /> Save
+        </button>
+      </div>
+    );
   };
 
   return (
-    <div className="settings-subpanel">
-      <div className="nord-panel-header">
-        <Server size={28} color="var(--accent)" />
-        <h2 className="settings-title" style={{ margin: 0, color: 'var(--text-primary)' }}>RPC Configuration</h2>
-      </div>
+    <div className="overview-container" style={{ padding: '24px', maxWidth: '960px', margin: '0 auto' }}>
 
-      <div style={{ background: 'rgba(235, 203, 139, 0.1)', border: '1px solid rgba(235, 203, 139, 0.3)', padding: '16px', borderRadius: '8px', marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-        <ShieldAlert size={24} color="#ebcb8b" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          <strong style={{ color: '#ebcb8b' }}>Privacy & Security:</strong> Your RPC keys are saved in a highly isolated <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--accent)' }}>~/.nyxora/config/rpc_key.yaml</code> file. 
-          This guarantees that sharing your agent's config or prompts won't accidentally leak your premium node endpoints.
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <div style={{ background: 'rgba(0,255,65,0.08)', border: '1px solid rgba(0,255,65,0.2)', borderRadius: '8px', padding: '10px' }}>
+          <Cpu size={24} color="var(--accent)" />
+        </div>
+        <div>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700 }}>RPC Configuration</h2>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Private node endpoints for each supported chain</p>
         </div>
       </div>
 
-      {status && (
-        <div style={{ background: 'rgba(163, 190, 140, 0.1)', border: '1px solid rgba(163, 190, 140, 0.3)', color: '#a3be8c', padding: '14px 16px', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem' }}>
-          <CheckCircle2 size={20} /> <strong>{status}</strong>
+      {/* Warning */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px' }}>
+        <ShieldAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.6 }}>
+          Keys are stored in <code style={{ color: 'var(--accent)' }}>~/.nyxora/config/rpc_key.yaml</code>. Leaving a field empty enables the <strong style={{ color: 'var(--text-primary)' }}>public fallback</strong>.
+        </p>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: toast.type === 'ok' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${toast.type === 'ok' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: '6px', marginBottom: '16px', fontSize: '0.85rem', color: toast.type === 'ok' ? '#10b981' : '#ef4444' }}>
+          {toast.type === 'ok' ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+          {toast.msg}
         </div>
       )}
 
-      <div className="settings-section">
-        <h3 className="section-title" style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '1.2rem' }}>Network Endpoints</h3>
-        <p className="section-description" style={{ marginBottom: '16px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Configure your private RPC URLs (Alchemy, Infura, etc.) for High-Frequency execution.
-        </p>
-        <div style={{ background: 'rgba(191, 97, 106, 0.1)', color: '#bf616a', padding: '10px 14px', borderRadius: '6px', marginBottom: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
-          <AlertTriangle size={16} /> Leaving a field empty will trigger the Agent's automatic <strong>Public Fallback Mechanism</strong>.
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-          {SUPPORTED_CHAINS.map(chain => {
-            const currentVal = getDisplayValue(rpcUrls[chain.id]);
-            return (
-              <div key={chain.id} style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)', display: 'flex', gap: '24px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '240px', flexShrink: 0 }}>
-                  <img src={getChainLogoUrl(chain.id)} alt={chain.id} style={{ width: 32, height: 32, borderRadius: '50%' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-primary)', fontSize: '1rem', display: 'block' }}>{chain.name}</strong>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontFamily: 'monospace' }}>{chain.id}</span>
-                  </div>
-                </div>
-                
-                <div style={{ flex: 1, display: 'flex', gap: '12px' }}>
-                  <input
-                    type="password"
-                    className="nord-input"
-                    style={{ flex: 1 }}
-                    placeholder="e.g. https://base-mainnet.g.alchemy.com/v2/..."
-                    value={currentVal}
-                    onChange={e => setRpcUrls({ ...rpcUrls, [chain.id]: e.target.value })}
-                  />
-                  <button 
-                    className="nord-btn-primary" 
-                    onClick={() => handleSave(chain.id, currentVal)}
-                    style={{ padding: '0 20px', height: '40px', gap: '8px' }}
-                  >
-                    <Save size={16} /> Save
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* Mainnet section */}
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '8px' }}>MAINNET</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+        {mainnets.map(c => <ChainRow key={c.id} chain={c} />)}
+      </div>
+
+      {/* Testnet section */}
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '8px' }}>TESTNET</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {testnets.map(c => <ChainRow key={c.id} chain={c} />)}
       </div>
     </div>
   );

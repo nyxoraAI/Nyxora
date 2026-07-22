@@ -1,12 +1,8 @@
 .overview-container {
   padding: 24px;
-  overflow-y: auto;
-  height: calc(100vh - 64px);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  will-change: scroll-position;
 }
 
 .settings-subpanel {
@@ -263,6 +259,7 @@ input:read-only {
   border-bottom: 1px solid var(--glass-border);
   font-size: 0.85rem;
   font-weight: 600;
+  color: var(--bg-color);
 }
 
 .badge {
@@ -344,3 +341,4 @@ input:read-only {
 .gateway-row {
   margin-bottom: 2px;
 }
+

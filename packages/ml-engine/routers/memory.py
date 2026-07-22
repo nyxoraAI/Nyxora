@@ -123,3 +123,53 @@ async def query_memory(request: RagRequest):
     memories = [doc.page_content for doc, score in results]
     
     return RagResponse(memories=memories)
+
+class DocumentUploadRequest(BaseModel):
+    file_path: str
+
+@router.post("/document")
+async def process_document(request: DocumentUploadRequest):
+    file_path = request.file_path
+    if not os.path.exists(file_path):
+        return {"error": "File not found"}
+        
+    ext = file_path.lower().split('.')[-1]
+    if ext == 'pdf':
+        from langchain_community.document_loaders import PyPDFLoader
+        loader = PyPDFLoader(file_path)
+    elif ext in ['txt', 'md']:
+        from langchain_community.document_loaders import TextLoader
+        loader = TextLoader(file_path)
+    else:
+        return {"error": "Unsupported file type"}
+        
+    docs = loader.load()
+    
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splits = text_splitter.split_documents(docs)
+    
+    db_path = get_app_dir() / 'data' / 'episodic.db'
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    inserted = 0
+    for split in splits:
+        fact = split.page_content.strip()
+        if not fact:
+            continue
+        try:
+            cursor.execute('''
+                INSERT INTO episodic_memories (fact, confidence, category, rule_type)
+                VALUES (?, 1.0, 'DOCUMENT', 'permanent')
+            ''', (fact,))
+            inserted += 1
+        except sqlite3.IntegrityError:
+            pass
+            
+    conn.commit()
+    conn.close()
+    
+    sync_episodic_db_to_chroma(force=True)
+    
+    return {"message": f"Successfully ingested {inserted} chunks from document."}
