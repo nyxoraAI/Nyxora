@@ -1,4 +1,5 @@
 import createReconciler from 'react-reconciler'
+import * as Scheduler from 'scheduler'
 
 import {
   appendChildNode,
@@ -276,6 +277,12 @@ const reconciler = createReconciler({
   supportsMutation: true,
   supportsPersistence: false,
   supportsHydration: false,
+  supportsMicrotasks: true,
+  scheduleMicrotask: queueMicrotask,
+  scheduleCallback: Scheduler.unstable_scheduleCallback,
+  cancelCallback: Scheduler.unstable_cancelCallback,
+  shouldYield: Scheduler.unstable_shouldYield,
+  now: Scheduler.unstable_now,
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   noTimeout: -1,

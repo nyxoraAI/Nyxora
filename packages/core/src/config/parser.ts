@@ -131,6 +131,11 @@ export interface NyxoraConfig {
     anthropic_key?: string;
     openrouter_key?: string;
     '9router_key'?: string;
+    nvidia_key?: string;
+    mistral_key?: string;
+    xai_key?: string;
+    deepseek_key?: string;
+    groq_key?: string;
     custom_provider_key?: string;
     tavily_key?: string;
     brave_key?: string;

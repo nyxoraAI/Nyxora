@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/entry-exports.ts --bundle --platform=node --format=esm --packages=external --outdir=dist",
+    "build": "esbuild src/entry-exports.ts --bundle --platform=node --format=esm --jsx=automatic --packages=external --outdir=dist",
     "check": "npm run typecheck",
     "typecheck": "tsc -b . --noEmit"
   },
@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "^0.1.0",
+    "@types/react": "^19.2.7",
     "auto-bind": "^5.0.0",
     "bidi-js": "^1.0.0",
     "chalk": "^5.4.0",
@@ -40,7 +41,8 @@
     "lodash-es": "^4.17.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-reconciler": "0.33.0",
+    "react-reconciler": "^0.33.0",
+    "scheduler": "^0.23.2",
     "semver": "^7.6.0",
     "signal-exit": "^4.1.0",
     "stack-utils": "^2.0.0",

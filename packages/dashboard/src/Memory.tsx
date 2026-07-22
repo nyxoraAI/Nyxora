@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Search, Trash2, Upload, Database, FileText, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { apiFetch } from './utils/api';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 export const Memory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,9 +122,13 @@ export const Memory: React.FC = () => {
             ) : filteredMemories.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>No memories found.</div>
             ) : filteredMemories.map(mem => (
-              <div key={mem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', padding: '12px 16px', borderRadius: '8px' }}>
+              <div key={mem.id} style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-start', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', padding: '12px 16px', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingRight: '16px' }}>
-                  <div style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem', lineHeight: 1.5 }}>{mem.fact}</div>
+                  <div 
+                    className="markdown-body"
+                    style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem', lineHeight: 1.5 }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(mem.fact || '', { async: false }) as string) }}
+                  />
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '6px' }}>
                     Category: {mem.category} | Type: {mem.rule_type} | Confidence: {(mem.confidence * 100).toFixed(0)}% | Occurrences: {mem.occurrences}
                   </div>

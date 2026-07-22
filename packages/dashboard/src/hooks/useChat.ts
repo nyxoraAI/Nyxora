@@ -22,6 +22,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
   const [isLoading, setIsLoading] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editSessionTitle, setEditSessionTitle] = useState<string>('');
+  const isCreatingSessionRef = useRef(false);
   
   useEffect(() => {
     if (activeSessionId) {
@@ -31,13 +32,13 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
     }
   }, [activeSessionId]);
 
-  const fetchHistory = async () => {
-    if (!activeSessionId) {
+  const fetchHistory = async (sessionId: string | null = activeSessionId) => {
+    if (!sessionId) {
       setMessages([]);
       return;
     }
     try {
-      const url = `/api/history?session_id=${activeSessionId}`;
+      const url = `/api/history?session_id=${sessionId}`;
       const res = await apiFetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -63,13 +64,13 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
     }
   };
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (sessionId: string | null = activeSessionId) => {
     try {
       const res = await apiFetch(`/api/sessions`);
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data);
-        if (data.length > 0 && !activeSessionId) {
+        if (data.length > 0 && !sessionId) {
           setActiveSessionId(data[0].id);
         }
       }
@@ -110,11 +111,21 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
   const deleteSession = async (id: string) => {
     try {
       await apiFetch(`/api/sessions/${id}`, { method: 'DELETE' });
-      if (activeSessionId === id) {
-        setActiveSessionId(null);
-        setMessages([]);
+      const res = await apiFetch(`/api/sessions`);
+      if (res.ok) {
+        const remaining = await res.json();
+        setChatSessions(remaining);
+        if (activeSessionId === id) {
+          // Auto-switch to first remaining session, or clear
+          const nextSession = remaining.find((s: any) => s.id !== id);
+          if (nextSession) {
+            setActiveSessionId(nextSession.id);
+          } else {
+            setActiveSessionId(null);
+            setMessages([]);
+          }
+        }
       }
-      await fetchSessions();
     } catch {}
   };
 
@@ -144,6 +155,12 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
     let currentSessionId = activeSessionId;
 
     if (!currentSessionId) {
+      // Guard: prevent double session creation on rapid sends
+      if (isCreatingSessionRef.current) {
+        setIsLoading(false);
+        return;
+      }
+      isCreatingSessionRef.current = true;
       try {
         const title = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
         const res = await apiFetch(`/api/sessions`, {
@@ -155,10 +172,12 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
           const { id } = await res.json();
           currentSessionId = id;
           setActiveSessionId(id);
-          await fetchSessions();
+          await fetchSessions(id);
         }
       } catch (err) {
         console.error('Failed to auto-create session', err);
+      } finally {
+        isCreatingSessionRef.current = false;
       }
     }
 
@@ -169,6 +188,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
 
     let fullResponse = '';
     let renderedResponse = '';
+    let streamedReasoning = '';
     let intervalId: NodeJS.Timeout | null = null;
 
     try {
@@ -190,10 +210,22 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
             
             const charsToAdd = fullResponse.slice(renderedResponse.length, renderedResponse.length + charsPerFrame);
             renderedResponse += charsToAdd;
-            setMessages(prev => prev.map(m =>
-              m.id === streamingId ? { ...m, content: renderedResponse } : m
-            ));
-          } else if (isSourceClosed) {
+          }
+
+          let displayContent = renderedResponse;
+          let displayReasoning = streamedReasoning;
+
+          const thinkMatch = displayContent.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)(<\/\1>|$)/i);
+          if (thinkMatch) {
+            displayReasoning += (displayReasoning ? '\n' : '') + thinkMatch[2];
+            displayContent = displayContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)(<\/\1>|$)/i, '');
+          }
+
+          setMessages(prev => prev.map(m =>
+            m.id === streamingId ? { ...m, content: displayContent, reasoning_content: displayReasoning || undefined } : m
+          ));
+
+          if (renderedResponse.length >= fullResponse.length && isSourceClosed) {
             if (intervalId) clearInterval(intervalId);
             resolve();
           }
@@ -228,6 +260,9 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
                 } : m
               ));
             }
+            if (data.reasoning) {
+              streamedReasoning += data.reasoning;
+            }
             if (data.error) {
               source.close();
               isSourceClosed = true;
@@ -247,24 +282,40 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
         .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '')
         .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
         .replace(/<(?:execute_bash|execute)>[\s\S]*?<\/(?:execute_bash|execute)>/gi, '')
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>[\s\S]*?(<\/\1>|$)/gi, '')
         .replace(/```(?:json)?\s*\[?\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]\s*```|```|$)/gi, '')
         .replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '')
         .trim();
         
-      fullResponse = sanitizeResponse(fullResponse);
-      renderedResponse = sanitizeResponse(renderedResponse);
-
-      setMessages(prev => prev.map(m =>
-        m.id === streamingId ? { ...m, content: fullResponse, isStreaming: false } : m
-      ));
-
-      if (messages.length === 0 && currentSessionId) {
-        const autoTitle = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
-        renameSession(currentSessionId, autoTitle);
+      let finalReasoning = streamedReasoning;
+      const finalThinkMatch = fullResponse.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)(<\/\1>|$)/i);
+      if (finalThinkMatch) {
+        finalReasoning += (finalReasoning ? '\n' : '') + finalThinkMatch[2];
       }
 
-      await fetchHistory();
+      fullResponse = sanitizeResponse(fullResponse);
+
+      setMessages(prev => prev.map(m =>
+        m.id === streamingId ? { ...m, content: fullResponse, reasoning_content: finalReasoning || undefined, isStreaming: false } : m
+      ));
+
+      // Auto-rename only if this was the very first message in the session
+      // Use fetched history length as ground truth, not local state (which has optimistic msgs)
+      if (currentSessionId) {
+        try {
+          const histRes = await apiFetch(`/api/history?session_id=${currentSessionId}`);
+          if (histRes.ok) {
+            const hist = await histRes.json();
+            const userMsgsCount = hist.filter((m: any) => m.role === 'user').length;
+            if (userMsgsCount <= 1) {
+              const autoTitle = userMsg.length > 25 ? userMsg.substring(0, 25) + '...' : userMsg;
+              renameSession(currentSessionId, autoTitle);
+            }
+          }
+        } catch {}
+      }
+
+      await fetchHistory(currentSessionId);
 
       if (isVoiceMode && fullResponse) {
         speak(fullResponse);

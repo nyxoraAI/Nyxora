@@ -15,6 +15,41 @@
     return DOMPurify.sanitize(marked.parse(cleaned) as string);
   }
 
+  function enhanceMarkdown(node: HTMLElement) {
+    function apply() {
+      const preBlocks = node.querySelectorAll('pre');
+      preBlocks.forEach(pre => {
+        if (pre.parentElement?.classList.contains('code-wrapper')) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-wrapper relative group my-4';
+        pre.parentNode?.insertBefore(wrapper, pre);
+        
+        // Remove margin from pre since wrapper has it
+        pre.style.margin = '0';
+        wrapper.appendChild(pre);
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn absolute top-2 right-2 px-2 py-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1.5 text-[11px] font-sans shadow-sm border border-gray-300 dark:border-gray-600';
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
+        
+        btn.onclick = () => {
+          const code = pre.querySelector('code')?.innerText || '';
+          navigator.clipboard.writeText(code);
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+          setTimeout(() => {
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
+          }, 2000);
+        };
+        
+        wrapper.appendChild(btn);
+      });
+    }
+
+    apply();
+    return { update: apply };
+  }
+
   let segments = $derived.by(() => {
     const raw = msg.content || '';
     const result: any[] = [];
@@ -148,7 +183,7 @@
       {@const isLastStreaming = msg.isStreaming && i === segments.length - 1}
       {@const html = renderMarkdown(segment.content)}
       {#if html}
-        <div class="markdown-body text-[15px] text-gray-900 dark:text-[#e5e9f0] mt-2 first:mt-0 {isLastStreaming ? 'message-streaming' : ''}">
+        <div use:enhanceMarkdown class="markdown-body text-gray-900 dark:text-[#e5e9f0] mt-2 first:mt-0 {isLastStreaming ? 'message-streaming' : ''}">
           {@html html}
         </div>
       {/if}

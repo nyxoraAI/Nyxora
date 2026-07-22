@@ -16,6 +16,7 @@ export const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey
   mistral: { baseURL: 'https://api.mistral.ai/v1', requiresApiKey: true },
   xai: { baseURL: 'https://api.x.ai/v1', requiresApiKey: true },
   deepseek: { baseURL: 'https://api.deepseek.com', requiresApiKey: true },
+  nvidia: { baseURL: 'https://integrate.api.nvidia.com/v1', requiresApiKey: true },
   openai: { requiresApiKey: true },
   custom_provider: { requiresApiKey: true }
 };

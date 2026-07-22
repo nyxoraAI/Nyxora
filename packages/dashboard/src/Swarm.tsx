@@ -155,6 +155,7 @@ export const Swarm: React.FC = () => {
                               { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
                               { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
                               { id: 'openai', label: 'OpenAI', icon: <LlmIcon provider="openai" size={14} /> },
+                              { id: 'nvidia', label: 'NVIDIA (NIM)', icon: <LlmIcon provider="nvidia" size={14} /> },
                               { id: 'openrouter', label: 'OpenRouter', icon: <LlmIcon provider="openrouter" size={14} /> },
                               { id: '9router', label: '9Router (Local Proxy)', icon: <LlmIcon provider="9router" size={14} /> },
                               { id: 'ollama', label: 'Ollama (Local)', icon: <LlmIcon provider="ollama" size={14} /> },

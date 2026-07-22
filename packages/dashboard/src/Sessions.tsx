@@ -27,6 +27,9 @@ export const Sessions: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
 
+  const isUserScrolledUpRef = useRef(false);
+  const lastProgrammaticScrollTopRef = useRef(-1);
+
   const startListening = () => {
     try {
       recognitionRef.current?.start();
@@ -87,16 +90,57 @@ export const Sessions: React.FC = () => {
       recognitionRef.current.onerror = () => setIsListening(false);
       recognitionRef.current.onend = () => setIsListening(false);
     }
+    // Cleanup on unmount
+    return () => {
+      recognitionRef.current?.stop();
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
+  // (refs are defined at the top of the component)
+  
+  const handleScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollHeight, scrollTop, clientHeight } = chatContainerRef.current;
+    
+    // Ignore programmatic scroll events
+    if (Math.abs(scrollTop - lastProgrammaticScrollTopRef.current) <= 2) {
+      // Clear it so if user manually scrolls back to this exact pixel, it counts as user scroll
+      lastProgrammaticScrollTopRef.current = -1;
+      return;
+    }
+    
+    const threshold = 50; // increased threshold to be more forgiving
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= threshold;
+    isUserScrolledUpRef.current = !isAtBottom;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.deltaY < 0) {
+      isUserScrolledUpRef.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Any touch interaction while streaming is a strong signal to stop auto-scrolling
+    isUserScrolledUpRef.current = true;
+  };
+
   useEffect(() => {
-    setTimeout(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use requestAnimationFrame instead of setTimeout to avoid race conditions with browser paint/scroll
+    const timer = requestAnimationFrame(() => {
+      if (chatContainerRef.current && !isUserScrolledUpRef.current) {
+        const maxScroll = chatContainerRef.current.scrollHeight - chatContainerRef.current.clientHeight;
+        // Only scroll if we actually need to
+        if (chatContainerRef.current.scrollTop !== maxScroll) {
+          lastProgrammaticScrollTopRef.current = maxScroll;
+          chatContainerRef.current.scrollTop = maxScroll;
+        }
+      } else if (!chatContainerRef.current && !isUserScrolledUpRef.current) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }
-    }, 10);
+    });
+    return () => cancelAnimationFrame(timer);
   }, [messages, isLoading]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +150,7 @@ export const Sessions: React.FC = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await apiFetch('/api/upload', { method: 'POST', body: formData });
+      const res = await apiFetch('/api/upload-temp', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
         const prompt = `Please analyze this document: ${data.filePath}`;
@@ -193,26 +237,32 @@ export const Sessions: React.FC = () => {
 
   return (
     <div className="workspace-container">
-      <div className={`chat-wrapper ${messages.length === 0 ? 'empty-state-wrapper' : ''}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {messages.length === 0 && (
-          <div className="empty-state-container" style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            opacity: 0, animation: 'fadeInUp 0.8s ease-out forwards', textAlign: 'center', marginBottom: '40px'
-          }}>
-            <div style={{ background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%)', padding: '40px', borderRadius: '50%', marginBottom: '20px' }}>
-              <NyxoraLogo size={80} color="var(--accent)" />
-            </div>
-            <h1 className="empty-state-title" style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '16px', letterSpacing: '-1px' }}>
-              {greetings[0].title}
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '500px', lineHeight: '1.6' }}>
-              {greetings[0].desc}
-            </p>
-          </div>
-        )}
+      <div className="chat-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-        <div className="chat-container" ref={chatContainerRef} style={{ flexGrow: messages.length === 0 ? 0 : 1, display: messages.length === 0 ? 'none' : 'flex', flexDirection: 'column' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className={`empty-state-container ${messages.length > 0 ? 'hidden-state' : ''}`} style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center'
+        }}>
+          <div style={{ background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%)', padding: '40px', borderRadius: '50%', marginBottom: '20px' }}>
+            <NyxoraLogo size={80} color="var(--accent)" />
+          </div>
+          <h1 className="empty-state-title" style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '16px', letterSpacing: '-1px' }}>
+            {greetings[0].title}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '500px', lineHeight: '1.6' }}>
+            {greetings[0].desc}
+          </p>
+        </div>
+
+        <div
+          className={`chat-container ${messages.length === 0 ? 'hidden-state' : 'active-state'}`}
+          ref={chatContainerRef}
+          onScroll={handleScroll}
+          onWheel={handleWheel}
+          onTouchMove={handleTouchMove}
+          style={{ display: 'flex', flexDirection: 'column' }}
+        >
+          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px', flexGrow: 1 }}>
             {getMergedMessages(messages).map((msg, idx) => {
               const handleCopy = () => {
                 navigator.clipboard.writeText(msg.content);
@@ -222,7 +272,7 @@ export const Sessions: React.FC = () => {
 
               if (msg.role === 'user') {
                 return (
-                  <div key={idx} className="message-wrapper user">
+                  <div key={idx} id={`msg-${idx}`} className="message-wrapper user">
                     <div className="message-bubble">{msg.content}</div>
                     <button className="copy-btn" onClick={handleCopy} title="Copy message">
                       {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
@@ -232,12 +282,13 @@ export const Sessions: React.FC = () => {
               }
               if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progressLogs || msg.reasoning_content)) {
                 return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}>
-                    {(msg.tool_calls?.length > 0 || msg.progressLogs?.length > 0) && (
+                  <div key={idx} id={`msg-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}>
+                    {(msg.tool_calls?.length > 0 || msg.progressLogs?.length > 0 || !!msg.reasoning_content) && (
                       <AgentTrace 
                         toolCalls={msg.tool_calls} 
                         progressLogs={msg.progressLogs} 
                         isStreaming={msg.isStreaming} 
+                        reasoningContent={msg.reasoning_content}
                         durationMs={(msg as any).duration_ms}
                       />
                     )}

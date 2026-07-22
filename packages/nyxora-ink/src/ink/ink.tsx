@@ -431,11 +431,11 @@ export default class Ink {
       false,
       null,
       'id',
-      noop,
+      console.error,
       // onUncaughtError
-      noop,
+      console.error,
       // onCaughtError
-      noop,
+      console.error,
       // onRecoverableError
       noop // onDefaultTransitionIndicator
     )

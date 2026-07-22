@@ -9,8 +9,11 @@
   let isListening = $state(false);
   let isVoiceMode = $state(false);
   let isSpeaking = $state(false);
+  let cancelCurrentGeneration: (() => void) | null = $state(null);
   let recognition: any = null;
   let fileInput: HTMLInputElement;
+  let pendingFiles: {name: string, path: string}[] = $state([]);
+  let showActions = $state(false);
 
   import { onMount } from 'svelte';
   onMount(() => {
@@ -68,20 +71,26 @@
     const file = target.files?.[0];
     if (!file) return;
 
+    // Optimistically add to UI
+    const tempId = Date.now().toString();
+    pendingFiles = [...pendingFiles, { name: file.name, path: '', isUploading: true, id: tempId }];
+
     chatStore.setLoading(true);
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const res = await apiFetch('/api/upload', { method: 'POST', body: formData });
+      const res = await apiFetch('/api/upload-temp', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
-        input = `Please analyze this document: ${data.filePath}`;
-        handleSubmit();
+        pendingFiles = pendingFiles.map(f => (f as any).id === tempId ? { name: file.name, path: data.filePath } : f);
       } else {
-        chatStore.setLoading(false);
+        console.error("Upload failed");
+        pendingFiles = pendingFiles.filter(f => (f as any).id !== tempId);
       }
-    } catch (err) {
+      console.error(err);
+      pendingFiles = pendingFiles.filter(f => (f as any).id !== tempId);
+    } finally {
       chatStore.setLoading(false);
     }
     if (fileInput) fileInput.value = '';
@@ -103,8 +112,14 @@
   import { API_BASE_URL, getToken, apiFetch } from '$lib/utils/api';
 
   async function handleSubmit() {
-    if (!input.trim() || isLoading) return;
-    const userMsg = input.trim();
+    if ((!input.trim() && pendingFiles.length === 0) || isLoading) return;
+    
+    let userMsg = input.trim();
+    if (pendingFiles.length > 0) {
+      const attachments = pendingFiles.map(f => `[Attached File: ${f.name} (Path: ${f.path})]`).join('\n');
+      userMsg = userMsg ? `${attachments}\n\n${userMsg}` : attachments;
+      pendingFiles = [];
+    }
     input = '';
     
     // Reset height
@@ -187,8 +202,18 @@
       let currentProgressLogs: { text: string; time: number }[] = [];
       let currentReasoning = '';
       let isSourceClosed = false;
+      let intervalId: any;
 
-      const intervalId = setInterval(() => {
+      cancelCurrentGeneration = () => {
+        source.close();
+        isSourceClosed = true;
+        clearInterval(intervalId);
+        chatStore.updateMessage(streamingId, { isStreaming: false, content: renderedResponse + '\n\n*(Canceled)*' });
+        chatStore.setLoading(false);
+        cancelCurrentGeneration = null;
+      };
+
+      intervalId = setInterval(() => {
         if (renderedResponse.length < fullResponse.length) {
           const remaining = fullResponse.length - renderedResponse.length;
           const charsPerFrame = Math.max(2, Math.ceil(remaining / 4));
@@ -199,6 +224,7 @@
           clearInterval(intervalId);
           chatStore.updateMessage(streamingId, { isStreaming: false });
           chatStore.setLoading(false);
+          cancelCurrentGeneration = null;
           if (isVoiceMode && fullResponse) speak(fullResponse);
         }
       }, 30);
@@ -252,7 +278,7 @@
       chatStore.setLoading(false);
     }
   }
-  import { Plus, LayoutGrid, Mic, Headphones } from 'lucide-svelte';
+  import { Mic, Headphones, Paperclip, X, Plus } from 'lucide-svelte';
   import NyxoraLogo from './NyxoraLogo.svelte';
 </script>
 
@@ -273,35 +299,66 @@
         Chatting in {activeWorkspace.split(/[/\\]/).pop()}
       </div>
     {/if}
-    <div class="relative bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] rounded-3xl shadow-sm focus-within:border-blue-500 focus-within:ring-1 ring-blue-500 transition-all">
-      <textarea 
-        bind:value={input}
-        oninput={adjustHeight}
-        onkeydown={handleKeydown}
-        disabled={isLoading}
-        class="w-full bg-transparent resize-none outline-none pt-4 pb-14 px-5 min-h-[60px] max-h-64 text-base text-gray-900 dark:text-[#eceff4] placeholder-gray-400 scrollbar-none disabled:opacity-50" 
-        placeholder="How can I help you today?" 
-        rows="1"
-      ></textarea>
+    <div class="relative bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] rounded-3xl shadow-sm focus-within:border-blue-500 focus-within:ring-1 ring-blue-500 transition-all flex flex-col">
+      <!-- Thumbnail chips -->
+      {#if pendingFiles.length > 0}
+        <div class="flex flex-wrap gap-2 pt-3 px-4">
+          {#each pendingFiles as file, i}
+             <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-[#2e3440] border border-gray-200 dark:border-[#434c5e] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-[#d8dee9] {(file as any).isUploading ? 'opacity-60' : ''}">
+               <Paperclip size={12} class="text-gray-500" />
+               <span class="max-w-[120px] truncate">{file.name}</span>
+               {#if !(file as any).isUploading}
+                 <button onclick={() => pendingFiles = pendingFiles.filter((_, idx) => idx !== i)} class="hover:text-red-500 ml-1"><X size={12} /></button>
+               {:else}
+                 <span class="ml-1 text-gray-400 animate-pulse">...</span>
+               {/if}
+             </div>
+          {/each}
+        </div>
+      {/if}
       
-      <input type="file" bind:this={fileInput} onchange={handleFileUpload} hidden />
-      <div class="absolute bottom-2 left-3 right-3 flex items-center justify-between">
-        <div class="flex items-center gap-1">
-          <button onclick={() => fileInput.click()} class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#d8dee9] transition-colors"><Plus size={18}/></button>
-          <button class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#d8dee9] transition-colors"><LayoutGrid size={18}/></button>
+      <div class="flex items-end w-full">
+        <!-- Action Menu (Plus button) inside left -->
+        <div class="pl-3 pb-2 shrink-0 relative flex items-center justify-center">
+           {#if showActions}
+             <!-- Click outside overlay to close -->
+             <div class="fixed inset-0 z-0" onclick={() => showActions = false}></div>
+             <div class="absolute bottom-12 left-0 flex flex-col gap-1 bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] p-2 rounded-2xl shadow-lg z-10 w-36">
+               <button onclick={() => { fileInput.click(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl text-gray-500 dark:text-[#d8dee9] transition-colors flex items-center gap-3" title="Upload Document"><Paperclip size={16}/><span class="text-sm font-medium">File</span></button>
+               <button onclick={() => { startListening(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl {isListening ? 'text-red-500' : 'text-gray-500 dark:text-[#d8dee9]'} transition-colors flex items-center gap-3" title="Voice Input"><Mic size={16}/><span class="text-sm font-medium">Voice</span></button>
+               <button onclick={() => { toggleVoiceMode(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl {isVoiceMode ? 'text-blue-500' : 'text-gray-500 dark:text-[#d8dee9]'} transition-colors flex items-center gap-3" title="Headphone Mode"><Headphones size={16}/><span class="text-sm font-medium">Listen</span></button>
+             </div>
+           {/if}
+           <button onclick={() => showActions = !showActions} class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#d8dee9] transition-all duration-200 {showActions ? 'rotate-45 bg-gray-100 dark:bg-gray-700' : ''}"><Plus size={18}/></button>
         </div>
         
-        <div class="flex items-center gap-1">
-          {#if input.trim()}
-              <button 
-                onclick={handleSubmit}
-                disabled={isLoading}
-                class="p-2 bg-blue-500 dark:bg-[#88c0d0] text-white rounded-full hover:opacity-80 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-              </button>
+        <textarea 
+          bind:value={input}
+          oninput={adjustHeight}
+          onkeydown={handleKeydown}
+          class="w-full bg-transparent resize-none outline-none py-3.5 px-2 min-h-[52px] max-h-64 text-[15px] text-gray-900 dark:text-[#eceff4] placeholder-gray-400 scrollbar-none disabled:opacity-50" 
+          placeholder="How can I help you today?" 
+          rows="1"
+        ></textarea>
+        
+        <input type="file" bind:this={fileInput} onchange={handleFileUpload} hidden />
+        
+        <!-- Buttons inside right -->
+        <div class="pr-3 pb-2 flex items-center gap-1 shrink-0">
+          {#if isLoading && cancelCurrentGeneration}
+            <button 
+              onclick={() => cancelCurrentGeneration?.()}
+              class="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:opacity-80 transition-colors shadow-sm"
+              title="Stop generating">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1" ry="1"/></svg>
+            </button>
           {:else}
-            <button onclick={startListening} class="p-2 {isListening ? 'bg-red-500/20 text-red-500' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-[#d8dee9]'} rounded-full transition-colors"><Mic size={18}/></button>
-            <button onclick={toggleVoiceMode} class="p-2 {isVoiceMode ? 'bg-blue-500/20 text-blue-500' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-[#d8dee9]'} rounded-full transition-colors"><Headphones size={18}/></button>
+            <button 
+              onclick={handleSubmit}
+              disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
+              class="p-2 {(input.trim() || pendingFiles.length > 0) ? 'bg-blue-500 dark:bg-[#88c0d0] text-white cursor-pointer' : 'bg-gray-100 dark:bg-[#434c5e] text-gray-400 dark:text-[#4c566a] cursor-not-allowed'} rounded-full hover:opacity-80 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
           {/if}
         </div>
       </div>

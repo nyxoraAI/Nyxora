@@ -12,8 +12,6 @@
   "dependencies": {
     "@nanostores/react": "^1.1.0",
     "@nyxora/ink": "*",
-    "ink": "^6.8.0",
-    "ink-text-input": "^6.0.0",
     "nanostores": "^1.2.0",
     "picocolors": "^1.1.1",
     "react": "^19.2.7",
@@ -22,7 +20,7 @@
     "unicode-animations": "^1.0.3"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.7",
     "typescript": "^5.5.3"
   }
 }

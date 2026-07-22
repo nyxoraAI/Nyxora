@@ -382,18 +382,24 @@ async function main() {
     case 'autostart': await autostart(process.argv[3]); break;
     case 'mcp': await serveMcp(); break;
 
-    case 'tui': 
-      const compiledCliTui = path.join(projectRoot, 'dist', 'packages/core/src/gateway/cli.js');
-      const useCompiledTui = fs.existsSync(compiledCliTui);
-      const cmdTui = useCompiledTui ? 'node' : 'npx';
-      const argsTui = useCompiledTui ? [compiledCliTui, 'tui', ...process.argv.slice(3)] : ['ts-node', '-T', 'packages/core/src/gateway/cli.ts', 'tui', ...process.argv.slice(3)];
-      const childTui = spawn(cmdTui, argsTui, {
-        cwd: projectRoot,
+    case 'tui': {
+      // Spawn pre-compiled TUI directly using Node.
+      // We must avoid wrappers like `npx` or `npm run` which spawn subshells 
+      // and break TTY inheritance, causing Ink to think it's not a TTY (which makes it invisible).
+      const tuiDist = path.join(projectRoot, 'packages/tui/dist/index.js');
+      if (!fs.existsSync(tuiDist)) {
+        console.error("TUI is not compiled. Please run 'npm run build' first.");
+        process.exit(1);
+      }
+      
+      const childTui = spawn('node', [tuiDist], {
+        cwd: path.join(projectRoot, 'packages/tui'),
         stdio: 'inherit',
-        env: { ...process.env, TS_NODE_CACHE: 'false' }
+        env: { ...process.env }
       });
       await new Promise(resolve => childTui.on('close', resolve));
       break;
+    }
     case '-v':
     case '--v':
     case '--version':

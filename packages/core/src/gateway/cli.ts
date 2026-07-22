@@ -64,7 +64,7 @@ console.log(`================================`);
     if (!provider || !key) {
       console.error(pc.red('Usage: nyxora set-key <provider> <api_key>'));
       console.error(pc.gray('Example: nyxora set-key groq gsk_xxx'));
-      console.error(pc.gray('Providers: openai, gemini, openrouter, groq, mistral, xai, deepseek, tavily, brave'));
+      console.error(pc.gray('Providers: openai, gemini, openrouter, groq, mistral, xai, deepseek, nvidia, tavily, brave'));
       process.exit(1);
     }
     
@@ -78,6 +78,7 @@ console.log(`================================`);
       'mistral': 'mistral_key',
       'xai': 'xai_key',
       'deepseek': 'deepseek_key',
+      'nvidia': 'nvidia_key',
       'tavily': 'tavily_key',
       'brave': 'brave_key',
       'twitter': 'twitter_key',
@@ -140,10 +141,17 @@ console.log(`================================`);
     const rootDir = __dirname.includes('dist') 
       ? path.resolve(__dirname, '../../../../..') 
       : path.resolve(__dirname, '../../../..');
-      
-    const child = spawn('npm', ['run', 'start', '--workspace=packages/tui'], {
-      cwd: rootDir,
-      stdio: 'inherit'
+
+    const tuiSrc = path.join(rootDir, 'packages/tui/src/index.tsx');
+    
+    // Run npx tsx directly (NOT via `npm run start --workspace`) so that
+    // stdio: 'inherit' actually passes the real TTY to the child process.
+    // When spawned via npm, npm wraps the child in its own shell which
+    // breaks TTY inheritance — Ink sees stdin as non-interactive and exits.
+    const child = spawn('npx', ['tsx', tuiSrc], {
+      cwd: path.join(rootDir, 'packages/tui'),
+      stdio: 'inherit',
+      env: { ...process.env }
     });
     await new Promise(resolve => child.on('close', resolve));
     return;

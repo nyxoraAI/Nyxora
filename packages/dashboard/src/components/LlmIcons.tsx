@@ -86,6 +86,13 @@ export const LlmIcon: React.FC<LlmIconProps> = ({ provider, size = 14, className
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-4H7V8h4v8zm4-2h-2v-2h2v2zm0-4h-2V8h2v2z" />
         </svg>
       );
+    case 'nvidia':
+    case 'nim':
+      return (
+        <svg {...iconProps} viewBox="0 0 24 24" fill={color === 'currentColor' ? '#76B900' : color}>
+          <path d="M4 22V2h4l8 12.5V2h4v20h-4L8 9.5V22H4z" />
+        </svg>
+      );
     default:
       return (
         <svg {...iconProps} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

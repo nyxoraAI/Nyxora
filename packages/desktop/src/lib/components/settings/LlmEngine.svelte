@@ -29,6 +29,7 @@
             {value: 'gemini', label: 'Google Gemini'},
             {value: 'anthropic', label: 'Anthropic (Claude)'},
             {value: 'openai', label: 'OpenAI'},
+            {value: 'nvidia', label: 'NVIDIA (NIM)'},
             {value: 'openrouter', label: 'OpenRouter'},
             {value: '9router', label: '9Router (Local)'},
             {value: 'ollama', label: 'Ollama (Local)'},

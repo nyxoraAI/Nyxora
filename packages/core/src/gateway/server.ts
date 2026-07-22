@@ -265,6 +265,21 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// Upload for analysis only — file is saved temporarily but NOT ingested into memory/RAG.
+// Use this for "analyze this document" requests in chat sessions.
+app.post('/api/upload-temp', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    // Return file path only — no ML Engine call, no memory storage
+    return res.json({ filePath: req.file.path });
+  } catch (err) {
+    console.error('[Upload-Temp] Error:', err);
+    return res.status(500).json({ error: 'Failed to save file' });
+  }
+});
+
 app.post('/api/upload-google-credentials', (req, res) => {
   try {
     const credentials = req.body.credentials;

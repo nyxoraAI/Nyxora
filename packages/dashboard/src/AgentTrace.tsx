@@ -10,20 +10,21 @@ export interface AgentTraceProps {
   toolCalls?: any[];
   progressLogs?: ProgressLog[];
   isStreaming?: boolean;
+  reasoningContent?: string;
   durationMs?: number;
 }
 
-export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progressLogs = [], isStreaming = false, durationMs = 0 }) => {
+export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progressLogs = [], isStreaming = false, reasoningContent = '', durationMs = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [startTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState<number>(0);
 
   // Auto expand when streaming starts
   useEffect(() => {
-    if (isStreaming && (toolCalls.length > 0 || progressLogs.length > 0)) {
+    if (isStreaming && (toolCalls.length > 0 || progressLogs.length > 0 || reasoningContent)) {
       setIsOpen(true);
     }
-  }, [isStreaming]);
+  }, [isStreaming, reasoningContent]);
 
   // Track time if streaming
   useEffect(() => {
@@ -34,7 +35,7 @@ export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progress
     return () => clearInterval(interval);
   }, [isStreaming, startTime]);
 
-  const hasContent = toolCalls.length > 0 || progressLogs.length > 0;
+  const hasContent = toolCalls.length > 0 || progressLogs.length > 0 || !!reasoningContent;
   
   if (!hasContent) {
     return null;
@@ -98,7 +99,18 @@ export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progress
       </div>
       
       {isOpen && (
-        <div className="agent-trace-body" style={{ marginTop: '8px', paddingLeft: '14px', marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="agent-trace-body" style={{ marginTop: '8px', paddingLeft: '14px', marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '1.5px solid var(--border-color)', paddingBottom: '4px' }}>
+          {reasoningContent && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <Cpu size={15} color="#f472b6" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Thinking:</span>
+                <p style={{ marginTop: '4px', fontStyle: 'italic', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {reasoningContent}
+                </p>
+              </div>
+            </div>
+          )}
           {traces.map((trace, idx) => (
             <div key={idx} className="trace-item" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
               {getIconForStep(trace)}
