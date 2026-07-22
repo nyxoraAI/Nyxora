@@ -25,7 +25,7 @@ COPY packages/signer/package*.json ./packages/signer/
 COPY packages/desktop/package*.json ./packages/desktop/
 COPY packages/tui/package*.json ./packages/tui/
 COPY packages/nyxora-ink/package*.json ./packages/nyxora-ink/
-COPY scripts/install-ml-engine.js ./scripts/install-ml-engine.js
+COPY scripts/install-ml-engine.mjs ./scripts/install-ml-engine.mjs
 
 # Install ALL dependencies (including devDependencies for Vite)
 RUN npm install --legacy-peer-deps
@@ -66,7 +66,7 @@ COPY packages/signer/package*.json ./packages/signer/
 COPY packages/desktop/package*.json ./packages/desktop/
 COPY packages/tui/package*.json ./packages/tui/
 COPY packages/nyxora-ink/package*.json ./packages/nyxora-ink/
-COPY scripts/install-ml-engine.js ./scripts/install-ml-engine.js
+COPY scripts/install-ml-engine.mjs ./scripts/install-ml-engine.mjs
 
 # Install ONLY production dependencies (--omit=dev)
 ENV NODE_ENV=production
