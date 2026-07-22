@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.22]
+### Bug Fixes & Monorepo Enhancements
+- **Global `npm install` Crash Fix (Critical Fix)**: Resolved a severe issue where `nyxora start` would crash immediately after global installation (`npm install -g nyxora`) due to missing dependencies. All required workspace dependencies (e.g., `systeminformation`, messaging bot SDKs) have now been synced and hoisted to the root `package.json`, ensuring the background daemon can boot properly for global users without throwing `Cannot find module` errors.
+- **Dependency Overrides Synchronization**: Fixed dependency conflict warnings during installation by aligning `lodash-es` and `undici` versions with the root workspace `overrides`.
+
 ## [26.7.21]
 ### Dashboard Features & UI
 - **Control Panel Expansion**: Engineered 4 brand new native dashboard menus (`Memory`, `Security`, `Wallets`, `Workflows`) transforming the dashboard into a full-fledged agent control panel.
