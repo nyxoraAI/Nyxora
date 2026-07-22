@@ -139,7 +139,7 @@ graph TD
     User["User / External Client"]:::external
 
     Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
-    MCP["MCP Server<br/>Port 3001"]:::ui
+    MCP["MCP Server<br/>(Stdio / JSON-RPC)"]:::ui
 
     Core["Core LLM Runtime<br/>Port 3000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
 
@@ -188,7 +188,7 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 ## 🚀 Quick Start & Installation
 
 ### Prerequisites
-Nyxora requires **Node.js 18+** and **Python 3.10+** (for the ML Cognitive Engine) to be installed on your system.
+Nyxora requires **Node.js 22+** and **Python 3.10+** (for the ML Cognitive Engine) to be installed on your system.
 
 ### Option 1: One-Line Installation (Recommended)
 The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry. *(Note: You must have Python 3.10+ pre-installed on your system, as this script only handles Node.js dependencies).*
@@ -210,6 +210,8 @@ If you already have Node.js installed, you can natively install Nyxora globally 
 # Install globally
 npm install -g nyxora
 
+> 💡 **ML Engine Setup**: When you run `npm install -g nyxora`, the Python ML Engine dependencies are automatically installed via the `postinstall` script. Requires Python 3.10+.
+
 # Run the interactive setup wizard 
 # (Automatically validates Node.js & Python 3.10+ requirements, configures API Keys, Wallet, and ML Environment)
 nyxora setup
@@ -220,7 +222,10 @@ nyxora start
 # Open the interactive UI dashboard
 nyxora dashboard
 
-# Open the Terminal UI (TUI) for VPS/CLI users
+# 🖥️ Open the interactive Terminal UI (for VPS/CLI users)
+nyxora tui
+
+# 💬 Chat interactively via the terminal
 nyxora chat
 ```
 
@@ -234,7 +239,7 @@ cd Nyxora
 # 1. Install Dependencies
 npm install
 
-# 2. Build the Core, MCP Server, and Dashboard UI
+# 2. Build the Core, TUI, MCP Server, and Dashboard UI
 npm run build
 
 # 3. Interactive Setup Wizard (Will also install Python ML requirements via pip)

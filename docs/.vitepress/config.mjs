@@ -106,6 +106,7 @@ export default defineConfig({
           items: [
             { text: 'Overview & Flags', link: '/cli/' },
             { text: 'Daemon & Interface', link: '/cli/daemon' },
+            { text: 'TUI Interface', link: '/cli/tui' },
             { text: 'Setup & Diagnostics', link: '/cli/setup' }
           ]
         }

@@ -134,8 +134,15 @@ console.log(`================================`);
     }
   }
 
-  // Check for chat or TUI command
-  if (process.argv.includes('chat') || process.argv.includes('tui')) {
+  // Check for chat command
+  if (process.argv.includes('chat') && !process.argv.includes('tui')) {
+    const { chatInteractive } = await import('./chat');
+    await chatInteractive();
+    process.exit(0);
+  }
+
+  // Check for TUI command
+  if (process.argv.includes('tui')) {
     const { spawn } = await import('child_process');
     // If running from dist/, we need to go up 5 levels. If from src/, 4 levels.
     const rootDir = __dirname.includes('dist') 

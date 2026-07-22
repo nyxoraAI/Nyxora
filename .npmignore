@@ -64,6 +64,7 @@ security_policy.md
 **/test_*.mjs
 **/test.mjs
 **/*.test.mjs
+
 packages/core/src/utils/safeLogger.js
 /launcher.ts
 migrate_keys.*
@@ -77,4 +78,22 @@ vitest.config.*
 # Unreleased Strategy Documents
 GOVERNANCE.md
 .git/config
+
+# Python bytecache — explicit paths since glob **/__pycache__ doesn't always work
+packages/ml-engine/__pycache__/
+packages/ml-engine/routers/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test files yang lolos ke dist/
+dist/**/*.test.js
+dist/**/*.spec.js
+dist/**/*.test.js.map
+
+# nyxora-ink — exclude node_modules dan src, hanya kirim compiled output
+packages/nyxora-ink/node_modules/
+packages/nyxora-ink/src/
+packages/nyxora-ink/tsconfig.json
 

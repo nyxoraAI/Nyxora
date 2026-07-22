@@ -382,13 +382,29 @@ async function main() {
     case 'autostart': await autostart(process.argv[3]); break;
     case 'mcp': await serveMcp(); break;
 
+    case 'desktop': {
+      const desktopPkg = path.join(projectRoot, 'packages/desktop/package.json');
+      const desktopDist = path.join(projectRoot, 'packages/desktop/dist-electron');
+      if (!fs.existsSync(desktopPkg) || !fs.existsSync(desktopDist)) {
+        console.error('❌ Desktop app is not available in the npm package.');
+        console.error('   The Desktop app must be built from source.');
+        console.error('   Clone the repo and run: git clone https://github.com/nyxoraAI/Nyxora && cd Nyxora && npm install && npm run desktop');
+        process.exit(1);
+      }
+      const { default: open } = await import('open');
+      await open(desktopDist);
+      break;
+    }
+
     case 'tui': {
       // Spawn pre-compiled TUI directly using Node.
       // We must avoid wrappers like `npx` or `npm run` which spawn subshells 
       // and break TTY inheritance, causing Ink to think it's not a TTY (which makes it invisible).
       const tuiDist = path.join(projectRoot, 'packages/tui/dist/index.js');
       if (!fs.existsSync(tuiDist)) {
-        console.error("TUI is not compiled. Please run 'npm run build' first.");
+        console.error('❌ TUI is not available (missing compiled output).');
+        console.error('   If you installed from npm, try: npm install -g nyxora@latest');
+        console.error('   If running from source: npm run build');
         process.exit(1);
       }
       

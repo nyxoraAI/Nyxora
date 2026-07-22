@@ -37,6 +37,8 @@ If you already have Node.js installed, you can natively install Nyxora globally 
 # Install globally
 npm install -g nyxora
 
+> 💡 **ML Engine Setup**: When you run `npm install -g nyxora`, the Python ML Engine dependencies are automatically installed via the `postinstall` script. Requires Python 3.10+.
+
 # ⚙️ Run the interactive setup wizard
 nyxora setup
 
@@ -46,7 +48,10 @@ nyxora start
 # 🖥️ Open the interactive UI dashboard
 nyxora dashboard
 
-# Open the Terminal UI (TUI) for VPS/CLI users
+# 🖥️ Open the full Terminal UI (interactive dashboard for VPS/CLI users)
+nyxora tui
+
+# 💬 Open a simple interactive chat session in terminal
 nyxora chat
 ```
 
@@ -75,7 +80,7 @@ npm install
 ```
 
 ### 3. Build the Packages
-Compile the core engine, MCP server, and the React Dashboard by running the build script:
+Compile the core engine, TUI, MCP Server, and the React Dashboard by running the build script:
 ```bash
 npm run build
 ```
@@ -91,6 +96,7 @@ npm start
 
 # (Optional) Run the Desktop App locally
 npm run desktop
+> ⚠️ The Desktop app (`npm run desktop`) is only available when running from source. It is not included in the npm package.
 ```
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 

@@ -29,7 +29,6 @@ import Wallets from './Wallets';
 import Workflows from './Workflows';
 import Gateway from './Gateway';
 import OsTerminal from './OsTerminal';
-import Swarm from './Swarm';
 import Hardware from './Hardware';
 
 interface Config {
@@ -39,7 +38,7 @@ interface Config {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
-  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'swarm' | 'hardware'>('sessions');
+  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'hardware'>('sessions');
   
   const [config, setConfig] = useState<Config | null>(null);
   
@@ -262,9 +261,6 @@ function App() {
               <div className={`nav-item ${currentView === 'osterminal' ? 'active' : ''}`} onClick={() => setCurrentView('osterminal')} title={isSidebarCollapsed ? "OS TERMINAL" : undefined}>
                 <Terminal size={16} /> {!isSidebarCollapsed && "OS TERMINAL"}
               </div>
-              <div className={`nav-item ${currentView === 'swarm' ? 'active' : ''}`} onClick={() => setCurrentView('swarm')} title={isSidebarCollapsed ? "SWARM" : undefined}>
-                <Share2 size={16} /> {!isSidebarCollapsed && "SWARM"}
-              </div>
               
               {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px' }}>SYSTEM & INTEGRATION</div>}
 
@@ -384,7 +380,6 @@ function App() {
             {currentView === 'wallets' && <Wallets />}
             {currentView === 'workflows' && <Workflows />}
             {currentView === 'osterminal' && <OsTerminal />}
-            {currentView === 'swarm' && <Swarm />}
             {currentView === 'hardware' && <Hardware />}
             {currentView === 'gateway' && <Gateway />}
           </div>

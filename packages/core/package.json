@@ -23,7 +23,6 @@
     "@twurple/api": "^8.1.4",
     "@twurple/auth": "^8.1.4",
     "@twurple/chat": "^8.1.4",
-    "audio-decode": "^2.2.3",
     "cors": "^2.8.6",
     "croner": "^10.0.1",
     "discord.js": "^14.26.4",

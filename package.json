@@ -35,14 +35,23 @@
     "packages/dashboard/dist",
     "packages/dashboard/package.json",
     "packages/ml-engine",
+    "packages/tui/dist",
+    "packages/tui/package.json",
+    "packages/nyxora-ink/dist",
+    "packages/nyxora-ink/index.js",
+    "packages/nyxora-ink/index.d.ts",
+    "packages/nyxora-ink/text-input.js",
+    "packages/nyxora-ink/text-input.d.ts",
+    "packages/nyxora-ink/ambient.d.ts",
+    "packages/nyxora-ink/package.json",
     "scripts"
   ],
   "bin": {
     "nyxora": "bin/nyxora.mjs"
   },
   "scripts": {
-    "prepublishOnly": "npm run build",
-    "postinstall": "node scripts/install-ml-engine.js",
+    "prepublishOnly": "node -e \"const{execSync:e}=require('child_process');try{e('find packages/ml-engine -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true')}catch(e){}\" && npm run build",
+    "postinstall": "node scripts/install-ml-engine.mjs",
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"NODE_NO_WARNINGS=1 ./node_modules/.bin/ts-node -T launcher.ts\" \"npm run dev --workspace=nyxora-dashboard\"",
     "start": "node ./bin/nyxora.mjs start",
     "stop": "node ./bin/nyxora.mjs stop",
@@ -54,7 +63,7 @@
     "tui": "node ./bin/nyxora.mjs tui",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
-    "build": "tsc && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
+    "build": "tsc && npm run build --workspace=@nyxora/ink && npm run build --workspace=@nyxora/tui && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -121,7 +130,12 @@
     "@hono/node-server": "^2.0.5",
     "@vitejs/plugin-react": {
       "vite": "$vite"
-    }
+    },
+    "glob": "^10.4.5",
+    "inflight": "npm:lru-cache@^11.0.0",
+    "rimraf": "^6.0.1",
+    "boolean": "^3.2.0",
+    "node-domexception": "npm:domexception@^4.0.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -131,6 +145,8 @@
     "autoprefixer": "^10.4.15",
     "concurrently": "^10.0.3",
     "husky": "^9.1.7",
+    "ink": "^7.1.1",
+    "ink-text-input": "^6.0.0",
     "lucide-react": "^0.469.0",
     "nodemon": "^3.1.14",
     "oxc-minify": "^0.135.0",
@@ -146,6 +162,8 @@
     "node": ">=22.0.0"
   },
   "allowScripts": {
-    "node-pty@1.1.0": true
+    "node-pty@1.1.0": true,
+    "esbuild@0.28.1": true,
+    "unicode-animations@1.0.3": true
   }
 }
