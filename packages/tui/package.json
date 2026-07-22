@@ -1,8 +1,10 @@
 {
   "name": "@nyxora/tui",
-  "version": "26.7.21",
+  "version": "26.7.22",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

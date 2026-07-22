@@ -1,7 +1,7 @@
 {
   "name": "nyxora-desktop",
   "private": true,
-  "version": "0.0.1",
+  "version": "26.7.22",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
