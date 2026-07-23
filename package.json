@@ -37,13 +37,6 @@
     "packages/ml-engine",
     "packages/tui/dist",
     "packages/tui/package.json",
-    "packages/nyxora-ink/dist",
-    "packages/nyxora-ink/index.js",
-    "packages/nyxora-ink/index.d.ts",
-    "packages/nyxora-ink/text-input.js",
-    "packages/nyxora-ink/text-input.d.ts",
-    "packages/nyxora-ink/ambient.d.ts",
-    "packages/nyxora-ink/package.json",
     "scripts"
   ],
   "bin": {
@@ -63,7 +56,7 @@
     "tui": "node ./bin/nyxora.mjs tui",
     "set-key": "node ./bin/nyxora.mjs set-key",
     "doctor": "node ./bin/nyxora.mjs doctor",
-    "build": "tsc && npm run build --workspace=@nyxora/ink && npm run build --workspace=@nyxora/tui && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
+    "build": "tsc && npm run build --workspace=@nyxora/tui && npm run build --workspace=nyxora-mcp-server && npm run build --workspace=nyxora-dashboard",
     "test": "npm run test --workspace=packages/core",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
