@@ -92,7 +92,12 @@ async function stop(preserveTracker = false) {
   if (pid) {
     console.log(`Stopping Nyxora daemon (PID: ${pid})...`);
     try {
-      process.kill(-pid, 'SIGTERM');
+      if (process.platform === 'win32') {
+        const { spawnSync } = await import('child_process');
+        spawnSync('taskkill', ['/pid', pid.toString(), '/t', '/f']);
+      } else {
+        process.kill(-pid, 'SIGTERM');
+      }
       let attempts = 0;
       while (isDaemonRunning(pid.toString()) && attempts < 20) {
         await new Promise(r => setTimeout(r, 100));
