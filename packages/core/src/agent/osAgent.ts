@@ -192,7 +192,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
   try {
     let turnCount = 0;
-    const MAX_TURNS = 30;
+    const MAX_TURNS = 50; // Increased to 50 to allow limitless tool usage without hard crashing
     let consecutiveToolErrors = 0;
     let criticHasFired = false; // Critic Pass hanya aktif 1x per request
     // Anti-loop: track (toolName+argsHash) pairs from the PREVIOUS turn to
@@ -202,15 +202,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     // ── Per-tool-name call count tracker ──────────────────────────────────────────────
     // Catches loops where args differ per turn (e.g. search_web different query each time).
     const osToolCallCounts = new Map<string, number>();
-    const OS_TOOL_CALL_LIMITS: Record<string, number> = {
-      'search_web':            5,
-      'search_files':          8,
-      'read_local_file':      10,
-      'run_terminal_command':  8,
-      'edit_local_file':       6,
-      'write_local_file':      6,
-      '__default__':          12,
-    };
+    // OS_TOOL_CALL_LIMITS removed: We now use soft-warnings (self-reflection) instead of hard limits.
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const rawHistory = logger.getHistory(sessionId);
@@ -556,19 +548,16 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         console.log(pc.red('[Anti-Loop] Repeat tool call signature detected across turns. Injecting block.'));
       }
 
-      // Fix B: Per-tool-name count guard — stops loops even when args change each turn
+      // Fix B: Per-tool-name count soft-warning (prevents hallucination)
       for (const tc of responseMessage.tool_calls) {
         const tn = (tc as any).function.name as string;
         const count = osToolCallCounts.get(tn) || 0;
-        const limit = OS_TOOL_CALL_LIMITS[tn] ?? OS_TOOL_CALL_LIMITS['__default__'];
-        if (count >= limit) {
-          const stopMsg = `[SYSTEM: LOOP DETECTED] '${tn}' has been called ${count} times this session (limit: ${limit}). ` +
-            `You are stuck in a loop. STOP calling this tool and produce your final answer using data already collected.`;
-          logger.addEntry({ role: 'system' as any, content: stopMsg }, sessionId);
-          const forceStop = `⚠️ Loop breaker: '${tn}' called ${count}x (limit ${limit}). Stopping.`;
-          logger.addEntry({ role: 'assistant', content: forceStop }, sessionId);
-          triggerBackgroundReview(sessionId);
-          return forceStop;
+        
+        // Soft Warning every 5 times a tool is used
+        if (count > 0 && count % 5 === 0) {
+          const warningMsg = `[SYSTEM WARNING] You have used the tool '${tn}' ${count} times in this session. Are you making progress? If you are stuck in a loop of errors or hallucinating fixes without success, STOP using this tool and ask the user for clarification.`;
+          logger.addEntry({ role: 'system' as any, content: warningMsg }, sessionId);
+          console.warn(pc.yellow(`[OsAgent] ⚠️ ANTI-LOOP SOFT WARNING: '${tn}' called ${count}x. Injected self-reflection prompt.`));
         }
       }
 
@@ -771,7 +760,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   try {
     let turnCount = 0;
     let nudgeCount = 0;
-    const MAX_TURNS = 30; // Increased to 30 to support long loops like multi-chain portfolios
+    const MAX_TURNS = 50; // Increased to 50 to allow limitless tool usage without hard crashing
     let thinkingPrefillRetries = 0; // Prefill-continuation retries for think-only silent stops
     let antiLoopStrikes = 0;
 
@@ -782,18 +771,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
     // ── Per-tool-name call count tracker (stream) ─────────────────────────────────────
     // Catches loops where args differ per turn (e.g. search_web with different queries).
     const osToolCallCountsStream = new Map<string, number>();
-    const OS_TOOL_CALL_LIMITS_STREAM: Record<string, number> = {
-      'search_web':            5,
-      'search_files':          8,
-      'read_local_file':      10,
-      'run_terminal_command':  8,
-      'edit_local_file':       6,
-      'write_local_file':      6,
-      'search_playbook':       2,
-      'read_gmail_inbox':      3,
-      'search_gmail':          3,
-      '__default__':          12,
-    };
+    // OS_TOOL_CALL_LIMITS_STREAM removed: We now use soft-warnings (self-reflection) instead of hard limits.
 
     // P6: Compress history ONCE before loop starts (not per iteration)
     const rawHistoryStream = logger.getHistory(sessionId);
@@ -974,20 +952,15 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         const normalizedArgs = normalizeArgs(tc.function.arguments);
         const sig = `${tc.function.name}:${normalizedArgs}`;
 
-        // Per-tool-name count guard — stop before executing if limit reached
+        // Per-tool-name count soft warning (prevents hallucination)
         const tnS = (tc as any).function.name as string;
         const countS = osToolCallCountsStream.get(tnS) || 0;
-        const limitS = OS_TOOL_CALL_LIMITS_STREAM[tnS] ?? OS_TOOL_CALL_LIMITS_STREAM['__default__'];
-        if (countS >= limitS) {
-          console.warn(`[OsAgentStream] ⚠️ ANTI-LOOP: '${tnS}' called ${countS}x (limit: ${limitS}). Blocking.`);
-          const stopMsg = `[SYSTEM: LOOP DETECTED] '${tnS}' has been called ${countS} times (limit: ${limitS}). ` +
-            `STOP calling this tool. Produce your final answer using data already collected.`;
-          logger.addEntry({ role: 'system' as any, content: stopMsg }, sessionId);
-          const forceMsg = `⚠️ Loop breaker: '${tnS}' called ${countS}x (limit ${limitS}). Stopping.`;
-          logger.addEntry({ role: 'assistant', content: forceMsg }, sessionId);
-          await onChunk(forceMsg);
-          triggerBackgroundReview(sessionId);
-          return forceMsg;
+        
+        // Soft Warning every 5 times a tool is used
+        if (countS > 0 && countS % 5 === 0) {
+          console.warn(`[OsAgentStream] ⚠️ ANTI-LOOP SOFT WARNING: '${tnS}' called ${countS}x. Injected self-reflection prompt.`);
+          const warningMsg = `[SYSTEM WARNING] You have used the tool '${tnS}' ${countS} times in this session. Are you making progress? If you are stuck in a loop of errors or hallucinating fixes without success, STOP using this tool and ask the user for clarification.`;
+          logger.addEntry({ role: 'system' as any, content: warningMsg }, sessionId);
         }
 
         if (historicalToolCallSigs.has(sig)) {

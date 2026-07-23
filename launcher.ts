@@ -36,7 +36,7 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
   let isShuttingDown = false;
 
   const startProcess = () => {
-    const spawnOpts: any = { env, stdio: inheritStdio ? 'inherit' : 'pipe' };
+    const spawnOpts: any = { env, stdio: inheritStdio ? 'inherit' : 'pipe', windowsHide: true };
     if (cwd) spawnOpts.cwd = cwd;
     child = spawn(command, args, spawnOpts);
     child.on('error', (err) => {
@@ -199,7 +199,7 @@ setTimeout(() => {
 
         if (cfEnabled) {
           console.log('[Launcher] Starting Auto-Tunnel (Cloudflare) on port 3000...');
-          const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true });
+          const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true, windowsHide: true });
 
           children.push({
             kill: () => { try { process.kill(cf.pid!, 'SIGTERM'); } catch(e){} },

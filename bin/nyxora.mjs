@@ -73,6 +73,7 @@ async function start() {
   const child = spawn(cmd, args, {
     cwd: projectRoot,
     detached: true,
+    windowsHide: true,
     stdio: ['ignore', out, err],
     env: { ...process.env, TS_NODE_CACHE: 'false' }
   });
