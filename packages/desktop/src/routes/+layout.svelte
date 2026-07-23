@@ -9,6 +9,6 @@
 	let { children } = $props();
 </script>
 
-<div class="app text-gray-900 dark:text-[#eceff4] min-h-screen">
+<div class="app text-gray-900 dark:text-[#ffffff] min-h-screen">
 	{@render children()}
 </div>

@@ -50,7 +50,7 @@
 
 <div class="relative" bind:this={dropdownRef}>
   <button 
-    class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-[#3b4252] hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-[#4c566a] font-semibold text-sm" 
+    class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-[#1d1d1f] hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-[#48484a] font-semibold text-sm" 
     onclick={() => isOpen = !isOpen}
     aria-expanded={isOpen}
   >
@@ -71,12 +71,12 @@
   </button>
 
   {#if isOpen}
-    <ul class="absolute top-full mt-1 right-0 w-48 max-h-60 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-[#434c5e] rounded-lg shadow-xl z-50 py-1 scrollbar-hidden">
+    <ul class="absolute top-full mt-1 right-0 w-48 max-h-60 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-[#3a3a3c] rounded-lg shadow-xl z-50 py-1 scrollbar-hidden">
       {#each options as net}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <li 
-          class="flex items-center gap-2 px-3 py-2 cursor-pointer text-sm transition-colors hover:bg-gray-100 dark:hover:bg-[#434c5e] {net.id === value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-[#81a1c1] font-semibold' : ''}"
+          class="flex items-center gap-2 px-3 py-2 cursor-pointer text-sm transition-colors hover:bg-gray-100 dark:hover:bg-[#3a3a3c] {net.id === value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-[#0a84ff] font-semibold' : ''}"
           onclick={() => handleSelect(net.id)}
         >
           <div class="w-4 h-4 relative flex items-center justify-center shrink-0">

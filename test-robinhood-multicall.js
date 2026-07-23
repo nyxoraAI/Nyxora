@@ -1,6 +1,8 @@
-import { createPublicClient, http } from 'viem';
+const { createPublicClient, http } = require('viem');
+const { robinhoodTestnet } = require('./packages/core/dist/web3/utils/chains.js'); // adjust path if needed
 
 const client = createPublicClient({
+  chain: robinhoodTestnet,
   transport: http('https://rpc.testnet.chain.robinhood.com')
 });
 

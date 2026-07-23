@@ -96,7 +96,7 @@
   <div class="-mb-1">
     <button
       onclick={() => isOpen = !isOpen}
-      class="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 dark:text-[#d8dee9] dark:hover:text-gray-200 transition-colors cursor-pointer w-fit"
+      class="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 dark:text-[#e5e5ea] dark:hover:text-gray-200 transition-colors cursor-pointer w-fit"
     >
       <span class="text-[13px] font-medium">
         {getSummaryText()}
@@ -107,19 +107,19 @@
     </button>
     
     {#if isOpen}
-      <div class="mt-2 pl-4 ml-3 border-l-[1.5px] border-gray-100 dark:border-[#434c5e] flex flex-col gap-3 py-1">
+      <div class="mt-2 pl-4 ml-3 border-l-[1.5px] border-gray-100 dark:border-[#3a3a3c] flex flex-col gap-3 py-1">
         {#if reasoningContent}
-          <div class="flex items-start gap-3 text-sm text-gray-600 dark:text-[#d8dee9]">
+          <div class="flex items-start gap-3 text-sm text-gray-600 dark:text-[#e5e5ea]">
             <Cpu size={15} class="text-pink-400 mt-0.5 flex-shrink-0" />
             <div class="flex-1">
-              <span class="font-medium text-gray-700 dark:text-[#d8dee9]">Thinking:</span>
+              <span class="font-medium text-gray-700 dark:text-[#e5e5ea]">Thinking:</span>
               <p class="mt-1 text-[13px] leading-relaxed italic whitespace-pre-wrap">{reasoningContent}</p>
             </div>
           </div>
         {/if}
         
         {#each traces() as trace, idx}
-          <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#d8dee9]">
+          <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#e5e5ea]">
             {#if getIconForStep(trace) === 'search'}
               <Search size={15} class="text-blue-400 stroke-[1.5]" />
             {:else if getIconForStep(trace) === 'terminal'}
@@ -134,7 +134,7 @@
         {/each}
         
         {#if isStreaming}
-          <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#d8dee9]">
+          <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#e5e5ea]">
             <Activity size={15} class="text-gray-400 animate-pulse stroke-[1.5]" />
             <span class="animate-pulse font-medium working-dots">Working</span>
           </div>

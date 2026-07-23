@@ -13,6 +13,15 @@ const TOKEN_LIST_URLS: Record<string, string> = {
   bsc: 'https://tokens.pancakeswap.finance/pancakeswap-extended.json'
 };
 
+// Numeric chainId for each chain so we can filter token lists by chainId field
+const CHAIN_ID_MAP: Record<string, number> = {
+  ethereum: 1,
+  base: 8453,
+  arbitrum: 42161,
+  optimism: 10,
+  bsc: 56,
+};
+
 export interface DynamicTokens {
   [chainName: string]: Array<{ symbol: string, address: string }>;
 }
@@ -37,10 +46,15 @@ export async function fetchDynamicTokens(): Promise<DynamicTokens> {
       const data = await res.json();
       
       let tokens: Array<{symbol: string, address: string}> = [];
-      
+      const targetChainId = CHAIN_ID_MAP[chain];
+
       if (data && data.tokens && Array.isArray(data.tokens)) {
+        // Filter strictly by chainId to prevent cross-chain token bleed
+        const filtered = targetChainId
+          ? data.tokens.filter((t: any) => t.chainId === targetChainId)
+          : data.tokens;
         // Limit to top 50 to avoid massive multicall
-        const topTokens = data.tokens.slice(0, 50);
+        const topTokens = filtered.slice(0, 50);
         tokens = topTokens.map((t: any) => ({
           symbol: t.symbol,
           address: t.address

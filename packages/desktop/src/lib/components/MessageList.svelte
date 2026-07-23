@@ -4,13 +4,23 @@
   import AgentTrace from './AgentTrace.svelte';
 
   import { tick } from 'svelte';
-  import { ArrowDown } from 'lucide-svelte';
+  import { ArrowDown, Copy, Check } from 'lucide-svelte';
 
   let messages = $derived($chatStore.messages);
   let container: HTMLDivElement;
   
+  let copiedMessageIndex = $state<number | null>(null);
+
+  function copyMessage(content: string, index: number) {
+    navigator.clipboard.writeText(content);
+    copiedMessageIndex = index;
+    setTimeout(() => {
+      if (copiedMessageIndex === index) copiedMessageIndex = null;
+    }, 2000);
+  }
+  
   let isUserScrolledUp = $state(false);
-  let previousMergedCount = $state(0);
+  let previousMessageCount = $state(0);
   let lastSnappedUserIndex = $state(-1);
   let isAutoScrolling = false;
   let spacerHeight = $state(0);
@@ -61,14 +71,24 @@
   }
 
   $effect(() => {
+    // Track raw messages length to detect session changes (clear) and new messages
+    const currentMsgCount = messages.length;
     const merged = mergedMessages();
     const currentMergedCount = merged.length;
     const hasStreaming = merged.some(m => m.isStreaming);
 
     tick().then(() => {
        updateSpacer();
-       
-       if (currentMergedCount > previousMergedCount && container) {
+
+       // Session switched: messages cleared → reset snap state
+       if (currentMsgCount === 0 && previousMessageCount > 0) {
+         lastSnappedUserIndex = -1;
+         isUserScrolledUp = false;
+         previousMessageCount = 0;
+         return;
+       }
+
+       if (currentMergedCount > 0 && container) {
            let lastUserIndex = -1;
            for (let i = merged.length - 1; i >= 0; i--) {
              if (merged[i].role === 'user') {
@@ -76,7 +96,8 @@
                break;
              }
            }
-           
+
+           // New user message detected → snap to it
            if (lastUserIndex !== -1 && lastUserIndex > lastSnappedUserIndex) {
               const el = document.getElementById(`msg-${lastUserIndex}`);
               if (el) {
@@ -88,20 +109,19 @@
                  }, 50);
                  lastSnappedUserIndex = lastUserIndex;
               }
-           } else {
-              if (!isUserScrolledUp) container.scrollTop = container.scrollHeight;
-           }
-       } else if (hasStreaming && !isUserScrolledUp && !isAutoScrolling && container) {
-           // Karena spacerHeight sudah menghilangkan "ruang hampa", 
-           // kita bisa dengan aman menarik scroll langsung ke dasar kontainer (scrollHeight)
-           // Ini akan secara otomatis meluncur pelan seirama dengan teks yang bertambah panjang.
-           const maxScroll = container.scrollHeight - container.clientHeight;
-           if (container.scrollTop < maxScroll) {
-               container.scrollTop = maxScroll;
+           } else if (hasStreaming && !isUserScrolledUp && !isAutoScrolling) {
+              // Stream in progress: keep scrolled to bottom
+              const maxScroll = container.scrollHeight - container.clientHeight;
+              if (container.scrollTop < maxScroll) {
+                  container.scrollTop = maxScroll;
+              }
+           } else if (!hasStreaming && !isUserScrolledUp) {
+              // New assistant message arrived (non-streaming): scroll to bottom
+              container.scrollTop = container.scrollHeight;
            }
        }
-       
-       previousMergedCount = currentMergedCount;
+
+       previousMessageCount = currentMsgCount;
     });
   });
 
@@ -153,16 +173,27 @@
   });
 </script>
 
-<div onscroll={handleScroll} bind:this={container} class="{messages.length > 0 ? 'flex-1 p-4 md:p-8' : 'h-0'} overflow-y-auto flex flex-col gap-6 items-center relative">
+<div onscroll={handleScroll} bind:this={container} class="{messages.length > 0 ? 'flex-1 p-4 md:p-8' : 'h-0'} overflow-y-auto flex flex-col gap-6 items-center relative select-text">
   {#if mergedMessages().length > 0}
     <div class="w-full max-w-3xl mx-auto flex flex-col gap-6 relative">
       {#each mergedMessages() as msg, i}
-        <div id={`msg-${i}`} class="flex flex-col gap-2 w-full {msg.role === 'user' ? 'items-end' : 'items-start'} message-fade-in">
-          <div class="{msg.role === 'user' ? 'max-w-[80%] bg-gray-100 dark:bg-[#3b4252] rounded-[1.25rem] px-5 py-3' : 'max-w-full pt-1 w-full'}">
+        <div id={`msg-${i}`} class="flex flex-col gap-2 w-full {msg.role === 'user' ? 'items-end' : 'items-start'} message-fade-in group relative">
+          <div class="{msg.role === 'user' ? 'max-w-[80%] bg-gray-100 dark:bg-[#2c2c2e] rounded-[1.25rem] px-5 py-3 relative' : 'max-w-full pt-1 w-full'}">
             {#if msg.role === 'user'}
-              <div class="prose dark:prose-invert max-w-none text-[15px] whitespace-pre-wrap text-gray-900 dark:text-[#e5e9f0]">
+              <div class="prose dark:prose-invert max-w-none text-[15px] whitespace-pre-wrap text-gray-900 dark:text-[#f5f5f7]">
                 {msg.content}
               </div>
+              <button 
+                onclick={() => copyMessage(msg.content, i)} 
+                class="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-[#2c2c2e] dark:hover:bg-[#3a3a3c] text-gray-500 dark:text-gray-400 cursor-pointer shadow-sm border border-transparent dark:border-gray-600"
+                title="Copy Message"
+              >
+                {#if copiedMessageIndex === i}
+                  <Check size={14} class="text-green-500" />
+                {:else}
+                  <Copy size={14} />
+                {/if}
+              </button>
             {:else}
               <StructuredMessage {msg} />
             {/if}

@@ -832,10 +832,15 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           logger.addEntry({ role: 'assistant', content: cleanNarrative }, sessionId);
           fullResponse = cleanNarrative;
         } catch {
-          // Fallback to raw data if summary call fails
-          await onChunk(rawData);
-          logger.addEntry({ role: 'assistant', content: rawData }, sessionId);
-          fullResponse = rawData;
+          // Fallback to raw data if summary call fails — clean it first
+          const cleanRawData = rawData
+            .replace(/\[SILENT_FAST_RETURN\] /g, '')
+            .replace(/\[System Error\][^\n]*/g, '')
+            .trim();
+          onChunk('[CLEAR_STREAM]');
+          await onChunk(cleanRawData);
+          logger.addEntry({ role: 'assistant', content: cleanRawData }, sessionId);
+          fullResponse = cleanRawData;
         }
         // ────────────────────────────────────────────────────────────────
         break;

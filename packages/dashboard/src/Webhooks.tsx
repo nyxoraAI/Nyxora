@@ -19,25 +19,25 @@ interface ChannelInfo {
 }
 
 const CHANNELS: ChannelInfo[] = [
-  { id: 'telegram', label: 'Telegram', icon: <MessageSquare size={22} />, color: '#2AABEE', status: 'live', description: 'Full bot integration with push notifications, transaction confirmations, and streaming responses.' },
-  { id: 'discord',  label: 'Discord',  icon: <Hash size={22} />,          color: '#5865F2', status: 'live', description: 'Bot for Discord servers and DMs. Supports slash commands and message content intent.' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: <Send size={22} />,          color: '#25D366', status: 'beta', description: 'Connect via Baileys (unofficial). Install baileys separately to enable.', docsUrl: 'https://github.com/WhiskeySockets/Baileys' },
+  { id: 'telegram', label: 'Telegram', icon: <img src="https://cdn.simpleicons.org/telegram/2AABEE" width={22} height={22} alt="Telegram" />, color: '#2AABEE', status: 'live', description: 'Full bot integration with push notifications, transaction confirmations, and streaming responses.' },
+  { id: 'discord',  label: 'Discord',  icon: <img src="https://cdn.simpleicons.org/discord/5865F2" width={22} height={22} alt="Discord" />,          color: '#5865F2', status: 'live', description: 'Bot for Discord servers and DMs. Supports slash commands and message content intent.' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: <img src="https://cdn.simpleicons.org/whatsapp/25D366" width={22} height={22} alt="WhatsApp" />,          color: '#25D366', status: 'beta', description: 'Connect via Baileys (unofficial). Install baileys separately to enable.', docsUrl: 'https://github.com/WhiskeySockets/Baileys' },
   { id: 'slack',    label: 'Slack',    icon: <Hash size={22} />,          color: '#4A154B', status: 'beta', description: 'Slack Bot using socket mode. Requires bot_token and app_token.', docsUrl: 'https://api.slack.com/apps' },
   { id: 'msteams',  label: 'MS Teams', icon: <Monitor size={22} />,       color: '#6264A7', status: 'planned', description: 'Microsoft Teams webhook adapter.' },
-  { id: 'matrix',   label: 'Matrix',   icon: <Globe size={22} />,         color: '#0DBD8B', status: 'planned', description: 'Matrix / Element protocol adapter.' },
-  { id: 'imessage', label: 'iMessage', icon: <Smartphone size={22} />,    color: '#34C759', status: 'planned', description: 'Apple iMessage integration (macOS only).' },
-  { id: 'line',     label: 'LINE',     icon: <MessageSquare size={22} />, color: '#06C755', status: 'planned', description: 'LINE Messaging API adapter.' },
-  { id: 'googlechat', label: 'Google Chat', icon: <Coffee size={22} />,   color: '#4285F4', status: 'planned', description: 'Google Chat bot using webhook or App Framework.' },
-  { id: 'mattermost', label: 'Mattermost', icon: <Radio size={22} />,     color: '#0058CC', status: 'planned', description: 'Mattermost self-hosted chat adapter.' },
+  { id: 'matrix',   label: 'Matrix',   icon: <img src="https://cdn.simpleicons.org/matrix/0DBD8B" width={22} height={22} alt="Matrix" />,         color: '#0DBD8B', status: 'planned', description: 'Matrix / Element protocol adapter.' },
+  { id: 'imessage', label: 'iMessage', icon: <img src="https://cdn.simpleicons.org/apple/34C759" width={22} height={22} alt="iMessage" />,    color: '#34C759', status: 'planned', description: 'Apple iMessage integration (macOS only).' },
+  { id: 'line',     label: 'LINE',     icon: <img src="https://cdn.simpleicons.org/line/06C755" width={22} height={22} alt="LINE" />, color: '#06C755', status: 'planned', description: 'LINE Messaging API adapter.' },
+  { id: 'googlechat', label: 'Google Chat', icon: <img src="https://cdn.simpleicons.org/googlechat/4285F4" width={22} height={22} alt="Google Chat" />,   color: '#4285F4', status: 'planned', description: 'Google Chat bot using webhook or App Framework.' },
+  { id: 'mattermost', label: 'Mattermost', icon: <img src="https://cdn.simpleicons.org/mattermost/0058CC" width={22} height={22} alt="Mattermost" />,     color: '#0058CC', status: 'planned', description: 'Mattermost self-hosted chat adapter.' },
   { id: 'nostr',    label: 'Nostr',    icon: <Zap size={22} />,           color: '#7B68EE', status: 'planned', description: 'Decentralized Nostr protocol.' },
-  { id: 'twitch',   label: 'Twitch',   icon: <Video size={22} />,         color: '#9146FF', status: 'planned', description: 'Twitch chat bot.' },
-  { id: 'qqbot',    label: 'QQ Bot',   icon: <Bot size={22} />,           color: '#12B7F5', status: 'planned', description: 'Tencent QQ bot adapter.' },
-  { id: 'irc',      label: 'IRC',      icon: <Radio size={22} />,         color: '#999999', status: 'planned', description: 'Internet Relay Chat adapter.' },
+  { id: 'twitch',   label: 'Twitch',   icon: <img src="https://cdn.simpleicons.org/twitch/9146FF" width={22} height={22} alt="Twitch" />,         color: '#9146FF', status: 'planned', description: 'Twitch chat bot.' },
+  { id: 'qqbot',    label: 'QQ Bot',   icon: <img src="https://cdn.simpleicons.org/qq/12B7F5" width={22} height={22} alt="QQ Bot" />,           color: '#12B7F5', status: 'planned', description: 'Tencent QQ bot adapter.' },
+  { id: 'irc',      label: 'IRC',      icon: <Hash size={22} />,         color: '#999999', status: 'planned', description: 'Internet Relay Chat adapter.' },
   { id: 'sms',      label: 'SMS / Twilio', icon: <Phone size={22} />,    color: '#F22F46', status: 'planned', description: 'SMS via Twilio webhook. Exposes port 3012.' },
   { id: 'voicecall', label: 'Voice Call', icon: <Phone size={22} />,      color: '#FF6B35', status: 'planned', description: 'Inbound voice call via webhook. Exposes port 3013.' },
-  { id: 'zalo',     label: 'Zalo',     icon: <MessageSquare size={22} />, color: '#0068FF', status: 'planned', description: 'Zalo OA API webhook adapter. Exposes port 3011.' },
-  { id: 'nextcloudtalk', label: 'Nextcloud Talk', icon: <Globe size={22} />, color: '#0082C9', status: 'planned', description: 'Self-hosted Nextcloud Talk adapter.' },
-  { id: 'synologychat', label: 'Synology Chat', icon: <Globe size={22} />, color: '#B5A642', status: 'planned', description: 'Synology Chat incoming webhook.' },
+  { id: 'zalo',     label: 'Zalo',     icon: <img src="https://cdn.simpleicons.org/zalo/0068FF" width={22} height={22} alt="Zalo" />, color: '#0068FF', status: 'planned', description: 'Zalo OA API webhook adapter. Exposes port 3011.' },
+  { id: 'nextcloudtalk', label: 'Nextcloud Talk', icon: <img src="https://cdn.simpleicons.org/nextcloud/0082C9" width={22} height={22} alt="Nextcloud Talk" />, color: '#0082C9', status: 'planned', description: 'Self-hosted Nextcloud Talk adapter.' },
+  { id: 'synologychat', label: 'Synology Chat', icon: <img src="https://cdn.simpleicons.org/synology/B5A642" width={22} height={22} alt="Synology Chat" />, color: '#B5A642', status: 'planned', description: 'Synology Chat incoming webhook.' },
 ];
 
 const StatusBadge: React.FC<{ status: ChannelInfo['status'] }> = ({ status }) => {
@@ -101,7 +101,7 @@ const Webhooks: React.FC = () => {
   const betaCount = CHANNELS.filter(c => c.status === 'beta').length;
 
   return (
-    <div className="overview-container" style={{ padding: '24px', maxWidth: '960px', margin: '0 auto' }}>
+    <div className="overview-container" style={{ padding: '24px', margin: '0 auto' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>

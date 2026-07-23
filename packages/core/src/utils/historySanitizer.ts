@@ -29,8 +29,22 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
     }
     let content = m.content || "";
 
-    if (role === 'assistant' && typeof content === 'string') {
-      content = content.replace(/No response generated\.\s*(---)?\s*/g, '').trim();
+    if (typeof content === 'string') {
+      if (role === 'assistant') {
+        content = content.replace(/No response generated\.\s*(---)?\s*/g, '').trim();
+      }
+      // Scrub ANSI escape codes and control characters to prevent LLM JSON parser crashes from old corrupted history
+      content = content
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+    } else if (Array.isArray(content)) {
+      for (const block of content) {
+        if (block.type === 'text' && typeof block.text === 'string') {
+          block.text = block.text
+            .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+            .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+        }
+      }
     }
 
     let msg: any = { ...m, role, content };

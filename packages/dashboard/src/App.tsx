@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder, Clock, Plug, Link, User, Landmark, LineChart, TrendingUp, Router, Share2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Square, Settings as SettingsIcon, Brain, Cpu, MessageSquare, Plus, Trash2, Code, Shield, Network, Terminal, RefreshCw, Send, Image as ImageIcon, Sparkles, Edit2, Zap, ArrowRight, Wallet, Check, AlertTriangle, Bot, Activity, Database, Mic, Copy, Search, LayoutDashboard, Key, Server, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Paperclip, Loader2, BookOpen, Folder, Clock, Plug, Link, User, Landmark, LineChart, TrendingUp, Router, Share2, Pencil, X } from 'lucide-react';
 
 import NyxoraLogo from './NyxoraLogo';
 import { NetworkSelector } from './NetworkSelector';
@@ -30,6 +30,7 @@ import Workflows from './Workflows';
 import Gateway from './Gateway';
 import OsTerminal from './OsTerminal';
 import Hardware from './Hardware';
+import System from './System';
 
 interface Config {
   agent: { name: string; default_chain: string; default_router?: string };
@@ -38,7 +39,7 @@ interface Config {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
-  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'hardware'>('sessions');
+  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'hardware' | 'system'>('sessions');
   
   const [config, setConfig] = useState<Config | null>(null);
   
@@ -55,6 +56,8 @@ function App() {
   // Theme State
   const [theme, setTheme] = useState<'dark' | 'light' | 'auto'>(() => (localStorage.getItem('nyxora_theme') as 'dark' | 'light' | 'auto') || 'auto');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => localStorage.getItem('nyxora_sidebar_collapsed') === 'true');
+
+
 
   useEffect(() => {
     document.title = "Nyxora Dashboard";
@@ -173,6 +176,8 @@ function App() {
     fetchConfig();
   }, []);
 
+
+
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
@@ -234,11 +239,13 @@ function App() {
         <div className="sidebar-scroll-area">
           <nav className="sidebar-nav" style={{ paddingTop: '16px' }}>
             <div className="nav-items-container">
+
+
+
               <div className={`nav-item ${currentView === 'sessions' ? 'active' : ''}`} onClick={() => setCurrentView('sessions')} title={isSidebarCollapsed ? "SESSIONS" : undefined}>
                 <MessageSquare size={16} /> {!isSidebarCollapsed && "SESSIONS"}
               </div>
-              
-              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px' }}>AGENT CONTROL</div>}
+
 
               <div className={`nav-item ${currentView === 'models' ? 'active' : ''}`} onClick={() => setCurrentView('models')} title={isSidebarCollapsed ? "MODELS" : undefined}>
                 <Cpu size={16} /> {!isSidebarCollapsed && "MODELS"}
@@ -262,6 +269,21 @@ function App() {
                 <Terminal size={16} /> {!isSidebarCollapsed && "OS TERMINAL"}
               </div>
               
+              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px', textTransform: 'uppercase' }}>WEB3 & ASSETS</div>}
+              
+              <div className={`nav-item ${currentView === 'wallets' ? 'active' : ''}`} onClick={() => setCurrentView('wallets')} title={isSidebarCollapsed ? "WALLETS" : undefined}>
+                <Wallet size={16} /> {!isSidebarCollapsed && "WALLETS"}
+              </div>
+              <div className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`} onClick={() => setCurrentView('rpcconfig')} title={isSidebarCollapsed ? "RPC Config" : undefined}>
+                <Cpu size={16} /> {!isSidebarCollapsed && "RPC Config"}
+              </div>
+              <div className={`nav-item ${currentView === 'deficonfig' ? 'active' : ''}`} onClick={() => setCurrentView('deficonfig')} title={isSidebarCollapsed ? "DeFi Config" : undefined}>
+                <Landmark size={16} /> {!isSidebarCollapsed && "DeFi Config"}
+              </div>
+              <div className={`nav-item ${currentView === 'marketoracles' ? 'active' : ''}`} onClick={() => setCurrentView('marketoracles')} title={isSidebarCollapsed ? "Market Oracles" : undefined}>
+                <TrendingUp size={16} /> {!isSidebarCollapsed && "Market Oracles"}
+              </div>
+
               {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px' }}>SYSTEM & INTEGRATION</div>}
 
               <div className={`nav-item ${currentView === 'hardware' ? 'active' : ''}`} onClick={() => setCurrentView('hardware')} title={isSidebarCollapsed ? "HARDWARE" : undefined}>
@@ -289,20 +311,8 @@ function App() {
               <div className={`nav-item ${currentView === 'logs' ? 'active' : ''}`} onClick={() => setCurrentView('logs')} title={isSidebarCollapsed ? "LOGS" : undefined}>
                 <Activity size={16} /> {!isSidebarCollapsed && "LOGS"}
               </div>
-
-              {!isSidebarCollapsed && <div className="nav-section-title" style={{ marginTop: '20px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)', paddingLeft: '12px', textTransform: 'uppercase' }}>WEB3 & ASSETS</div>}
-              
-              <div className={`nav-item ${currentView === 'wallets' ? 'active' : ''}`} onClick={() => setCurrentView('wallets')} title={isSidebarCollapsed ? "WALLETS" : undefined}>
-                <Wallet size={16} /> {!isSidebarCollapsed && "WALLETS"}
-              </div>
-              <div className={`nav-item ${currentView === 'rpcconfig' ? 'active' : ''}`} onClick={() => setCurrentView('rpcconfig')} title={isSidebarCollapsed ? "RPC Config" : undefined}>
-                <Cpu size={16} /> {!isSidebarCollapsed && "RPC Config"}
-              </div>
-              <div className={`nav-item ${currentView === 'deficonfig' ? 'active' : ''}`} onClick={() => setCurrentView('deficonfig')} title={isSidebarCollapsed ? "DeFi Config" : undefined}>
-                <Landmark size={16} /> {!isSidebarCollapsed && "DeFi Config"}
-              </div>
-              <div className={`nav-item ${currentView === 'marketoracles' ? 'active' : ''}`} onClick={() => setCurrentView('marketoracles')} title={isSidebarCollapsed ? "Market Oracles" : undefined}>
-                <TrendingUp size={16} /> {!isSidebarCollapsed && "Market Oracles"}
+              <div className={`nav-item ${currentView === 'system' ? 'active' : ''}`} onClick={() => setCurrentView('system')} title={isSidebarCollapsed ? "SYSTEM" : undefined}>
+                <SettingsIcon size={16} /> {!isSidebarCollapsed && "SYSTEM"}
               </div>
             </div>
           </nav>
@@ -380,6 +390,7 @@ function App() {
             {currentView === 'wallets' && <Wallets />}
             {currentView === 'workflows' && <Workflows />}
             {currentView === 'osterminal' && <OsTerminal />}
+            {currentView === 'system' && <System />}
             {currentView === 'hardware' && <Hardware />}
             {currentView === 'gateway' && <Gateway />}
           </div>

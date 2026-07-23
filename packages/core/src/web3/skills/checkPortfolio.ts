@@ -7,9 +7,12 @@ import { safeFetchJson } from '../../utils/httpClient';
 const portfolioCache: Record<string, { data: string, timestamp: number }> = {};
 const CACHE_TTL = 5000; // 5 seconds TTL
 
+const TESTNET_CHAINS = new Set(['sepolia', 'base_sepolia', 'arbitrum_sepolia', 'optimism_sepolia', 'robinhood_testnet']);
+
 export async function checkPortfolio(chainName: ChainName, address?: `0x${string}`): Promise<string> {
   try {
     chainName = normalizeChainName(chainName);
+    const isTestnet = TESTNET_CHAINS.has(chainName);
     const client = getPublicClient(chainName);
     
     let targetAddress = address;
@@ -60,32 +63,36 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     }
 
     // Merge Dynamic Trending Whitelist (CoinGecko lists)
-    const { getDynamicTokensForChain } = await import('../../utils/dynamicTokenUpdater');
-    const dynamicTokens = await getDynamicTokensForChain(chainName);
-    for (const dToken of dynamicTokens) {
-      if (!tokensToScan.find(t => String(t.address).toLowerCase() === String(dToken.address).toLowerCase())) {
-        tokensToScan.push({ symbol: dToken.symbol, address: dToken.address as `0x${string}`, isNative: false });
+    // ⚠️ Skip on testnets: token lists are mainnet-only and would cause false positives
+    if (!isTestnet) {
+      const { getDynamicTokensForChain } = await import('../../utils/dynamicTokenUpdater');
+      const dynamicTokens = await getDynamicTokensForChain(chainName);
+      for (const dToken of dynamicTokens) {
+        if (!tokensToScan.find(t => String(t.address).toLowerCase() === String(dToken.address).toLowerCase())) {
+          tokensToScan.push({ symbol: dToken.symbol, address: dToken.address as `0x${string}`, isNative: false });
+        }
       }
     }
 
-    let report = `📊 **Portfolio for ${targetAddress} on ${chainName.toUpperCase()}**\n\n`;
+    const testnetWarning = isTestnet
+      ? `\n> ⚠️ **Testnet Mode** — USD prices are not available for testnet tokens. Only native ETH balances are real.\n`
+      : '';
+    let report = `📊 **Portfolio for ${targetAddress} on ${chainName.toUpperCase()}**${testnetWarning}\n\n`;
     let totalUsdValue = 0;
 
-    // We will do True On-Chain Multicall with Chunking (max 30 tokens / 60 calls per batch)
-    const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11';
-    const MULTICALL3_ABI = [{
-      inputs: [{ name: 'addr', type: 'address' }],
-      name: 'getEthBalance',
-      outputs: [{ name: 'balance', type: 'uint256' }],
-      stateMutability: 'view',
-      type: 'function',
-    }] as const;
+    // 1. Fetch Native Balance directly (works on all chains even without Multicall3)
+    let nativeBalanceNum = 0;
+    try {
+      const nativeRaw = await client.getBalance({ address: targetAddress as `0x${string}` });
+      nativeBalanceNum = parseFloat(formatEther(nativeRaw));
+    } catch (e) {
+      console.error(`Failed to get native balance for ${chainName}:`, e);
+    }
 
+    // 2. Prepare Multicall for ERC20s only
     const contracts: any[] = [];
     for (const t of tokensToScan) {
-      if (t.isNative) {
-        contracts.push({ address: MULTICALL3_ADDRESS, abi: MULTICALL3_ABI, functionName: 'getEthBalance', args: [targetAddress as `0x${string}`] });
-      } else {
+      if (!t.isNative) {
         contracts.push({ address: t.address, abi: ERC20_ABI, functionName: 'balanceOf', args: [targetAddress as `0x${string}`] });
         contracts.push({ address: t.address, abi: ERC20_ABI, functionName: 'decimals' });
       }
@@ -95,22 +102,24 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const multicallResults: any[] = [];
     
     try {
-      // Create a timeout promise for 5 seconds (more tolerant for large portfolios)
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('RPC request timed out')), 5000)
-      );
+      if (contracts.length > 0) {
+        // Create a timeout promise for 5 seconds (more tolerant for large portfolios)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('RPC request timed out')), 5000)
+        );
 
-      const executionPromise = (async () => {
-        for (let i = 0; i < contracts.length; i += CHUNK_SIZE) {
-          const chunk = contracts.slice(i, i + CHUNK_SIZE);
-          const res = await client.multicall({ contracts: chunk, allowFailure: true } as any);
-          multicallResults.push(...res);
-        }
-      })();
+        const executionPromise = (async () => {
+          for (let i = 0; i < contracts.length; i += CHUNK_SIZE) {
+            const chunk = contracts.slice(i, i + CHUNK_SIZE);
+            const res = await client.multicall({ contracts: chunk, allowFailure: true } as any);
+            multicallResults.push(...res);
+          }
+        })();
 
-      await Promise.race([executionPromise, timeoutPromise]);
+        await Promise.race([executionPromise, timeoutPromise]);
+      }
     } catch (e: any) {
-      return `⚠️ **${chainName.toUpperCase()} Network is experiencing high latency.**\nThe public RPC failed to respond. Please try again later.`;
+      console.warn(`[checkPortfolio] Multicall timeout or fail on ${chainName}, proceeding with native balance only.`);
     }
 
     // Map results back to tokens
@@ -118,10 +127,7 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const balances = tokensToScan.map((t) => {
       let balanceNum = 0;
       if (t.isNative) {
-        const balResult = multicallResults[resultIndex++];
-        if (balResult?.status === 'success' && balResult.result) {
-          balanceNum = parseFloat(formatEther(balResult.result as bigint));
-        }
+        balanceNum = nativeBalanceNum;
       } else {
         const balResult = multicallResults[resultIndex++];
         const decResult = multicallResults[resultIndex++];
@@ -184,10 +190,8 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
 
       const formattedUsd = usdValue > 0 && usdValue < 0.01 ? usdValue.toFixed(4) : usdValue.toFixed(2);
       
-      const pnlIndicator = usdValue > 0 ? '🟢' : '⚪';
-      report += `${pnlIndicator} **$${b.symbol}** | ${b.balanceNum.toFixed(4)} ${b.symbol} ($${formattedUsd})\n`;
-      report += `📈 **PnL:** +0.00% ($0.00) _(Simulation)_\n`;
-      report += `🤖 *Analysis:* Asset tracking active. Awaiting historical entry price data.\n\n`;
+      const pnlIndicator = usdValue > 0 ? '🟢' : (b.isNative ? '🔵' : '⚪');
+      report += `${pnlIndicator} **$${b.symbol}** | ${b.balanceNum.toFixed(4)} ${b.symbol}${!isTestnet && usdValue > 0 ? ` ($${formattedUsd})` : ''}\n`;
     }
 
     report += `\n💰 **Estimated Net Worth: $${totalUsdValue.toFixed(2)}**`;

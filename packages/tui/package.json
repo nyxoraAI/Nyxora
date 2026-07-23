@@ -1,28 +1,17 @@
 {
   "name": "@nyxora/tui",
-  "version": "26.7.22",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
+  "version": "26.7.23",
+  "private": true,
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "npx tsx src/index.tsx"
-  },
-  "dependencies": {
-    "@nanostores/react": "^1.1.0",
-    "@nyxora/ink": "*",
-    "nanostores": "^1.2.0",
-    "picocolors": "^1.1.1",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "undici": "^6.25.0",
-    "unicode-animations": "^1.0.3"
+    "build": "tsc"
   },
   "devDependencies": {
-    "@types/react": "^19.2.7",
-    "typescript": "^5.5.3"
+    "@types/react": "^19.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "clipboardy": "^5.3.1"
   }
 }

@@ -100,8 +100,8 @@
 
 <div class="flex h-full w-full overflow-hidden bg-white dark:bg-gray-900">
   <!-- Left Sidebar -->
-  <div class="w-72 border-r border-gray-200 dark:border-[#434c5e] flex flex-col bg-gray-50 dark:bg-gray-950">
-    <div class="p-4 border-b border-gray-200 dark:border-[#434c5e] flex justify-between items-center bg-gray-50 dark:bg-gray-950">
+  <div class="w-72 border-r border-gray-200 dark:border-[#3a3a3c] flex flex-col bg-gray-50 dark:bg-gray-950">
+    <div class="p-4 border-b border-gray-200 dark:border-[#3a3a3c] flex justify-between items-center bg-gray-50 dark:bg-gray-950">
       <div class="flex items-center gap-2 font-semibold">
         <BookOpen size={18} /> Skill Store
       </div>
@@ -121,7 +121,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div 
               onclick={() => toggleFolder(folder)}
-              class="px-4 py-2 cursor-pointer flex items-center gap-2 text-gray-500 font-semibold text-xs uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-[#434c5e] transition-colors"
+              class="px-4 py-2 cursor-pointer flex items-center gap-2 text-gray-500 font-semibold text-xs uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-[#3a3a3c] transition-colors"
             >
               {#if isExpanded}
                 <ChevronDown size={14} />
@@ -142,7 +142,7 @@
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div 
                     onclick={() => handleSelect(p)}
-                    class="pl-10 pr-4 py-2 cursor-pointer flex items-center gap-2 text-sm transition-colors border-l-4 {isSelected ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-500 text-gray-900 dark:text-[#eceff4] font-medium' : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-[#434c5e]'}"
+                    class="pl-10 pr-4 py-2 cursor-pointer flex items-center gap-2 text-sm transition-colors border-l-4 {isSelected ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-500 text-gray-900 dark:text-[#ffffff] font-medium' : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-[#3a3a3c]'}"
                     title={p.filename}
                   >
                     <FileText size={14} class={isSelected ? 'opacity-100 text-blue-500' : 'opacity-60'} />
@@ -162,17 +162,17 @@
   <!-- Right Editor -->
   <div class="flex-1 flex flex-col bg-white dark:bg-gray-900">
     {#if selectedFilename || isCreating}
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-[#434c5e] flex justify-between items-center">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-[#3a3a3c] flex justify-between items-center">
         <div class="flex items-center gap-3 flex-1">
           <Code size={18} class="text-gray-400" />
           {#if isCreating}
             <input 
               bind:value={newFilename}
               placeholder="e.g. custom-skill.md"
-              class="max-w-[300px] w-full px-3 py-1.5 bg-gray-50 dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] rounded-lg outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+              class="max-w-[300px] w-full px-3 py-1.5 bg-gray-50 dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] rounded-lg outline-none focus:border-blue-500 transition-colors font-mono text-sm"
             />
           {:else}
-            <span class="font-semibold text-gray-800 dark:text-[#e5e9f0] font-mono text-sm">{selectedFilename}</span>
+            <span class="font-semibold text-gray-800 dark:text-[#f5f5f7] font-mono text-sm">{selectedFilename}</span>
           {/if}
         </div>
         
@@ -202,13 +202,13 @@
         
         <textarea
           bind:value={editContent}
-          class="flex-1 w-full resize-none p-4 font-mono text-sm leading-relaxed bg-gray-50 dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] rounded-xl outline-none focus:border-blue-500 transition-colors"
+          class="flex-1 w-full resize-none p-4 font-mono text-sm leading-relaxed bg-gray-50 dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] rounded-xl outline-none focus:border-blue-500 transition-colors"
         ></textarea>
       </div>
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center text-gray-400">
         <BookOpen size={48} class="mb-4 opacity-20" />
-        <h3 class="text-xl font-medium text-gray-600 dark:text-[#d8dee9]">Select a Playbook</h3>
+        <h3 class="text-xl font-medium text-gray-600 dark:text-[#e5e5ea]">Select a Playbook</h3>
         <p class="mt-2 text-sm">Or create a new one to teach Nyxora new skills.</p>
       </div>
     {/if}

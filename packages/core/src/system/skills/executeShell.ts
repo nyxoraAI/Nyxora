@@ -83,6 +83,11 @@ export async function runTerminalCommand(command: string, cwd?: string, envType:
 
       if (!output) output = "Command executed successfully with no output.";
 
+      // Clean ANSI escape codes and control characters for LLM readability
+      output = output
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+
       // If sudo failed due to missing password, give a helpful hint
       if (needsSudo && (output.includes('sudo: a password is required') || output.includes('no password supplied'))) {
         output += `\n[NYXORA HINT] To allow Nyxora to run sudo commands automatically, add the following to your ~/.nyxora/config.yaml:\n  security:\n    sudo_password: YOUR_SUDO_PASSWORD\nAlternatively, run this command yourself in a terminal: ${command}`;

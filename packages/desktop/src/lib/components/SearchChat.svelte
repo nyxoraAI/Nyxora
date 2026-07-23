@@ -57,7 +57,7 @@
   });
 </script>
 
-<div class="flex flex-col h-full bg-white dark:bg-[#2e3440] overflow-hidden">
+<div class="flex flex-col h-full bg-white dark:bg-[#1c1c1e] overflow-hidden">
   <!-- Search Header -->
   <div class="p-6 pb-4">
     <div class="relative">
@@ -68,7 +68,7 @@
         type="text"
         bind:value={query}
         placeholder="Search conversations..."
-        class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-[#3b4252] rounded-full outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-[#eceff4] placeholder-gray-500"
+        class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-[#1d1d1f] rounded-full outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-[#ffffff] placeholder-gray-500"
         autofocus
       />
     </div>
@@ -82,7 +82,7 @@
       </div>
     {:else if searchResults.length > 0}
       <div>
-        <h3 class="text-xs font-semibold text-gray-500 dark:text-[#d8dee9] mb-3 uppercase tracking-wider">
+        <h3 class="text-xs font-semibold text-gray-500 dark:text-[#e5e5ea] mb-3 uppercase tracking-wider">
           {query.trim() ? 'Search Results' : 'Recent Chats'}
         </h3>
         <div class="space-y-2">
@@ -91,15 +91,15 @@
               onclick={() => handleSelectSession(session.id)}
               class="w-full flex items-center gap-4 px-5 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-[#2f2f2f] transition-colors text-left"
             >
-              <div class="text-gray-500 dark:text-[#d8dee9]">
+              <div class="text-gray-500 dark:text-[#e5e5ea]">
                 <MessageSquare size={16} />
               </div>
               <div class="flex-1 min-w-0">
-                <div class="font-medium text-gray-900 dark:text-[#eceff4] truncate">
+                <div class="font-medium text-gray-900 dark:text-[#ffffff] truncate">
                   {session.title}
                 </div>
                 {#if session.timestamp}
-                  <div class="text-xs text-gray-500 dark:text-[#d8dee9] mt-0.5">
+                  <div class="text-xs text-gray-500 dark:text-[#e5e5ea] mt-0.5">
                     {new Date(session.timestamp).toLocaleDateString()}
                   </div>
                 {/if}
@@ -109,11 +109,11 @@
         </div>
       </div>
     {:else if query.trim()}
-      <div class="text-center py-8 text-gray-500 dark:text-[#d8dee9]">
+      <div class="text-center py-8 text-gray-500 dark:text-[#e5e5ea]">
         No conversations found for "{query}"
       </div>
     {:else}
-      <div class="text-center py-8 text-gray-500 dark:text-[#d8dee9]">
+      <div class="text-center py-8 text-gray-500 dark:text-[#e5e5ea]">
         No recent chats
       </div>
     {/if}

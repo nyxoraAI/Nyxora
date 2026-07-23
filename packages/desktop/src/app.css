@@ -75,15 +75,15 @@ textarea::placeholder {
 }
 
 .markdown-prose {
-	@apply prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#434c5e] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+	@apply prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#3a3a3c] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
 }
 
 .markdown-prose-sm {
-	@apply text-sm prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#434c5e] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-2  prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+	@apply text-sm prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#3a3a3c] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-2  prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
 }
 
 .markdown-prose-xs {
-	@apply text-xs prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#434c5e] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-0.5  prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+	@apply text-xs prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-[#3a3a3c] prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-0.5  prose-hr:border-gray-50 prose-hr:dark:border-gray-850 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
 }
 
 .markdown a {
@@ -344,7 +344,7 @@ input[type='number'] {
 .codespan {
 	padding: 0.15rem 0.3rem;
 	font-size: 0.85em;
-	@apply font-mono rounded-md text-gray-800 bg-gray-100 dark:text-[#e5e9f0] dark:bg-[#3b4252] mx-0.5;
+	@apply font-mono rounded-md text-gray-800 bg-gray-100 dark:text-[#f5f5f7] dark:bg-[#1d1d1f] mx-0.5;
 }
 
 .svelte-flow {
@@ -560,7 +560,7 @@ input[type='number'] {
 	font-size: 0.85rem;
 	padding: 0.25em 0.3em;
 
-	@apply dark:bg-[#3b4252] bg-gray-50;
+	@apply dark:bg-[#1d1d1f] bg-gray-50;
 }
 
 .tiptap pre {
@@ -569,13 +569,13 @@ input[type='number'] {
 	margin: 1.5rem 0;
 	padding: 0.75rem 1rem;
 
-	@apply dark:bg-[#3b4252] bg-gray-50;
+	@apply dark:bg-[#1d1d1f] bg-gray-50;
 }
 
 .tiptap p code {
 	padding: 0.15rem 0.3rem;
 	font-size: 0.85em;
-	@apply font-mono rounded-md text-gray-800 bg-gray-50 dark:text-[#e5e9f0] dark:bg-[#3b4252] mx-0.5;
+	@apply font-mono rounded-md text-gray-800 bg-gray-50 dark:text-[#f5f5f7] dark:bg-[#1d1d1f] mx-0.5;
 }
 
 /* Code styling */
@@ -632,11 +632,11 @@ input[type='number'] {
 
 /* Table styling for tiptap editors */
 .tiptap table {
-	@apply w-full text-sm text-start text-gray-500 dark:text-[#d8dee9] max-w-full;
+	@apply w-full text-sm text-start text-gray-500 dark:text-[#e5e5ea] max-w-full;
 }
 
 .tiptap thead {
-	@apply text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-850 dark:text-[#d8dee9] border-none;
+	@apply text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-850 dark:text-[#e5e5ea] border-none;
 }
 
 .tiptap th,
@@ -645,11 +645,11 @@ input[type='number'] {
 }
 
 .tiptap th {
-	@apply cursor-pointer text-start text-xs text-gray-700 dark:text-[#d8dee9] font-semibold uppercase bg-gray-50 dark:bg-gray-850;
+	@apply cursor-pointer text-start text-xs text-gray-700 dark:text-[#e5e5ea] font-semibold uppercase bg-gray-50 dark:bg-gray-850;
 }
 
 .tiptap td {
-	@apply text-gray-900 dark:text-[#eceff4] w-max;
+	@apply text-gray-900 dark:text-[#ffffff] w-max;
 }
 
 .tiptap tr {
@@ -695,8 +695,8 @@ body {
 }
 
 .dark body {
-	background: #171717;
-	color: #eee;
+	background: #1c1c1e;
+	color: #ffffff;
 }
 
 /* Position the handle relative to each LI */

@@ -2,8 +2,17 @@
   import AgentTrace from '../AgentTrace.svelte';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
+  import { Copy, Check } from 'lucide-svelte';
 
   let { msg } = $props();
+  let copied = $state(false);
+
+  function copyText() {
+    const rawText = segments.filter(s => s.type === 'text').map(s => s.content).join('');
+    navigator.clipboard.writeText(rawText);
+    copied = true;
+    setTimeout(() => { copied = false; }, 2000);
+  }
 
   function renderMarkdown(text: string): string {
     const cleaned = text
@@ -161,7 +170,7 @@
   let hasTrace = $derived(traceProps.toolCalls.length > 0 || traceProps.reasoningContent !== '' || traceProps.progressLogs.length > 0);
 </script>
 
-<div class="flex flex-col w-full">
+<div class="flex flex-col w-full group">
   {#if hasTrace}
     <AgentTrace 
       toolCalls={traceProps.toolCalls} 
@@ -183,10 +192,22 @@
       {@const isLastStreaming = msg.isStreaming && i === segments.length - 1}
       {@const html = renderMarkdown(segment.content)}
       {#if html}
-        <div use:enhanceMarkdown class="markdown-body text-gray-900 dark:text-[#e5e9f0] mt-2 first:mt-0 {isLastStreaming ? 'message-streaming' : ''}">
+        <div use:enhanceMarkdown class="markdown-body text-gray-900 dark:text-[#f5f5f7] mt-2 first:mt-0 {isLastStreaming ? 'message-streaming' : ''}">
           {@html html}
         </div>
       {/if}
     {/if}
   {/each}
+  
+  {#if !msg.isStreaming && segments.some(s => s.type === 'text')}
+    <div class="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button onclick={copyText} class="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#1d1d1f] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" title="Copy Message">
+        {#if copied}
+          <Check size={14} class="text-green-500" />
+        {:else}
+          <Copy size={14} />
+        {/if}
+      </button>
+    </div>
+  {/if}
 </div>

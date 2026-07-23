@@ -1,11 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
     "outDir": "dist",
     "rootDir": "src",
-    "jsx": "react-jsx",
-    "moduleResolution": "node16",
-    "module": "node16"
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*"]
 }

@@ -74,7 +74,8 @@ export async function runTerminalCommandPTY(command: string, autoSudoPassword?: 
     ptyProcess.onExit(({ exitCode }) => {
       // Clean ANSI escape codes for LLM readability
       const cleanOutput = output
-        .replace(/\x1b\[[0-9;]*m/g, '') // Remove color codes
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '') // Remove ALL ANSI escape sequences (colors, cursor movements, etc.)
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '') // Remove all non-printable control characters except \n, \r, \t
         .replace(/\r\n/g, '\n')          // Normalize line endings
         .trim();
 

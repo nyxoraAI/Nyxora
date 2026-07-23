@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Key, Plus, Copy, ExternalLink, RefreshCw, Eye, EyeOff, ShieldAlert, Loader2 } from 'lucide-react';
+import { formatUnits } from 'viem';
 import { apiFetch } from './utils/api';
 import { getChainLogoUrl } from './utils/logos';
 
@@ -27,13 +28,20 @@ export const Wallets: React.FC = () => {
         for (const [chainName, assets] of Object.entries(portData)) {
           if (Array.isArray(assets)) {
             for (const a of assets) {
-              flattened.push({
-                asset: a.symbol || 'Unknown',
-                amount: a.balance || '0',
-                chain: chainName,
-                value: a.usdValue ? `$${a.usdValue.toFixed(2)}` : '$-',
-                icon: a.logoURI || getChainLogoUrl(chainName)
-              });
+                const decimals = a.decimals === -1 ? 18 : (a.decimals || 18);
+                let parsedBal = 0;
+                try {
+                  parsedBal = parseFloat(formatUnits(BigInt(a.balanceRaw || '0'), decimals));
+                } catch {}
+                const usdVal = (a.priceUsd || 0) * parsedBal;
+
+                flattened.push({
+                  asset: a.symbol || 'Unknown',
+                  amount: parsedBal.toLocaleString(undefined, { maximumFractionDigits: 4 }),
+                  chain: chainName,
+                  value: usdVal > 0 ? `$${usdVal.toFixed(2)}` : '$-',
+                  icon: a.logoURI || getChainLogoUrl(chainName)
+                });
             }
           }
         }
@@ -97,7 +105,7 @@ export const Wallets: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-secondary)' }}>ASSETS & BALANCES</div>
-            <button style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}><RefreshCw size={14}/> Refresh</button>
+            <button onClick={fetchWalletData} disabled={isLoading} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-secondary)', cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}><RefreshCw size={14} className={isLoading ? 'spin' : ''} /> Refresh</button>
           </div>
           
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden' }}>
@@ -123,7 +131,9 @@ export const Wallets: React.FC = () => {
                         <strong style={{ color: 'var(--text-primary)' }}>{b.asset}</strong>
                       </div>
                     </td>
-                    <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{b.chain}</td>
+                    <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      {b.chain.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}
+                    </td>
                     <td style={{ padding: '16px', color: 'var(--text-primary)', fontSize: '0.9rem', textAlign: 'right', fontWeight: 600 }}>{b.amount}</td>
                     <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'right' }}>{b.value}</td>
                   </tr>

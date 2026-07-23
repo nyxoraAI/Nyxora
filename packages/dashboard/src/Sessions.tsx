@@ -19,6 +19,8 @@ export const Sessions: React.FC = () => {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const spacerDivRef = useRef<HTMLDivElement>(null);
   const isVoiceModeRef = useRef(false);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,8 +29,11 @@ export const Sessions: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
 
-  const isUserScrolledUpRef = useRef(false);
-  const lastProgrammaticScrollTopRef = useRef(-1);
+  // Scroll state refs — mirrors Desktop MessageList
+  const isUserScrolledUp = useRef(false);
+  const lastSnappedUserIndex = useRef(-1);
+  const isAutoScrolling = useRef(false);
+  const snapPendingRef = useRef(false); // true when user just sent, waiting to snap
 
   const startListening = () => {
     try {
@@ -72,7 +77,7 @@ export const Sessions: React.FC = () => {
     setInput,
     isLoading,
     setIsLoading,
-    handleSend
+    handleSend,
   } = useChat(isVoiceMode, speak);
 
   useEffect(() => {
@@ -90,58 +95,164 @@ export const Sessions: React.FC = () => {
       recognitionRef.current.onerror = () => setIsListening(false);
       recognitionRef.current.onend = () => setIsListening(false);
     }
-    // Cleanup on unmount
     return () => {
       recognitionRef.current?.stop();
       window.speechSynthesis.cancel();
     };
   }, []);
 
-  // (refs are defined at the top of the component)
-  
   const handleScroll = () => {
-    if (!chatContainerRef.current) return;
+    if (!chatContainerRef.current || isAutoScrolling.current) return;
     const { scrollHeight, scrollTop, clientHeight } = chatContainerRef.current;
-    
-    // Ignore programmatic scroll events
-    if (Math.abs(scrollTop - lastProgrammaticScrollTopRef.current) <= 2) {
-      // Clear it so if user manually scrolls back to this exact pixel, it counts as user scroll
-      lastProgrammaticScrollTopRef.current = -1;
-      return;
-    }
-    
-    const threshold = 50; // increased threshold to be more forgiving
-    const isAtBottom = scrollHeight - scrollTop - clientHeight <= threshold;
-    isUserScrolledUpRef.current = !isAtBottom;
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 120;
+    isUserScrolledUp.current = !atBottom;
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.deltaY < 0) {
-      isUserScrolledUpRef.current = true;
-    }
+  // Snap the latest user message to the top of the chat container
+  const triggerSnap = () => {
+    snapPendingRef.current = true;
+    isAutoScrolling.current = true; // block ResizeObserver immediately
+    isUserScrolledUp.current = false;
+
+    const attempt = (retries = 0) => {
+      const container = chatContainerRef.current;
+      const merged = getMergedMessages(messages); // closure — but will have new msg after state update
+      // Find the absolute last user message in the DOM
+      let el: HTMLElement | null = null;
+      let targetIndex = -1;
+      
+      const allUserMsgs = container?.querySelectorAll('[data-role="user"]');
+      if (allUserMsgs && allUserMsgs.length > 0) {
+        const lastNode = allUserMsgs[allUserMsgs.length - 1] as HTMLElement;
+        const id = lastNode.id;
+        const idx = parseInt(id.replace('msg-', ''), 10);
+        
+        // Only accept if it's a NEW user message we haven't snapped to yet
+        if (!isNaN(idx) && idx > lastSnappedUserIndex.current) {
+          el = lastNode;
+          targetIndex = idx;
+        }
+      }
+
+      if (!container || !el) {
+        if (retries < 15) {
+          setTimeout(() => attempt(retries + 1), 50); // retry every 50ms up to 750ms
+        } else {
+          isAutoScrolling.current = false;
+          snapPendingRef.current = false;
+        }
+        return;
+      }
+
+      // Walk offsetParent chain to get position within the scroll container
+      let elOffsetTop = 0;
+      let node: HTMLElement | null = el;
+      while (node && node !== container) {
+        elOffsetTop += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+
+      // 1. Calculate how much content is currently below the top of this user message
+      // (Excluding any existing spacer)
+      let currentSpacer = 0;
+      if (spacerDivRef.current) {
+        currentSpacer = parseInt(spacerDivRef.current.style.height || '0', 10);
+      }
+      const trueScrollHeight = container.scrollHeight - currentSpacer;
+      const contentBelowTop = trueScrollHeight - elOffsetTop;
+
+      // 2. We want at least (clientHeight - 120px) of space below the message
+      // so it can sit comfortably at the top (120px offset)
+      const desiredMinHeight = container.clientHeight - 120;
+      if (contentBelowTop < desiredMinHeight && spacerDivRef.current) {
+        spacerDivRef.current.style.height = `${desiredMinHeight - contentBelowTop}px`;
+        // Force synchronous layout recalculation so the browser knows we have space!
+        void container.scrollHeight; 
+      }
+
+      // 3. Now we are guaranteed to have enough space, safely scroll.
+      const targetScrollTop = Math.max(0, elOffsetTop - 120);
+
+
+      container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      lastSnappedUserIndex.current = targetIndex;
+      snapPendingRef.current = false;
+
+      setTimeout(() => { isAutoScrolling.current = false; }, 900);
+    };
+
+    // Start first attempt after a short delay for React to render the new message
+    setTimeout(() => attempt(), 80);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Any touch interaction while streaming is a strong signal to stop auto-scrolling
-    isUserScrolledUpRef.current = true;
-  };
+
 
   useEffect(() => {
-    // Use requestAnimationFrame instead of setTimeout to avoid race conditions with browser paint/scroll
-    const timer = requestAnimationFrame(() => {
-      if (chatContainerRef.current && !isUserScrolledUpRef.current) {
-        const maxScroll = chatContainerRef.current.scrollHeight - chatContainerRef.current.clientHeight;
-        // Only scroll if we actually need to
-        if (chatContainerRef.current.scrollTop !== maxScroll) {
-          lastProgrammaticScrollTopRef.current = maxScroll;
-          chatContainerRef.current.scrollTop = maxScroll;
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      // 1. Dynamically shrink the spacer as new content streams in
+      const allUserMsgs = container.querySelectorAll('[data-role="user"]');
+      const allMsgsFadeIn = container.querySelectorAll('.message-fade-in');
+      
+      let lastUserEl: HTMLElement | null = null;
+      if (allUserMsgs && allUserMsgs.length > 0) {
+        lastUserEl = allUserMsgs[allUserMsgs.length - 1] as HTMLElement;
+      }
+      const lastMsgEl = allMsgsFadeIn.length > 0 ? allMsgsFadeIn[allMsgsFadeIn.length - 1] as HTMLElement : null;
+
+      if (lastUserEl && lastMsgEl && spacerDivRef.current) {
+        // Walk offsetParent chain for true offset, just like in triggerSnap
+        let userOffsetTop = 0;
+        let node: HTMLElement | null = lastUserEl;
+        while (node && node !== container) {
+          userOffsetTop += node.offsetTop;
+          node = node.offsetParent as HTMLElement | null;
         }
-      } else if (!chatContainerRef.current && !isUserScrolledUpRef.current) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+
+        let msgOffsetTop = 0;
+        node = lastMsgEl;
+        while (node && node !== container) {
+          msgOffsetTop += node.offsetTop;
+          node = node.offsetParent as HTMLElement | null;
+        }
+
+        const contentBelowTop = (msgOffsetTop + lastMsgEl.offsetHeight) - userOffsetTop;
+        const desiredMinHeight = container.clientHeight - 120; // 120px top clearance
+
+        if (contentBelowTop < desiredMinHeight) {
+          spacerDivRef.current.style.height = `${desiredMinHeight - contentBelowTop}px`;
+        } else {
+          spacerDivRef.current.style.height = '0px';
+        }
+      }
+
+      // 2. Only auto-scroll to bottom if the spacer is fully consumed
+      if (!isUserScrolledUp.current && !isAutoScrolling.current) {
+        if (!spacerDivRef.current || spacerDivRef.current.style.height === '0px' || spacerDivRef.current.style.height === '') {
+          container.scrollTop = container.scrollHeight;
+        }
       }
     });
-    return () => cancelAnimationFrame(timer);
-  }, [messages, isLoading]);
+
+    const inner = container.firstElementChild;
+    if (inner) observer.observe(inner);
+    return () => observer.disconnect();
+  }, [messages.length > 0]);
+
+  // Reset snap state when session is cleared
+  useEffect(() => {
+    if (messages.length === 0) {
+      lastSnappedUserIndex.current = -1;
+      isUserScrolledUp.current = false;
+      snapPendingRef.current = false;
+      isAutoScrolling.current = false;
+      if (spacerDivRef.current) spacerDivRef.current.style.height = '0px';
+    }
+  }, [messages.length]);
+
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -258,11 +369,9 @@ export const Sessions: React.FC = () => {
           className={`chat-container ${messages.length === 0 ? 'hidden-state' : 'active-state'}`}
           ref={chatContainerRef}
           onScroll={handleScroll}
-          onWheel={handleWheel}
-          onTouchMove={handleTouchMove}
           style={{ display: 'flex', flexDirection: 'column' }}
         >
-          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px', flexGrow: 1 }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px' }}>
             {getMergedMessages(messages).map((msg, idx) => {
               const handleCopy = () => {
                 navigator.clipboard.writeText(msg.content);
@@ -272,7 +381,12 @@ export const Sessions: React.FC = () => {
 
               if (msg.role === 'user') {
                 return (
-                  <div key={idx} id={`msg-${idx}`} className="message-wrapper user">
+                  <div
+                    key={idx}
+                    id={`msg-${idx}`}
+                    className="message-wrapper user message-fade-in"
+                    data-role="user"
+                  >
                     <div className="message-bubble">{msg.content}</div>
                     <button className="copy-btn" onClick={handleCopy} title="Copy message">
                       {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
@@ -282,7 +396,13 @@ export const Sessions: React.FC = () => {
               }
               if (msg.role === 'assistant' && (msg.content || msg.tool_calls || msg.progressLogs || msg.reasoning_content)) {
                 return (
-                  <div key={idx} id={`msg-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}>
+                  <div
+                    key={idx}
+                    id={`msg-${idx}`}
+                    className="message-fade-in"
+                    data-role="assistant"
+                    style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignSelf: 'flex-start', maxWidth: '95%' }}
+                  >
                     {(msg.tool_calls?.length > 0 || msg.progressLogs?.length > 0 || !!msg.reasoning_content) && (
                       <AgentTrace 
                         toolCalls={msg.tool_calls} 
@@ -316,12 +436,20 @@ export const Sessions: React.FC = () => {
                 {activeWidget}
               </div>
             )}
+
+            {/* Dynamic spacer — ensures content doesn't get clipped after snap-to-top */}
+            <div ref={spacerDivRef} style={{ height: '0px', flexShrink: 0 }} />
             <div ref={messagesEndRef} />
           </div>
         </div>
 
         <div className="input-area">
-          <form className="input-form" onSubmit={handleSend}>
+          <form className="input-form" onSubmit={(e) => {
+            e.preventDefault();
+            isUserScrolledUp.current = false;
+            handleSend(e as any);
+            triggerSnap();
+          }}>
             <div className="action-menu-container">
               <button type="button" className="voice-button plus-button" disabled={isLoading} title="More Actions">
                 <Plus size={20} />
@@ -348,7 +476,9 @@ export const Sessions: React.FC = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
+                  isUserScrolledUp.current = false;
                   handleSend(null);
+                  triggerSnap();
                 }
               }}
               disabled={isLoading}

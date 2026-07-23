@@ -242,6 +242,10 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
             if (data.chunk) {
               let cleanChunk = data.chunk;
               if (cleanChunk.includes('[CLEAR_STREAM]')) {
+                renderedResponse = fullResponse;
+                setMessages(prev => prev.map(m =>
+                  m.id === streamingId ? { ...m, content: renderedResponse } : m
+                ));
                 fullResponse = '';
                 renderedResponse = '';
                 cleanChunk = cleanChunk.split('[CLEAR_STREAM]').pop() || '';

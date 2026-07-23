@@ -289,6 +289,16 @@ body.light-theme .sidebar-scroll-area::-webkit-scrollbar-thumb {
   opacity: 1;
 }
 
+/* Recent Chats in sidebar */
+.recent-chat-item:hover .session-actions {
+  opacity: 1 !important;
+}
+
+.recent-chat-item .session-actions button:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+
 .nav-item.active {
   background: linear-gradient(90deg, rgba(59,130,246,0.15) 0%, transparent 100%);
   color: var(--text-primary);
@@ -481,6 +491,7 @@ body.light-theme .sidebar-scroll-area::-webkit-scrollbar-thumb {
 .chat-container {
   flex: 1;
   overflow-y: auto;
+  overflow-anchor: none;
   padding: 0 24px;
   display: flex;
   flex-direction: column;

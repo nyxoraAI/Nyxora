@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.23]
+### Dashboard Features & UI
+- **System & Maintenance Module**: Engineered the `System.tsx` component from scratch. The interface now features a sleek, edge-to-edge stacked row list design, completely abandoning the legacy card-based layout for a more professional, native application feel.
+- **Native System Operations**: Implemented deep integration between the React frontend and the Node.js daemon. Users can now natively trigger **Restart Server**, **Shutdown Server**, and **Clear System Cache** directly from the UI without touching the CLI.
+- **OS Autostart Controller**: Introduced a cross-platform Auto-Start toggle in the dashboard. The system dynamically queries and manages `.desktop` (Linux) and `.plist` (macOS) configurations via `GET/POST /api/system/autostart`.
+- **Wallet Balances Fix**: Resolved a data mapping issue in `Wallets.tsx`. The component now correctly utilizes `viem`'s `formatUnits` combined with backend `decimals` and `priceUsd` to flawlessly compute and render real-time fiat values for multi-chain assets. Added a functional Refresh button to sync the latest portfolio states.
+- **Minimalist Aesthetic**: Purged redundant icons/emojis across the System settings to achieve a clean, text-heavy minimalist aesthetic, reserving visual icons strictly for the page header and footer.
+
 ## [26.7.22]
 ### Bug Fixes & Monorepo Enhancements
 - **Global `npm install` Crash Fix (Critical Fix)**: Resolved a severe issue where `nyxora start` would crash immediately after global installation (`npm install -g nyxora`) due to missing dependencies. All required workspace dependencies (e.g., `systeminformation`, messaging bot SDKs) have now been synced and hoisted to the root `package.json`, ensuring the background daemon can boot properly for global users without throwing `Cannot find module` errors.

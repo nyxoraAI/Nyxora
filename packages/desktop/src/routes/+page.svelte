@@ -76,7 +76,7 @@
 	}
 </script>
 
-<div class="flex h-screen w-full overflow-hidden text-gray-900 dark:text-[#eceff4] bg-white dark:bg-[#2e3440] selection:bg-blue-200 dark:selection:bg-blue-800/30">
+<div class="flex h-screen w-full overflow-hidden text-gray-900 dark:text-[#ffffff] bg-white dark:bg-[#1c1c1e] selection:bg-blue-200 dark:selection:bg-blue-800/30">
 	{#if isLocked}
 	<div class="fixed inset-0 bg-white/5 backdrop-blur-xl z-[99999] flex flex-col items-center justify-center text-gray-900 dark:text-gray-100 font-sans">
 		<Shield size={64} class="text-blue-500 mb-5" />
@@ -91,12 +91,12 @@
 	<Sidebar />
 
 	<!-- Main Area -->
-	<div class="flex-1 h-full flex flex-col relative bg-white dark:bg-[#2e3440]">
+	<div class="flex-1 h-full flex flex-col relative bg-white dark:bg-[#1c1c1e]">
 		<!-- Topbar -->
 		<div class="h-14 flex items-center px-4 justify-between drag-region relative z-30">
 			<div class="flex items-center gap-2 relative">
 				{#if isSidebarCollapsed}
-					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-md text-gray-500 dark:text-[#d8dee9] hover:text-black dark:hover:text-[#eceff4] no-drag-region cursor-pointer" aria-label="Open sidebar">
+					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] no-drag-region cursor-pointer" aria-label="Open sidebar">
 						<PanelLeftOpen size={18} />
 					</button>
 				{/if}
@@ -104,7 +104,7 @@
 				<!-- Network Dropdown Trigger -->
 				<button 
 					onclick={() => isNetworkDropdownOpen = !isNetworkDropdownOpen}
-					class="flex items-center gap-2 no-drag-region cursor-pointer hover:bg-gray-100 dark:hover:bg-[#434c5e] px-3 py-1.5 rounded-xl transition-colors border border-transparent dark:border-[#434c5e]"
+					class="flex items-center gap-2 no-drag-region cursor-pointer hover:bg-gray-100 dark:hover:bg-[#3a3a3c] px-3 py-1.5 rounded-xl transition-colors border border-transparent dark:border-[#3a3a3c]"
 				>
 					{#if currentNetwork === 'All Chains'}
 						<div class="flex items-center justify-center w-4 h-4"><Network size={16} /></div>
@@ -112,7 +112,7 @@
 						<img src={networks.find(n => n.name === currentNetwork)?.logoUrl || networks[1].logoUrl} alt={currentNetwork} class="w-4 h-4 rounded-full object-cover" />
 					{/if}
 					<span class="font-medium text-[15px]">{currentNetwork}</span>
-					<span class="text-gray-500 dark:text-[#d8dee9] text-[10px] transform transition-transform duration-200 {isNetworkDropdownOpen ? 'rotate-180' : ''}">▼</span>
+					<span class="text-gray-500 dark:text-[#e5e5ea] text-[10px] transform transition-transform duration-200 {isNetworkDropdownOpen ? 'rotate-180' : ''}">▼</span>
 				</button>
 
 				{#if isNetworkDropdownOpen}
@@ -120,12 +120,12 @@
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="fixed inset-0 z-10" onclick={() => isNetworkDropdownOpen = false}></div>
 					
-					<div transition:slide={{ duration: 150 }} class="absolute top-10 left-8 md:left-2 mt-1 w-56 bg-white dark:bg-[#3b4252] rounded-xl shadow-lg border border-gray-100 dark:border-[#4c566a] py-1.5 z-20 overflow-hidden no-drag-region">
+					<div transition:slide={{ duration: 150 }} class="absolute top-10 left-8 md:left-2 mt-1 w-56 bg-white dark:bg-[#1d1d1f] rounded-xl shadow-lg border border-gray-100 dark:border-[#48484a] py-1.5 z-20 overflow-hidden no-drag-region">
 						<div class="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Networks</div>
 						{#each networks as net}
 							<button 
 								onclick={() => selectNetwork(net.name)}
-								class="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-[#e5e9f0] hover:bg-gray-100 dark:hover:bg-[#3f3f3f] transition-colors"
+								class="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-[#f5f5f7] hover:bg-gray-100 dark:hover:bg-[#3a3a3c] transition-colors"
 							>
 								<div class="flex items-center gap-2">
 									{#if net.id === 'all'}

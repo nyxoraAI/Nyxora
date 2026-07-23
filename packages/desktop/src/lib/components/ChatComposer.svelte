@@ -240,6 +240,10 @@
           if (data.chunk) {
             let cleanChunk = data.chunk;
             if (cleanChunk.includes('[CLEAR_STREAM]')) {
+              // Flush any pending animation before clearing
+              renderedResponse = fullResponse;
+              chatStore.updateMessage(streamingId, { content: renderedResponse });
+              // Now reset both buffers
               fullResponse = '';
               renderedResponse = '';
               cleanChunk = cleanChunk.split('[CLEAR_STREAM]').pop() || '';
@@ -286,7 +290,7 @@
   
   {#if $chatStore.messages.length === 0}
       <!-- Empty State Header -->
-      <div class="flex items-center justify-center gap-4 mb-10 text-blue-500 dark:text-[#88c0d0]">
+      <div class="flex items-center justify-center gap-4 mb-10 text-blue-500 dark:text-[#0a84ff]">
         <NyxoraLogo size={36} color="currentColor" />
         <div class="text-2xl font-medium">Nyxora AI</div>
       </div>
@@ -294,17 +298,17 @@
 
   <div class="w-full max-w-3xl transition-all duration-500">
     {#if activeWorkspace}
-      <div class="mb-2 px-2 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-[#81a1c1]">
+      <div class="mb-2 px-2 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-[#0a84ff]">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
         Chatting in {activeWorkspace.split(/[/\\]/).pop()}
       </div>
     {/if}
-    <div class="relative bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] rounded-3xl shadow-sm focus-within:border-blue-500 focus-within:ring-1 ring-blue-500 transition-all flex flex-col">
+    <div class="relative bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] rounded-3xl shadow-sm focus-within:border-blue-500 focus-within:ring-1 ring-blue-500 transition-all flex flex-col">
       <!-- Thumbnail chips -->
       {#if pendingFiles.length > 0}
         <div class="flex flex-wrap gap-2 pt-3 px-4">
           {#each pendingFiles as file, i}
-             <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-[#2e3440] border border-gray-200 dark:border-[#434c5e] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-[#d8dee9] {(file as any).isUploading ? 'opacity-60' : ''}">
+             <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-[#1c1c1e] border border-gray-200 dark:border-[#3a3a3c] rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-[#e5e5ea] {(file as any).isUploading ? 'opacity-60' : ''}">
                <Paperclip size={12} class="text-gray-500" />
                <span class="max-w-[120px] truncate">{file.name}</span>
                {#if !(file as any).isUploading}
@@ -323,20 +327,20 @@
            {#if showActions}
              <!-- Click outside overlay to close -->
              <div class="fixed inset-0 z-0" onclick={() => showActions = false}></div>
-             <div class="absolute bottom-12 left-0 flex flex-col gap-1 bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] p-2 rounded-2xl shadow-lg z-10 w-36">
-               <button onclick={() => { fileInput.click(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl text-gray-500 dark:text-[#d8dee9] transition-colors flex items-center gap-3" title="Upload Document"><Paperclip size={16}/><span class="text-sm font-medium">File</span></button>
-               <button onclick={() => { startListening(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl {isListening ? 'text-red-500' : 'text-gray-500 dark:text-[#d8dee9]'} transition-colors flex items-center gap-3" title="Voice Input"><Mic size={16}/><span class="text-sm font-medium">Voice</span></button>
-               <button onclick={() => { toggleVoiceMode(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#434c5e] rounded-xl {isVoiceMode ? 'text-blue-500' : 'text-gray-500 dark:text-[#d8dee9]'} transition-colors flex items-center gap-3" title="Headphone Mode"><Headphones size={16}/><span class="text-sm font-medium">Listen</span></button>
+             <div class="absolute bottom-12 left-0 flex flex-col gap-1 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] p-2 rounded-2xl shadow-lg z-10 w-36">
+               <button onclick={() => { fileInput.click(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl text-gray-500 dark:text-[#e5e5ea] transition-colors flex items-center gap-3" title="Upload Document"><Paperclip size={16}/><span class="text-sm font-medium">File</span></button>
+               <button onclick={() => { startListening(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl {isListening ? 'text-red-500' : 'text-gray-500 dark:text-[#e5e5ea]'} transition-colors flex items-center gap-3" title="Voice Input"><Mic size={16}/><span class="text-sm font-medium">Voice</span></button>
+               <button onclick={() => { toggleVoiceMode(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl {isVoiceMode ? 'text-blue-500' : 'text-gray-500 dark:text-[#e5e5ea]'} transition-colors flex items-center gap-3" title="Headphone Mode"><Headphones size={16}/><span class="text-sm font-medium">Listen</span></button>
              </div>
            {/if}
-           <button onclick={() => showActions = !showActions} class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#d8dee9] transition-all duration-200 {showActions ? 'rotate-45 bg-gray-100 dark:bg-gray-700' : ''}"><Plus size={18}/></button>
+           <button onclick={() => showActions = !showActions} class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#e5e5ea] transition-all duration-200 {showActions ? 'rotate-45 bg-gray-100 dark:bg-gray-700' : ''}"><Plus size={18}/></button>
         </div>
         
         <textarea 
           bind:value={input}
           oninput={adjustHeight}
           onkeydown={handleKeydown}
-          class="w-full bg-transparent resize-none outline-none py-3.5 px-2 min-h-[52px] max-h-64 text-[15px] text-gray-900 dark:text-[#eceff4] placeholder-gray-400 scrollbar-none disabled:opacity-50" 
+          class="w-full bg-transparent resize-none outline-none py-3.5 px-2 min-h-[52px] max-h-64 text-[15px] text-gray-900 dark:text-[#ffffff] placeholder-gray-400 scrollbar-none disabled:opacity-50" 
           placeholder="How can I help you today?" 
           rows="1"
         ></textarea>
@@ -356,7 +360,7 @@
             <button 
               onclick={handleSubmit}
               disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
-              class="p-2 {(input.trim() || pendingFiles.length > 0) ? 'bg-blue-500 dark:bg-[#88c0d0] text-white cursor-pointer' : 'bg-gray-100 dark:bg-[#434c5e] text-gray-400 dark:text-[#4c566a] cursor-not-allowed'} rounded-full hover:opacity-80 transition-colors">
+              class="p-2 {(input.trim() || pendingFiles.length > 0) ? 'bg-blue-500 dark:bg-[#0a84ff] text-white cursor-pointer' : 'bg-gray-100 dark:bg-[#3a3a3c] text-gray-400 dark:text-[#48484a] cursor-not-allowed'} rounded-full hover:opacity-80 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             </button>
           {/if}
@@ -368,19 +372,19 @@
       <!-- Suggested Prompts -->
       <div class="mt-6 flex justify-center w-full px-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 w-full max-w-3xl">
-          <button onclick={() => input = "Show me a code snippet "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#434c5e] transition-colors opacity-80 hover:opacity-100 group">
-             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#d8dee9] mb-1"><span class="rotate-45 font-serif text-sm">✦</span> Suggested</div>
-             <div class="font-medium text-sm text-gray-800 dark:text-[#e5e9f0]">Show me a code snippet</div>
+          <button onclick={() => input = "Show me a code snippet "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#3a3a3c] transition-colors opacity-80 hover:opacity-100 group">
+             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#e5e5ea] mb-1"><span class="rotate-45 font-serif text-sm">✦</span> Suggested</div>
+             <div class="font-medium text-sm text-gray-800 dark:text-[#f5f5f7]">Show me a code snippet</div>
              <div class="text-xs text-gray-500">of a website's sticky header</div>
           </button>
-          <button onclick={() => input = "Help me study "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#434c5e] transition-colors opacity-80 hover:opacity-100 hidden md:flex">
-             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#d8dee9] mb-1 opacity-0"><span class="rotate-45 font-serif text-sm">✦</span></div>
-             <div class="font-medium text-sm text-gray-800 dark:text-[#e5e9f0]">Help me study</div>
+          <button onclick={() => input = "Help me study "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#3a3a3c] transition-colors opacity-80 hover:opacity-100 hidden md:flex">
+             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#e5e5ea] mb-1 opacity-0"><span class="rotate-45 font-serif text-sm">✦</span></div>
+             <div class="font-medium text-sm text-gray-800 dark:text-[#f5f5f7]">Help me study</div>
              <div class="text-xs text-gray-500">vocabulary for a college entrance exam</div>
           </button>
-          <button onclick={() => input = "Overcome procrastination "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#434c5e] transition-colors opacity-80 hover:opacity-100 hidden lg:flex">
-             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#d8dee9] mb-1 opacity-0"><span class="rotate-45 font-serif text-sm">✦</span></div>
-             <div class="font-medium text-sm text-gray-800 dark:text-[#e5e9f0]">Overcome procrastination</div>
+          <button onclick={() => input = "Overcome procrastination "} class="text-left flex flex-col items-start gap-0.5 p-3 rounded-2xl hover:bg-gray-100 dark:hover:bg-[#3a3a3c] transition-colors opacity-80 hover:opacity-100 hidden lg:flex">
+             <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-[#e5e5ea] mb-1 opacity-0"><span class="rotate-45 font-serif text-sm">✦</span></div>
+             <div class="font-medium text-sm text-gray-800 dark:text-[#f5f5f7]">Overcome procrastination</div>
              <div class="text-xs text-gray-500">give me tips</div>
           </button>
         </div>

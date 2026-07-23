@@ -106,7 +106,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https://raw.githubusercontent.com', 'https://logos.covalenthq.com'],
+      imgSrc: ["'self'", 'data:', 'https://raw.githubusercontent.com', 'https://logos.covalenthq.com', 'https://cdn.simpleicons.org'],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       connectSrc: ["'self'", 'https://*']
@@ -410,6 +410,51 @@ app.get('/api/system/pick-folder', (req, res) => {
   } catch (error: any) {
     res.status(400).json({ error: 'Canceled' });
   }
+});
+
+app.post('/api/system/restart', (req, res) => {
+  res.json({ success: true, message: 'Restarting daemon...' });
+  const childProcess = require('child_process');
+  setTimeout(() => {
+    childProcess.spawn('node', ['./bin/nyxora.mjs', 'restart'], { cwd: process.cwd(), detached: true, stdio: 'ignore' }).unref();
+  }, 500);
+});
+
+app.post('/api/system/shutdown', (req, res) => {
+  res.json({ success: true, message: 'Shutting down daemon...' });
+  const childProcess = require('child_process');
+  setTimeout(() => {
+    childProcess.spawn('node', ['./bin/nyxora.mjs', 'stop'], { cwd: process.cwd(), detached: true, stdio: 'ignore' }).unref();
+  }, 500);
+});
+
+app.post('/api/system/clear-cache', (req, res) => {
+  const childProcess = require('child_process');
+  childProcess.exec('node ./bin/nyxora.mjs clean-logs', { cwd: process.cwd() }, (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to clear cache' });
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/system/autostart', (req, res) => {
+  const isLinux = process.platform === 'linux';
+  const isMac = process.platform === 'darwin';
+  let enabled = false;
+  if (isLinux) {
+    enabled = require('fs').existsSync(require('path').join(require('os').homedir(), '.config', 'autostart', 'nyxora.desktop'));
+  } else if (isMac) {
+    enabled = require('fs').existsSync(require('path').join(require('os').homedir(), 'Library', 'LaunchAgents', 'com.nyxora.gateway.plist'));
+  }
+  res.json({ enabled });
+});
+
+app.post('/api/system/autostart', (req, res) => {
+  const action = req.body.enabled ? 'enable' : 'disable';
+  const childProcess = require('child_process');
+  childProcess.exec(`node ./bin/nyxora.mjs autostart ${action}`, { cwd: process.cwd() }, (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to configure autostart' });
+    res.json({ success: true });
+  });
 });
 
 app.put('/api/sessions/:id', (req, res) => {

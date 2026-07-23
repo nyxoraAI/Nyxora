@@ -11,6 +11,17 @@
 
   let exchangeRate = $state(1);
   let selectedChain = $state('all');
+
+  onMount(() => {
+    const savedChain = localStorage.getItem('nyxora_wallet_chain');
+    if (savedChain) {
+      selectedChain = savedChain;
+    }
+  });
+
+  $effect(() => {
+    localStorage.setItem('nyxora_wallet_chain', selectedChain);
+  });
   let copied = $state(false);
 
   // Whitelist state
@@ -231,7 +242,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           onclick={copyAddress}
-          class="inline-flex items-center gap-2 bg-white dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] px-3 py-1 rounded-xl cursor-pointer text-sm font-mono hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+          class="inline-flex items-center gap-2 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] px-3 py-1 rounded-xl cursor-pointer text-sm font-mono hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
         >
           {walletAddress.substring(0, 6)}...{walletAddress.substring(38)}
           {#if copied}
@@ -253,7 +264,7 @@
     <div class="flex gap-3 items-center">
       <button 
         onclick={() => showModal = true}
-        class="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-[#4c566a] rounded-lg hover:bg-gray-100 dark:hover:bg-[#434c5e] transition-colors font-semibold text-sm"
+        class="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-[#48484a] rounded-lg hover:bg-gray-100 dark:hover:bg-[#3a3a3c] transition-colors font-semibold text-sm"
       >
         <Plus size={16} /> Add Custom Crypto
       </button>
@@ -287,8 +298,8 @@
   {/if}
 
   {#if data && flatTokens.length > 0}
-    <div class="bg-white dark:bg-[#3b4252] rounded-2xl border border-gray-200 dark:border-[#4c566a] overflow-hidden shadow-sm mb-8">
-      <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-850 border-b border-gray-200 dark:border-[#4c566a] text-xs font-bold text-gray-500 tracking-wider">
+    <div class="bg-white dark:bg-[#1d1d1f] rounded-2xl border border-gray-200 dark:border-[#48484a] overflow-hidden shadow-sm mb-8">
+      <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-850 border-b border-gray-200 dark:border-[#48484a] text-xs font-bold text-gray-500 tracking-wider">
         <div>TOKEN</div>
         <div class="text-right">PRICE</div>
         <div class="text-right">AMOUNT</div>
@@ -298,7 +309,7 @@
       <div class="flex flex-col">
         {#each flatTokens as t, idx}
           {@const usdVal = (t.priceUsd || 0) * getParsedBalance(t.balanceRaw, t.decimals)}
-          <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors border-b border-gray-100 dark:border-[#4c566a] last:border-0">
+          <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors border-b border-gray-100 dark:border-[#48484a] last:border-0">
             <div class="flex items-center gap-3">
               <div class="relative w-10 h-10">
                 <div class="w-full h-full rounded-full flex items-center justify-center font-bold text-sm overflow-hidden {t.isNative ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}">
@@ -306,12 +317,12 @@
                   <img 
                     src={getTokenLogoUrl(t.chain, t.address, t.isNative)} 
                     alt={t.symbol} 
-                    class="w-full h-full object-cover relative z-20 bg-white dark:bg-[#3b4252]" 
+                    class="w-full h-full object-cover relative z-20 bg-white dark:bg-[#1d1d1f]" 
                     onerror={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 </div>
                 
-                <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white dark:bg-[#3b4252] flex items-center justify-center z-30 p-0.5">
+                <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white dark:bg-[#1d1d1f] flex items-center justify-center z-30 p-0.5">
                   <div class="w-full h-full rounded-full overflow-hidden" style="background: {getChainColor(t.chain)}">
                     <img 
                       src={getChainLogoUrl(t.chain)} 
@@ -345,9 +356,9 @@
   {#if whitelist.length > 0}
     <div class="mt-8">
       <h2 class="text-xl font-bold mb-4">Whitelisted Tokens</h2>
-      <div class="bg-white dark:bg-[#3b4252] rounded-2xl border border-gray-200 dark:border-[#4c566a] overflow-hidden shadow-sm">
+      <div class="bg-white dark:bg-[#1d1d1f] rounded-2xl border border-gray-200 dark:border-[#48484a] overflow-hidden shadow-sm">
         {#each whitelist as t, idx}
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#4c566a] last:border-0">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#48484a] last:border-0">
             <div class="flex items-center gap-4">
               <div class="w-6 h-6 rounded-full overflow-hidden" style="background: {getChainColor(t.chainName)}">
                 <img src={getChainLogoUrl(t.chainName)} class="w-full h-full object-cover" alt={t.chainName} />
@@ -373,7 +384,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[1000]" onclick={() => showModal = false}>
-      <div class="bg-white dark:bg-[#3b4252] w-full max-w-md rounded-2xl p-6 border border-gray-200 dark:border-[#4c566a] shadow-2xl" onclick={(e) => e.stopPropagation()}>
+      <div class="bg-white dark:bg-[#1d1d1f] w-full max-w-md rounded-2xl p-6 border border-gray-200 dark:border-[#48484a] shadow-2xl" onclick={(e) => e.stopPropagation()}>
         <div class="flex items-center justify-between mb-6">
           <button onclick={() => showModal = false} class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
             <X size={20} />
@@ -394,7 +405,7 @@
             bind:value={customCa}
             oninput={handleCaChange}
             placeholder="Enter contract information"
-            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-[#4c566a] px-4 py-3 rounded-xl outline-none focus:border-blue-500 transition-colors"
+            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-[#48484a] px-4 py-3 rounded-xl outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -406,7 +417,7 @@
               bind:value={customSymbol}
               readonly
               placeholder={fetchingMetadata ? "Fetching..." : ""}
-              class="w-full bg-gray-100 dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] px-4 py-3 rounded-xl outline-none opacity-70"
+              class="w-full bg-gray-100 dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] px-4 py-3 rounded-xl outline-none opacity-70"
             />
             {#if fetchingMetadata}
               <div class="absolute right-4 top-4 w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -421,7 +432,7 @@
             bind:value={customDecimals}
             readonly
             placeholder={fetchingMetadata ? "Fetching..." : ""}
-            class="w-full bg-gray-100 dark:bg-[#3b4252] border border-gray-200 dark:border-[#4c566a] px-4 py-3 rounded-xl outline-none opacity-70"
+            class="w-full bg-gray-100 dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] px-4 py-3 rounded-xl outline-none opacity-70"
           />
         </div>
 
