@@ -161,9 +161,9 @@ export const Sessions: React.FC = () => {
       const trueScrollHeight = container.scrollHeight - currentSpacer;
       const contentBelowTop = trueScrollHeight - elOffsetTop;
 
-      // 2. We want at least (clientHeight - 120px) of space below the message
-      // so it can sit comfortably at the top (120px offset)
-      const desiredMinHeight = container.clientHeight - 120;
+      // 2. We want at least (clientHeight) of space below the message
+      // so it can sit comfortably at the top (0px offset)
+      const desiredMinHeight = container.clientHeight - 0;
       if (contentBelowTop < desiredMinHeight && spacerDivRef.current) {
         spacerDivRef.current.style.height = `${desiredMinHeight - contentBelowTop}px`;
         // Force synchronous layout recalculation so the browser knows we have space!
@@ -171,7 +171,7 @@ export const Sessions: React.FC = () => {
       }
 
       // 3. Now we are guaranteed to have enough space, safely scroll.
-      const targetScrollTop = Math.max(0, elOffsetTop - 120);
+      const targetScrollTop = Math.max(0, elOffsetTop - 0);
 
 
       container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
@@ -219,7 +219,7 @@ export const Sessions: React.FC = () => {
         }
 
         const contentBelowTop = (msgOffsetTop + lastMsgEl.offsetHeight) - userOffsetTop;
-        const desiredMinHeight = container.clientHeight - 120; // 120px top clearance
+        const desiredMinHeight = container.clientHeight - 0; // 0px top clearance
 
         if (contentBelowTop < desiredMinHeight) {
           spacerDivRef.current.style.height = `${desiredMinHeight - contentBelowTop}px`;

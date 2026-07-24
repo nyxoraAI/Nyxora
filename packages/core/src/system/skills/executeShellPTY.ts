@@ -1,7 +1,11 @@
 import { spawn } from 'child_process';
 import { loadConfig, loadApiKeys } from '../../config/parser';
-import * as pty from 'node-pty';
-
+let pty: any;
+try {
+  pty = require('node-pty');
+} catch (e) {
+  console.warn('[executeShellPTY] node-pty is not installed. PTY commands will fail.');
+}
 /**
  * Execute shell command with PTY support for interactive programs.
  * Use this for commands that require TTY (sudo with password prompt, interactive CLI tools).
@@ -20,6 +24,10 @@ export async function runTerminalCommandPTY(command: string, autoSudoPassword?: 
   }
 
   return new Promise((resolve, reject) => {
+    if (!pty) {
+      return resolve('ERROR: node-pty is not installed on this system (likely due to missing Windows C++ Build Tools). PTY commands are disabled. Please use standard run_terminal_command instead.');
+    }
+
     let output = '';
     let passwordSent = false;
 

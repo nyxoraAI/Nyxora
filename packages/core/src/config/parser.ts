@@ -347,6 +347,8 @@ export interface PolicyConfig {
   require_approval?: boolean;
   auto_approve_limit_usd?: number;
   custom_llm_rules?: string[];
+  auto_approve_shell?: boolean;
+  blacklisted_addresses?: string[];
 }
 
 export function loadPolicyConfig(): PolicyConfig {

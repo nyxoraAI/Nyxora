@@ -7,7 +7,7 @@ import { resolveToken } from '../utils/tokens';
 import { saveTokenToWhitelist } from '../../utils/userWhitelistManager';
 import { routeTransaction } from '../aggregator/defiRouter';
 import { logger } from '../../memory/logger';
-import { loadConfig } from '../../config/parser';
+import { loadConfig, loadPolicyConfig } from '../../config/parser';
 export async function prepareSwapToken(
   chainName: ChainName, 
   fromToken: string, 
@@ -102,6 +102,15 @@ export async function prepareSwapToken(
     });
 
     const formattedOutput = formatUnits(route.outputAmount, toDecimals);
+
+    const policy = loadPolicyConfig();
+    if (policy.require_approval === false) {
+      // Auto-Approve Bypassed
+      const result = await executeSwap(chainName, tx.details, true);
+      txManager.updateStatus(tx.id, 'executed', result);
+      return `⚡ **Swap Auto-Executed**\nI have automatically executed your swap via **${route.provider}** on **${chainName.toUpperCase()}** because Auto-Approve is enabled.\n\n- **Send:** ${amountStr} ${fromToken.toUpperCase()}\n- **Est. Receive:** ${formattedOutput} ${toToken.toUpperCase()}\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\nResult: ${result}`;
+    }
+
     return `⚡ **Transaction Prepared**\nI have found the best route for your swap via **${route.provider}** on the **${chainName.toUpperCase()}** network. Here are the details:\n\n- **Send:** ${amountStr} ${fromToken.toUpperCase()}\n- **Est. Receive:** ${formattedOutput} ${toToken.toUpperCase()}\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;
   } catch (error: any) {
     return `Failed to prepare swap: ${error.message}`;

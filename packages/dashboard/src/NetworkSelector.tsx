@@ -10,8 +10,8 @@ const NETWORKS = [
   { id: 'robinhood', label: 'Robinhood Chain' },
   { id: 'optimism', label: 'OP Mainnet' },
   { id: 'polygon', label: 'Polygon (Matic)' },
-  { id: 'sepolia', label: 'Sepolia (Testnet)' },
-  { id: 'base_sepolia', label: 'Base Sepolia (Testnet)' },
+  { id: 'sepolia', label: 'Sepolia' },
+  { id: 'base_sepolia', label: 'Base Sepolia' },
   { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia' },
   { id: 'robinhood_testnet', label: 'Robinhood Testnet' },
   { id: 'optimism_sepolia', label: 'OP Sepolia' }

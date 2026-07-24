@@ -120,13 +120,15 @@ function App() {
 
   useEffect(() => {
     const lockCheck = setInterval(() => {
-      if (autoLockTime > 0 && !isLocked && (Date.now() - lastActivityRef.current > autoLockTime * 60 * 1000)) {
+      // Read directly from localStorage to ensure multi-tab sync and avoid stale closures
+      const currentAutoLockTime = parseInt(localStorage.getItem('nyxora_auto_lock') || '0');
+      if (currentAutoLockTime > 0 && !isLocked && (Date.now() - lastActivityRef.current > currentAutoLockTime * 60 * 1000)) {
         setIsLocked(true);
         setLockedAt(Date.now());
       }
     }, 1000);
     return () => clearInterval(lockCheck);
-  }, [autoLockTime, isLocked]);
+  }, [isLocked]);
 
   useEffect(() => {
     let unlockCheck: NodeJS.Timeout;

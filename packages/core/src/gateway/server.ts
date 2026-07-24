@@ -1384,7 +1384,9 @@ app.get('/api/policy', (req, res) => {
         max_usd_per_tx: 999999999,
         whitelist_only: false,
         require_approval: true,
-        custom_llm_rules: []
+        custom_llm_rules: [],
+        auto_approve_shell: false,
+        blacklisted_addresses: []
       });
     }
     const file = fs.readFileSync(policyPath, 'utf8');
@@ -1393,7 +1395,9 @@ app.get('/api/policy', (req, res) => {
       max_usd_per_tx: parsed.max_usd_per_tx ?? 999999999,
       whitelist_only: parsed.whitelist_only ?? false,
       require_approval: parsed.require_approval ?? true,
-      custom_llm_rules: parsed.custom_llm_rules || []
+      custom_llm_rules: parsed.custom_llm_rules || [],
+      auto_approve_shell: parsed.auto_approve_shell ?? false,
+      blacklisted_addresses: parsed.blacklisted_addresses || []
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -4,6 +4,7 @@ import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '.
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
 import { submitTransaction } from '../utils/vaultClient';
+import { loadPolicyConfig } from '../../config/parser';
 
 export async function prepareTransfer(chainName: ChainName, toAddress: `0x${string}`, amountStr: string, token?: string): Promise<string> {
   try {
@@ -82,6 +83,14 @@ export async function prepareTransfer(chainName: ChainName, toAddress: `0x${stri
       decimals,
       gasEstimate: gasEstimate.toString()
     });
+
+    const policy = loadPolicyConfig();
+    if (policy.require_approval === false) {
+      // Auto-Approve Bypassed
+      const result = await executeTransfer(chainName, tx.details, true);
+      txManager.updateStatus(tx.id, 'executed', result);
+      return `⚡ **Transfer Auto-Executed**\nI have automatically executed your transfer on **${chainName.toUpperCase()}** because Auto-Approve is enabled.\n\n- **Amount:** ${amountStr} ${isNative ? "Native Token" : symbol}\n- **To:** \`${toAddress}\`\n\nResult: ${result}`;
+    }
 
     const tokenName = isNative ? "Native Token" : symbol;
     return `⚡ **Transfer Prepared**\nI have prepared your transfer on the **${chainName.toUpperCase()}** network. Here are the details:\n\n- **Amount:** ${amountStr} ${tokenName}\n- **To:** \`${toAddress}\`\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;

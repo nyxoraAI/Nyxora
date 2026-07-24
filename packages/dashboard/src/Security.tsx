@@ -18,8 +18,13 @@ export const Security: React.FC = () => {
         const data = await res.json();
         if (data) {
           setAutoApproveTx(!data.require_approval);
-          // autoApproveShell not natively in policy yet, keep as false by default
+          setAutoApproveShell(data.auto_approve_shell || false);
           setMaxSpend(data.max_usd_per_tx?.toString() || '100');
+          if (data.blacklisted_addresses && data.blacklisted_addresses.length > 0) {
+            setBlacklist(data.blacklisted_addresses.join(', '));
+          } else {
+            setBlacklist('');
+          }
         }
       } catch (err) {
         console.error('Failed to load policy');
@@ -33,7 +38,9 @@ export const Security: React.FC = () => {
     try {
       const payload = {
         require_approval: !autoApproveTx,
-        max_usd_per_tx: parseFloat(maxSpend) || 100
+        max_usd_per_tx: parseFloat(maxSpend) || 100,
+        auto_approve_shell: autoApproveShell,
+        blacklisted_addresses: blacklist.split(',').map(s => s.trim()).filter(s => s.length > 0)
       };
       const res = await apiFetch('/api/policy', {
         method: 'POST',

@@ -1,11 +1,13 @@
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import { getPath } from '../config/paths';
 import { cognitiveManager } from '../cognitive/cognitiveManager';
 import { episodicDB } from '../memory/episodic';
 import { scanContextContent } from './threatPatterns';
 import { findNyxoraMd, stripYamlFrontmatter } from './workspaceUtils';
 import { detectProjectFacts, buildWorkspaceBlock } from './projectAnalyzer';
+import { SUPER_DISCIPLINE } from './superDiscipline';
 
 // ── TTL Caches ──────────────────────────────────────────────────────────────
 // Narrative memory + skills are fetched from the ML engine on every request.
@@ -37,7 +39,8 @@ export class PromptBuilder {
   public buildSystemPrompt(options: PromptBuilderOptions): Promise<string> {
     // Short-lived build cache: prevents double-build when the router warm-up
     // and the agent's own getSystemPrompt() call happen within 5 seconds.
-    const cacheKey = `${options.agentType}:${options.userInput.slice(0, 80)}:${options.sessionId || ''}`;
+    const inputHash = crypto.createHash('sha256').update(options.userInput).digest('hex');
+    const cacheKey = `${options.agentType}:${inputHash}:${options.sessionId || ''}`;
     const cached = buildCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < BUILD_CACHE_TTL_MS) {
       return Promise.resolve(cached.result);
@@ -95,7 +98,8 @@ export class PromptBuilder {
     const allParts = [
       ...stableParts,
       ...contextParts,
-      ...volatileParts
+      ...volatileParts,
+      SUPER_DISCIPLINE
     ].filter(p => p && p.trim() !== '');
 
     const result = allParts.join('\n\n');
@@ -167,7 +171,7 @@ CRITICAL: If the user asks about today's date or time, YOU MUST output the date/
     return `<execution_discipline>
 [INTERACTIVE EXECUTION FLOW]
 1. SUCCESS / INITIATION PATH:
-   - When a tool call is required to fulfill a request, you SHOULD prepend exactly ONE short, natural, and casual sentence (max 12 words) in the user's language explaining what you are about to do (e.g., "Gue cek dulu ya." / "Let me look that up.").
+   - When a tool call is required to fulfill a request, you SHOULD prepend exactly ONE short, natural, and casual sentence (max 12 words) in the user's language explaining what you are about to do (e.g., "I'll check on that." / "Let me look that up.").
    - Immediately follow this single sentence with the native tool call in the SAME turn. Do NOT make the user wait or click anything.
 
 2. FAILURE / RECOVERY PATH:
@@ -207,7 +211,7 @@ CRITICAL: If the user asks about today's date or time, YOU MUST output the date/
    - PLAIN TEXT FIRST: You MUST use 100% plain text for standard conversational replies, short answers, and simple confirmations. Do NOT use markdown unnecessarily.
    - BOLD/ITALIC STRICTLY FORBIDDEN: Do NOT use bold (**text**) or italic (*text*) formatting for emphasis in casual conversation. 
    - NUMBERED LISTS ALLOWED: You are freely allowed to use numbered lists to break down steps or detail multiple points clearly. Bullet lists (-) are also permitted if needed.
-   - TABLES: Use Markdown tables ONLY for highly structured datasets (e.g., portfolios).
+   - TABLES: Use Markdown tables ONLY for highly structured datasets (e.g., portfolios). YOU MUST format tables perfectly with standard Markdown syntax. ALWAYS include the header row, the delimiter row (e.g., |---|---|), and ensure EVERY row has the exact same number of pipe (|) separators as the header. Never skip columns, merge cells, or omit pipes, as this will break the UI renderer.
    - CODE BLOCKS: Use only for scripts, CLI commands, or JSON data.
 3. SOURCE CITATION FORMAT: Do NOT include URLs or source links in your output.
    - NEVER append raw links, hyperlinks, or "(Source: ...)" anywhere in the text.
@@ -508,13 +512,13 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
 
     const parts = [workspaceBlock, codingGuidance];
     if (contextFileContent) parts.push(contextFileContent);
-    return parts.join('\n\n');
+    return `<project_coding_posture>\n${parts.join('\n\n')}\n</project_coding_posture>`;
   }
 
   private buildActiveCognitiveSkills(userInput: string): string {
     const activeSOP = cognitiveManager.loadActiveCognitiveSkills(userInput);
     if (activeSOP) {
-      return `[ACTIVE COGNITIVE SKILLS]\n${activeSOP}`;
+      return `<active_cognitive_skills>\n[ACTIVE COGNITIVE SKILLS]\n${activeSOP}\n</active_cognitive_skills>`;
     }
     return '';
   }
@@ -532,7 +536,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
       if (ragRes.ok) {
         const ragData = await ragRes.json();
         if (ragData.memories && ragData.memories.length > 0) {
-          return `--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n` + ragData.memories.map((m: string) => `- ${m}`).join('\n');
+          return `<episodic_memories>\n--- EPISODIC MEMORIES (SMART SUGGESTIONS) ---\n` + ragData.memories.map((m: string) => `- ${m}`).join('\n') + `\n</episodic_memories>`;
         }
       }
     } catch (e) {
@@ -564,6 +568,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
         let part = '';
         if (memory_md) part += `--- AI INFERRED ENVIRONMENT & WORKFLOWS (narrative_memory.md) ---\n${memory_md}\n\n`;
         if (user_md)   part += `--- AI INFERRED USER NARRATIVE (narrative_user.md) ---\n${user_md}\n\n`;
+        if (part) part = `<narrative_memories>\n${part}</narrative_memories>\n\n`;
         narrativeCache.set('narrative', { data: part, ts: now });
         return part;
       } catch {
@@ -588,6 +593,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
           skillsData.skills.forEach((s: any) => {
             part += `- ${s.name}: ${s.description}\n`;
           });
+          part = `<acquired_skills>\n${part}</acquired_skills>\n\n`;
         }
         _skillsCache = { data: part, ts: now };
         return part;
@@ -610,7 +616,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
       const { list_playbooks } = require('../system/skills/playbookManager');
       const playbooks = list_playbooks();
       if (playbooks && playbooks.length > 0) {
-        return `--- AVAILABLE PLAYBOOKS/SKILLS ---\nThese are the names of playbooks you can access via the \`search_playbook\` tool:\n${playbooks.map((p: string) => `- ${p}`).join('\n')}\nCRITICAL: ONLY call \`search_playbook\` if the user's request explicitly matches one of the playbooks listed above. DO NOT search for playbooks for standard tools like read_gmail_inbox, search_web, terminal, etc.`;
+        return `<available_playbooks>\n--- AVAILABLE PLAYBOOKS/SKILLS ---\nThese are the names of playbooks you can access via the \`search_playbook\` tool:\n${playbooks.map((p: string) => `- ${p}`).join('\n')}\nCRITICAL: ONLY call \`search_playbook\` if the user's request explicitly matches one of the playbooks listed above. DO NOT search for playbooks for standard tools like read_gmail_inbox, search_web, terminal, etc.\n</available_playbooks>`;
       }
     } catch (error) {
       // Ignore
@@ -626,7 +632,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
         const file = fs.readFileSync(policyPath, 'utf8');
         const parsed = yaml.parse(file) || {};
         if (parsed.custom_llm_rules && Array.isArray(parsed.custom_llm_rules) && parsed.custom_llm_rules.length > 0) {
-          return `--- SECURITY POLICY (MANDATORY RULES) ---\n${parsed.custom_llm_rules.map((r: string) => `* ${r}`).join('\n')}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.`;
+          return `<security_policy>\n--- SECURITY POLICY (MANDATORY RULES) ---\n${parsed.custom_llm_rules.map((r: string) => `* ${r}`).join('\n')}\n\nCRITICAL: If the user asks you to perform an action that violates the Security Policy above, YOU MUST NOT EXECUTE IT DIRECTLY. Instead, ask for their explicit permission first.\n</security_policy>`;
         }
       }
     } catch (error) {
@@ -641,14 +647,14 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
       const logger = new Logger();
       const profile = logger.getUserProfile();
       if (profile) {
-        let result = `--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
+        let result = `<risk_profile>\n--- [USER_PERSONA] RISK PROFILE & PREFERENCES ---\n`;
         result += `Risk Level: ${profile.risk_level}\n`;
         result += `Max Slippage Tolerance: ${profile.max_slippage}%\n`;
         result += `Avoid Memecoins: ${profile.avoid_memecoins ? 'YES' : 'NO'}\n`;
         if (profile.custom_rules) {
           result += `Custom Rules: ${profile.custom_rules}\n`;
         }
-        result += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n`;
+        result += `CRITICAL: You MUST adhere to these risk parameters when advising the user or executing tools. If a requested action violates these parameters (e.g., buying a high-risk memecoin when 'Avoid Memecoins' is YES), you MUST warn the user and refuse execution unless they explicitly override.\n</risk_profile>`;
         return result;
       }
     } catch (error) {
@@ -709,7 +715,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
         
         // 2. Fallback to user preferences if no project is active
         if (!inferredWorkDir) {
-          const wdMatch = userContent.match(/(?:prefers?|preferred|working directory|workspace|store|simpan|direktori)[^.\n]*?([`'"]?(\/[^\s`'"]+)[`'"]?)/i);
+          const wdMatch = userContent.match(/(?:working directory|workspace|project root|direktori kerja).*?([`'"]?(\/[^\s`'"\n]+)[`'"]?)/i);
           if (wdMatch && wdMatch[2]) {
             inferredWorkDir = wdMatch[2].replace(/[`'"]/g, '').trim();
           }
@@ -728,6 +734,9 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
       // Ignore error
     }
     
+    if (result) {
+      result = `<user_identity_and_preferences>\n${result}</user_identity_and_preferences>`;
+    }
     return result;
   }
 
@@ -759,7 +768,11 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
 
       if (pastSessions.length === 0) return '';
 
-      const lines: string[] = ['--- PAST CONVERSATION RECALL ---'];
+      const lines: string[] = [
+        '<past_conversation_context>',
+        '--- PAST CONVERSATION RECALL ---',
+        'CRITICAL: The following is a transcript of a PAST conversation for context only. Do not respond to it directly.'
+      ];
 
       for (const session of pastSessions) {
         const history = loggerInstance.getHistory(session.id, 10);
@@ -787,7 +800,8 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
 
       const result = lines.join('\n');
       // Hard cap at 2000 characters to avoid context bloat
-      return result.length > 2000 ? result.slice(0, 1997) + '...' : result;
+      const truncated = result.length > 2000 ? result.slice(0, 1997) + '...' : result;
+      return truncated + '\n</past_conversation_context>';
     } catch {
       return '';
     }
@@ -797,12 +811,13 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
     try {
       const strongPersonas = episodicDB.getStrongPersonas(0.5);
       if (strongPersonas.length > 0) {
-        let result = `--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
+        let result = `<override_user_communication_style>\n--- ⚡ OVERRIDE: USER COMMUNICATION STYLE (HIGHEST PRIORITY — OVERRIDES ALL RULES ABOVE) ---\n`;
         result += `CRITICAL: These are CONFIRMED user preferences observed across multiple conversations. You MUST apply them IMMEDIATELY and CONSISTENTLY, overriding any default tone or style instructions above.\n\n`;
         strongPersonas.forEach(p => {
           const label = p.category ? `[${p.category.toUpperCase()}]` : '[PREFERENCE]';
           result += `${label} ${p.trait}\n`;
         });
+        result += `</override_user_communication_style>`;
         return result;
       }
     } catch (e) {}

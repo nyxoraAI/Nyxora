@@ -861,7 +861,7 @@ body {
 .markdown-body {
   font-family: 'Inter', 'Roboto', 'Noto Sans', 'Ubuntu', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.55;
   word-wrap: break-word; /* Safer than overflow-wrap: anywhere */
   color: #1f2937;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -870,10 +870,10 @@ body {
 }
 .dark .markdown-body { color: #e5e7eb; }
 
-.markdown-body p { margin: 12px 0; }
-.markdown-body ul { list-style-type: disc; margin: 12px 0; padding-left: 24px; }
-.markdown-body ol { list-style-type: decimal; margin: 12px 0; padding-left: 24px; }
-.markdown-body li { margin: 8px 0; padding-left: 4px; }
+.markdown-body p { margin: 8px 0; }
+.markdown-body ul { list-style-type: disc; margin: 8px 0; padding-left: 24px; }
+.markdown-body ol { list-style-type: decimal; margin: 8px 0; padding-left: 24px; }
+.markdown-body li { margin: 4px 0; padding-left: 4px; }
 .markdown-body li p { display: inline; } /* Prevents unwanted margin inside list items */
 
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {

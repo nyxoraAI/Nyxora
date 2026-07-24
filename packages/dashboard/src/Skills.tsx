@@ -179,7 +179,7 @@ const Skills: React.FC = () => {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <div style={{ background: 'rgba(0,255,65,0.1)', border: '1px solid rgba(0,255,65,0.3)', borderRadius: '8px', padding: '10px' }}>
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px' }}>
           <Terminal size={24} color="var(--accent)" />
         </div>
         <div>
@@ -192,11 +192,11 @@ const Skills: React.FC = () => {
 
       {/* Summary row */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        <div style={{ background: 'rgba(0,255,65,0.05)', border: '1px solid rgba(0,255,65,0.2)', borderRadius: '8px', padding: '12px 20px', flex: 1 }}>
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px 20px', flex: 1 }}>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', marginBottom: '4px' }}>WEB3 SKILLS</div>
           <div style={{ color: 'var(--text-primary)', fontSize: '1.3rem', fontWeight: 700 }}>{web3Active} <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 400 }}>/ {web3Skills.length} active</span></div>
         </div>
-        <div style={{ background: 'rgba(0,255,65,0.05)', border: '1px solid rgba(0,255,65,0.2)', borderRadius: '8px', padding: '12px 20px', flex: 1 }}>
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px 20px', flex: 1 }}>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', marginBottom: '4px' }}>OS / SYSTEM SKILLS</div>
           <div style={{ color: 'var(--text-primary)', fontSize: '1.3rem', fontWeight: 700 }}>{osActive} <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 400 }}>/ {osSkills.length} active</span></div>
         </div>

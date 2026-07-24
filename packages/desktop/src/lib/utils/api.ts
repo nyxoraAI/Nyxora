@@ -5,7 +5,7 @@ const tokenFromUrl = urlParams.get('token');
 if (tokenFromUrl) {
   localStorage.setItem('nyxora_token', tokenFromUrl);
   // Clean URL
-  window.history.replaceState({}, document.title, window.location.pathname);
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
 }
 
 export const getToken = () => localStorage.getItem('nyxora_token') || '';

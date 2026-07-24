@@ -228,11 +228,19 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
               pillColor="transparent"
               textColor="var(--text-primary)"
               options={[
+                { id: 'all', label: 'All Chains (Auto)', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
                 { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
                 { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
                 { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
                 { id: 'arbitrum', label: 'Arbitrum One', icon: <ChainIcon id="arbitrum" /> },
-                { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> }
+                { id: 'optimism', label: 'Optimism', icon: <ChainIcon id="optimism" /> },
+                { id: 'polygon', label: 'Polygon', icon: <ChainIcon id="polygon" /> },
+                { id: 'robinhood', label: 'Robinhood Chain', icon: <ChainIcon id="robinhood" /> },
+                { id: 'sepolia', label: 'Sepolia', icon: <ChainIcon id="sepolia" /> },
+                { id: 'base_sepolia', label: 'Base Sepolia', icon: <ChainIcon id="base_sepolia" /> },
+                { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
+                { id: 'optimism_sepolia', label: 'Optimism Sepolia', icon: <ChainIcon id="optimism_sepolia" /> },
+                { id: 'robinhood_testnet', label: 'Robinhood Testnet', icon: <ChainIcon id="robinhood_testnet" /> }
               ]}
             />
           </div>
@@ -380,7 +388,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
                 color: '#BF616A',
                 border: '1px solid rgba(191, 97, 106, 0.5)',
                 padding: '12px 16px',
-                borderRadius: '8px',
+                borderRadius: '9999px',
                 cursor: wipingMemory ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold'
               }}
@@ -397,19 +405,19 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
               <input 
                 type="password" 
                 placeholder="Old Password" 
-                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
+                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '9999px' }}
                 value={oldPassword}
                 onChange={e => setOldPassword(e.target.value)}
               />
               <input 
                 type="password" 
                 placeholder="New Password" 
-                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
+                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '9999px' }}
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
               />
               <button 
-                style={{ padding: '0 16px', borderRadius: '4px', background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ padding: '0 16px', borderRadius: '9999px', background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={handlePasswordChange}
                 disabled={!oldPassword || !newPassword}
               >
@@ -428,7 +436,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
                 color: '#eceff4',
                 border: 'none',
                 padding: '12px 16px',
-                borderRadius: '8px',
+                borderRadius: '9999px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

@@ -1,7 +1,15 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, nativeImage } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, type ChildProcess } from 'node:child_process';
+import os from 'node:os';
+import fs from 'node:fs';
+
+app.name = 'Nyxora';
+app.setAppUserModelId('Nyxora');
+if (process.platform === 'linux') {
+  app.setDesktopName('Nyxora.desktop');
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +50,8 @@ function startNyxoraDaemon() {
 
 function createWindow() {
   win = new BrowserWindow({
+    title: 'Nyxora',
+    icon: nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, 'nyxora-icon.png')),
     width: 1200,
     height: 800,
     titleBarStyle: 'hidden',
@@ -54,11 +64,23 @@ function createWindow() {
     },
   });
 
+  let token = '';
+  try {
+    const tokenPath = path.join(os.homedir(), '.nyxora', 'auth', 'auth.token');
+    if (fs.existsSync(tokenPath)) {
+      token = fs.readFileSync(tokenPath, 'utf8').trim();
+      if (token.startsWith('{')) {
+        try { token = JSON.parse(token).token; } catch(e){}
+      }
+    }
+  } catch(e) {}
+
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
+    const devUrl = new URL(VITE_DEV_SERVER_URL);
+    if (token) devUrl.searchParams.set('token', token);
+    win.loadURL(devUrl.toString());
   } else {
-    // win.loadFile('build/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+    win.loadFile(path.join(RENDERER_DIST, 'index.html'), token ? { query: { token } } : {});
   }
 }
 

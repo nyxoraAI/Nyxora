@@ -5,7 +5,7 @@ import { txManager } from '../../agent/transactionManager';
 import { resolveToken } from '../utils/tokens';
 import { routeTransaction } from '../aggregator/defiRouter';
 import { logger } from '../../memory/logger';
-import { loadConfig } from '../../config/parser';
+import { loadConfig, loadPolicyConfig } from '../../config/parser';
 export async function prepareBridgeToken(
   fromChain: ChainName, 
   toChain: ChainName, 
@@ -105,6 +105,15 @@ export async function prepareBridgeToken(
     });
 
     const formattedOutput = formatUnits(route.outputAmount, decimals);
+
+    const policy = loadPolicyConfig();
+    if (policy.require_approval === false) {
+      // Auto-Approve Bypassed
+      const result = await executeBridge(fromChain, tx.details, true);
+      txManager.updateStatus(tx.id, 'executed', result);
+      return `⚡ **Bridge Auto-Executed**\nI have automatically executed your bridge via **${route.provider}** because Auto-Approve is enabled.\n\n- **From:** ${amountStr} ${tokenSymbol.toUpperCase()} on **${fromChain.toUpperCase()}**\n- **Est. Receive:** ${formattedOutput} ${tokenSymbol.toUpperCase()} on **${toChain.toUpperCase()}**\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\nResult: ${result}`;
+    }
+
     return `⚡ **Bridge Transaction Prepared**\nI have prepared a route to bridge your tokens via **${route.provider}**. Here are the details:\n\n- **From:** ${amountStr} ${tokenSymbol.toUpperCase()} on **${fromChain.toUpperCase()}**\n- **Est. Receive:** ${formattedOutput} ${tokenSymbol.toUpperCase()} on **${toChain.toUpperCase()}**\n- **Est. Gas Fee:** $${route.estimatedGasUsd || '0.00'}\n\n*Is everything correct? Reply **Yes** to execute (will trigger wallet prompt), or **No** to cancel.*`;
   } catch (error: any) {
     console.error("BRIDGE TOKEN ERROR:", error);

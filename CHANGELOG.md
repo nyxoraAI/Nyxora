@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.24]
+### Bug Fixes & Agent Enhancements
+- **Global `npm install` Crash Fix (Windows)**: Resolved a fatal installation failure for Windows users caused by native compilation of `node-pty`. Moved `node-pty` to `optionalDependencies` and added a dynamic fallback in `executeShellPTY.ts`. The agent now gracefully degrades terminal tools instead of crashing the server if C++ Build Tools are missing.
+- **LLM Lost-in-the-Middle Fix**: Relocated the `SUPER_DISCIPLINE` rule to the absolute end of the prompt array in `promptBuilder.ts`. This maximizes the LLM's recency bias and drastically reduces output format hallucinations during long context sessions.
+- **Dashboard UI Layout & Markdown Fixes**: Addressed major layout breaks in the Web Dashboard caused by LLM Markdown hallucinations. Implemented strict CSS overrides (`white-space: pre-wrap !important`, `word-break: break-all`) within `.markdown-body pre code` to constrain overflowing code fences and prevent horizontal scrollbar explosions.
+- **Strict Code Block & Markdown Layout Rules**: Injected absolute rules into the system prompt strictly forbidding the LLM from using 4-space indentation for code, enforcing isolated triple-backtick fences (\`\`\`bash) on separate lines, and completely banning Markdown tables for email lists to ensure flawless UI rendering.
+- **Security Policy Enforcement Engine**: Engineered the `SecurityGate` interceptor within the core plugin registry to natively enforce guardrails defined via the React UI.
+- **Real-time Web3 Blacklist**: The agent engine now actively monitors transaction parameters against `blacklisted_addresses`. Any DeFi or transfer action targeting a blacklisted address is instantaneously blocked before broadcasting.
+- **Shell Execution Guardrail**: OS Terminal tools now rigorously respect the `auto_approve_shell` flag. When toggled OFF, the interceptor forces the LLM to halt execution, explicitly seek human permission in the chat, and waits for a "yes" approval before granting system access.
+- **Web3 Auto-Approve Pipeline**: Refactored the `transfer.ts`, `swapToken.ts`, and `bridgeToken.ts` tools to fully honor `require_approval: false`. Approved transaction intents now bypass the `confirmPendingTx` wait queue and execute autonomously end-to-end.
+
 ## [26.7.23]
 ### Dashboard Features & UI
 - **System & Maintenance Module**: Engineered the `System.tsx` component from scratch. The interface now features a sleek, edge-to-edge stacked row list design, completely abandoning the legacy card-based layout for a more professional, native application feel.

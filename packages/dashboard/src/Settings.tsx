@@ -374,6 +374,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     pillColor="transparent"
                     textColor="var(--text-primary)"
                     options={[
+                      { id: 'all', label: 'All Chains (Auto)', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
                       { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
                       { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
                       { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },
@@ -381,8 +382,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       { id: 'robinhood', label: 'Robinhood Chain', icon: <ChainIcon id="robinhood" /> },
                       { id: 'optimism', label: 'OP Mainnet', icon: <ChainIcon id="optimism" /> },
                       { id: 'polygon', label: 'Polygon (Matic)', icon: <ChainIcon id="polygon" /> },
-                      { id: 'sepolia', label: 'Sepolia Testnet', icon: <ChainIcon id="sepolia" /> },
-                      { id: 'base_sepolia', label: 'Base Sepolia Testnet', icon: <ChainIcon id="base_sepolia" /> },
+                      { id: 'sepolia', label: 'Sepolia', icon: <ChainIcon id="sepolia" /> },
+                      { id: 'base_sepolia', label: 'Base Sepolia', icon: <ChainIcon id="base_sepolia" /> },
                       { id: 'arbitrum_sepolia', label: 'Arbitrum Sepolia', icon: <ChainIcon id="arbitrum_sepolia" /> },
                       { id: 'robinhood_testnet', label: 'Robinhood Testnet', icon: <ChainIcon id="robinhood_testnet" /> },
                       { id: 'optimism_sepolia', label: 'OP Sepolia', icon: <ChainIcon id="optimism_sepolia" /> }
@@ -628,7 +629,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       color: '#BF616A',
                       border: '1px solid rgba(191, 97, 106, 0.5)',
                       padding: '12px 16px',
-                      borderRadius: '8px',
+                      borderRadius: '9999px',
                       cursor: wipingMemory ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -670,7 +671,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     />
                     <button 
                       className="nord-btn-primary" 
-                      style={{ padding: '0 16px', borderRadius: '8px' }}
+                      style={{ padding: '0 16px', borderRadius: '9999px' }}
                       onClick={handlePasswordChange}
                       disabled={!oldPassword || !newPassword}
                     >
@@ -689,7 +690,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       color: '#eceff4',
                       border: 'none',
                       padding: '12px 16px',
-                      borderRadius: '8px',
+                      borderRadius: '9999px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',

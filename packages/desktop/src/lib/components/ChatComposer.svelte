@@ -292,7 +292,7 @@
       <!-- Empty State Header -->
       <div class="flex items-center justify-center gap-4 mb-10 text-blue-500 dark:text-[#0a84ff]">
         <NyxoraLogo size={36} color="currentColor" />
-        <div class="text-2xl font-medium">Nyxora AI</div>
+        <div class="text-2xl font-medium">Nyxora<span class="text-blue-500 dark:text-[#0a84ff]">.</span></div>
       </div>
   {/if}
 

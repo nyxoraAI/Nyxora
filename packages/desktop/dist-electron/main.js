@@ -1,8 +1,13 @@
-import { BrowserWindow, app, dialog, ipcMain } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, nativeImage } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import os from "node:os";
+import fs from "node:fs";
 //#region electron/main.ts
+app.name = "Nyxora";
+app.setAppUserModelId("Nyxora");
+if (process.platform === "linux") app.setDesktopName("Nyxora.desktop");
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("disable-gpu");
@@ -32,6 +37,8 @@ function startNyxoraDaemon() {
 }
 function createWindow() {
 	win = new BrowserWindow({
+		title: "Nyxora",
+		icon: nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, "nyxora-icon.png")),
 		width: 1200,
 		height: 800,
 		titleBarStyle: "hidden",
@@ -43,8 +50,21 @@ function createWindow() {
 			nodeIntegration: false
 		}
 	});
-	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
-	else win.loadFile(path.join(RENDERER_DIST, "index.html"));
+	let token = "";
+	try {
+		const tokenPath = path.join(os.homedir(), ".nyxora", "auth", "auth.token");
+		if (fs.existsSync(tokenPath)) {
+			token = fs.readFileSync(tokenPath, "utf8").trim();
+			if (token.startsWith("{")) try {
+				token = JSON.parse(token).token;
+			} catch (e) {}
+		}
+	} catch (e) {}
+	if (VITE_DEV_SERVER_URL) {
+		const devUrl = new URL(VITE_DEV_SERVER_URL);
+		if (token) devUrl.searchParams.set("token", token);
+		win.loadURL(devUrl.toString());
+	} else win.loadFile(path.join(RENDERER_DIST, "index.html"), token ? { query: { token } } : {});
 }
 ipcMain.on("window-minimize", (event) => {
 	const w = BrowserWindow.fromWebContents(event.sender);

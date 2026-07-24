@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
-import { loadConfig, loadApiKeys } from '../config/parser';
+import { loadConfig, loadApiKeys, loadPolicyConfig } from '../config/parser';
 import { Logger } from '../memory/logger';
 import { Tracker } from '../gateway/tracker';
 import { episodicDB } from '../memory/episodic';
@@ -54,6 +54,51 @@ pluginManager.registerHook({
       }
       return { terminate: true };
     }
+  }
+});
+
+pluginManager.registerHook({
+  name: 'SecurityGate',
+  beforeToolCall: async (toolName, args, context) => {
+    const policy = loadPolicyConfig();
+    const isWeb3Tx = ['transfer_token', 'transfer_native', 'swap_token', 'bridge_token', 'mint_nft', 'custom_tx', 'revoke_approval', 'supply_aave', 'deposit_yield_vault', 'provide_liquidity_v3'].includes(toolName);
+    
+    // 1. Blacklist Check
+    if (isWeb3Tx && policy.blacklisted_addresses && policy.blacklisted_addresses.length > 0) {
+      const targetAddress = args.toAddress || args.recipient || args.contractAddress || args.target;
+      if (targetAddress && typeof targetAddress === 'string') {
+        const isBlacklisted = policy.blacklisted_addresses.some((addr: string) => addr.toLowerCase() === targetAddress.toLowerCase());
+        if (isBlacklisted) {
+          const msg = `[Security Blocked] The destination address ${targetAddress} is blacklisted by the user's security policy.`;
+          console.log(pc.red(`[❌ Blocked] ${toolName} blocked by Blacklist.`));
+          return { block: true, reason: msg };
+        }
+      }
+    }
+
+    // 2. Shell Command Auto-Approve Check
+    if ((toolName === 'run_terminal_command' || toolName === 'run_terminal_command_pty')) {
+      // If user disabled auto-approve for shell, and it's not a read-only safe command
+      if (policy.auto_approve_shell === false) {
+        // We need to check if user explicitly approved it in the last message
+        const history = logger.getHistory(context.sessionId);
+        const lastUserMsg = [...history].reverse().find(m => m.role === 'user');
+        const userText = String(lastUserMsg?.content || '').toLowerCase();
+        
+        // Very basic intent check for approval
+        const hasApproved = /\b(yes|ya|y|approve|proceed|lanjut|ok|oke|sure)\b/.test(userText);
+        
+        // If not approved, block and ask LLM to ask user
+        if (!hasApproved) {
+          const msg = `[Security Blocked] Executing shell commands requires explicit user approval because auto_approve_shell is OFF. Please ask the user for permission to run: ${args.command}`;
+          console.log(pc.yellow(`[⚠️ Blocked] ${toolName} blocked by auto_approve_shell=false.`));
+          return { block: true, reason: msg };
+        }
+      }
+    }
+    
+    // Note: max_usd_per_tx check is complex here due to async price fetching. 
+    // For now, we rely on the user to approve the tx via the UI if require_approval is true.
   }
 });
 // --- END LIFECYCLE HOOKS ---
