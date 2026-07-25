@@ -8,6 +8,9 @@ export interface NormalizedChatRequest {
   tools?: any[];
   tool_choice?: 'auto' | 'none' | any;
   temperature?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  repetition_penalty?: number;
   max_tokens?: number;
   reasoning_effort?: 'low' | 'medium' | 'high' | 'none' | null;
 }
@@ -77,10 +80,10 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
         delete payload.reasoning_effort;
     }
-    // Suppress token-level repetition loops. 0.6 is aggressive enough to stop
-    // phrase-echoing but not so high that it degrades coherent prose.
-    if (payload.frequency_penalty === undefined) payload.frequency_penalty = 0.6;
-    if (payload.presence_penalty === undefined) payload.presence_penalty = 0.3;
+    // Suppress token-level repetition loops.
+    payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6;
+    payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.3;
+    if (payload.top_p === undefined) payload.top_p = 0.95;
     const response = await this.client.chat.completions.create(payload);
     let content = response.choices[0].message.content || '';
     let reasoning = (response.choices[0].message as any).reasoning_content || null;
@@ -114,8 +117,9 @@ export class OpenAIAdapter implements LLMProvider {
           delete payload.reasoning_effort;
       }
       // Suppress token-level repetition loops (same as chat())
-      if (payload.frequency_penalty === undefined) payload.frequency_penalty = 0.6;
-      if (payload.presence_penalty === undefined) payload.presence_penalty = 0.3;
+      payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6;
+      payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.3;
+      if (payload.top_p === undefined) payload.top_p = 0.95; // Force top_p to cull low prob tokens
       const streamRes = await this.client.chat.completions.create(payload) as any as AsyncIterable<any>;
       let fullContent = '';
       let reasoningContent = '';

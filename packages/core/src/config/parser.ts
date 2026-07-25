@@ -114,6 +114,9 @@ export interface NyxoraConfig {
     provider: string;
     model: string;
     temperature: number;
+    frequency_penalty?: number;
+    presence_penalty?: number;
+    repetition_penalty?: number;
     reasoning_effort?: 'low' | 'medium' | 'high' | 'none';
     api_keys?: string[];
     credentials?: any; // Deprecated, kept for parsing during migration
@@ -124,6 +127,8 @@ export interface NyxoraConfig {
   web_search?: {
     provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh' | 'serpapi';
     enabled: boolean;
+    scraper?: string;
+    fallback_provider?: 'tavily' | 'brave' | 'duckduckgo' | 'mesh' | 'serpapi';
   };
   credentials?: {
     openai_key?: string;
@@ -254,11 +259,18 @@ export function loadConfig(): NyxoraConfig {
     
     const validatedConfig: NyxoraConfig = {
       agent: parsed.agent || { name: 'Nyxora-Default', description: 'Your Personal Web3 Assistant.', default_chain: 'base', default_router: 'auto', default_slippage: 'auto' },
-      llm: parsed.llm || { 
-        provider: 'openai', 
-        model: 'gpt-4o-mini', 
-        temperature: 0.2, 
-        api_keys: []
+      llm: {
+        provider: parsed.llm?.provider || 'openai',
+        model: parsed.llm?.model || 'gpt-4o-mini',
+        temperature: parsed.llm?.temperature ?? 0.2,
+        frequency_penalty: parsed.llm?.frequency_penalty ?? 0.6,
+        presence_penalty: parsed.llm?.presence_penalty ?? 0.3,
+        repetition_penalty: parsed.llm?.repetition_penalty ?? 1.0,
+        reasoning_effort: parsed.llm?.reasoning_effort,
+        api_keys: parsed.llm?.api_keys || [],
+        base_url: parsed.llm?.base_url,
+        image_provider: parsed.llm?.image_provider,
+        image_model: parsed.llm?.image_model
       },
       web_search: parsed.web_search || {
         provider: 'mesh',
@@ -298,7 +310,10 @@ export function loadConfig(): NyxoraConfig {
       llm: { 
         provider: 'openai', 
         model: 'gpt-4o-mini', 
-        temperature: 0.2, 
+        temperature: 0.2,
+        frequency_penalty: 0.6,
+        presence_penalty: 0.3,
+        repetition_penalty: 1.0,
         api_keys: []
       },
       web_search: {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PillSelect } from './components/PillSelect';
 import { LlmIcon } from './components/LlmIcons';
-import { Save, Cpu } from 'lucide-react';
+import { Save, Cpu, Key } from 'lucide-react';
 import { apiFetch } from './utils/api';
 
 interface Config {
@@ -16,6 +16,7 @@ interface Config {
     image_model?: string;
   };
   web3?: any;
+  credentials?: any;
 }
 
 interface ModelsProps {
@@ -36,12 +37,16 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
           provider: config.llm?.provider || 'openai',
           model: config.llm?.model || 'gpt-4',
           temperature: config.llm?.temperature || 0.7,
+          frequency_penalty: config.llm?.frequency_penalty,
+          presence_penalty: config.llm?.presence_penalty,
+          repetition_penalty: config.llm?.repetition_penalty,
           base_url: config.llm?.base_url || '',
           reasoning_effort: config.llm?.reasoning_effort || 'medium',
           image_provider: config.llm?.image_provider || 'openai',
           image_model: config.llm?.image_model || ''
         },
-        web3: config.web3
+        web3: config.web3,
+        credentials: config.credentials || {}
       });
     }
   }, [config]);
@@ -58,6 +63,10 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
 
       return { ...prev, llm: newLlm };
     });
+  };
+
+  const handleCredentialChange = (key: string, value: string) => {
+    setFormData(prev => prev ? { ...prev, credentials: { ...(prev.credentials || {}), [key]: value } } : prev);
   };
 
   const handleSave = async () => {
@@ -87,7 +96,7 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
   if (!formData) return <div className="overview-container">Loading...</div>;
 
   return (
-    <div className="overview-container" style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', color: 'var(--text-secondary)' }}>
+    <div className="overview-container" style={{ padding: '24px', width: '100%', margin: '0 auto', color: 'var(--text-secondary)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', margin: 0 }}>
           <Cpu size={24} color="var(--accent)" />
@@ -121,8 +130,7 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
             <PillSelect 
               value={formData.llm.provider}
               onChange={(val) => handleChange('provider', val)}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
                 { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
@@ -161,14 +169,48 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
             />
           </div>
         </div>
+        <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+          <div className="form-group flex-1" style={{ flex: 1 }}>
+            <label className="nord-label" style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Frequency Penalty ({formData.llm.frequency_penalty ?? 0.6})</label>
+            <input 
+              className="nord-slider"
+              style={{ width: '100%' }}
+              type="range" 
+              min="-2" max="2" step="0.1"
+              value={formData.llm.frequency_penalty ?? 0.6} 
+              onChange={e => handleChange('frequency_penalty', parseFloat(e.target.value))} 
+            />
+          </div>
+          <div className="form-group flex-1" style={{ flex: 1 }}>
+            <label className="nord-label" style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Presence Penalty ({formData.llm.presence_penalty ?? 0.3})</label>
+            <input 
+              className="nord-slider"
+              style={{ width: '100%' }}
+              type="range" 
+              min="-2" max="2" step="0.1"
+              value={formData.llm.presence_penalty ?? 0.3} 
+              onChange={e => handleChange('presence_penalty', parseFloat(e.target.value))} 
+            />
+          </div>
+          <div className="form-group flex-1" style={{ flex: 1 }}>
+            <label className="nord-label" style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Repetition Penalty ({formData.llm.repetition_penalty ?? 1.0})</label>
+            <input 
+              className="nord-slider"
+              style={{ width: '100%' }}
+              type="range" 
+              min="0" max="2" step="0.05"
+              value={formData.llm.repetition_penalty ?? 1.0} 
+              onChange={e => handleChange('repetition_penalty', parseFloat(e.target.value))} 
+            />
+          </div>
+        </div>
         <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
           <div className="form-group flex-1" style={{ flex: 1 }}>
             <label className="nord-label" style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Reasoning Effort (O1/O3)</label>
             <PillSelect 
               value={formData.llm.reasoning_effort || 'medium'}
               onChange={(val) => handleChange('reasoning_effort', val)}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: 'low', label: 'Low' },
                 { id: 'medium', label: 'Medium' },
@@ -178,6 +220,23 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
           </div>
           <div className="form-group flex-2" style={{ flex: 2 }}></div>
         </div>
+
+        <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <Key size={14} color="var(--accent)" />
+            <label style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>
+              {formData.llm.provider.charAt(0).toUpperCase() + formData.llm.provider.slice(1)} API Key
+            </label>
+          </div>
+          <input 
+            type="password" 
+            placeholder={`Enter API Key for ${formData.llm.provider}...`}
+            value={formData.credentials?.[`${formData.llm.provider}_api_key`] || ''} 
+            onChange={e => handleCredentialChange(`${formData.llm.provider}_api_key`, e.target.value)} 
+            style={{ width: '100%', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', padding: '10px 20px', borderRadius: '9999px', fontSize: '0.85rem', outline: 'none' }}
+          />
+        </div>
+
         {formData.llm.provider === 'custom_provider' && (
           <div className="form-row" style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
             <div className="form-group flex-1" style={{ flex: 1 }}>
@@ -205,8 +264,7 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
             <PillSelect 
               value={formData.llm.image_provider || 'openai'}
               onChange={(val) => handleChange('image_provider', val)}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: 'openai', label: 'OpenAI (DALL-E)' },
                 { id: 'gemini', label: 'Google Gemini (Native)' }
@@ -224,6 +282,22 @@ export const Models: React.FC<ModelsProps> = ({ config, onConfigChange }) => {
               onChange={e => handleChange('image_model', e.target.value)} 
             />
           </div>
+        </div>
+
+        <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <Key size={14} color="var(--accent)" />
+            <label style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>
+              {formData.llm.image_provider.charAt(0).toUpperCase() + formData.llm.image_provider.slice(1)} API Key (Image)
+            </label>
+          </div>
+          <input 
+            type="password" 
+            placeholder={`Enter API Key for ${formData.llm.image_provider}...`}
+            value={formData.credentials?.[`${formData.llm.image_provider}_api_key`] || ''} 
+            onChange={e => handleCredentialChange(`${formData.llm.image_provider}_api_key`, e.target.value)} 
+            style={{ width: '100%', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', padding: '10px 20px', borderRadius: '9999px', fontSize: '0.85rem', outline: 'none' }}
+          />
         </div>
       </div>
     </div>

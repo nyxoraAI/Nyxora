@@ -118,7 +118,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       const response = await executeWithRetry(async (client) => {
         return await client.chat({
             model: config.llm.model,
-            temperature: config.llm.temperature,
+            temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty,
             messages: messages,
             tools: activeTools
         });
@@ -453,7 +453,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
           const summaryResponse = await executeWithRetry(async (client) =>
             client.chat({
               model: config.llm.model,
-              temperature: config.llm.temperature,
+              temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty,
               messages: summaryMessages,
               tools: [],  // physically disables tool calls
             })
@@ -568,7 +568,7 @@ export async function processWeb3IntentStream(
         // Subsequent turns must wipe the buffer to prevent UI duplication of the planning text.
         onChunk('[CLEAR_STREAM]');
         return await client.stream(
-          { model: config.llm.model, temperature: config.llm.temperature, messages, tools: activeTools, reasoning_effort: config.llm.reasoning_effort },
+          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, messages, tools: activeTools, reasoning_effort: config.llm.reasoning_effort },
           (chunk: string) => {
             streamedContent += chunk;
             onChunk(chunk);
@@ -823,7 +823,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
             narrativeStream = '';
             onChunk('[CLEAR_STREAM]');
             return await client.stream(
-              { model: config.llm.model, temperature: config.llm.temperature, messages: summaryMessagesS, tools: [] },
+              { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, messages: summaryMessagesS, tools: [] },
               (chunk: string) => { narrativeStream += chunk; onChunk(chunk); }
             );
           });

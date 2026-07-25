@@ -16,6 +16,7 @@ import Logs from './Logs';
 import Cron from './Cron';
 import Skills from './Skills';
 import Plugins from './Plugins';
+import WebSearch from './WebSearch';
 import Mcp from './Mcp';
 import Webhooks from './Webhooks';
 import Pairing from './Pairing';
@@ -39,7 +40,7 @@ interface Config {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('nyxora_auth') === 'true');
-  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'hardware' | 'system'>('sessions');
+  const [currentView, setCurrentView] = useState<'sessions' | 'models' | 'logs' | 'cron' | 'skills' | 'plugins' | 'websearch' | 'mcp' | 'webhooks' | 'pairing' | 'profiles' | 'rpcconfig' | 'deficonfig' | 'marketoracles' | 'memory' | 'security' | 'wallets' | 'workflows' | 'gateway' | 'osterminal' | 'hardware' | 'system'>('sessions');
   
   const [config, setConfig] = useState<Config | null>(null);
   
@@ -205,11 +206,16 @@ function App() {
         <div className="sidebar-header" style={{ padding: '24px 16px', paddingBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', width: '100%' }}>
             {!isSidebarCollapsed && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <NyxoraLogo size={28} />
-                <h2 style={{ margin: 0, fontSize: '1.1rem', letterSpacing: '-0.02em', color: 'var(--text-primary)', fontWeight: 700 }}>
-                  Nyxora<span style={{color: 'var(--accent)'}}>.</span>
-                </h2>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <NyxoraLogo size={28} />
+                  <h2 style={{ margin: 0, fontSize: '1.1rem', letterSpacing: '-0.02em', color: 'var(--text-primary)', fontWeight: 700 }}>
+                    Nyxora<span style={{color: 'var(--accent)'}}>.</span>
+                  </h2>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '4px', paddingLeft: '38px', fontWeight: 600 }}>
+                  Gateway Status: <span style={{color: '#10b981'}}>Online</span>
+                </div>
               </div>
             )}
 
@@ -298,6 +304,9 @@ function App() {
               <div className={`nav-item ${currentView === 'plugins' ? 'active' : ''}`} onClick={() => setCurrentView('plugins')} title={isSidebarCollapsed ? "PLUGINS" : undefined}>
                 <Plug size={16} /> {!isSidebarCollapsed && "PLUGINS"}
               </div>
+              <div className={`nav-item ${currentView === 'websearch' ? 'active' : ''}`} onClick={() => setCurrentView('websearch')} title={isSidebarCollapsed ? "WEB SEARCH" : undefined}>
+                <Search size={16} /> {!isSidebarCollapsed && "WEB SEARCH"}
+              </div>
               <div className={`nav-item ${currentView === 'mcp' ? 'active' : ''}`} onClick={() => setCurrentView('mcp')} title={isSidebarCollapsed ? "MCP" : undefined}>
                 <Server size={16} /> {!isSidebarCollapsed && "MCP"}
               </div>
@@ -319,9 +328,7 @@ function App() {
             </div>
           </nav>
           
-          <div className="sidebar-section system-footer" style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--glass-border)' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>Gateway Status: <span style={{color: '#10b981'}}>Online</span></div>
-          </div>
+
         </div>
       </aside>
 
@@ -380,6 +387,7 @@ function App() {
             {currentView === 'cron' && <Cron />}
             {currentView === 'skills' && <Skills />}
             {currentView === 'plugins' && <Plugins />}
+            {currentView === 'websearch' && <WebSearch config={config} onConfigChange={setConfig} />}
             {currentView === 'mcp' && <Mcp />}
             {currentView === 'webhooks' && <Webhooks />}
             {currentView === 'pairing' && <Pairing />}

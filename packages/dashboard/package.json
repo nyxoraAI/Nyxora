@@ -1,7 +1,7 @@
 {
   "name": "nyxora-dashboard",
   "description": "Nyxora Dashboard & Settings UI",
-  "version": "26.7.24",
+  "version": "26.7.25",
   "private": true,
   "type": "module",
   "scripts": {

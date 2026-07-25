@@ -47,7 +47,7 @@ export async function getOpenAI(): Promise<OpenAI> {
   return new OpenAI({
     baseURL: actualProvider === 'custom_provider' ? config.llm.base_url : (PROVIDER_CONFIGS[actualProvider] || PROVIDER_CONFIGS['openai']).baseURL,
     apiKey: apiKey,
-    timeout: 120 * 1000,
+    timeout: 600 * 1000,
     maxRetries: 0
   });
 }
@@ -92,7 +92,7 @@ export async function getLLMClient(): Promise<LLMProvider> {
   const client = new OpenAI({
     baseURL: providerName === 'custom_provider' ? config.llm.base_url : providerConf.baseURL,
     apiKey: apiKey || 'local',
-    timeout: 120 * 1000,
+    timeout: 600 * 1000,
     maxRetries: 0
   });
   cachedLLMClient = new OpenAIAdapter(client);

@@ -165,6 +165,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
           provider: config.llm?.provider || 'openai',
           model: config.llm?.model || 'gpt-4',
           temperature: config.llm?.temperature || 0.7,
+          frequency_penalty: config.llm?.frequency_penalty,
+          presence_penalty: config.llm?.presence_penalty,
+          repetition_penalty: config.llm?.repetition_penalty,
           base_url: config.llm?.base_url || '',
           reasoning_effort: config.llm?.reasoning_effort || 'medium',
           image_provider: config.llm?.image_provider || 'openai',
@@ -371,8 +374,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.agent.default_chain}
                     onChange={(val) => handleChange('agent', 'default_chain', val)}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'all', label: 'All Chains (Auto)', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
                       { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
@@ -432,8 +434,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.provider}
                     onChange={(val) => handleChange('llm', 'provider', val)}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'gemini', label: 'Google Gemini', icon: <LlmIcon provider="gemini" size={14} /> },
                       { id: 'anthropic', label: 'Anthropic (Claude)', icon: <LlmIcon provider="anthropic" size={14} /> },
@@ -477,8 +478,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.reasoning_effort || 'medium'}
                     onChange={(val) => handleChange('llm', 'reasoning_effort', val)}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'low', label: 'Low' },
                       { id: 'medium', label: 'Medium' },
@@ -512,8 +512,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.llm.image_provider || 'openai'}
                     onChange={(val) => handleChange('llm', 'image_provider', val)}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'openai', label: 'OpenAI (DALL-E)' },
                       { id: 'gemini', label: 'Google Gemini (Native)' }
@@ -571,8 +570,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                       localStorage.setItem('nyxora_theme', val);
                       window.location.reload();
                     }}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'auto', label: 'System (Auto)' },
                       { id: 'dark', label: 'Dark Mode' },
@@ -585,8 +583,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={formData.agent.log_level || 'info'}
                     onChange={(val) => handleChange('agent', 'log_level', val)}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: 'info', label: 'Info (Standard)' },
                       { id: 'debug', label: 'Debug (Verbose)' }
@@ -608,8 +605,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                   <PillSelect 
                     value={autoLockTime.toString()}
                     onChange={(val) => setAutoLockTime(parseInt(val))}
-                    pillColor="transparent"
-                    textColor="var(--text-primary)"
+
                     options={[
                       { id: '0', label: 'Off' },
                       { id: '15', label: '15 Minutes' },
@@ -718,8 +714,6 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     <PillSelect 
                       value={userProfile.risk_level}
                       onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
-                      pillColor="transparent"
-                      textColor="var(--danger)"
                       options={[
                         { id: 'Conservative', label: 'Conservative (Safe)' },
                         { id: 'Moderate', label: 'Moderate' },

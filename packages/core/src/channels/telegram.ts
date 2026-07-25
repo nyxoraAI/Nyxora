@@ -43,6 +43,9 @@ export function formatToRichMarkdown(text: string): string {
   // Strip raw JSON tool arrays
   md = md.replace(/\[\s*\{\s*"(?:tool_name|function_name)"[\s\S]*?(?:\]|$)/gi, '');
 
+  // Strip UI-specific HTML tags (e.g. span for colors) that leak in Telegram
+  md = md.replace(/<\/?span[^>]*>/gi, '');
+
   return md.trim();
 }
 
@@ -50,7 +53,11 @@ export function formatToRichMarkdown(text: string): string {
 // Telegram HTML Formatter
 export function formatToTelegramHTML(text: string): string {
   if (!text) return '';
-  let html = text
+  
+  // Strip UI-specific HTML tags (e.g. span) before escaping
+  let html = text.replace(/<\/?span[^>]*>/gi, '');
+
+  html = html
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');

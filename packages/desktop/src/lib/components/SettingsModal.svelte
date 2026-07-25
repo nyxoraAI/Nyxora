@@ -18,9 +18,6 @@
   import ExternalSkills from './settings/ExternalSkills.svelte';
   import Playbooks from './settings/Playbooks.svelte';
   import RiskPolicy from './settings/RiskPolicy.svelte';
-  import RpcConfig from './settings/RpcConfig.svelte';
-  import DefiConfig from './settings/DefiConfig.svelte';
-  import MarketOracles from './settings/MarketOracles.svelte';
   import Integrations from './settings/Integrations.svelte';
 
   let isOpen = $derived($appState.isSettingsOpen);
@@ -70,9 +67,6 @@
       title: 'Advanced',
       items: [
         { id: 'risk', label: 'Risk & Policy', icon: AlertTriangle },
-        { id: 'rpc', label: 'RPC Config', icon: Server },
-        { id: 'defi', label: 'DeFi Config', icon: Landmark },
-        { id: 'oracles', label: 'Market Oracles', icon: LineChart },
         { id: 'integrations', label: 'Integrations', icon: Link2 }
       ]
     }
@@ -157,9 +151,6 @@
               {#if activeTab === 'playbooks'} <Playbooks /> {/if}
               
               {#if activeTab === 'risk'} <RiskPolicy /> {/if}
-              {#if activeTab === 'rpc'} <RpcConfig /> {/if}
-              {#if activeTab === 'defi'} <DefiConfig /> {/if}
-              {#if activeTab === 'oracles'} <MarketOracles /> {/if}
               {#if activeTab === 'integrations'} <Integrations /> {/if}
               
               {#if ['agent', 'llm', 'appearance', 'security', 'risk', 'integrations'].includes(activeTab)}

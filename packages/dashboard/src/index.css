@@ -819,7 +819,7 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   transition: transform 0.3s ease;
   z-index: 2;
   background: transparent;
-  border: 1px solid var(--accent);
+  border: none;
 }
 
 .action-menu-container:hover .plus-button {
@@ -830,13 +830,12 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
 .action-menu-items .voice-button {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--accent);
+  border: none;
   background: transparent;
 }
 
 .action-menu-items .voice-button:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: transparent;
 }
 
 .voice-button.listening {
@@ -1015,9 +1014,15 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   appearance: none;
   width: 100%;
   height: 6px;
-  background: var(--tool-bg);
+  background: var(--glass-border);
+  border-radius: 9999px;
   outline: none;
   margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.nord-slider:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .nord-slider::-webkit-slider-thumb {
@@ -1025,24 +1030,43 @@ body.light-theme .styled-scroll::-webkit-scrollbar-thumb:hover {
   appearance: none;
   width: 18px;
   height: 18px;
-  background: var(--text-primary);
+  background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--accent);
-  transition: all 0.2s ease;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 5px rgba(0,0,0,0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .nord-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  background: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 12px var(--accent);
+}
+
+.nord-slider::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 0 3px var(--accent), 0 0 15px var(--accent);
 }
 
 .nord-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  background: var(--text-primary);
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--accent);
-  transition: all 0.2s ease;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 5px rgba(0,0,0,0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.nord-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 12px var(--accent);
+}
+
+.nord-slider::-moz-range-thumb:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 0 3px var(--accent), 0 0 15px var(--accent);
 }
 
 /* Flat Matte Button */

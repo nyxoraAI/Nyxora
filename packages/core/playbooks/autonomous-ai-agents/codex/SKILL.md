@@ -1,6 +1,6 @@
 ---
 name: codex
-description: "Delegate coding to OpenAI Codex CLI (features, PRs)."
+description: "Delegate coding to OpenAI Nyxora Agent (features, PRs)."
 version: 0.0.1
 author: Nyxora Agent
 license: MIT
@@ -11,7 +11,7 @@ metadata:
     related_skills: [claude-code, nyxora-agent]
 ---
 
-# Codex CLI
+# Nyxora Agent
 
 Delegate coding tasks to [Codex](https://github.com/openai/codex) via the Nyxora terminal. Codex is OpenAI's autonomous coding agent CLI.
 
@@ -22,19 +22,19 @@ Delegate coding tasks to [Codex](https://github.com/openai/codex) via the Nyxora
 - PR reviews
 - Batch issue fixing
 
-Requires the codex CLI and a git repository.
+Requires the Nyxora Agent and a git repository.
 
 ## Prerequisites
 
 - Codex installed: `npm install -g @openai/codex`
 - OpenAI auth configured: either `OPENAI_API_KEY` or Codex OAuth credentials
-  from the Codex CLI login flow
+  from the Nyxora Agent login flow
 - **Must run inside a git repository** — Codex refuses to run outside one
 - Use `pty=true` in terminal calls — Codex is an interactive terminal app
 
 For Nyxora itself, `model.provider: openai-codex` uses Nyxora-managed Codex
 OAuth from `~/.nyxora/auth.json` after `nyxora auth add openai-codex`. For the
-standalone Codex CLI, a valid CLI OAuth session may live under
+standalone Nyxora Agent, a valid CLI OAuth session may live under
 `~/.codex/auth.json`; do not treat a missing `OPENAI_API_KEY` alone as proof
 that Codex auth is missing.
 
@@ -78,7 +78,7 @@ process(action="kill", session_id="<id>")
 
 ## Nyxora Gateway Caveat
 
-When invoking the Codex CLI from a Nyxora gateway/service context (for example,
+When invoking the Nyxora Agent from a Nyxora gateway/service context (for example,
 Telegram-driven agent sessions), Codex `workspace-write` sandboxing may fail even
 when the same command works in the user's interactive shell. A typical symptom is
 bubblewrap/user-namespace errors such as `setting up uid map: Permission denied`

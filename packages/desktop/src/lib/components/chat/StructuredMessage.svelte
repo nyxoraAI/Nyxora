@@ -14,14 +14,41 @@
     setTimeout(() => { copied = false; }, 2000);
   }
 
+  function fixMarkdown(text: string): string {
+    let t = text;
+    
+    // Fix broken tables where the first data row lacks a '|'
+    // Converts the header to bold text and removes the separator row
+    t = t.replace(/^(\|.+?\|)\s*\n(\|\s*[-:]+[-| :]*\|)\s*\n([^|\n]+)$/gm, (match, header, sep, nextLine) => {
+      let cleanHeader = header.replace(/(^\||\|$)/g, '').split('|').map(s => `**${s.trim()}**`).join(' - ');
+      return `${cleanHeader}\n\n${nextLine}`;
+    });
+
+    // Fix single-line tables or tables with mismatched separators by ensuring newlines are preserved
+    t = t.replace(/\|\s*(\|\s*[-:]+[-| :]*\|)/g, '|\n$1');
+    t = t.replace(/(\|\s*[-:]+[-| :]*\|)\s+(?=\||\w)/g, '$1\n');
+    
+    // Fix emoji lists by converting them to markdown lists with a hidden span for CSS targeting
+    const emojiRegex = /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Regional_Indicator}{2})\s+(.*)/ugm;
+    t = t.replace(emojiRegex, (match, emoji, rest) => {
+      if (match.trim().startsWith('-') || match.trim().startsWith('*')) return match;
+      return `- <span class="emoji-bullet">${emoji}</span>${rest}`;
+    });
+
+    return t;
+  }
+
   function renderMarkdown(text: string): string {
-    const cleaned = text
+    let cleaned = text
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
       .replace(/\[TOOL_CALL_DETECTED\][\s\S]*?(\[TOOL_CALL_FINISHED\]|$)/g, '')
       .trim();
     if (!cleaned) return '';
-    return DOMPurify.sanitize(marked.parse(cleaned) as string);
+    
+    cleaned = fixMarkdown(cleaned);
+    
+    return DOMPurify.sanitize(marked.parse(cleaned, { gfm: true, breaks: true }) as string, { ADD_ATTR: ['class'] });
   }
 
   function enhanceMarkdown(node: HTMLElement) {

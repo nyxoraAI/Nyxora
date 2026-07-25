@@ -3,15 +3,82 @@ import { DOMParser } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 import { search, SafeSearchType } from 'duck-duck-scrape';
 
-async function scrapeUrl(url: string): Promise<string | null> {
+async function scrapeUrl(url: string, scraper: string, creds: any): Promise<string | null> {
   try {
+    if (scraper === 'jina') {
+      const headers: any = { 'User-Agent': 'Mozilla/5.0 (compatible; NyxoraBot/1.0)' };
+      if (creds.jina_key) headers['Authorization'] = `Bearer ${creds.jina_key}`;
+      const res = await fetch(`https://r.jina.ai/${url}`, { headers, signal: AbortSignal.timeout(10000) });
+      if (res.ok) return await res.text();
+      console.warn(`[Scraper] Jina returned status ${res.status}`);
+    } else if (scraper === 'firecrawl') {
+      if (creds.firecrawl_key) {
+        const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${creds.firecrawl_key}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url, formats: ['markdown'] }),
+          signal: AbortSignal.timeout(15000)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data && json.data.markdown) return json.data.markdown;
+        } else {
+          console.warn(`[Scraper] Firecrawl returned status ${res.status}`);
+        }
+      } else {
+        console.warn(`[Scraper] Firecrawl API Key missing. Falling back to default.`);
+      }
+    } else if (scraper === 'crawl4ai') {
+      const endpoint = creds.crawl4ai_endpoint || 'http://localhost:11227/crawl';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: url }),
+        signal: AbortSignal.timeout(30000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.results && json.results[0] && json.results[0].markdown) {
+          return json.results[0].markdown;
+        }
+      } else {
+        console.warn(`[Scraper] Crawl4AI failed at ${endpoint} with status ${res.status}`);
+      }
+    } else if (scraper === 'puppeteer' || scraper === 'browserbase') {
+      try {
+        const { chromium } = require('playwright');
+        let browser;
+        if (scraper === 'browserbase' && creds.browserbase_project_id && creds.browserbase_key) {
+          browser = await chromium.connectOverCDP(`wss://connect.browserbase.com?apiKey=${creds.browserbase_key}&projectId=${creds.browserbase_project_id}`);
+        } else {
+          browser = await chromium.launch({ headless: true });
+        }
+        const context = await browser.newContext({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' });
+        const page = await context.newPage();
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 20000 });
+        const textContent = await page.evaluate(() => {
+          document.querySelectorAll('script, style, noscript, iframe').forEach(el => el.remove());
+          return document.body.innerText;
+        });
+        await browser.close();
+        return textContent.replace(/\s+/g, ' ').trim();
+      } catch (e: any) {
+        console.warn(`[Scraper] Playwright/Browserbase failed: ${e.message}`);
+      }
+    }
+
+    // Default built-in engine (linkedom + readability) / Cheerio fallback
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NyxoraBot/1.0)' }, signal: AbortSignal.timeout(5000) });
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const reader = new Readability(doc as any);
     const article = reader.parse();
     return article ? article.textContent : null;
-  } catch (e) {
+  } catch (e: any) {
+    console.error(`[Scraper] Failed to scrape ${url} with ${scraper}: ${e.message}`);
     return null;
   }
 }
@@ -368,101 +435,47 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
 
   const config = loadConfig();
   const provider = config.web_search?.provider || 'mesh';
+  const scraper = config.web_search?.scraper || 'default';
   const vaultKeys = await loadApiKeys();
   const creds = { ...(config.credentials || {}), ...vaultKeys };
   
   let results: SearchQueryResult[] = [];
+
+  const fallback_provider = config.web_search?.fallback_provider || 'duckduckgo';
+
+  async function executeSearchHelper(prov: string, q: string, d: number): Promise<SearchQueryResult[]> {
+    if (prov === 'serpapi') {
+      if (!creds.serpapi_key) throw new Error('SerpApi key missing');
+      return await searchSerpApi(q, creds.serpapi_key, d);
+    }
+    if (prov === 'tavily') {
+      if (!creds.tavily_key) throw new Error('Tavily key missing');
+      return await searchTavily(q, creds.tavily_key, d);
+    }
+    if (prov === 'brave') {
+      if (!creds.brave_key) throw new Error('Brave key missing');
+      return await searchBrave(q, creds.brave_key, d);
+    }
+    if (prov === 'duckduckgo') return await searchDuckDuckGo(q, d);
+    if (prov === 'mesh') return await searchSearxng(q, d);
+    throw new Error(`Provider ${prov} not configured`);
+  }
   
   try {
-    if (provider === 'serpapi' && creds.serpapi_key) {
+    try {
+      console.log(`[WebSearch] Executing primary search via ${provider} for: "${finalQuery}"`);
+      results = await executeSearchHelper(provider, finalQuery, effectiveDepth);
+    } catch (e: any) {
+      console.warn(`[WebSearch] Primary provider (${provider}) failed: ${e.message}. Switching to fallback provider (${fallback_provider})...`);
       try {
-        console.log(`[WebSearch] Executing search via SerpApi for: "${finalQuery}"`);
-        results = await searchSerpApi(finalQuery, creds.serpapi_key, effectiveDepth);
-      } catch (e: any) {
-        console.warn(`[WebSearch] Primary provider (SerpApi) failed: ${e.message}. Switching to backup provider (DuckDuckGo)...`);
+        results = await executeSearchHelper(fallback_provider, finalQuery, effectiveDepth);
+      } catch (e2: any) {
+        console.warn(`[WebSearch] Fallback provider (${fallback_provider}) failed. Falling back to DuckDuckGo/Mesh...`);
         try {
           results = await searchDuckDuckGo(finalQuery, effectiveDepth);
         } catch (e3) {
-          console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
           results = await searchSearxng(finalQuery, effectiveDepth);
         }
-      }
-    } else if (provider === 'tavily' && creds.tavily_key) {
-      try {
-        results = await searchTavily(finalQuery, creds.tavily_key, effectiveDepth);
-      } catch (e: any) {
-        if (e.message.includes('401') || e.message.includes('429')) {
-          console.warn('[WebSearch] Primary provider (Tavily) failed with 429/401. Switching to backup provider (Brave Search)...');
-          if (creds.brave_key) {
-            try {
-              results = await searchBrave(finalQuery, creds.brave_key, effectiveDepth);
-            } catch (e2: any) {
-              console.warn('[WebSearch] Backup provider (Brave) failed. Falling back to DuckDuckGo (L3)...');
-              try {
-                results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-              } catch (e3) {
-                console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
-                results = await searchSearxng(finalQuery, effectiveDepth);
-              }
-            }
-          } else {
-            console.warn('[WebSearch] No backup premium provider found. Falling back to DuckDuckGo (L3)...');
-            try {
-              results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-            } catch (e3) {
-              console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
-              results = await searchSearxng(finalQuery, effectiveDepth);
-            }
-          }
-        } else {
-          throw e;
-        }
-      }
-    } else if (provider === 'brave' && creds.brave_key) {
-      try {
-        results = await searchBrave(finalQuery, creds.brave_key, effectiveDepth);
-      } catch (e: any) {
-        if (e.message.includes('403') || e.message.includes('429')) {
-          console.warn('[WebSearch] Primary provider (Brave) failed with 429/403. Switching to backup provider (Tavily)...');
-          if (creds.tavily_key) {
-            try {
-              results = await searchTavily(finalQuery, creds.tavily_key, effectiveDepth);
-            } catch (e2: any) {
-              console.warn('[WebSearch] Backup provider (Tavily) failed. Falling back to DuckDuckGo (L3)...');
-              try {
-                results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-              } catch (e3) {
-                console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
-                results = await searchSearxng(finalQuery, effectiveDepth);
-              }
-            }
-          } else {
-            console.warn('[WebSearch] No backup premium provider found. Falling back to DuckDuckGo (L3)...');
-            try {
-              results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-            } catch (e3) {
-              console.warn('[WebSearch] DuckDuckGo failed. Falling back to SearXNG Mesh...');
-              results = await searchSearxng(finalQuery, effectiveDepth);
-            }
-          }
-        } else {
-          throw e;
-        }
-      }
-    } else if (provider === 'duckduckgo') {
-      try {
-        results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-      } catch (e: any) {
-        console.warn('[WebSearch] Primary provider (DuckDuckGo) failed. Falling back to SearXNG Mesh...');
-        results = await searchSearxng(finalQuery, effectiveDepth);
-      }
-    } else {
-      // Default 'mesh' provider - Prioritize DuckDuckGo as it's more reliable than public SearXNG instances
-      try {
-        results = await searchDuckDuckGo(finalQuery, effectiveDepth);
-      } catch (e: any) {
-        console.warn('[WebSearch] Mesh: DuckDuckGo failed. Falling back to SearXNG...');
-        results = await searchSearxng(finalQuery, effectiveDepth);
       }
     }
   } catch (e: any) {
@@ -484,7 +497,7 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
   for (let index = 0; index < results.length; index++) {
     const r = results[index];
     if (effectiveDepth > 1 && index < 3) {
-      const fullText = await scrapeUrl(r.url);
+      const fullText = await scrapeUrl(r.url, scraper, creds);
       if (fullText) {
         scrapedContents.push(fullText.replace(/\s+/g, ' ').substring(0, 4000));
         scrapedCount++;

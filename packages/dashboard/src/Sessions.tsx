@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { Mic, Paperclip, Send, Loader2, Plus, Check, Copy } from 'lucide-react';
+import { Mic, Paperclip, Send, Loader2, Plus, Check, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { useChat } from './hooks/useChat';
 import NyxoraLogo from './NyxoraLogo';
 import { AgentTrace } from './AgentTrace';
@@ -15,6 +15,62 @@ const greetings = [
   { title: "Hello. I'm Nyxora.", desc: "I am a high-autonomy financial agent. Give me a goal, and I will execute it." }
 ];
 
+const UserMessageBubble: React.FC<{ content: string, onCopy: () => void, copied: boolean }> = ({ content, onCopy, copied }) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  const MAX_LENGTH = 500;
+  const lines = content.split('\n');
+  const isLong = content.length > MAX_LENGTH || lines.length > 5;
+
+  return (
+    <>
+      <div 
+        className="message-bubble" 
+        style={{ 
+          whiteSpace: 'pre-wrap', 
+          wordBreak: 'break-word', 
+          overflow: 'hidden',
+          position: 'relative',
+          maxHeight: (!expanded && isLong) ? '180px' : 'none',
+          paddingBottom: (!expanded && isLong) ? '40px' : '16px',
+          transition: 'max-height 0.2s ease-out'
+        }}
+      >
+        {content}
+        
+        {isLong && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '12px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: '#ffffff',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+              zIndex: 10,
+              color: '#333'
+            }}
+            title={expanded ? "Show Less" : "Show More"}
+          >
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
+      </div>
+      <button className="copy-btn" onClick={onCopy} title="Copy message">
+        {copied ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
+      </button>
+    </>
+  );
+};
+
 export const Sessions: React.FC = () => {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -26,6 +82,7 @@ export const Sessions: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<string[]>(['$BTC', '$ETH', '$SOL', '$SUI']);
 
@@ -387,10 +444,11 @@ export const Sessions: React.FC = () => {
                     className="message-wrapper user message-fade-in"
                     data-role="user"
                   >
-                    <div className="message-bubble">{msg.content}</div>
-                    <button className="copy-btn" onClick={handleCopy} title="Copy message">
-                      {copiedIndex === idx ? <Check size={14} color="#a3be8c" /> : <Copy size={14} />}
-                    </button>
+                    <UserMessageBubble 
+                      content={msg.content} 
+                      onCopy={handleCopy} 
+                      copied={copiedIndex === idx} 
+                    />
                   </div>
                 );
               }
@@ -449,6 +507,7 @@ export const Sessions: React.FC = () => {
             isUserScrolledUp.current = false;
             handleSend(e as any);
             triggerSnap();
+            if (textareaRef.current) textareaRef.current.style.height = 'auto';
           }}>
             <div className="action-menu-container">
               <button type="button" className="voice-button plus-button" disabled={isLoading} title="More Actions">
@@ -465,6 +524,7 @@ export const Sessions: React.FC = () => {
               </div>
             </div>
             <textarea
+              ref={textareaRef}
               className="chat-input styled-scroll"
               placeholder={isVoiceMode ? "Listening..." : "Ask Nyxora"}
               value={input}
@@ -479,6 +539,7 @@ export const Sessions: React.FC = () => {
                   isUserScrolledUp.current = false;
                   handleSend(null);
                   triggerSnap();
+                  if (textareaRef.current) textareaRef.current.style.height = 'auto';
                 }
               }}
               disabled={isLoading}

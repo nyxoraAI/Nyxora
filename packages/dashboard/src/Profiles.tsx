@@ -225,8 +225,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
             <PillSelect 
               value={formData.agent.default_chain}
               onChange={(val) => handleAgentChange('default_chain', val)}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: 'all', label: 'All Chains (Auto)', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
                 { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
@@ -279,8 +278,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
             <PillSelect 
               value={userProfile.risk_level}
               onChange={(val) => setUserProfile({ ...userProfile, risk_level: val })}
-              pillColor="transparent"
-              textColor="var(--danger)"
+
               options={[
                 { id: 'Conservative', label: 'Conservative (Safe)' },
                 { id: 'Moderate', label: 'Moderate' },
@@ -367,8 +365,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
             <PillSelect 
               value={autoLockTime.toString()}
               onChange={(val) => setAutoLockTime(parseInt(val))}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: '0', label: 'Off' },
                 { id: '15', label: '15 Minutes' },
@@ -464,8 +461,7 @@ export const Profiles: React.FC<ProfilesProps> = ({ config, onConfigChange, auto
             <PillSelect 
               value={formData.agent.log_level || 'info'}
               onChange={(val) => handleAgentChange('log_level', val)}
-              pillColor="transparent"
-              textColor="var(--text-primary)"
+
               options={[
                 { id: 'info', label: 'Info (Standard)' },
                 { id: 'debug', label: 'Debug (Verbose)' }

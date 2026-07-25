@@ -288,7 +288,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       const response = await executeWithRetry(async (client) => {
         return await client.chat({
             model: config.llm.model,
-            temperature: config.llm.temperature,
+            temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty,
             messages: messages,
             tools: activeTools,
             reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any
@@ -811,7 +811,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
     let fullResponse = '';
     let criticHasFiredStream = false; // Critic Pass hanya aktif 1x per request
-    const historicalToolCallSigs = new Set<string>(); // exact-sig tracker (existing)
+    let prevCallSigs = new Set<string>(); // Tracks tool calls from the immediately preceding turn
 
     // ── Per-tool-name call count tracker (stream) ─────────────────────────────────────
     // Catches loops where args differ per turn (e.g. search_web with different queries).
@@ -850,7 +850,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         // This ensures the client UI doesn't append duplicate preambles across multi-turn executions.
         onChunk('[CLEAR_STREAM]');
         return await client.stream(
-          { model: config.llm.model, temperature: config.llm.temperature, max_tokens: 8192, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
+          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, max_tokens: 8192, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
           (chunk: string) => {
             streamedContent += chunk;
             onChunk(chunk);
@@ -978,10 +978,10 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       let shouldFastReturn = false;
       const accumulatedResults: string[] = [];
 
-      // Deduplicate identical tool calls to prevent double execution bugs
+      // Deduplicate identical tool calls to prevent double execution bugs in the same turn
       const uniqueToolCalls = [];
-      const seenToolCalls = new Set();
-      let hasAntiLoopError = false;
+      const seenToolCalls = new Set<string>();
+      const thisCallSigs = new Set<string>();
 
       // Helper to normalize JSON arguments for smarter duplicate detection
       const normalizeArgs = (argsStr: string): string => {
@@ -1008,30 +1008,18 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           logger.addEntry({ role: 'system' as any, content: warningMsg }, sessionId);
         }
 
-        if (historicalToolCallSigs.has(sig)) {
-          // Exact-sig repeat across turns
-          console.warn(`[OsAgentStream] ⚠️ ANTI-LOOP TRIGGERED: Blocked identical repeat tool call ${sig}`);
-          const errorResult = `[System Anti-Loop] You have already executed this exact tool call earlier. Do NOT repeat identical actions. Either analyze the previous result or stop.`;
-          logger.addEntry({ role: 'tool', tool_call_id: tc.id, content: errorResult }, sessionId);
-          hasAntiLoopError = true;
-          continue;
-        }
-
         if (!seenToolCalls.has(sig)) {
           seenToolCalls.add(sig);
-          historicalToolCallSigs.add(sig);
+          thisCallSigs.add(sig);
           uniqueToolCalls.push(tc);
         }
       }
 
-      if (hasAntiLoopError && uniqueToolCalls.length === 0) {
-        // If all tool calls were blocked by anti-loop, skip executing tools and go to next turn
-        // The LLM will see the Anti-Loop error message we just injected above.
-        await onChunk('[TOOL_CALL_FINISHED]');
-        
-        // Track consecutive identical loops to prevent wasting tokens
+      // --- CONSECUTIVE CYCLE DETECTION ---
+      const intersection = new Set([...thisCallSigs].filter(x => prevCallSigs.has(x)));
+      if (intersection.size === thisCallSigs.size && thisCallSigs.size > 0) {
         antiLoopStrikes++;
-        console.warn(`[OsAgentStream] Anti-loop strike ${antiLoopStrikes}/3 — all tool calls were blocked as duplicates`);
+        console.warn(`[OsAgentStream] Anti-loop strike ${antiLoopStrikes}/3`);
         if (antiLoopStrikes >= 3) {
           const forceMsg = `⚠️ I stopped myself from repeating the exact same action. Let me know if you want me to try a different approach.`;
           logger.addEntry({ role: 'assistant', content: forceMsg }, sessionId);
@@ -1040,9 +1028,11 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
           triggerBackgroundReview(sessionId);
           break;
         }
-        continue;
+      } else {
+        antiLoopStrikes = 0;
       }
-      antiLoopStrikes = 0;
+      prevCallSigs = thisCallSigs;
+      // ------------------------------------
 
       if (uniqueToolCalls.length > 0 && onProgress) {
         uniqueToolCalls.forEach((tc: any) => {

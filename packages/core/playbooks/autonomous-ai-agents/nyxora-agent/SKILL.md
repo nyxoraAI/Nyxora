@@ -807,8 +807,7 @@ Beyond the CLI and gateway, a few things worth knowing about:
   an embedded `nyxora --tui` chat. Secured behind an OAuth/token gate.
 - **OpenAI-compatible proxy** (`nyxora proxy`) — exposes a
   `http://localhost:port` OpenAI API backed by whichever OAuth provider
-  you're signed into (Claude Pro, ChatGPT Pro, SuperGrok). Point Codex
-  CLI, Aider, Cline, Continue, or any script at it — no API key.
+  you're signed into (Claude Pro, ChatGPT Pro, SuperGrok). Point Nyxora Agent, Aider, Cline, Continue, or any script at it — no API key.
 - **Automation Blueprints** — pick a named automation and Nyxora asks for
   what it needs (no cron syntax). One definition renders as a dashboard
   form, a slash command, an agent conversation, and a docs-catalog entry.
