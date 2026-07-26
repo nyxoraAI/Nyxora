@@ -99,7 +99,7 @@ const SEARXNG_INSTANCES = [
 
 async function searchTavily(query: string, apiKey: string, depth: number = 1): Promise<SearchQueryResult[]> {
   const searchDepth = depth > 1 ? 'advanced' : 'basic';
-  const maxResults = depth > 1 ? 15 : 8;
+  const maxResults = depth > 1 ? 20 : 10;
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -123,7 +123,7 @@ async function searchTavily(query: string, apiKey: string, depth: number = 1): P
 
 async function searchBrave(query: string, apiKey: string, depth: number = 1): Promise<SearchQueryResult[]> {
   const q = encodeURIComponent(query);
-  const count = depth > 1 ? 15 : 8;
+  const count = depth > 1 ? 20 : 10;
   const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${q}&count=${count}`, {
     headers: {
       'Accept': 'application/json',
@@ -148,7 +148,7 @@ async function searchBrave(query: string, apiKey: string, depth: number = 1): Pr
 
 async function searchSearxng(query: string, depth: number = 1): Promise<SearchQueryResult[]> {
   const q = encodeURIComponent(query);
-  const maxResults = depth > 1 ? 15 : 8;
+  const maxResults = depth > 1 ? 20 : 10;
   for (const url of SEARXNG_INSTANCES) {
     try {
       const res = await fetch(`${url}/search?q=${q}&format=json`, {
@@ -180,7 +180,7 @@ async function searchDuckDuckGo(query: string, depth: number = 1): Promise<Searc
     });
     
     if (!searchResults.noResults && searchResults.results.length > 0) {
-      const maxResults = depth > 1 ? 15 : 8;
+      const maxResults = depth > 1 ? 20 : 10;
       return searchResults.results.slice(0, maxResults).map(r => ({
         title: r.title,
         url: r.url,
@@ -197,7 +197,7 @@ const searchCache = new Map<string, {data: SearchQueryResult[], timestamp: numbe
 
 async function searchSerpApi(query: string, apiKey: string, depth: number = 1): Promise<SearchQueryResult[]> {
   const q = encodeURIComponent(query);
-  const num = depth > 1 ? 15 : 8;
+  const num = depth > 1 ? 20 : 10;
   const res = await fetch(`https://serpapi.com/search?engine=google&q=${q}&api_key=${apiKey}&num=${num}`);
   
   if (!res.ok) {
@@ -207,11 +207,12 @@ async function searchSerpApi(query: string, apiKey: string, depth: number = 1): 
   const json = await res.json();
   const results: SearchQueryResult[] = [];
 
-  if (json.answer_box && json.answer_box.snippet) {
+  const answerText = json.answer_box?.answer || json.answer_box?.result || json.answer_box?.snippet;
+  if (json.answer_box && answerText) {
     results.push({
       title: json.answer_box.title || "Direct Answer",
       url: json.answer_box.link || "#",
-      content: json.answer_box.snippet
+      content: answerText
     });
   }
 
@@ -243,26 +244,6 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
 
   // Detect time-sensitive queries across multiple languages
   const isTimeSensitive =
-    // Indonesian — common + missing words that caused hallucination
-    lowerQuery.includes('hari ini') ||
-    lowerQuery.includes('sekarang') ||
-    lowerQuery.includes('saat ini') ||
-    lowerQuery.includes('terbaru') ||
-    lowerQuery.includes('terkini') ||
-    lowerQuery.includes('tadi') ||        // "tadi malam", "tadi pagi", "tadi" alone
-    lowerQuery.includes('kemarin') ||     // "kemarin"
-    lowerQuery.includes('besok') ||       // "besok"
-    lowerQuery.includes('malam ini') ||   // "malam ini"
-    lowerQuery.includes('pagi ini') ||    // "pagi ini"
-    lowerQuery.includes('sore ini') ||    // "sore ini"
-    lowerQuery.includes('minggu ini') ||  // "minggu ini"
-    lowerQuery.includes('bulan ini') ||   // "bulan ini"
-    lowerQuery.includes('baru saja') ||   // "baru saja"
-    lowerQuery.includes('baru aja') ||    // "baru aja"
-    lowerQuery.includes('habis') ||       // "habis main", "habis selesai"
-    lowerQuery.includes('sudah selesai') ||
-    lowerQuery.includes('udah selesai') ||
-    // English
     lowerQuery.includes('today') ||
     lowerQuery.includes('latest') ||
     lowerQuery.includes('current') ||
@@ -274,22 +255,7 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
     lowerQuery.includes('this week') ||
     lowerQuery.includes('this month') ||
     lowerQuery.includes('recent') ||
-    lowerQuery.includes('breaking') ||
-    // Spanish
-    lowerQuery.includes('hoy') ||
-    lowerQuery.includes('ahora') ||
-    // French
-    lowerQuery.includes("aujourd'hui") ||
-    // German
-    lowerQuery.includes('heute') ||
-    // Japanese
-    lowerQuery.includes('今日') ||
-    lowerQuery.includes('現在') ||
-    // Korean
-    lowerQuery.includes('오늘') ||
-    // Chinese
-    lowerQuery.includes('今天') ||
-    lowerQuery.includes('现在');
+    lowerQuery.includes('breaking');
 
   // ── Detect specific context/round that user is asking about ────────────────
   // This prevents the LLM from mixing results across tournament stages, news
@@ -299,53 +265,61 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
   let detectedContextCategory: ContextCategory = null;
 
   // Tournament rounds
-  if (/semifinal|semi final|semi-final|4 besar|empat besar/i.test(lowerQuery)) {
+  if (/semifinal|semi final|semi-final/i.test(lowerQuery)) {
     detectedContext = 'semifinal';
     detectedContextCategory = 'tournament_round';
-  } else if (/final\b|the final|partai final|babak final/i.test(lowerQuery)) {
+  } else if (/final\b|the final/i.test(lowerQuery)) {
     detectedContext = 'final';
     detectedContextCategory = 'tournament_round';
-  } else if (/quarter.?final|perempat final|8 besar|delapan besar/i.test(lowerQuery)) {
+  } else if (/quarter.?final/i.test(lowerQuery)) {
     detectedContext = 'quarterfinal';
     detectedContextCategory = 'tournament_round';
-  } else if (/round of 16|babak 16 besar|16 besar|last 16/i.test(lowerQuery)) {
+  } else if (/round of 16|last 16/i.test(lowerQuery)) {
     detectedContext = 'round of 16';
     detectedContextCategory = 'tournament_round';
-  } else if (/group stage|babak grup|fase grup/i.test(lowerQuery)) {
+  } else if (/group stage/i.test(lowerQuery)) {
     detectedContext = 'group stage';
     detectedContextCategory = 'tournament_round';
-  } else if (/klasemen|standings|table/i.test(lowerQuery)) {
+  } else if (/standings|table/i.test(lowerQuery)) {
     detectedContext = 'standings';
     detectedContextCategory = 'standings';
-  } else if (/jadwal|schedule|fixture/i.test(lowerQuery)) {
+  } else if (/schedule|fixture/i.test(lowerQuery)) {
     detectedContext = 'schedule';
     detectedContextCategory = 'schedule';
   }
 
-  // Detect factual queries that need deep search regardless of temporal markers
-  // (sports scores, news, journals, financial data, etc.)
+  // Detect substantive informational queries across ALL domains (Tech, Science, Coding,
+  // General Knowledge, Health, Law, Culture, Sports, News, Finance, Reference, etc.)
   const isFactualQuery =
-    // Sports
-    lowerQuery.includes('skor') || lowerQuery.includes('score') ||
-    lowerQuery.includes('hasil') || lowerQuery.includes('result') ||
-    lowerQuery.includes('pertandingan') || lowerQuery.includes('match') ||
-    lowerQuery.includes('piala') || lowerQuery.includes('final') ||
-    lowerQuery.includes('semifinal') || lowerQuery.includes('liga') ||
-    lowerQuery.includes('tournament') || lowerQuery.includes('klasemen') ||
-    // News
-    lowerQuery.includes('berita') || lowerQuery.includes('news') ||
-    lowerQuery.includes('kejadian') || lowerQuery.includes('peristiwa') ||
-    // Journals / Research
-    lowerQuery.includes('jurnal') || lowerQuery.includes('journal') ||
-    lowerQuery.includes('penelitian') || lowerQuery.includes('research') ||
+    query.trim().split(/\s+/).length >= 3 ||
+    // Tech & Engineering / Coding / Docs
+    lowerQuery.includes('how') || lowerQuery.includes('what') ||
+    lowerQuery.includes('why') || lowerQuery.includes('who') ||
+    lowerQuery.includes('when') || lowerQuery.includes('where') ||
+    lowerQuery.includes('explain') || lowerQuery.includes('difference') ||
+    lowerQuery.includes('vs') || lowerQuery.includes('tutorial') ||
+    lowerQuery.includes('guide') || lowerQuery.includes('error') ||
+    lowerQuery.includes('fix') || lowerQuery.includes('bug') ||
+    lowerQuery.includes('release') || lowerQuery.includes('version') ||
+    lowerQuery.includes('feature') || lowerQuery.includes('update') ||
+    lowerQuery.includes('documentation') || lowerQuery.includes('api') ||
+    lowerQuery.includes('setup') || lowerQuery.includes('install') ||
+    lowerQuery.includes('compare') || lowerQuery.includes('review') ||
+    // Science, General Knowledge, Health, Law
+    lowerQuery.includes('definition') || lowerQuery.includes('meaning') ||
+    lowerQuery.includes('history') || lowerQuery.includes('biography') ||
+    lowerQuery.includes('overview') || lowerQuery.includes('summary') ||
+    lowerQuery.includes('law') || lowerQuery.includes('regulation') ||
+    lowerQuery.includes('health') || lowerQuery.includes('symptom') ||
+    // Sports, News, Research & Finance
+    lowerQuery.includes('score') || lowerQuery.includes('result') ||
+    lowerQuery.includes('match') || lowerQuery.includes('tournament') ||
+    lowerQuery.includes('news') || lowerQuery.includes('research') ||
     lowerQuery.includes('paper') || lowerQuery.includes('study') ||
-    lowerQuery.includes('studi') ||
-    // Finance
-    lowerQuery.includes('harga') || lowerQuery.includes('price') ||
-    lowerQuery.includes('saham') || lowerQuery.includes('stock') ||
-    lowerQuery.includes('inflasi') || lowerQuery.includes('inflation');
+    lowerQuery.includes('price') || lowerQuery.includes('stock') ||
+    lowerQuery.includes('market') || lowerQuery.includes('company');
 
-  // Force depth=2 for factual queries to get full article content
+  // Force depth=2 for informational/factual queries to scrape full article text like ChatGPT Search
   const effectiveDepth = (isTimeSensitive || isFactualQuery) ? Math.max(depth, 2) : depth;
   if (effectiveDepth > depth) {
     console.log(`[WebSearch] Auto-upgraded to depth=2 for factual/temporal query: "${query}"`);
@@ -355,23 +329,6 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
     // Replace time-relative words with the actual English date for the search engine.
     // English date format works universally across all search providers.
     finalQuery = query
-      // Indonesian
-      .replace(/hari ini/gi, currentDateEn)
-      .replace(/sekarang/gi, currentDateEn)
-      .replace(/saat ini/gi, currentDateEn)
-      .replace(/\btadi\b/gi, currentDateEn)       // "hasil tadi" → "hasil July 15, 2026"
-      .replace(/kemarin/gi, (() => {
-        const d = new Date(now); d.setDate(d.getDate() - 1);
-        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      })())
-      .replace(/besok/gi, (() => {
-        const d = new Date(now); d.setDate(d.getDate() + 1);
-        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      })())
-      .replace(/malam ini/gi, currentDateEn)
-      .replace(/pagi ini/gi, currentDateEn)
-      .replace(/sore ini/gi, currentDateEn)
-      // English
       .replace(/\btoday\b/gi, currentDateEn)
       .replace(/\byesterday\b/gi, (() => {
         const d = new Date(now); d.setDate(d.getDate() - 1);
@@ -380,22 +337,11 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
       .replace(/\btomorrow\b/gi, (() => {
         const d = new Date(now); d.setDate(d.getDate() + 1);
         return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      })())
-      // Spanish
-      .replace(/\bhoy\b/gi, currentDateEn)
-      // French
-      .replace(/aujourd'hui/gi, currentDateEn)
-      // German
-      .replace(/\bheute\b/gi, currentDateEn)
-      // Japanese
-      .replace(/今日/g, currentDateEn)
-      // Korean
-      .replace(/오늘/g, currentDateEn)
-      // Chinese
-      .replace(/今天/g, currentDateEn);
+      })());
 
-    // Append the date if it wasn't substituted in (e.g. for "terbaru", "latest", "habis")
-    if (!finalQuery.includes(currentYear)) finalQuery += ` ${currentDateEn}`;
+    // Only append today's date if the query doesn't already specify an explicit year or timeframe (past, future, next month/year, 10/15 years ahead, etc.)
+    const hasExplicitYearOrPeriod = /\b(18|19|20|21)\d{2}\b/.test(finalQuery) || /\b(next|last|future|past|decade|century|timeline|forecast|projection|history|historical|upcoming|ahead)\b/i.test(finalQuery);
+    if (!hasExplicitYearOrPeriod) finalQuery += ` ${currentDateEn}`;
     console.log(`[WebSearch] Temporal injection (tz: ${tz}): "${query}" → "${finalQuery}"`);
   }
 
@@ -409,8 +355,9 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
     if (!hasExactTerm) {
       finalQuery = `${finalQuery} ${detectedContext}`;
     }
-    // Also append date for specificity
-    if (!finalQuery.includes(currentYear)) finalQuery += ` ${currentDateEn}`;
+    // Only append today's date if no explicit year or timeframe is specified
+    const hasExplicitYearOrPeriod = /\b(18|19|20|21)\d{2}\b/.test(finalQuery) || /\b(next|last|future|past|decade|century|timeline|forecast|projection|history|historical|upcoming|ahead)\b/i.test(finalQuery);
+    if (!hasExplicitYearOrPeriod) finalQuery += ` ${currentDateEn}`;
     console.log(`[WebSearch] Context reinforcement [${detectedContext}]: "${query}" → "${finalQuery}"`);
   } else if (detectedContext && !isTimeSensitive) {
     // Factual query with context but no temporal signal — still reinforce context
@@ -496,10 +443,10 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
   const scrapedContents: string[] = [];
   for (let index = 0; index < results.length; index++) {
     const r = results[index];
-    if (effectiveDepth > 1 && index < 3) {
+    if (effectiveDepth > 1 && index < 5) {
       const fullText = await scrapeUrl(r.url, scraper, creds);
       if (fullText) {
-        scrapedContents.push(fullText.replace(/\s+/g, ' ').substring(0, 4000));
+        scrapedContents.push(fullText.replace(/\s+/g, ' ').substring(0, 30000));
         scrapedCount++;
       }
     }
@@ -513,7 +460,7 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
   responseText += `[SEARCH_CONFIDENCE: ${confidence}]\n`;
 
   if (confidence === 'LOW' && (isTimeSensitive || isFactualQuery)) {
-    responseText += `[WARNING: CONFIDENCE LOW — Only snippets available, no full article content. For ANY specific factual claim (scores, dates, names, prices, statistics, events), you MUST explicitly tell the user the data is unavailable in their language — NEVER fill gaps from training memory for 2024–2026 events.]\n`;
+    responseText += `[NOTE: Only snippets available. Base your answer carefully on the snippets below. Do NOT hallucinate facts not present in the snippets.]\n`;
   }
 
   // ── Context Filter signal ─────────────────────────────────────────────────
@@ -531,6 +478,7 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
     responseText += `[STRICT ACCURACY RULE: Every specific fact you state (number, name, date, statistic) MUST come from an explicit statement in the results below — not inferred, not from training memory. If a result is from a different time period or context than what was asked, exclude it.]\n`;
   }
 
+  responseText += `[ANTI-HALLUCINATION & ANTI-LOOP RULE: Do NOT generate repetitive filler words, stream-of-consciousness monologues, or word-salad loops. Output ONLY a clean, concise, structured summary of verified facts. If a specific date, number, or detail is not present in the results below, state "Not specified in search results" — NEVER use blank placeholders (_____) or ramble.]\n`;
   responseText += `\nSearch Results for "${query}" [Searched: ${currentDateEn}]:\n\n`;
 
   // ── Per-result output with context verification tag ───────────────────────
@@ -549,12 +497,12 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
       if (inTitle || inContent) {
         contextTag = `[CONTEXT: MATCH ✓ — explicitly mentions "${detectedContext}"]`;
       } else {
-        // Check aliases for common tournament terms
+        // Check aliases for common tournament and contest terms
         const aliasMap: Record<string, string[]> = {
-          'semifinal':   ['semi', '4 besar', 'empat besar', 'last four'],
-          'final':       ['championship match', 'title match', 'grand final'],
-          'quarterfinal':['8 besar', 'delapan besar', 'last eight', 'quarter'],
-          'round of 16': ['16 besar', 'last 16', 'r16'],
+          'semifinal':   ['semi', 'semis', 'last four', 'semi-finals'],
+          'final':       ['championship match', 'title match', 'grand final', 'championship'],
+          'quarterfinal':['quarters', 'last eight', 'quarter-finals'],
+          'round of 16': ['last 16', 'r16', 'eight-finals'],
         };
         const aliases = aliasMap[contextTermLower] || [];
         const matchesAlias = aliases.some(a => titleLower.includes(a) || contentLower.includes(a));
@@ -570,12 +518,15 @@ export async function searchWeb(query: string, depth: number = 2): Promise<strin
     if (contextTag) responseText += `   ${contextTag}\n`;
     responseText += `   URL: ${r.url}\n`;
 
-    if (effectiveDepth > 1 && index < 3 && scrapedIdx < scrapedContents.length) {
-      responseText += `   Full Content: ${scrapedContents[scrapedIdx]}...\n\n`;
+    responseText += `   Snippet: ${r.content}\n`;
+    if (effectiveDepth > 1 && index < 5 && scrapedIdx < scrapedContents.length) {
+      const scrapedText = scrapedContents[scrapedIdx];
       scrapedIdx++;
-      continue;
+      if (scrapedText && scrapedText.length > 100 && !scrapedText.toLowerCase().includes('cloudflare') && !scrapedText.toLowerCase().includes('access denied')) {
+        responseText += `   Full Content: ${scrapedText}...\n`;
+      }
     }
-    responseText += `   Snippet: ${r.content}\n\n`;
+    responseText += `\n`;
   }
 
   return responseText.trim();
@@ -589,21 +540,24 @@ export const searchWebToolDefinition = {
       "Search the internet for real-time, accurate information across ALL domains.",
       "",
       "QUERY CONSTRUCTION RULES (critical for accuracy):",
-      "- Be SPECIFIC and PRECISE. Include: exact event/topic + year + specific subcategory.",
-      "- Sports: 'FIFA World Cup 2026 semifinal results July 15 2026' NOT 'world cup results'",
-      "- News: 'Indonesia fuel price increase July 2026' NOT 'berita harga BBM'",
-      "- Research: 'CRISPR gene therapy cancer clinical trial 2026 results'",
-      "- Finance: 'Bitcoin BTC price USD July 15 2026'",
-      "- If user asked about a SPECIFIC round/stage/category, include that EXACT term in the query.",
+      "- Be SPECIFIC and PRECISE. Include: exact entity/topic + relevant year/date (past, present, or future) + specific subcategory.",
+      "- Tech/Coding: 'React 19 compiler setup guide' NOT 'react tutorial'",
+      "- Science/Future: 'NASA Mars colonization missions timeline 2030-2040'",
+      "- History/Past: '1998 World Cup final match score and summary'",
+      "- News/Current: 'Global energy price trends recent developments'",
+      "- Finance/Markets: 'Bitcoin BTC price USD historical and future outlook'",
+      "- If user asked about a SPECIFIC round/stage/category or specific future/past timeframe (next month, next year, 10-15+ years ahead), include that EXACT term in the query.",
       "",
       "DEPTH RULES:",
       "- depth=1: fast snippet scan only (OK for: simple factual lookups, definitions, general knowledge)",
-      "- depth=2: scrapes full article content from top 3 sources (REQUIRED for: ANY real-world event in 2024–2026, sports scores, election results, market prices, breaking news, research findings, match results, anything time-sensitive)",
+      "- depth=2: scrapes full article content from top 5 sources (REQUIRED for: ANY real-world event across any time period—past, present, or future—technology tutorials, coding questions, historical data, future projections, sports scores, market prices, breaking news, research findings, anything informational)",
       "- DEFAULT to depth=2 whenever uncertain.",
       "",
       "ANSWER RULES (non-negotiable):",
       "- NEVER answer from training memory after calling this tool.",
+      "- NEVER generate repetitive filler words, stream-of-consciousness monologues, or word-salad loops.",
       "- Base your answer ONLY on what is EXPLICITLY stated in the search results below.",
+      "- If exact dates, numbers, or details are missing in the search results, explicitly state 'Not specified in search results' — do NOT guess, leave blank placeholders (_______), or ramble.",
       "- If [SEARCH_CONFIDENCE: LOW]: admit data is unavailable — do NOT guess.",
       "- If result is tagged [CONTEXT: UNVERIFIED]: exclude it from your answer.",
       "- If result is tagged [CONTEXT: MATCH ✓]: it is confirmed relevant — use it.",
@@ -617,11 +571,11 @@ export const searchWebToolDefinition = {
       properties: {
         query: {
           type: "string",
-          description: "Precise, search-engine-optimized query. Include: specific entity + year + context (round, category, date). Examples: 'FIFA World Cup 2026 semifinal results July 15', 'Federal Reserve interest rate decision July 2026', 'Nature journal AI protein folding research 2026'. Do NOT use conversational phrasing.",
+          description: "Precise, search-engine-optimized query across any domain and time period (past history, current events, or future projections 10-15+ years ahead). Include specific entity + relevant date/year if applicable + context. Do NOT use conversational phrasing.",
         },
         depth: {
           type: "number",
-          description: "1 = snippets only (fast). 2 = full article scrape (required for all real-world facts from 2024-2026). Default: 2.",
+          description: "1 = snippets only (fast). 2 = full article scrape (required for all real-world facts, historical research, current events, and future projections across all years). Default: 2.",
         }
       },
       required: ["query"],

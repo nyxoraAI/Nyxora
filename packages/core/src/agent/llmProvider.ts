@@ -80,9 +80,12 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
         delete payload.reasoning_effort;
     }
-    // Suppress token-level repetition loops.
-    payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6;
-    payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.3;
+    // Suppress token-level repetition loops and word-salad hallucination.
+    payload.frequency_penalty = Math.max(request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6, 0.4);
+    payload.presence_penalty = Math.max(request.presence_penalty !== undefined ? request.presence_penalty : 0.3, 0.2);
+    if (request.repetition_penalty !== undefined && request.repetition_penalty !== 1.0) {
+      payload.repetition_penalty = request.repetition_penalty;
+    }
     if (payload.top_p === undefined) payload.top_p = 0.95;
     const response = await this.client.chat.completions.create(payload);
     let content = response.choices[0].message.content || '';
@@ -117,8 +120,11 @@ export class OpenAIAdapter implements LLMProvider {
           delete payload.reasoning_effort;
       }
       // Suppress token-level repetition loops (same as chat())
-      payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6;
-      payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.3;
+      payload.frequency_penalty = Math.max(request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6, 0.4);
+      payload.presence_penalty = Math.max(request.presence_penalty !== undefined ? request.presence_penalty : 0.3, 0.2);
+      if (request.repetition_penalty !== undefined && request.repetition_penalty !== 1.0) {
+        payload.repetition_penalty = request.repetition_penalty;
+      }
       if (payload.top_p === undefined) payload.top_p = 0.95; // Force top_p to cull low prob tokens
       const streamRes = await this.client.chat.completions.create(payload) as any as AsyncIterable<any>;
       let fullContent = '';

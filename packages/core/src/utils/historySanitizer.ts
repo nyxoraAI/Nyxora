@@ -100,7 +100,7 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
         } else {
           // Normal String Tool Result
           const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
-          const maxChars = isLocalModel ? 4000 : 15000;
+          const maxChars = 100000;
           let resultPreview = m.content || '';
           if (typeof resultPreview === 'string' && resultPreview.length > maxChars) {
              const head = Math.floor(maxChars * 0.3);
@@ -115,7 +115,7 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       } else {
         // GLOBAL TOOL OUTPUT TRUNCATION (Anti-Context Overflow)
         const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
-        const MAX_TOOL_CHARS = isLocalModel ? 4000 : 15000;
+        const MAX_TOOL_CHARS = 100000;
         if (typeof msg.content === 'string' && msg.content.length > MAX_TOOL_CHARS) {
           const head = Math.floor(MAX_TOOL_CHARS * 0.3);
           const tail = Math.floor(MAX_TOOL_CHARS * 0.7);

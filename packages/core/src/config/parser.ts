@@ -123,6 +123,7 @@ export interface NyxoraConfig {
     base_url?: string;
     image_provider?: string;
     image_model?: string;
+    max_tokens?: number;
   };
   web_search?: {
     provider: 'tavily' | 'brave' | 'duckduckgo' | 'mesh' | 'serpapi';
@@ -265,12 +266,13 @@ export function loadConfig(): NyxoraConfig {
         temperature: parsed.llm?.temperature ?? 0.2,
         frequency_penalty: parsed.llm?.frequency_penalty ?? 0.6,
         presence_penalty: parsed.llm?.presence_penalty ?? 0.3,
-        repetition_penalty: parsed.llm?.repetition_penalty ?? 1.0,
+        repetition_penalty: parsed.llm?.repetition_penalty ?? 1.15,
         reasoning_effort: parsed.llm?.reasoning_effort,
         api_keys: parsed.llm?.api_keys || [],
         base_url: parsed.llm?.base_url,
         image_provider: parsed.llm?.image_provider,
-        image_model: parsed.llm?.image_model
+        image_model: parsed.llm?.image_model,
+        max_tokens: parsed.llm?.max_tokens || 32768
       },
       web_search: parsed.web_search || {
         provider: 'mesh',

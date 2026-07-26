@@ -850,7 +850,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         // This ensures the client UI doesn't append duplicate preambles across multi-turn executions.
         onChunk('[CLEAR_STREAM]');
         return await client.stream(
-          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, max_tokens: 8192, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
+          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, max_tokens: (config.llm as any).max_tokens || 32768, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
           (chunk: string) => {
             streamedContent += chunk;
             onChunk(chunk);
