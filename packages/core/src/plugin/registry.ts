@@ -1,6 +1,7 @@
 import { PluginManager } from './PluginManager';
 import fs from 'fs';
 import path from 'path';
+import { initializeMcpServers } from './mcpClient';
 
 export const pluginManager = new PluginManager();
 
@@ -10,6 +11,7 @@ export async function initializePlugins() {
   if (isInitialized) return;
   
   await pluginManager.initialize(); // Initialize agentskills.io scanner
+  await initializeMcpServers(); // Initialize MCP servers from config and nyxmcp.yaml
   
   const pluginDirs = [
     path.join(__dirname, '../web3/plugins'),

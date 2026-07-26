@@ -178,6 +178,7 @@ export interface NyxoraConfig {
   channels?: {
     active: string[];
   };
+  mcp_servers?: Record<string, any>;
 }
 
 let cachedNyxoraConfig: NyxoraConfig | null = null;
@@ -195,6 +196,24 @@ export function loadConfig(): NyxoraConfig {
   try {
     const file = fs.readFileSync(configPath, 'utf8');
     const parsed = yaml.parse(file) as Partial<NyxoraConfig>;
+    
+    // Load external MCP servers from nyxmcp.yaml if present
+    const nyxmcpPath = getPath('nyxmcp.yaml');
+    if (fs.existsSync(nyxmcpPath)) {
+      try {
+        const nyxmcpFile = fs.readFileSync(nyxmcpPath, 'utf8');
+        const nyxmcpParsed = yaml.parse(nyxmcpFile) || {};
+        const servers = nyxmcpParsed.mcp_servers || nyxmcpParsed;
+        if (servers && typeof servers === 'object') {
+          parsed.mcp_servers = {
+            ...(parsed.mcp_servers || {}),
+            ...servers
+          };
+        }
+      } catch (err) {
+        console.error('[Config] Failed to parse nyxmcp.yaml', err);
+      }
+    }
     
     let needsSave = false;
     
@@ -287,7 +306,8 @@ export function loadConfig(): NyxoraConfig {
       },
       security: parsed.security || { dashboard_password: '123456' },
       skills: parsed.skills,
-      channels: parsed.channels
+      channels: parsed.channels,
+      mcp_servers: parsed.mcp_servers || {}
     };
 
     cachedNyxoraConfig = validatedConfig;
@@ -328,7 +348,8 @@ export function loadConfig(): NyxoraConfig {
       integrations: {
         telegram: { enabled: false },
         discord: { enabled: false }
-      }
+      },
+      mcp_servers: {}
     };
     
     cachedNyxoraConfig = defaultConfig;
@@ -345,6 +366,9 @@ export function saveConfig(newConfig: NyxoraConfig): void {
     const configToSave = JSON.parse(JSON.stringify(newConfig));
     if (configToSave.web3 && configToSave.web3.rpc_urls) {
       delete configToSave.web3.rpc_urls;
+    }
+    if (configToSave.mcp_servers) {
+      delete configToSave.mcp_servers;
     }
 
     // Keys are no longer encrypted before saving. They are stored in plain text.

@@ -53,47 +53,130 @@ export async function submitGoogleAuth(code: string): Promise<string> {
 }
 
 // ----------------------------------------------------------------------------
+// GMAIL HELPERS
+// ----------------------------------------------------------------------------
+function formatEmailDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'Unknown Date') return 'Unknown Date';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const wibStr = d.toLocaleString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }) + ' WIB';
+    return `${wibStr} (${dateStr})`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function extractEmailBody(payload: any): string {
+  if (!payload) return "";
+  if (payload.body && payload.body.data) {
+    const text = Buffer.from(payload.body.data, 'base64url').toString('utf8');
+    if (payload.mimeType === 'text/html') {
+      return text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                 .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                 .replace(/<[^>]+>/g, ' ')
+                 .replace(/\s+/g, ' ')
+                 .trim();
+    }
+    return text;
+  }
+  if (payload.parts && Array.isArray(payload.parts)) {
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/plain') {
+        const res = extractEmailBody(part);
+        if (res && res.trim()) return res;
+      }
+    }
+    for (const part of payload.parts) {
+      const res = extractEmailBody(part);
+      if (res && res.trim()) return res;
+    }
+  }
+  return "";
+}
+
+// ----------------------------------------------------------------------------
 // GMAIL
 // ----------------------------------------------------------------------------
-export async function readGmailInbox(maxResults: number = 5): Promise<string> {
+export async function readGmailInbox(maxResults: number = 10): Promise<string> {
   try {
     const listData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=in:inbox`);
     if (!listData.messages || listData.messages.length === 0) return 'No emails found in inbox.';
 
-    let output = `Top ${listData.messages.length} recent emails:\n\n`;
-    for (const msg of listData.messages) {
-      const msgData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`);
-      const headers = msgData.payload?.headers;
-      if (headers) {
-        const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
-        const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown Sender';
-        const date = headers.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
-        const snippet = msgData.snippet ? `\nSnippet: ${msgData.snippet}` : '';
-        output += `ID: ${msg.id}\nFrom: ${from}\nSubject: ${subject}\nDate: ${date}${snippet}\n---\n`;
-      }
+    let output = `[CRITICAL RULE: You MUST display all ${listData.messages.length} emails listed below in your response to the user. Do NOT skip, omit, or stop halfway through.]\nTop ${listData.messages.length} recent emails:\n\n`;
+    
+    // Fetch headers in parallel batches of 10 for speed so requesting 100 emails completes in ~2 seconds
+    const messages = listData.messages;
+    const batchSize = 10;
+    const results: string[] = [];
+    for (let i = 0; i < messages.length; i += batchSize) {
+      const batch = messages.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(async (msg: any) => {
+        try {
+          const msgData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`);
+          const headers = msgData.payload?.headers;
+          if (headers) {
+            const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
+            const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown Sender';
+            const rawDate = headers.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
+            const date = formatEmailDate(rawDate);
+            const snippet = msgData.snippet ? `\nSnippet: ${msgData.snippet}` : '';
+            return `ID: ${msg.id}\nFrom: ${from}\nSubject: ${subject}\nDate: ${date}${snippet}\n---`;
+          }
+        } catch {
+          return `ID: ${msg.id}\nFrom: Unknown Sender\nSubject: Error reading message metadata\n---`;
+        }
+        return '';
+      }));
+      results.push(...batchResults.filter(Boolean));
     }
+    output += results.join('\n\n');
     return output.trim();
   } catch (err: any) {
     return `Error reading Gmail: ${err.message}`;
   }
 }
 
-export async function searchGmail(query: string, maxResults: number = 5): Promise<string> {
+export async function searchGmail(query: string, maxResults: number = 10): Promise<string> {
   try {
     const listData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(query)}`);
     if (!listData.messages || listData.messages.length === 0) return 'No emails found matching the query.';
 
-    let output = `Found ${listData.messages.length} emails:\n\n`;
-    for (const msg of listData.messages) {
-      const msgData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`);
-      const headers = msgData.payload?.headers;
-      if (headers) {
-        const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
-        const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown Sender';
-        const date = headers.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
-        output += `- [${msg.id}] From: ${from} | Date: ${date} | Subject: ${subject}\n`;
-      }
+    let output = `[CRITICAL RULE: You MUST display all ${listData.messages.length} emails listed below in your response to the user. Do NOT skip, omit, or stop halfway through.]\nFound ${listData.messages.length} emails:\n\n`;
+    
+    // Fetch headers in parallel batches of 10 for speed
+    const messages = listData.messages;
+    const batchSize = 10;
+    const results: string[] = [];
+    for (let i = 0; i < messages.length; i += batchSize) {
+      const batch = messages.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(async (msg: any) => {
+        try {
+          const msgData = await fetchGoogleAPI(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`);
+          const headers = msgData.payload?.headers;
+          if (headers) {
+            const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
+            const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown Sender';
+            const rawDate = headers.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
+            const date = formatEmailDate(rawDate);
+            return `- [${msg.id}] From: ${from} | Date: ${date} | Subject: ${subject}`;
+          }
+        } catch {
+          return `- [${msg.id}] From: Unknown Sender | Subject: Error reading metadata`;
+        }
+        return '';
+      }));
+      results.push(...batchResults.filter(Boolean));
     }
+    output += results.join('\n');
     return output.trim();
   } catch (err: any) {
     return `Error searching Gmail: ${err.message}`;
@@ -106,18 +189,14 @@ export async function getGmailMessage(messageId: string): Promise<string> {
     const headers = msgData.payload?.headers;
     const subject = headers?.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
     const from = headers?.find((h: any) => h.name === 'From')?.value || 'Unknown Sender';
-    const date = headers?.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
+    const rawDate = headers?.find((h: any) => h.name === 'Date')?.value || 'Unknown Date';
+    const date = formatEmailDate(rawDate);
 
-    let body = "";
-    if (msgData.payload?.body?.data) {
-      body = Buffer.from(msgData.payload.body.data, 'base64url').toString('utf8');
-    } else if (msgData.payload?.parts) {
-      const part = msgData.payload.parts.find((p: any) => p.mimeType === 'text/plain') || msgData.payload.parts.find((p: any) => p.mimeType === 'text/html');
-      if (part && part.body?.data) {
-        body = Buffer.from(part.body.data, 'base64url').toString('utf8');
-      }
+    let body = extractEmailBody(msgData.payload);
+    if (!body || !body.trim()) {
+      body = msgData.snippet ? `[Snippet Only - Main body formatting not parseable]\n${msgData.snippet}` : 'No content available.';
     }
-    return `Message ID: ${msgData.id}\nFrom: ${from}\nDate: ${date}\nSubject: ${subject}\n\nBody:\n${body}`;
+    return `[NOTE: Full email message extracted below. Do NOT claim the email is cut off or truncated unless explicitly noted.]\nMessage ID: ${msgData.id}\nFrom: ${from}\nDate: ${date}\nSubject: ${subject}\n\nBody:\n${body}`;
   } catch (err: any) {
     return `Error getting Gmail message: ${err.message}`;
   }
@@ -318,9 +397,9 @@ const _t = (name: string, desc: string, props: any, req: string[]) => ({
 export const setupGoogleAuthToolDefinition = _t("setup_google_auth", "Sets up Google Workspace auth using a client_secret.json file.", { clientSecretPath: { type: "string", description: "Absolute path to client_secret.json" } }, ["clientSecretPath"]);
 export const submitGoogleAuthToolDefinition = _t("submit_google_auth_code", "Submits the OAuth authorization code to finish authentication.", { code: { type: "string", description: "The auth code or full redirect URL." } }, ["code"]);
 
-export const readGmailInboxToolDefinition = _t("read_gmail_inbox", "Reads recent emails from Gmail inbox.", { maxResults: { type: "number", description: "Number of emails (default 5)" } }, []);
-export const searchGmailToolDefinition = _t("search_gmail", "Searches Gmail messages.", { query: { type: "string" }, maxResults: { type: "number" } }, ["query"]);
-export const getGmailMessageToolDefinition = _t("get_gmail_message", "Gets full content of a specific Gmail message.", { messageId: { type: "string" } }, ["messageId"]);
+export const readGmailInboxToolDefinition = _t("read_gmail_inbox", "Reads emails from Gmail inbox. CRITICAL RULE: Set maxResults to the EXACT number of emails requested by the user (e.g. pass 100 for '100 email teratas', pass 10 for '10 email', pass 50 for '50 email'). When displaying emails, you MUST list ALL emails returned without truncating.", { maxResults: { type: "number", description: "EXACT number of emails requested by the user (e.g. 10, 50, 100). Default to 10 if unspecified." } }, []);
+export const searchGmailToolDefinition = _t("search_gmail", "Searches Gmail messages. CRITICAL RULE: Set maxResults to the EXACT number of emails requested by the user (e.g. pass 100 for '100 email', pass 10 for '10 email'). When displaying emails, you MUST list ALL emails returned without truncating.", { query: { type: "string" }, maxResults: { type: "number", description: "EXACT number of emails requested by the user (e.g. 10, 50, 100). Default to 10 if unspecified." } }, ["query"]);
+export const getGmailMessageToolDefinition = _t("get_gmail_message", "Gets full content of a specific Gmail message. Returns the COMPLETE body text of the email.", { messageId: { type: "string" } }, ["messageId"]);
 export const sendEmailToolDefinition = _t("send_email", "Sends an email.", { to: { type: "string" }, subject: { type: "string" }, body: { type: "string" }, cc: { type: "string" } }, ["to", "subject", "body"]);
 export const replyEmailToolDefinition = _t("reply_email", "Replies to an email.", { messageId: { type: "string" }, body: { type: "string" } }, ["messageId", "body"]);
 export const modifyGmailLabelsToolDefinition = _t("modify_gmail_labels", "Modifies labels on an email.", { messageId: { type: "string" }, addLabels: { type: "array", items: { type: "string" } }, removeLabels: { type: "array", items: { type: "string" } } }, ["messageId", "addLabels", "removeLabels"]);
