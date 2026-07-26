@@ -77,7 +77,8 @@ export class OpenAIAdapter implements LLMProvider {
 
   async chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse> {
     const payload = { ...request } as any;
-    if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
+    const supportsReasoningEffort = payload.model.startsWith('o1') || payload.model.startsWith('o3') || payload.model.toLowerCase().includes('gemini') || payload.model.toLowerCase().includes('think') || payload.model.toLowerCase().includes('reason') || payload.model.toLowerCase().includes('r1');
+    if (payload.reasoning_effort && !supportsReasoningEffort) {
         delete payload.reasoning_effort;
     }
     // Suppress token-level repetition loops and word-salad hallucination.
@@ -89,7 +90,12 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.top_p === undefined) payload.top_p = 0.95;
     const response = await this.client.chat.completions.create(payload);
     let content = response.choices[0].message.content || '';
-    let reasoning = (response.choices[0].message as any).reasoning_content || null;
+    let reasoning = (response.choices[0].message as any).reasoning_content ||
+                    (response.choices[0].message as any).reasoning ||
+                    (response.choices[0].message as any).thought ||
+                    (response.choices[0].message as any).thinking ||
+                    (response.choices[0].message as any).reasoning_text ||
+                    null;
     
     // Extract <thinking> tags from content if present
     const thinkingMatch = content.match(/<(think|thought|thinking|reasoning|analysis|reflection)>([\s\S]*?)<\/\1>/i);
@@ -116,7 +122,8 @@ export class OpenAIAdapter implements LLMProvider {
   async stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse> {
     try {
       const payload = { ...request, stream: true } as any;
-      if (payload.reasoning_effort && !(payload.model.startsWith('o1') || payload.model.startsWith('o3'))) {
+      const supportsReasoningEffort = payload.model.startsWith('o1') || payload.model.startsWith('o3') || payload.model.toLowerCase().includes('gemini') || payload.model.toLowerCase().includes('think') || payload.model.toLowerCase().includes('reason') || payload.model.toLowerCase().includes('r1');
+      if (payload.reasoning_effort && !supportsReasoningEffort) {
           delete payload.reasoning_effort;
       }
       // Suppress token-level repetition loops (same as chat())
@@ -137,8 +144,12 @@ export class OpenAIAdapter implements LLMProvider {
           fullContent += delta.content;
           onChunk(delta.content);
         }
-        if (delta?.reasoning_content || (delta as any)?.reasoning) {
-          const rText = (delta.reasoning_content || (delta as any).reasoning);
+        const rText = delta?.reasoning_content ||
+                      (delta as any)?.reasoning ||
+                      (delta as any)?.thought ||
+                      (delta as any)?.thinking ||
+                      (delta as any)?.reasoning_text;
+        if (rText) {
           reasoningContent += rText;
           if (onReasoning) onReasoning(rText);
         }
