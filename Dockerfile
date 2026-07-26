@@ -1,7 +1,7 @@
 # ==========================================
 # STAGE 1: BUILDER
 # ==========================================
-FROM node:22-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ RUN npm run build --workspace=nyxora-dashboard
 # ==========================================
 # STAGE 2: PRODUCTION
 # ==========================================
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 WORKDIR /app
 
@@ -81,9 +81,11 @@ COPY . .
 # Inject the compiled frontend dashboard from the Builder stage
 COPY --from=builder /app/packages/dashboard/dist ./packages/dashboard/dist
 
-# Setup ML Engine globally in Docker
+# Setup ML Engine globally in Docker with CPU-only PyTorch to prevent downloading 2GB+ CUDA wheels
 RUN python3 -m venv /app/ml-venv \
-    && /app/ml-venv/bin/pip install -r packages/ml-engine/requirements.txt
+    && /app/ml-venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /app/ml-venv/bin/pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && /app/ml-venv/bin/pip install --no-cache-dir -r packages/ml-engine/requirements.txt
 
 ENV ML_ENGINE_PYTHON_PATH=/app/ml-venv/bin/python
 
