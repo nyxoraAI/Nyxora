@@ -17,6 +17,21 @@
 
   import { onMount } from 'svelte';
   onMount(() => {
+    const pending = sessionStorage.getItem('nyxora_pending_prompt');
+    if (pending) {
+      sessionStorage.removeItem('nyxora_pending_prompt');
+      input = pending;
+      setTimeout(() => handleSubmit(), 100);
+    }
+
+    const handleQuickPrompt = (e: any) => {
+      if (e.detail?.prompt && !isLoading) {
+        input = e.detail.prompt;
+        setTimeout(() => handleSubmit(), 50);
+      }
+    };
+    window.addEventListener('nyxora:quick-prompt', handleQuickPrompt);
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognition = new SpeechRecognition();
@@ -31,6 +46,10 @@
       recognition.onerror = () => isListening = false;
       recognition.onend = () => isListening = false;
     }
+
+    return () => {
+      window.removeEventListener('nyxora:quick-prompt', handleQuickPrompt);
+    };
   });
 
   function startListening() {
