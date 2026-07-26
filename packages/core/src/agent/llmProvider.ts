@@ -419,6 +419,21 @@ export class AnthropicAdapter implements LLMProvider {
   }
 }
 
+function sanitizeGeminiParameters(schema: any): any {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) {
+    return schema.map(sanitizeGeminiParameters);
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === '$schema' || key === '$id' || key === '$ref' || key === 'additionalProperties') {
+      continue;
+    }
+    clean[key] = sanitizeGeminiParameters(value);
+  }
+  return clean;
+}
+
 export class GeminiAdapter implements LLMProvider {
   constructor(private apiKey: string) {}
 
@@ -494,7 +509,7 @@ export class GeminiAdapter implements LLMProvider {
         functionDeclarations: request.tools.map(t => ({
           name: t.function.name,
           description: t.function.description,
-          parameters: t.function.parameters
+          parameters: sanitizeGeminiParameters(t.function.parameters)
         }))
       }];
     }
@@ -631,7 +646,7 @@ export class GeminiAdapter implements LLMProvider {
 
     let tools: any = undefined;
     if (request.tools && request.tools.length > 0) {
-      tools = [{ functionDeclarations: request.tools.map(t => ({ name: t.function.name, description: t.function.description, parameters: t.function.parameters })) }];
+      tools = [{ functionDeclarations: request.tools.map(t => ({ name: t.function.name, description: t.function.description, parameters: sanitizeGeminiParameters(t.function.parameters) })) }];
     }
 
     const payload: any = {
