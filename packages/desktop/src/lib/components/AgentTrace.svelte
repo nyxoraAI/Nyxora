@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, Terminal, Search, Activity, Cpu } from 'lucide-svelte';
+  import { ChevronRight, Terminal, Search, Activity, Cpu, FileCode } from 'lucide-svelte';
 
   interface Props {
     toolCalls?: any[];
@@ -68,6 +68,7 @@
   function getIconForStep(text: string) {
     const lower = text.toLowerCase();
     if (lower.includes('find') || lower.includes('search') || lower.includes('explored')) return 'search';
+    if (lower.includes('file') || lower.includes('replace') || lower.includes('write')) return 'file';
     if (lower.includes('ran') || lower.includes('running') || lower.includes('execute')) return 'terminal';
     if (lower.includes('thought')) return 'cpu';
     return 'activity';
@@ -107,13 +108,16 @@
     </button>
     
     {#if isOpen}
-      <div class="mt-2 pl-4 ml-3 border-l-[1.5px] border-gray-100 dark:border-[#3a3a3c] flex flex-col gap-3 py-1">
+      <div class="mt-2 pl-4 ml-3 border-l-[1.5px] border-gray-100 dark:border-[#3a3a3c] flex flex-col gap-3 py-1 max-h-[160px] overflow-y-auto pr-2 styled-scroll scroll-smooth overscroll-contain">
+
         {#if reasoningContent}
           <div class="flex items-start gap-3 text-sm text-gray-600 dark:text-[#e5e5ea]">
             <Cpu size={15} class="text-pink-400 mt-0.5 flex-shrink-0" />
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
               <span class="font-medium text-gray-700 dark:text-[#e5e5ea]">Thinking:</span>
-              <p class="mt-1 text-[13px] leading-relaxed italic whitespace-pre-wrap">{reasoningContent}</p>
+              <div class="mt-1">
+                <p class="text-[13px] leading-relaxed italic whitespace-pre-wrap text-gray-500 dark:text-gray-400">{reasoningContent}</p>
+              </div>
             </div>
           </div>
         {/if}
@@ -122,6 +126,8 @@
           <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#e5e5ea]">
             {#if getIconForStep(trace) === 'search'}
               <Search size={15} class="text-blue-400 stroke-[1.5]" />
+            {:else if getIconForStep(trace) === 'file'}
+              <FileCode size={15} class="text-indigo-400 stroke-[1.5]" />
             {:else if getIconForStep(trace) === 'terminal'}
               <Terminal size={15} class="text-green-500 stroke-[1.5]" />
             {:else if getIconForStep(trace) === 'cpu'}

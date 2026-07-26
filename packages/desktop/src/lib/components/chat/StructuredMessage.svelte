@@ -24,6 +24,27 @@
       return `${cleanHeader}\n\n${nextLine}`;
     });
 
+    // Fix mismatched table headers and separators (e.g. LLM outputs 3 header cols but 2 sep cols)
+    t = t.replace(/^(\|.+?\|)\s*\n(\|\s*[-:]+[-| :]*\|)/gm, (match, header, sep) => {
+      const headerCols = (header.match(/\|/g) || []).length - 1;
+      const sepCols = (sep.match(/\|/g) || []).length - 1;
+      if (headerCols > 0 && sepCols > 0 && headerCols !== sepCols) {
+        let newSep = '|' + Array(Math.max(1, headerCols)).fill('---').join('|') + '|';
+        return `${header}\n${newSep}`;
+      }
+      return match;
+    });
+
+    // Fix table rows where LLM forgot '|' before '>'
+    t = t.replace(/^(\|[^\n]+\|)$/gm, (match) => {
+      if (/^\|\s*[-:]+[-| :]*\|$/.test(match)) return match;
+      const pipeCount = (match.match(/\|/g) || []).length;
+      if (pipeCount <= 3 && match.includes('>')) {
+         return match.replace(/\s*>\s*/g, ' | > ');
+      }
+      return match;
+    });
+
     // Fix single-line tables or tables with mismatched separators by ensuring newlines are preserved
     t = t.replace(/\|\s*(\|\s*[-:]+[-| :]*\|)/g, '|\n$1');
     t = t.replace(/(\|\s*[-:]+[-| :]*\|)\s+(?=\||\w)/g, '$1\n');
@@ -165,7 +186,12 @@
 
   let traceProps = $derived.by(() => {
     // Gabungkan data dari history (DB) dengan data hasil parse streaming agar sinkron
-    const rawToolCalls = [...(msg.tool_calls || [])];
+    let parsedMsgTools = msg.tool_calls || [];
+    if (typeof parsedMsgTools === 'string') {
+      try { parsedMsgTools = JSON.parse(parsedMsgTools); } catch { parsedMsgTools = []; }
+    }
+    if (!Array.isArray(parsedMsgTools)) parsedMsgTools = [parsedMsgTools];
+    const rawToolCalls = [...parsedMsgTools];
     let reasoningContent = msg.reasoning_content || '';
     const progressLogs = msg.progressLogs || [];
     

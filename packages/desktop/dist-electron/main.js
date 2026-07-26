@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, ipcMain, nativeImage } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -48,6 +48,21 @@ function createWindow() {
 			preload: path.join(__dirname, "preload.mjs"),
 			contextIsolation: true,
 			nodeIntegration: false
+		}
+	});
+	win.webContents.setWindowOpenHandler((details) => {
+		if (details.url.startsWith("http://") || details.url.startsWith("https://")) {
+			shell.openExternal(details.url);
+			return { action: "deny" };
+		}
+		return { action: "allow" };
+	});
+	win.webContents.on("will-navigate", (event, url) => {
+		if (VITE_DEV_SERVER_URL && url.startsWith(VITE_DEV_SERVER_URL)) return;
+		if (url.startsWith("file://")) return;
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			event.preventDefault();
+			shell.openExternal(url);
 		}
 	});
 	let token = "";

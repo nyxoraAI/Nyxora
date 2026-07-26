@@ -1,6 +1,7 @@
 <script lang="ts">
   import { chatStore } from '$lib/stores/chat';
   import StructuredMessage from './chat/StructuredMessage.svelte';
+  import UserBubble from './chat/UserBubble.svelte';
   import AgentTrace from './AgentTrace.svelte';
 
   import { tick } from 'svelte';
@@ -141,7 +142,19 @@
         if (currentAssistantMsg) {
           // Merge tool_calls
           if (m.tool_calls) {
-            currentAssistantMsg.tool_calls = [...(currentAssistantMsg.tool_calls || []), ...m.tool_calls];
+            let parsedTools = m.tool_calls;
+            if (typeof parsedTools === 'string') {
+              try { parsedTools = JSON.parse(parsedTools); } catch { parsedTools = []; }
+            }
+            if (!Array.isArray(parsedTools)) parsedTools = [parsedTools];
+            
+            let currentTools = currentAssistantMsg.tool_calls || [];
+            if (typeof currentTools === 'string') {
+              try { currentTools = JSON.parse(currentTools); } catch { currentTools = []; }
+            }
+            if (!Array.isArray(currentTools)) currentTools = [currentTools];
+            
+            currentAssistantMsg.tool_calls = [...currentTools, ...parsedTools];
           }
           // Merge reasoning
           if (m.reasoning_content) {
@@ -178,22 +191,14 @@
     <div class="w-full max-w-3xl mx-auto flex flex-col gap-6 relative">
       {#each mergedMessages() as msg, i}
         <div id={`msg-${i}`} class="flex flex-col gap-2 w-full {msg.role === 'user' ? 'items-end' : 'items-start'} message-fade-in group relative">
-          <div class="{msg.role === 'user' ? 'max-w-[80%] bg-gray-100 dark:bg-[#2c2c2e] rounded-[1.25rem] px-5 py-3 relative' : 'max-w-full pt-1 w-full'}">
+          <div class="{msg.role === 'user' ? 'max-w-[80%] relative' : 'max-w-full pt-1 w-full'}">
             {#if msg.role === 'user'}
-              <div class="prose dark:prose-invert max-w-none text-[15px] whitespace-pre-wrap text-gray-900 dark:text-[#f5f5f7]">
-                {msg.content}
-              </div>
-              <button 
-                onclick={() => copyMessage(msg.content, i)} 
-                class="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-[#2c2c2e] dark:hover:bg-[#3a3a3c] text-gray-500 dark:text-gray-400 cursor-pointer shadow-sm border border-transparent dark:border-gray-600"
-                title="Copy Message"
-              >
-                {#if copiedMessageIndex === i}
-                  <Check size={14} class="text-green-500" />
-                {:else}
-                  <Copy size={14} />
-                {/if}
-              </button>
+              <UserBubble 
+                content={msg.content} 
+                index={i} 
+                copiedMessageIndex={copiedMessageIndex} 
+                onCopy={copyMessage} 
+              />
             {:else}
               <StructuredMessage {msg} />
             {/if}
