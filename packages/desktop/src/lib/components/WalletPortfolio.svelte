@@ -242,7 +242,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           onclick={copyAddress}
-          class="inline-flex items-center gap-2 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] px-3 py-1 rounded-xl cursor-pointer text-sm font-mono hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+          class="inline-flex items-center gap-2 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] px-3 py-1 rounded-xl cursor-pointer text-sm font-mono hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           {walletAddress.substring(0, 6)}...{walletAddress.substring(38)}
           {#if copied}
@@ -309,7 +309,7 @@
       <div class="flex flex-col">
         {#each flatTokens as t, idx}
           {@const usdVal = (t.priceUsd || 0) * getParsedBalance(t.balanceRaw, t.decimals)}
-          <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors border-b border-gray-100 dark:border-[#48484a] last:border-0">
+          <div class="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-[#48484a] last:border-0">
             <div class="flex items-center gap-3">
               <div class="relative w-10 h-10">
                 <div class="w-full h-full rounded-full flex items-center justify-center font-bold text-sm overflow-hidden {t.isNative ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}">
