@@ -250,7 +250,7 @@
                 {#if projectId}
                   <div class="space-y-0.5 ml-4 mt-1">
                     {#each $chatStore.sessions.filter(s => s.project_id === projectId) as session}
-                      <div class="group/session relative w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-[13px] transition-colors {$appState.activeSessionId === session.id && !$appState.isSearchOpen ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'text-gray-600 dark:text-[#e5e5ea] hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-gray-200'}">
+                      <div class="group/session relative w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-[13px] transition-colors {$appState.activeSessionId === session.id && !$appState.isSearchOpen && currentView === 'chat' ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'text-gray-600 dark:text-[#e5e5ea] hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-gray-200'}">
                         <button 
                           onclick={() => handleSessionClick(session.id, workspace)}
                           class="flex items-center gap-2 min-w-0 flex-1"
@@ -286,7 +286,7 @@
     {#if $chatStore.sessions.filter(s => !s.project_id).length > 0}
       <div class="px-2 space-y-0.5">
         {#each $chatStore.sessions.filter(s => !s.project_id) as session}
-          <div class="group relative w-full flex items-center justify-between gap-2 px-2.5 py-1 rounded-full text-[13px] transition-colors {$appState.activeSessionId === session.id && !$appState.activeWorkspace && !$appState.isSearchOpen ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'text-gray-600 dark:text-[#e5e5ea] hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
+          <div class="group relative w-full flex items-center justify-between gap-2 px-2.5 py-1 rounded-full text-[13px] transition-colors {$appState.activeSessionId === session.id && !$appState.activeWorkspace && !$appState.isSearchOpen && currentView === 'chat' ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'text-gray-600 dark:text-[#e5e5ea] hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
             {#if renamingSessionId === session.id}
               <!-- Rename Input -->
               <div class="flex items-center gap-2 flex-1 min-w-0 px-1">
