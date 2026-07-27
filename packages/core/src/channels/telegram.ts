@@ -94,6 +94,11 @@ export function formatToTelegramHTML(text: string): string {
     return `<i>${p1}</i>`;
   });
 
+  // Un-flatten accidentally joined table rows (small model hallucination)
+  html = html
+    .replace(/\|\s*\|\s*(?=:?-+:?\s*\|)/g, '|\n|')
+    .replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
+
   // Convert markdown tables to preformatted text
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;
   html = html.replace(tableRegex, (match) => `<pre>${match.trim()}</pre>\n`);
