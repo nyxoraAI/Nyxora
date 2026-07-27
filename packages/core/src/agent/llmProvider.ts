@@ -101,9 +101,9 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.reasoning_effort && !supportsReasoningEffort) {
         delete payload.reasoning_effort;
     }
-    // Suppress token-level repetition loops and word-salad hallucination.
-    payload.frequency_penalty = Math.max(request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6, 0.4);
-    payload.presence_penalty = Math.max(request.presence_penalty !== undefined ? request.presence_penalty : 0.3, 0.2);
+    // Respect user-provided penalties, default to 0 to avoid breaking structured repetitive outputs (like lists of emails with dates).
+    payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.0;
+    payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.0;
     if (request.repetition_penalty !== undefined && request.repetition_penalty !== 1.0) {
       payload.repetition_penalty = request.repetition_penalty;
     }
@@ -152,9 +152,9 @@ export class OpenAIAdapter implements LLMProvider {
       if (payload.reasoning_effort && !supportsReasoningEffort) {
           delete payload.reasoning_effort;
       }
-      // Suppress token-level repetition loops (same as chat())
-      payload.frequency_penalty = Math.max(request.frequency_penalty !== undefined ? request.frequency_penalty : 0.6, 0.4);
-      payload.presence_penalty = Math.max(request.presence_penalty !== undefined ? request.presence_penalty : 0.3, 0.2);
+      // Respect user-provided penalties, default to 0 to avoid breaking structured repetitive outputs (like lists of emails with dates).
+      payload.frequency_penalty = request.frequency_penalty !== undefined ? request.frequency_penalty : 0.0;
+      payload.presence_penalty = request.presence_penalty !== undefined ? request.presence_penalty : 0.0;
       if (request.repetition_penalty !== undefined && request.repetition_penalty !== 1.0) {
         payload.repetition_penalty = request.repetition_penalty;
       }
