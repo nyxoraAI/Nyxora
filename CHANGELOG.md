@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.7.27]
+### Features & UI/UX Enhancements
+- **CJK & Emoji Markdown Table Realignment (`markdownTables.ts`)**: Engineered CJK/emoji-aware markdown table realignment and responsive narrow-screen vertical fallback. Full-width ideographs, emojis, and combining symbols no longer cause table column borders to drift in terminal and CLI environments.
+- **Streaming Reasoning / `<think>` Block Scrubber (`thinkScrubber.ts`)**: Implemented a stateful streaming scrubber (`StreamingThinkScrubber`) to cleanly suppress `<think>`, `<reasoning>`, and `<thought>` blocks emitted by open-weight models (e.g., DeepSeek-R1, Mistral, Ollama) on CLI/Telegram while preserving collapsible reasoning cards on Dashboard and Desktop.
+
+### Bug Fixes & Agent Enhancements
+- **Strict OpenAI/NIM Message Sanitization (Mistral & Open-Weight Providers Fix)**: Resolved an API validation error (`HTTP 400: Extra inputs are not permitted`) when using Mistral models and other strict Pydantic-validated endpoints on NVIDIA NIM / OpenAI-compatible APIs. Introduced `sanitizeOpenAIMessages()` in `llmProvider.ts` to automatically strip extraneous internal database metadata properties (`session_id`, `id`, `duration_ms`) from message payloads before sending them to the provider.
+- **Local Version Increment**: Bumped Nyxora version to `v26.7.27` across all workspace packages and submodules.
+
 ## [26.7.25]
 ### Bug Fixes & Agent Enhancements
 - **Web Search Engine Integrations**: Fully implemented robust scraping backend logic for alternative engines in `searchWeb.ts`. Added native Playwright support for `puppeteer` and `browserbase` (via WebSocket CDP) to render heavy JavaScript sites, and added direct REST integration for `crawl4ai`. Updated the Dashboard UI to include a dynamic configuration field for the Crawl4AI API endpoint.

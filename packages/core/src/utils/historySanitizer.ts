@@ -47,7 +47,15 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       }
     }
 
-    let msg: any = { ...m, role, content };
+    let msg: any = {
+      role,
+      content
+    };
+    if (m.name !== undefined && m.name !== null) msg.name = m.name;
+    if (m.tool_call_id !== undefined && m.tool_call_id !== null) msg.tool_call_id = m.tool_call_id;
+    if (role === 'assistant' && m.reasoning_content !== undefined && m.reasoning_content !== null) {
+      msg.reasoning_content = m.reasoning_content;
+    }
     
     if (m.tool_calls && m.tool_calls.length > 0) {
         msg.tool_calls = m.tool_calls.filter((tc: any) => 

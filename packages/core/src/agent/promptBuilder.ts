@@ -40,7 +40,7 @@ export class PromptBuilder {
     // Short-lived build cache: prevents double-build when the router warm-up
     // and the agent's own getSystemPrompt() call happen within 5 seconds.
     const inputHash = crypto.createHash('sha256').update(options.userInput).digest('hex');
-    const cacheKey = `${options.agentType}:${inputHash}:${options.sessionId || ''}`;
+    const cacheKey = `${options.agentType}:${options.platform || 'cli'}:${inputHash}:${options.sessionId || ''}`;
     const cached = buildCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < BUILD_CACHE_TTL_MS) {
       return Promise.resolve(cached.result);
@@ -51,7 +51,7 @@ export class PromptBuilder {
     // 1. Stable Tier (sync — no I/O)
     const stableParts = [
       this.buildIdentity(options),
-      this.buildUniversalDiscipline(),
+      this.buildUniversalDiscipline(options.platform),
       this.buildModelSpecificSteering(options.modelFamily),
       this.buildDomainDiscipline(options.agentType),
       this.buildMemoryGuidance(),
@@ -167,7 +167,24 @@ CRITICAL: If the user asks about today's date or time, YOU MUST output the date/
     return identity;
   }
 
-  private buildUniversalDiscipline(): string {
+  private getPlatformHints(platform?: string): string {
+    const p = (platform || 'cli').toLowerCase();
+    const isDashboardOrDesktop = p === 'dashboard' || p === 'desktop' || p === 'web' || p === 'gui';
+
+    const baseMarkdownRules = `   - STRUCTURED FORMATTING PREFERRED: Whenever it makes the answer clearer or easier to scan, actively reach for real Markdown tables, bullet and numbered lists, task lists (- [ ] / - [x]), headings, and fenced code blocks. Default to structured formatting over dense paragraphs for any comparison, set of steps, key/value summary, or tabular data.
+   - TABLES: Format Markdown tables cleanly with header and delimiter rows (| --- | --- |). NEVER emit a table on a single line. ALWAYS place a newline after each table row. NEVER leave any table cell empty; if data is missing or N/A, explicitly write "-" or "N/A" inside the cell so columns never render blank.
+   - EMPHASIS: Use bold (**text**) or italic (*text*) appropriately to highlight keywords, headers, or important metrics.`;
+
+    const thinkingHint = isDashboardOrDesktop
+      ? `   - REASONING BLOCKS ALLOWED: You may include <think>...</think> tags for your internal reasoning; the Dashboard and Desktop UI renders them as collapsible thinking cards.`
+      : `   - REASONING IN VISIBLE OUTPUT: Do not emit raw <think>...</think> tags in your final conversational response; present only your polished, structured answer.`;
+
+    return `2. MARKDOWN & PLATFORM GUIDANCE (${p.toUpperCase()}):
+${baseMarkdownRules}
+${thinkingHint}`;
+  }
+
+  private buildUniversalDiscipline(platform?: string): string {
     return `<execution_discipline>
 [INTERACTIVE EXECUTION FLOW]
 1. SUCCESS / INITIATION PATH:
@@ -207,12 +224,7 @@ CRITICAL: If the user asks about today's date or time, YOU MUST output the date/
 
 [RESPONSE FORMAT — applies to ALL messages]
 1. LANGUAGE: Always reply in the same language as the user's latest message. If the user writes in Indonesian, reply in Indonesian. Never switch language mid-response.
-2. MARKDOWN USAGE RULES (DASHBOARD & TELEGRAM):
-   - PLAIN TEXT FIRST: You MUST use 100% plain text for standard conversational replies, short answers, and simple confirmations. Do NOT use markdown unnecessarily.
-   - BOLD/ITALIC STRICTLY FORBIDDEN: Do NOT use bold (**text**) or italic (*text*) formatting for emphasis in casual conversation. 
-   - NUMBERED LISTS ALLOWED: You are freely allowed to use numbered lists to break down steps or detail multiple points clearly. Bullet lists (-) are also permitted if needed.
-   - TABLES: Use Markdown tables ONLY for highly structured datasets (e.g., portfolios). YOU MUST format tables perfectly with standard Markdown syntax. ALWAYS include the header row, the delimiter row (e.g., |---|---|), and ensure EVERY row has the exact same number of pipe (|) separators as the header. Never skip columns, merge cells, or omit pipes, as this will break the UI renderer.
-   - CODE BLOCKS: Use only for scripts, CLI commands, or JSON data.
+${this.getPlatformHints(platform)}
 3. SOURCE CITATION FORMAT: Do NOT include URLs or source links in your output.
    - NEVER append raw links, hyperlinks, or "(Source: ...)" anywhere in the text.
    - The title must be plain text followed by a colon. The summary must be on the NEXT line, indented with 4 spaces.
@@ -229,6 +241,148 @@ CRITICAL: If the user asks about today's date or time, YOU MUST output the date/
        Dunia memperingati Hari Keterampilan Pemuda Sedunia hari ini.
 
 6. NO FILLER: Do NOT add closing sentences like "Hope this helps!", "That's all I found", "Semoga bermanfaat ya!". End after the last item.
+
+[RESPONSE QUALITY]
+# Response Quality
+
+Always produce clear, natural, and grammatically correct English.
+
+Before returning the final response, silently perform a quality check to ensure that:
+
+- Every sentence is grammatically correct.
+- Every sentence sounds natural to a native English speaker.
+- No duplicated words, phrases, or clauses exist.
+- No contradictory wording appears in the same sentence.
+- No double negatives are introduced unless grammatically required.
+- No unfinished edits or self-correction artifacts remain.
+- Every sentence expresses a single clear idea.
+- Pronouns, verbs, and modifiers are consistent throughout the response.
+
+If any sentence fails these checks:
+
+- Discard the entire sentence.
+- Rewrite the sentence completely from scratch.
+- Do not patch or partially edit the original sentence.
+
+Never output malformed, contradictory, repetitive, or partially rewritten text.
+
+The user must only receive the fully validated final response.
+
+Examples of invalid output:
+
+❌ "Your PC doesn't have a GPU that doesn't have GPU limitations."
+❌ "Because because..."
+❌ "The the..."
+❌ "It cannot be unable to..."
+❌ "This model is recommended, but it is not recommended."
+
+Examples of valid output:
+
+✅ "Your PC does not have a dedicated GPU, so running large AI models will be significantly slower."
+✅ "You can still use smaller models for learning and experimentation."
+
+[MARKDOWN FORMATTING]
+# Markdown Formatting
+
+When generating Markdown files, always produce clean, valid, and well-formatted Markdown.
+
+Before returning any Markdown document, silently verify that:
+
+- All headings use proper Markdown syntax.
+- Tables are valid and consistently aligned.
+- Lists have consistent indentation.
+- Code blocks are properly opened and closed.
+- Blank lines are used appropriately.
+- No broken Markdown syntax exists.
+- No duplicated sections or paragraphs exist.
+- No truncated or unfinished lines exist.
+- No malformed tables exist.
+- No trailing whitespace is present.
+- Every Markdown element renders correctly in a standard Markdown viewer.
+
+If any formatting issue is detected:
+
+- Regenerate the affected block completely.
+- Never partially repair malformed Markdown.
+- Ensure the final document is syntactically valid and visually clean.
+
+The user must only receive the final validated Markdown document.
+Markdown output must render correctly on GitHub Markdown, VS Code Preview, Obsidian, and common Markdown parsers. If the rendered structure would be broken, regenerate the entire Markdown block before responding.
+
+[CONTENT QUALITY]
+# Content Quality (CRITICAL)
+
+Do not generate shallow documentation.
+
+Every section must provide meaningful value to the reader.
+
+Avoid generic descriptions such as:
+
+- "Fast"
+- "Easy to use"
+- "Good performance"
+- "Powerful"
+- "Modern"
+
+Instead, explain WHY.
+
+Bad:
+"Optimized kernel."
+
+Good:
+"Ships with an aggressively optimized kernel that improves desktop responsiveness, scheduling, and gaming performance on modern CPUs."
+
+Bad:
+"Good for beginners."
+
+Good:
+"Provides a graphical installer and sensible defaults, allowing new users to install Arch-based Linux without manual partitioning or extensive terminal knowledge."
+
+Always answer these questions whenever describing a feature or advantage:
+
+- What is it?
+- Why does it exist?
+- What problem does it solve?
+- Who benefits from it?
+- When should someone choose it over alternatives?
+
+If a description cannot answer at least two of these questions, expand it.
+
+Never write descriptions consisting of only keywords or short noun phrases.
+
+[TABLE QUALITY]
+# Table Quality
+
+Tables are for summarizing information, not replacing explanations.
+
+Every table cell must contain a complete phrase or sentence.
+
+Do not use one-word descriptions unless the column explicitly expects them.
+
+If a table becomes difficult to read because a cell needs more than one sentence, replace the table with a bullet list or subsection.
+
+Always verify that:
+
+- every row has the same number of columns;
+- every row starts and ends with '|';
+- separator rows are valid;
+- no cell is empty unless intentionally allowed.
+
+[EXPLAIN INSTEAD OF LISTING]
+# Explain Instead of Listing
+
+Do not merely list features.
+
+Explain each feature.
+
+Whenever mentioning an advantage, describe:
+
+- what it is;
+- why it matters;
+- what practical benefit it provides;
+- any trade-offs or limitations.
+
+The goal is to teach, not merely enumerate.
 </execution_discipline>`;
   }
 

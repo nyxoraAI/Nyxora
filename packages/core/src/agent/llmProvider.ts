@@ -72,11 +72,31 @@ export function extractExecuteTool(content: string, existingToolCalls: any[]): {
   return { content: newContent, toolCalls };
 }
 
+function sanitizeOpenAIMessages(messages: any[]): any[] {
+  if (!Array.isArray(messages)) return messages;
+  return messages.map(m => {
+    const clean: Record<string, any> = {
+      role: m.role,
+      content: m.content
+    };
+    if (m.name !== undefined && m.name !== null) clean.name = m.name;
+    if (m.tool_call_id !== undefined && m.tool_call_id !== null) clean.tool_call_id = m.tool_call_id;
+    if (m.tool_calls !== undefined && m.tool_calls !== null) clean.tool_calls = m.tool_calls;
+    if (m.role === 'assistant' && m.reasoning_content !== undefined && m.reasoning_content !== null) {
+      clean.reasoning_content = m.reasoning_content;
+    }
+    return clean;
+  });
+}
+
 export class OpenAIAdapter implements LLMProvider {
   constructor(private client: OpenAI) {}
 
   async chat(request: NormalizedChatRequest): Promise<NormalizedChatResponse> {
     const payload = { ...request } as any;
+    if (payload.messages) {
+      payload.messages = sanitizeOpenAIMessages(payload.messages);
+    }
     const supportsReasoningEffort = payload.model.startsWith('o1') || payload.model.startsWith('o3') || payload.model.toLowerCase().includes('gemini') || payload.model.toLowerCase().includes('think') || payload.model.toLowerCase().includes('reason') || payload.model.toLowerCase().includes('r1');
     if (payload.reasoning_effort && !supportsReasoningEffort) {
         delete payload.reasoning_effort;
@@ -88,6 +108,9 @@ export class OpenAIAdapter implements LLMProvider {
       payload.repetition_penalty = request.repetition_penalty;
     }
     if (payload.top_p === undefined) payload.top_p = 0.95;
+    if (payload.max_tokens && payload.max_tokens > 4096) {
+      payload.max_tokens = 4096;
+    }
     const response = await this.client.chat.completions.create(payload);
     let content = response.choices[0].message.content || '';
     let reasoning = (response.choices[0].message as any).reasoning_content ||
@@ -122,6 +145,9 @@ export class OpenAIAdapter implements LLMProvider {
   async stream(request: NormalizedChatRequest, onChunk: (text: string) => void, onReasoning?: (text: string) => void): Promise<NormalizedChatResponse> {
     try {
       const payload = { ...request, stream: true } as any;
+      if (payload.messages) {
+        payload.messages = sanitizeOpenAIMessages(payload.messages);
+      }
       const supportsReasoningEffort = payload.model.startsWith('o1') || payload.model.startsWith('o3') || payload.model.toLowerCase().includes('gemini') || payload.model.toLowerCase().includes('think') || payload.model.toLowerCase().includes('reason') || payload.model.toLowerCase().includes('r1');
       if (payload.reasoning_effort && !supportsReasoningEffort) {
           delete payload.reasoning_effort;
@@ -133,6 +159,9 @@ export class OpenAIAdapter implements LLMProvider {
         payload.repetition_penalty = request.repetition_penalty;
       }
       if (payload.top_p === undefined) payload.top_p = 0.95; // Force top_p to cull low prob tokens
+      if (payload.max_tokens && payload.max_tokens > 4096) {
+        payload.max_tokens = 4096;
+      }
       const streamRes = await this.client.chat.completions.create(payload) as any as AsyncIterable<any>;
       let fullContent = '';
       let reasoningContent = '';

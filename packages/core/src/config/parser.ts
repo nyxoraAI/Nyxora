@@ -291,7 +291,7 @@ export function loadConfig(): NyxoraConfig {
         base_url: parsed.llm?.base_url,
         image_provider: parsed.llm?.image_provider,
         image_model: parsed.llm?.image_model,
-        max_tokens: parsed.llm?.max_tokens || 32768
+        max_tokens: (parsed.llm?.max_tokens && parsed.llm.max_tokens > 4096) ? 4096 : (parsed.llm?.max_tokens || 4096)
       },
       web_search: parsed.web_search || {
         provider: 'mesh',

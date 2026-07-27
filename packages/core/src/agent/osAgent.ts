@@ -11,6 +11,8 @@ import { ReasoningScratchpad } from './reasoningScratchpad';
 import { compressHistory, needsCompression } from '../utils/contextSummarizer';
 import { sanitizeHistoryForLLM, pruneLoopedHistory } from '../utils/historySanitizer';
 import { TrajectoryLogger } from '../memory/trajectoryLogger';
+import { realignMarkdownTables } from '../utils/markdownTables';
+import { stripThinkBlocks, StreamingThinkScrubber } from '../utils/thinkScrubber';
 
 import { promptBuilder } from './promptBuilder';
 
@@ -164,7 +166,7 @@ function getToolLabel(n: string, firstArgValue: string): string {
 }
 
 
-async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userInput: string = '', sessionId?: string): Promise<string> {
+async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userInput: string = '', sessionId?: string, platform?: string): Promise<string> {
     const config = loadConfig();
     const provider = (config?.llm?.provider || '').toLowerCase();
     let modelFamily: 'openai' | 'google' | 'anthropic' | 'grok' | 'unknown' = 'unknown';
@@ -178,12 +180,14 @@ async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userIn
         userInput,
         config,
         sessionId,
-        modelFamily
+        modelFamily,
+        platform: platform || (config as any)?.platform || process.env.NYXORA_PLATFORM
     });
 }
 
-export async function processOsIntent(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string): Promise<string> {
+export async function processOsIntent(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string, platform?: string): Promise<string> {
   const config = loadConfig();
+  const targetPlatform = platform || (config as any)?.platform || process.env.NYXORA_PLATFORM;
   // Add input to memory
   logger.addEntry({ role, content: input }, sessionId);
 
@@ -233,7 +237,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   const scratchpad = new ReasoningScratchpad();
 
   // P3: Build system prompt ONCE per request — not per turn
-  const cachedSystemPrompt = await getSystemPrompt('os', input, sessionId);
+  const cachedSystemPrompt = await getSystemPrompt('os', input, sessionId, targetPlatform);
 
   try {
     let turnCount = 0;
@@ -308,6 +312,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
       // P1: Capture <think> blocks for scratchpad, get clean content
       let cleanedContent = scratchpad.capture(responseMessage.content || '', turnCount);
+      cleanedContent = realignMarkdownTables(stripThinkBlocks(cleanedContent, targetPlatform));
 
       // --- ANTI-LOOP MECHANISM ---
       const lastAsstMsg = sanitizedHistory.slice().reverse().find((m: any) => m.role === 'assistant');
@@ -754,9 +759,11 @@ export async function processOsIntentStream(
   onChunk: (text: string) => void,
   onProgress?: (msg: string) => void,
   sessionId?: string,
-  onReasoning?: (text: string) => void
+  onReasoning?: (text: string) => void,
+  platform?: string
 ): Promise<string> {
   const config = loadConfig();
+  const targetPlatform = platform || (config as any)?.platform || process.env.NYXORA_PLATFORM;
   logger.addEntry({ role: 'user', content: input }, sessionId);
 
   // --- MULTILINGUAL USER CORRECTION DETECTION ---
@@ -800,7 +807,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   }
 
   // FIX: Cache system prompt ONCE before loop (was being rebuilt every turn — wasteful)
-  const cachedSystemPromptStream = await getSystemPrompt('os', input, sessionId);
+  const cachedSystemPromptStream = await getSystemPrompt('os', input, sessionId, targetPlatform);
 
   try {
     let turnCount = 0;
@@ -849,16 +856,25 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         // RC#1 FIX: Always clear the buffer at the start of the stream turn.
         // This ensures the client UI doesn't append duplicate preambles across multi-turn executions.
         onChunk('[CLEAR_STREAM]');
-        return await client.stream(
-          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, max_tokens: (config.llm as any).max_tokens || 32768, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
+        const scrubber = new StreamingThinkScrubber(targetPlatform);
+        const res = await client.stream(
+          { model: config.llm.model, temperature: config.llm.temperature, frequency_penalty: config.llm.frequency_penalty, presence_penalty: config.llm.presence_penalty, repetition_penalty: config.llm.repetition_penalty, max_tokens: (config.llm as any).max_tokens || 4096, messages, tools: activeTools, reasoning_effort: (!config.llm.reasoning_effort || config.llm.reasoning_effort === 'none') ? undefined : config.llm.reasoning_effort as any },
           (chunk: string) => {
             streamedContent += chunk;
-            onChunk(chunk);
+            const scrubbedChunk = scrubber.feed(chunk);
+            if (scrubbedChunk) {
+              onChunk(scrubbedChunk);
+            }
           },
           onReasoning ? (reasoning: string) => {
             onReasoning(reasoning);
           } : undefined
         );
+        const tail = scrubber.flush();
+        if (tail) {
+          onChunk(tail);
+        }
+        return res;
       });
       const duration_ms = Date.now() - turnStartTime;
 
@@ -870,7 +886,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
       const asstMsgStream = {
         role: 'assistant' as any,
-        content: responseMessage.content || '',
+        content: realignMarkdownTables(stripThinkBlocks(responseMessage.content || '', targetPlatform)),
         reasoning_content: (responseMessage as any).reasoning_content,
         tool_calls: responseMessage.tool_calls,
         duration_ms,
@@ -879,9 +895,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       loopMessagesStream.push(asstMsgStream);
 
       if (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) {
-        let finalContent = responseMessage.content || '';
-        finalContent = finalContent.replace(/<(think|thought|thinking|reasoning|analysis|reflection)[\s\S]*?<\/\1>\n?/gi, '').trim();
-        finalContent = finalContent.replace(/^\s*(?:\*\*)?(?:think|thought|thinking|reasoning|analysis|reflection)(?:\*\*)?\s*?\n[\s\S]*?\n\n/i, '').trim();
+        let finalContent = realignMarkdownTables(stripThinkBlocks(responseMessage.content || '', targetPlatform));
 
         // Support global languages: English, Indonesian, Spanish, French, German filler words
         const isConversationalFiller = finalContent.length > 0 && finalContent.length < 250 && /(wait|checking|executing|processing|give me a moment|let me check|one moment|hold on|tunggu|sebentar|lagi proses|lanjut cek|gue cek|aku cek|un momento|attendez|bitte warten)[\s\.\!a-z]*$/i.test(finalContent.trim());
