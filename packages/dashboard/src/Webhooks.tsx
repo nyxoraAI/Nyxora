@@ -95,7 +95,12 @@ const Webhooks: React.FC = () => {
     try {
       const payload = { ...config, integrations: { ...config.integrations, telegram, discord, whatsapp } };
       const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) { setConfig(payload); setStatus({ type: 'success', msg: 'Saved! Restart backend to apply.' }); }
+      if (res.ok) { 
+        setConfig(payload); 
+        setStatus({ type: 'success', msg: 'Saved! Restarting backend...' }); 
+        apiFetch('/api/system/restart', { method: 'POST' }).catch(() => {});
+        setTimeout(() => { window.location.reload(); }, 2500);
+      }
       else setStatus({ type: 'error', msg: 'Failed to save.' });
     } catch { setStatus({ type: 'error', msg: 'Connection error.' }); }
     finally { setSaving(false); }
@@ -227,7 +232,7 @@ const Webhooks: React.FC = () => {
                       <div style={{ background: 'rgba(42,171,238,0.06)', border: '1px solid rgba(42,171,238,0.15)', borderRadius: '6px', padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                         1. Open Telegram → <code>@BotFather</code> → <code>/newbot</code> → copy token<br />
                         2. Get your Chat ID from <code>@userinfobot</code><br />
-                        3. Save &amp; restart backend
+                        3. Save &amp; wait for auto-restart
                       </div>
                     </>
                   )}
@@ -245,7 +250,7 @@ const Webhooks: React.FC = () => {
                     <div style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.15)', borderRadius: '6px', padding: '14px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                       <div style={{ marginBottom: '16px' }}>
                         1. Enable the toggle and click <strong>Save</strong><br />
-                        2. Restart the backend (<code>nyxora start</code>)<br />
+                        2. Wait for Nyxora to automatically restart.<br />
                         3. Scan the QR code below using your WhatsApp Mobile App.
                       </div>
                       

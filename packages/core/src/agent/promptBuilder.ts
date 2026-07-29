@@ -97,14 +97,17 @@ export class PromptBuilder {
       this.buildRiskProfile(),
     ];
 
-    const stableText = stableParts.join('\n\n');
+    const identityParts = [
+      narrativeMemories,
+      this.buildUserPreferencesAndIdentity(options.sessionId),
+      episodicMemories
+    ].filter(p => p && p.trim() !== '');
+
+    const stableText = stableParts.join('\n\n') + '\n\n' + identityParts.join('\n\n');
     const criticalEnd = '\n\n' + SUPER_DISCIPLINE;
     
-    // We want to prioritize narrativeMemories and episodicMemories over workspace context
+    // We want to prioritize workspace context
     const priorityOptionalParts = [
-      narrativeMemories,
-      episodicMemories,
-      this.buildUserPreferencesAndIdentity(options.sessionId),
       ...contextParts,
       this.buildPlaybookContext(),
       this.buildSecurityPolicy(),
@@ -937,7 +940,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
         // 2. Fallback to user preferences if no project is active
         if (!inferredWorkDir) {
           // Allow absolute paths starting with / or ~ 
-          const wdMatch = userContent.match(/(?:working directory|workspace|project root|direktori kerja|saving generated files|save).*?([`'"]?([/~][^\s`'"\n]+)[`'"]?)/i);
+          const wdMatch = userContent.match(/(?:working directory|workspace|project root|direktori kerja|saving generated files|save).*?([`'"]?([/~][^\s`'"\n)\]]+)[`'"]?)/i);
           if (wdMatch && wdMatch[2]) {
             let p = wdMatch[2].replace(/[`'"]/g, '').trim();
             if (p.startsWith('~/')) {

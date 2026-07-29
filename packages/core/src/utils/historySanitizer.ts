@@ -157,8 +157,10 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       if (typeof prev.content === 'string' && typeof msg.content === 'string') {
         prev.content = prev.content + '\n\n---\n\n' + msg.content;
       } else {
-        // Fallback for multimodal content — just keep the newer one
-        merged[merged.length - 1] = msg;
+        // Gabungkan elemen array (multimodal) agar konteks sebelumnya tidak terhapus
+        const prevContent = Array.isArray(prev.content) ? prev.content : [{ type: 'text', text: String(prev.content) }];
+        const msgContent = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: String(msg.content) }];
+        prev.content = [...prevContent, ...msgContent];
       }
     } else {
       merged.push(msg);
@@ -177,14 +179,16 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
 
   if (totalChars > absoluteMaxChars && merged.length > 1) {
     let dropCount = 0;
-    // Keep dropping oldest messages (index 0) until we are under the limit,
-    // but ALWAYS keep at least the most recent message (merged.length > 1).
-    while (totalChars > absoluteMaxChars && merged.length > 1) {
-      const msgToDrop = merged[0];
+    // Keep dropping oldest messages until we are under the limit,
+    // but ALWAYS protect the system prompt (index 0) if it exists.
+    let dropIndex = (merged.length > 1 && merged[0].role === 'system') ? 1 : 0;
+    
+    while (totalChars > absoluteMaxChars && merged.length > (dropIndex + 1)) {
+      const msgToDrop = merged[dropIndex];
       const charsToDrop = typeof msgToDrop.content === 'string' ? msgToDrop.content.length : JSON.stringify(msgToDrop.content).length;
       totalChars -= charsToDrop;
       if (msgToDrop.tool_calls) totalChars -= JSON.stringify(msgToDrop.tool_calls).length;
-      merged.splice(0, 1);
+      merged.splice(dropIndex, 1);
       dropCount++;
     }
     console.warn(`[HistorySanitizer] Dropped ${dropCount} older messages to enforce absolute context limit (${maxContext} tokens).`);

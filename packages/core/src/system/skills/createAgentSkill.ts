@@ -21,7 +21,7 @@ export const createAgentSkillToolDefinition = {
         },
         parameters: {
           type: "object",
-          description: "The JSON Schema representing the tool's parameters (e.g., { action: { type: 'string' } })."
+          description: "The JSON Schema representing the tool's parameters (e.g., { action: { type: 'string' } }). CRITICAL: For enums, use a flat array (e.g., { type: 'string', enum: ['read', 'write'] }). Do NOT use nested arrays (e.g., [['read', 'write']])."
         },
         required: {
           type: "array",
@@ -55,6 +55,19 @@ export async function createAgentSkill(name: string, description: string, parame
     if (parameters && parameters.type === 'object' && parameters.properties) {
       finalParameters = parameters.properties;
     }
+
+    // Fix nested array enums common hallucination
+    const fixEnums = (obj: any) => {
+      if (typeof obj !== 'object' || obj === null) return;
+      for (const key of Object.keys(obj)) {
+        if (key === 'enum' && Array.isArray(obj[key]) && obj[key].length === 1 && Array.isArray(obj[key][0])) {
+          obj[key] = obj[key][0];
+        } else if (typeof obj[key] === 'object') {
+          fixEnums(obj[key]);
+        }
+      }
+    };
+    fixEnums(finalParameters);
 
     const frontmatterObj = {
       name: safeName,
