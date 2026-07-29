@@ -66,7 +66,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
 
   const fetchSessions = async (sessionId: string | null = activeSessionId) => {
     try {
-      const res = await apiFetch(`/api/sessions`);
+      const res = await apiFetch(`/api/sessions?client=dashboard`);
       if (res.ok) {
         const data = await res.json();
         setChatSessions(data);
@@ -79,7 +79,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
 
   const createNewSession = async (projectId?: string) => {
     try {
-      const body: any = { title: 'New Chat' };
+      const body: any = { title: 'New Chat', client: 'dashboard' };
       if (projectId) body.project_id = projectId;
       
       const res = await apiFetch(`/api/sessions`, {
@@ -111,7 +111,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
   const deleteSession = async (id: string) => {
     try {
       await apiFetch(`/api/sessions/${id}`, { method: 'DELETE' });
-      const res = await apiFetch(`/api/sessions`);
+      const res = await apiFetch(`/api/sessions?client=dashboard`);
       if (res.ok) {
         const remaining = await res.json();
         setChatSessions(remaining);
@@ -166,7 +166,7 @@ export const useChat = (isVoiceMode: boolean, speak: (text: string) => void) => 
         const res = await apiFetch(`/api/sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title })
+          body: JSON.stringify({ title, client: 'dashboard' })
         });
         if (res.ok) {
           const { id } = await res.json();

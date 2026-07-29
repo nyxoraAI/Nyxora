@@ -20,7 +20,7 @@ const SearchChat: React.FC<SearchChatProps> = ({ chatSessions, onSelectSession }
     
     const timeoutId = setTimeout(async () => {
       try {
-        const res = await apiFetch(`/api/sessions/search?q=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`/api/sessions/search?q=${encodeURIComponent(query)}&client=dashboard`);
         if (res.ok) {
           setSearchResults(await res.json());
         }

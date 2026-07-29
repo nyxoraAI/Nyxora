@@ -286,7 +286,7 @@ export class Logger {
     const rows = this.db.prepare(`
       SELECT id, title, timestamp, project_id
       FROM sessions
-      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'cli-chat%'
+      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'whatsapp_%' AND id NOT LIKE 'cli-chat%'
         AND (client = 'dashboard' OR client IS NULL)
       ORDER BY timestamp DESC
     `).all();
@@ -326,7 +326,7 @@ export class Logger {
       FROM sessions s
       LEFT JOIN messages m ON s.id = m.session_id
       WHERE (s.title LIKE ? OR m.content LIKE ?)
-      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%' AND s.id NOT LIKE 'cli-chat%'
+      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%' AND s.id NOT LIKE 'whatsapp_%' AND s.id NOT LIKE 'cli-chat%'
       ORDER BY s.timestamp DESC
     `).all(term, term);
   }
