@@ -8,6 +8,7 @@ import { scanContextContent } from './threatPatterns';
 import { findNyxoraMd, stripYamlFrontmatter } from './workspaceUtils';
 import { detectProjectFacts, buildWorkspaceBlock } from './projectAnalyzer';
 import { SUPER_DISCIPLINE } from './superDiscipline';
+import { getEstimatedMaxContext } from '../utils/llmUtils';
 
 // ── TTL Caches ──────────────────────────────────────────────────────────────
 // Narrative memory + skills are fetched from the ML engine on every request.
@@ -110,7 +111,6 @@ export class PromptBuilder {
       this.buildRiskProfile()
     ].filter(p => p && p.trim() !== '');
 
-    const { getEstimatedMaxContext } = require('../utils/llmUtils');
     const maxContext = options.config?.llm?.max_context || getEstimatedMaxContext(options.config?.llm?.model || '');
     const maxSystemChars = Math.floor(maxContext * 4 * 0.5);
 
