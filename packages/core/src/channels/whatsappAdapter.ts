@@ -36,7 +36,11 @@ export class WhatsappAdapter implements ChannelAdapter {
             return;
         }
 
-        const { state, saveCreds } = await useMultiFileAuthState('whatsapp_auth_info');
+        const path = require('path');
+        const os = require('os');
+        const authDir = path.join(os.homedir(), '.nyxora', 'auth', 'whatsapp');
+
+        const { state, saveCreds } = await useMultiFileAuthState(authDir);
         
         // Create a silent logger to prevent Baileys from spamming the terminal with raw JSON
         const pino = require('pino');
