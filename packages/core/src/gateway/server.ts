@@ -1820,6 +1820,16 @@ export async function startServer() {
     // Start Native Channel Engine (New Architecture)
     const config = require('../config/parser').loadConfig();
     const activeChannels = config.channels?.active || [];
+    
+    // Auto-inject channels enabled via Dashboard (integrations object)
+    if (config.integrations) {
+      for (const [key, val] of Object.entries(config.integrations)) {
+        if ((val as any)?.enabled && key !== 'telegram' && key !== 'discord' && !activeChannels.includes(key)) {
+          activeChannels.push(key);
+        }
+      }
+    }
+
     // Register all optional adapters lazily (catches missing deps gracefully)
     registerAllAdapters().then(() => {
       channelManager.startAll(activeChannels).catch((e: any) => {

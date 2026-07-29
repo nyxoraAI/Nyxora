@@ -9,7 +9,8 @@ import { apiFetch } from './utils/api';
 
 interface TelegramConfig { enabled: boolean; bot_token?: string; authorized_chat_id?: number; }
 interface DiscordConfig  { enabled: boolean; bot_token?: string; client_id?: string; }
-interface FullConfig { integrations?: { telegram?: TelegramConfig; discord?: DiscordConfig; [k: string]: any }; [k: string]: any; }
+interface WhatsappConfig { enabled: boolean; }
+interface FullConfig { integrations?: { telegram?: TelegramConfig; discord?: DiscordConfig; whatsapp?: WhatsappConfig; [k: string]: any }; [k: string]: any; }
 
 // ─── channel catalogue ────────────────────────────────────────────────────────
 interface ChannelInfo {
@@ -71,6 +72,7 @@ const Webhooks: React.FC = () => {
   const [config, setConfig] = useState<FullConfig | null>(null);
   const [telegram, setTelegram] = useState<TelegramConfig>({ enabled: false, bot_token: '', authorized_chat_id: undefined });
   const [discord, setDiscord] = useState<DiscordConfig>({ enabled: false, bot_token: '', client_id: '' });
+  const [whatsapp, setWhatsapp] = useState<WhatsappConfig>({ enabled: false });
   const [showTgToken, setShowTgToken] = useState(false);
   const [showDsToken, setShowDsToken] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +84,7 @@ const Webhooks: React.FC = () => {
       setConfig(cfg);
       if (cfg.integrations?.telegram) setTelegram({ enabled: cfg.integrations.telegram.enabled ?? false, bot_token: cfg.integrations.telegram.bot_token || '', authorized_chat_id: cfg.integrations.telegram.authorized_chat_id });
       if (cfg.integrations?.discord) setDiscord({ enabled: cfg.integrations.discord.enabled ?? false, bot_token: cfg.integrations.discord.bot_token || '', client_id: cfg.integrations.discord.client_id || '' });
+      if (cfg.integrations?.whatsapp) setWhatsapp({ enabled: cfg.integrations.whatsapp.enabled ?? false });
     }).catch(() => {});
   }, []);
 
@@ -89,7 +92,7 @@ const Webhooks: React.FC = () => {
     if (!config) return;
     setSaving(true); setStatus(null);
     try {
-      const payload = { ...config, integrations: { ...config.integrations, telegram, discord } };
+      const payload = { ...config, integrations: { ...config.integrations, telegram, discord, whatsapp } };
       const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) { setConfig(payload); setStatus({ type: 'success', msg: 'Saved! Restart backend to apply.' }); }
       else setStatus({ type: 'error', msg: 'Failed to save.' });
@@ -168,6 +171,11 @@ const Webhooks: React.FC = () => {
                     {discord.enabled ? '● Enabled' : '○ Disabled'}
                   </span>
                 )}
+                {ch.id === 'whatsapp' && (
+                  <span style={{ fontSize: '0.75rem', color: whatsapp.enabled ? '#10b981' : 'var(--text-secondary)' }}>
+                    {whatsapp.enabled ? '● Enabled' : '○ Disabled'}
+                  </span>
+                )}
 
                 {ch.docsUrl && (
                   <a href={ch.docsUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
@@ -208,6 +216,23 @@ const Webhooks: React.FC = () => {
                 </div>
               )}
 
+              {/* Expanded: WhatsApp */}
+              {isExpanded && ch.id === 'whatsapp' && (
+                <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--glass-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', marginBottom: '16px' }}>
+                    <Toggle value={whatsapp.enabled} onChange={v => setWhatsapp(p => ({ ...p, enabled: v }))} />
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Enable WhatsApp Bot</span>
+                  </div>
+                  {whatsapp.enabled && (
+                    <div style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.15)', borderRadius: '6px', padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                      1. Enable the toggle and click <strong>Save</strong><br />
+                      2. Restart the backend (<code>npm run start</code>)<br />
+                      3. A QR code will be printed in the terminal for you to scan via WhatsApp Mobile.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Expanded: Discord */}
               {isExpanded && ch.id === 'discord' && (
                 <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--glass-border)' }}>
@@ -236,8 +261,8 @@ const Webhooks: React.FC = () => {
                 </div>
               )}
 
-              {/* Expanded: Beta channels (WhatsApp, Slack) */}
-              {isExpanded && ch.status === 'beta' && (
+              {/* Expanded: Beta channels (Slack) */}
+              {isExpanded && ch.status === 'beta' && ch.id !== 'whatsapp' && (
                 <div style={{ padding: '0 20px 16px', borderTop: '1px solid var(--glass-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', padding: '10px 14px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '6px' }}>
                     <Info size={14} color="#f59e0b" />
