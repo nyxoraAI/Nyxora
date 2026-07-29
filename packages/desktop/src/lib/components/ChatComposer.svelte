@@ -151,6 +151,7 @@
     chatStore.addMessage({ role: 'user', content: userMsg, isOptimistic: true });
     
     const streamingId = `streaming-${Date.now()}`;
+    const streamStartTime = Date.now();
     chatStore.addMessage({ role: 'assistant', content: '', id: streamingId, isStreaming: true });
 
     try {
@@ -227,7 +228,7 @@
         source.close();
         isSourceClosed = true;
         clearInterval(intervalId);
-        chatStore.updateMessage(streamingId, { isStreaming: false, content: renderedResponse + '\n\n*(Canceled)*' });
+        chatStore.updateMessage(streamingId, { isStreaming: false, duration_ms: Date.now() - streamStartTime, content: renderedResponse + '\n\n*(Canceled)*' });
         chatStore.setLoading(false);
         cancelCurrentGeneration = null;
       };
@@ -241,7 +242,7 @@
           chatStore.updateMessage(streamingId, { content: renderedResponse });
         } else if (isSourceClosed) {
           clearInterval(intervalId);
-          chatStore.updateMessage(streamingId, { isStreaming: false });
+          chatStore.updateMessage(streamingId, { isStreaming: false, duration_ms: Date.now() - streamStartTime });
           chatStore.setLoading(false);
           cancelCurrentGeneration = null;
           if (isVoiceMode && fullResponse) speak(fullResponse);

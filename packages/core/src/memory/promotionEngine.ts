@@ -9,35 +9,52 @@ export class PromotionEngine {
 
   public static async runPromotionAndDecay(): Promise<void> {
     try {
-      // 1. Run Garbage Collection
-      episodicDB.decayMemories(60, 0.3); // Remove if older than 60 days and confidence < 0.3
+      // 1. Run Garbage Collection (thresholds tightened in episodic.ts: 30d / conf<0.5 / occ<=1)
+      episodicDB.decayMemories();
 
       // 2. Fetch all current episodic memories
       const memories = episodicDB.getMemories();
 
-      const permanentPreferences: string[] = [];
-      const recentObservations: string[] = [];
+      // 3. Bucket facts by category, sorted by score DESC (confidence × occurrences)
+      //    Cap: MAX_PER_CATEGORY facts per category to keep user.md lean and fully readable.
+      //    Permanent rule-type entries are always included regardless of cap.
+      const MAX_PER_CATEGORY = 8;
+      const categoryBuckets = new Map<string, EpisodicMemory[]>();
 
-      // 3. Evaluate each memory
       for (const mem of memories) {
-        // Calculate dynamic weight (simple model: occurrences * confidence)
-        // If it's a permanent rule fast-track, it might have high confidence (e.g., 2.0)
-        let score = mem.occurrences * mem.confidence;
+        const cat = mem.category || 'general';
+        if (!categoryBuckets.has(cat)) categoryBuckets.set(cat, []);
+        categoryBuckets.get(cat)!.push(mem);
+      }
 
-        if (mem.rule_type === 'permanent' || score >= this.PROMOTION_THRESHOLD) {
-          permanentPreferences.push(`- [${mem.category.toUpperCase()}] ${mem.fact}`);
-        } else if (mem.rule_type === 'temporary') {
-          // Temporary rules stay as observations and naturally decay
-          recentObservations.push(`- [TEMPORARY] ${mem.fact}`);
-        } else {
-          // Normal observations
-          recentObservations.push(`- ${mem.fact}`);
+      const permanentPreferences: string[] = [];
+      const recentObservations: string[]   = [];
+
+      for (const [cat, items] of categoryBuckets.entries()) {
+        // Sort by score desc
+        items.sort((a, b) => (b.occurrences * b.confidence) - (a.occurrences * a.confidence));
+
+        let included = 0;
+        for (const mem of items) {
+          const score = mem.occurrences * mem.confidence;
+          const isPermanent = mem.rule_type === 'permanent' || score >= PromotionEngine.PROMOTION_THRESHOLD;
+
+          if (isPermanent) {
+            permanentPreferences.push(`- [${cat.toUpperCase()}] ${mem.fact}`);
+          } else if (mem.rule_type === 'temporary') {
+            recentObservations.push(`- [TEMPORARY] ${mem.fact}`);
+          } else if (included < MAX_PER_CATEGORY) {
+            // Only include top N observations per category
+            recentObservations.push(`- ${mem.fact}`);
+            included++;
+          }
+          // else: fact stays in DB (accessible via RAG), just not written to user.md
         }
       }
 
       // Deduplicate arrays
       const uniquePermanent = [...new Set(permanentPreferences)];
-      const uniqueRecent = [...new Set(recentObservations)];
+      const uniqueRecent    = [...new Set(recentObservations)];
 
       // 4. Fetch Persona Traits
       const personas = episodicDB.getStrongPersonas(0.4);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, Terminal, Search, Activity, Cpu, FileCode } from 'lucide-svelte';
+  import { Terminal, Search, Activity, Cpu, FileCode } from 'lucide-svelte';
 
   interface Props {
     toolCalls?: any[];
@@ -18,40 +18,50 @@
   }: Props = $props();
 
   let isOpen = $state(false);
-  let startTime = Date.now();
+  let startTime = $state<number | null>(null);
   let elapsedTime = $state(0);
-  let intervalId: number | null = null;
+  let finalElapsed = $state(0); // frozen snapshot when streaming stops
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
-  // Auto expand when streaming starts
+  // Auto expand when streaming starts and there's content
   $effect(() => {
     if (isStreaming && (toolCalls.length > 0 || progressLogs.length > 0 || reasoningContent)) {
       isOpen = true;
     }
   });
 
-  // Track time if streaming
+  // Timer: reset each time streaming begins, freeze value when it stops
   $effect(() => {
     if (isStreaming) {
+      startTime = Date.now();
+      elapsedTime = 0;
+      // Poll at 500ms so the display feels live
       intervalId = setInterval(() => {
-        elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-      }, 1000);
+        elapsedTime = Math.floor((Date.now() - startTime!) / 1000);
+      }, 500) as unknown as ReturnType<typeof setInterval>;
     } else {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      // Persist the last elapsed so we show "Worked for Xs" after streaming ends
+      if (elapsedTime > 0) finalElapsed = elapsedTime;
     }
-    
+
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
   });
 
-  const hasContent = $derived(toolCalls.length > 0 || progressLogs.length > 0 || reasoningContent);
+  const hasContent = $derived(toolCalls.length > 0 || progressLogs.length > 0 || !!reasoningContent);
 
-  function getSummaryText() {
+  // $derived.by() agar Svelte 5 bisa track elapsedTime / isStreaming / finalElapsed dengan benar
+  const summaryText = $derived.by(() => {
     if (isStreaming) {
       return `Working for ${elapsedTime}s`;
     }
-    if (elapsedTime > 0) {
-      return `Worked for ${elapsedTime}s`;
+    if (finalElapsed > 0) {
+      return `Worked for ${finalElapsed}s`;
     }
     if (durationMs > 0) {
       return `Worked for ${Math.max(1, Math.round(durationMs / 1000))}s`;
@@ -63,7 +73,7 @@
       return `Worked for ${seconds}s`;
     }
     return `Completed`;
-  }
+  });
 
   function getIconForStep(text: string) {
     const lower = text.toLowerCase();
@@ -75,9 +85,8 @@
   }
 
   // Merge history tool_calls into readable strings if progressLogs is empty
-  const traces = $derived(() => {
+  const traces = $derived.by(() => {
     const result: string[] = [];
-    
     if (progressLogs && progressLogs.length > 0) {
       progressLogs.forEach(log => {
         const cleanText = log.text.replace(/<[^>]*>?/gm, '').replace(/\*+/g, '').trim();
@@ -88,7 +97,6 @@
         result.push(`Ran ${tool.function?.name || 'tool'}`);
       });
     }
-    
     return result;
   });
 </script>
@@ -100,7 +108,7 @@
       class="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 dark:text-[#e5e5ea] dark:hover:text-gray-200 transition-colors cursor-pointer w-fit"
     >
       <span class="text-[13px] font-medium">
-        {getSummaryText()}
+        {summaryText}
       </span>
       <div class="transition-transform duration-200 flex items-center" style="transform: {isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -122,7 +130,7 @@
           </div>
         {/if}
         
-        {#each traces() as trace, idx}
+        {#each traces as trace}
           <div class="flex items-center gap-3 text-[14px] text-slate-500 dark:text-[#e5e5ea]">
             {#if getIconForStep(trace) === 'search'}
               <Search size={15} class="text-blue-400 stroke-[1.5]" />

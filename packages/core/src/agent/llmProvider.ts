@@ -111,7 +111,43 @@ export class OpenAIAdapter implements LLMProvider {
     if (payload.max_tokens && payload.max_tokens > 4096) {
       payload.max_tokens = 4096;
     }
-    const response = await this.client.chat.completions.create(payload);
+    let response: any;
+    try {
+      response = await this.client.chat.completions.create(payload);
+    } catch (e: any) {
+      if (e.status === 400 && e.message && (e.message.toLowerCase().includes('exceed') || e.message.toLowerCase().includes('too long') || e.message.toLowerCase().includes('context'))) {
+        console.warn(`[OpenAIAdapter] Caught 400 Context Length error: ${e.message}. Forcing aggressive payload truncation and retrying...`);
+        // Duplicate the messages array so we can mutate it safely
+        payload.messages = JSON.parse(JSON.stringify(payload.messages));
+        
+        if (payload.messages && payload.messages.length > 2) {
+            // Keep system prompt (index 0) and the most recent 2 messages
+            const sysMsg = payload.messages[0];
+            const recentMsgs = payload.messages.slice(-2);
+            payload.messages = [sysMsg, ...recentMsgs];
+        }
+        
+        // Truncate strings inside remaining messages aggressively (max 4000 chars per message)
+        if (payload.messages) {
+            for (const m of payload.messages) {
+                if (typeof m.content === 'string' && m.content.length > 4000) {
+                    m.content = m.content.substring(0, 4000) + "\n\n...[TRUNCATED BY 400 AUTO-RECOVERY]";
+                } else if (Array.isArray(m.content)) {
+                    for (const b of m.content) {
+                        if (b.type === 'text' && typeof b.text === 'string' && b.text.length > 4000) {
+                            b.text = b.text.substring(0, 4000) + "\n\n...[TRUNCATED BY 400 AUTO-RECOVERY]";
+                        }
+                    }
+                }
+            }
+        }
+        // Retry the call
+        response = await this.client.chat.completions.create(payload);
+      } else {
+        throw e;
+      }
+    }
+
     let content = response.choices[0].message.content || '';
     let reasoning = (response.choices[0].message as any).reasoning_content ||
                     (response.choices[0].message as any).reasoning ||
@@ -472,7 +508,12 @@ export class GeminiAdapter implements LLMProvider {
     
     for (const m of request.messages) {
       if (m.role === 'system') {
-        systemInstruction = m.content;
+        // Concat all system messages — do NOT overwrite.
+        // If multiple system-role messages exist in history (e.g. main system prompt +
+        // injected task-plan notes), the last one must NOT silently discard the first.
+        systemInstruction = systemInstruction
+          ? systemInstruction + '\n\n' + m.content
+          : m.content;
         continue;
       }
       
@@ -546,8 +587,7 @@ export class GeminiAdapter implements LLMProvider {
     const payload: any = {
       contents: mergedContents,
       generationConfig: {
-        temperature: request.temperature || 0.7,
-        // Anti-repetition: penalize repetitive output patterns
+        temperature: request.temperature ?? 0.4,  // lower default: reduces repetition / hallucination on simple prompts
         topP: 0.95,
         topK: 40,
       },
@@ -584,16 +624,25 @@ export class GeminiAdapter implements LLMProvider {
 
     let contentStr = null;
     let toolCalls: any[] = [];
+    // reasoningContent collects Gemini thinking-model thought parts (part.thought === true)
+    // as well as <think>...</think> blocks from text-only thinking models.
+    let reasoningContent: string | null = null;
 
     if (data.candidates && data.candidates.length > 0) {
       const candidate = data.candidates[0];
-      
+
       if (candidate.finishReason && candidate.finishReason !== 'STOP') {
         console.warn(`[LLM] Gemini API returned finishReason: ${candidate.finishReason}`);
       }
 
       if (candidate.content && candidate.content.parts) {
         for (const part of candidate.content.parts) {
+          // Gemini thinking models mark internal reasoning with thought: true.
+          // Route to reasoningContent — NEVER concat into the visible response.
+          if (part.thought === true) {
+            reasoningContent = (reasoningContent || '') + (part.text || '');
+            continue;
+          }
           if (part.text) {
             contentStr = (contentStr || '') + part.text;
           } else if (part.functionCall) {
@@ -615,8 +664,8 @@ export class GeminiAdapter implements LLMProvider {
       totalTokens = data.usageMetadata.totalTokenCount;
     }
 
-    let reasoningContent = null;
-    if (contentStr) {
+    // For non-thinking models that emit reasoning via <think>...</think> tags in text
+    if (contentStr && !reasoningContent) {
       const thinkingMatch = contentStr.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
       if (thinkingMatch) {
         reasoningContent = thinkingMatch[2].trim();
@@ -647,7 +696,10 @@ export class GeminiAdapter implements LLMProvider {
     
     for (const m of request.messages) {
       if (m.role === 'system') {
-        systemInstruction = m.content;
+        // Concat, do NOT overwrite — same fix as in chat()
+        systemInstruction = systemInstruction
+          ? systemInstruction + '\n\n' + m.content
+          : m.content;
         continue;
       }
       if (m.role === 'user') {
@@ -681,11 +733,9 @@ export class GeminiAdapter implements LLMProvider {
     const payload: any = {
       contents: mergedContents,
       generationConfig: {
-        temperature: request.temperature || 0.7,
-        // Anti-repetition: penalize repetitive output patterns
+        temperature: request.temperature ?? 0.4,  // lower default: reduces repetition / hallucination
         topP: 0.95,
         topK: 40,
-        // Gemini doesn't have frequency_penalty, but we can use candidateCount=1 + topP/topK
       },
       safetySettings: [
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -710,6 +760,7 @@ export class GeminiAdapter implements LLMProvider {
       let contentStr = '';
       const toolCalls: any[] = [];
       let totalTokens = 0;
+      let reasoningContent: string | null = null;
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -731,6 +782,12 @@ export class GeminiAdapter implements LLMProvider {
                 const candidate = data.candidates[0];
                 if (candidate.content && candidate.content.parts) {
                   for (const part of candidate.content.parts) {
+                    // Gemini thinking models: route thought parts to reasoning, never to onChunk
+                    if (part.thought === true) {
+                      reasoningContent = (reasoningContent || '') + (part.text || '');
+                      if (onReasoning && part.text) onReasoning(part.text);
+                      continue;
+                    }
                     if (part.text) {
                       contentStr += part.text;
                       onChunk(part.text);
@@ -750,8 +807,8 @@ export class GeminiAdapter implements LLMProvider {
         }
       }
 
-      let reasoningContent = null;
-      if (contentStr) {
+      // For non-thinking models that emit <think>...</think> in text stream
+      if (contentStr && !reasoningContent) {
         const thinkingMatch = contentStr.match(/<(think|thought|thinking|reasoning|analysis|reflection|ant-thinking|ant_thinking)[^>]*>([\s\S]*?)<\/\1>/i);
         if (thinkingMatch) {
           reasoningContent = thinkingMatch[2].trim();

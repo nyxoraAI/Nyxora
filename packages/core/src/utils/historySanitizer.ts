@@ -1,3 +1,6 @@
+import { loadConfig } from '../config/parser';
+import { getEstimatedMaxContext } from './llmUtils';
+
 export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provider: string = 'openai'): any[] {
   const activeToolNames = activeTools.map(t => t.function?.name || t.name);
   
@@ -8,6 +11,10 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       availableToolResponseIds.add(m.tool_call_id);
     }
   }
+
+  const config = loadConfig();
+  const maxContext = (config.llm as any).max_context || getEstimatedMaxContext(config.llm.model);
+  const dynamicMaxChars = Math.floor((maxContext * 4) * 0.4);
 
   const keptToolCallIds = new Set<string>();
   const processedHistory: any[] = [];
@@ -91,9 +98,6 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
               msg.content.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: bData } });
             }
           } else if (provider.includes('gemini') || provider.includes('google')) {
-            // Wait, Gemini via Langchain/Official SDK handles inlineData, 
-            // but in Nyxora's NormalizedChatRequest, GeminiAdapter converts OpenAI schema `image_url` to `inlineData`!
-            // Let's use OpenAI schema as the universal base for Nyxora's NormalizedChatRequest
             msg.content = [{ type: 'text', text: textPart }];
             for (const b64 of images) {
               msg.content.push({ type: 'image_url', image_url: { url: b64 } });
@@ -107,13 +111,11 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
           }
         } else {
           // Normal String Tool Result
-          const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
-          const maxChars = 100000;
           let resultPreview = m.content || '';
-          if (typeof resultPreview === 'string' && resultPreview.length > maxChars) {
-             const head = Math.floor(maxChars * 0.3);
-             const tail = Math.floor(maxChars * 0.7);
-             resultPreview = resultPreview.substring(0, head) + `\n\n... [Content Truncated: ${resultPreview.length - maxChars} chars omitted] ...\n\n` + resultPreview.substring(resultPreview.length - tail);
+          if (typeof resultPreview === 'string' && resultPreview.length > dynamicMaxChars) {
+             const head = Math.floor(dynamicMaxChars * 0.3);
+             const tail = Math.floor(dynamicMaxChars * 0.7);
+             resultPreview = resultPreview.substring(0, head) + `\n\n... [Content Truncated: ${resultPreview.length - dynamicMaxChars} chars omitted] ...\n\n` + resultPreview.substring(resultPreview.length - tail);
           }
           msg.content = `[Tool Result: ${m.name || 'tool'}]\n${resultPreview}`;
         }
@@ -122,13 +124,11 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
         delete msg.name;
       } else {
         // GLOBAL TOOL OUTPUT TRUNCATION (Anti-Context Overflow)
-        const isLocalModel = provider === '9router' || provider === 'ollama' || provider === 'custom_provider';
-        const MAX_TOOL_CHARS = 100000;
-        if (typeof msg.content === 'string' && msg.content.length > MAX_TOOL_CHARS) {
-          const head = Math.floor(MAX_TOOL_CHARS * 0.3);
-          const tail = Math.floor(MAX_TOOL_CHARS * 0.7);
+        if (typeof msg.content === 'string' && msg.content.length > dynamicMaxChars) {
+          const head = Math.floor(dynamicMaxChars * 0.3);
+          const tail = Math.floor(dynamicMaxChars * 0.7);
           msg.content = msg.content.substring(0, head) + 
-            `\n\n... [Content Truncated: ${msg.content.length - MAX_TOOL_CHARS} chars omitted to prevent LLM context overflow] ...\n\n` + 
+            `\n\n... [Content Truncated: ${msg.content.length - dynamicMaxChars} chars omitted to prevent LLM context overflow] ...\n\n` + 
             msg.content.substring(msg.content.length - tail);
         }
       }
@@ -162,6 +162,48 @@ export function sanitizeHistoryForLLM(history: any[], activeTools: any[], provid
       }
     } else {
       merged.push(msg);
+    }
+  }
+
+  // ── Global Context Truncation (Emergency Override) ─────────────────────
+  // If the total characters of `merged` exceed maxContext * 4 * 0.8, we must forcefully
+  // drop older messages to prevent the 400 Context Length Exceeded error.
+  const absoluteMaxChars = Math.floor(maxContext * 4 * 0.8);
+  let totalChars = 0;
+  for (const m of merged) {
+    totalChars += typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content).length;
+    if (m.tool_calls) totalChars += JSON.stringify(m.tool_calls).length;
+  }
+
+  if (totalChars > absoluteMaxChars && merged.length > 1) {
+    let dropCount = 0;
+    // Keep dropping oldest messages (index 0) until we are under the limit,
+    // but ALWAYS keep at least the most recent message (merged.length > 1).
+    while (totalChars > absoluteMaxChars && merged.length > 1) {
+      const msgToDrop = merged[0];
+      const charsToDrop = typeof msgToDrop.content === 'string' ? msgToDrop.content.length : JSON.stringify(msgToDrop.content).length;
+      totalChars -= charsToDrop;
+      if (msgToDrop.tool_calls) totalChars -= JSON.stringify(msgToDrop.tool_calls).length;
+      merged.splice(0, 1);
+      dropCount++;
+    }
+    console.warn(`[HistorySanitizer] Dropped ${dropCount} older messages to enforce absolute context limit (${maxContext} tokens).`);
+  }
+
+  // ── FINAL FALLBACK: Extreme Message Truncation ──────────────────────────
+  // If we STILL exceed limits (e.g. because a single user prompt or array-based tool result is massive),
+  // we forcefully slice the strings inside the messages to guarantee no crash.
+  for (const m of merged) {
+    if (typeof m.content === 'string' && m.content.length > absoluteMaxChars) {
+      const tail = Math.floor(absoluteMaxChars * 0.9);
+      m.content = m.content.substring(0, absoluteMaxChars - tail) + "\n\n...[CRITICAL SYSTEM TRUNCATION: CONTENT TOO LARGE]...\n\n" + m.content.substring(m.content.length - tail);
+    } else if (Array.isArray(m.content)) {
+      for (const block of m.content) {
+        if (block.type === 'text' && typeof block.text === 'string' && block.text.length > absoluteMaxChars) {
+          const tail = Math.floor(absoluteMaxChars * 0.9);
+          block.text = block.text.substring(0, absoluteMaxChars - tail) + "\n\n...[CRITICAL SYSTEM TRUNCATION: CONTENT TOO LARGE]...\n\n" + block.text.substring(block.text.length - tail);
+        }
+      }
     }
   }
 

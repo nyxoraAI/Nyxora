@@ -21,6 +21,26 @@ export const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey
   custom_provider: { requiresApiKey: true }
 };
 
+export function getEstimatedMaxContext(model: string): number {
+  if (!model) return 8192;
+  const m = model.toLowerCase();
+  
+  // Detect small local models based on parameter size
+  if (m.includes('1.5b') || m.includes('3b')) return 8192;
+  if (m.includes('7b') || m.includes('8b') || m.includes('9b') || m.includes('14b')) return 32768;
+  
+  if (m.includes('gemini-1.5-pro')) return 2000000;
+  if (m.includes('gemini-1.5-flash') || m.includes('gemini-2')) return 1000000;
+  if (m.includes('gemini')) return 1000000;
+  if (m.includes('gpt-4o') || m.includes('gpt-4-turbo')) return 128000;
+  if (m.includes('claude-3')) return 200000;
+  if (m.includes('grok-2')) return 128000;
+  if (m.includes('deepseek-chat') || m.includes('deepseek-coder') || m.includes('deepseek-reasoner') || m.includes('deepseek-r1')) return 128000;
+  if (m.includes('mixtral')) return 32000;
+  if (m.includes('llama-3') || m.includes('llama3')) return 8192;
+  return 8192;
+}
+
 export async function getOpenAI(): Promise<OpenAI> {
   const config = loadConfig();
   const vaultKeys = await loadApiKeys();
@@ -111,20 +131,32 @@ export async function executeWithRetry(
       return await requestBuilder(client);
     } catch (error: any) {
       const status = error?.status || error?.response?.status;
+      const errMsg = (error?.message || '').toLowerCase();
       
-      // 401 Unauthorized or 400 Bad Request - don't retry, it's fatal
-      if (status === 401 || status === 400) {
+      // If a 400 error contains "reset after" or "quota", it's actually a Rate Limit!
+      const isFake400RateLimit = status === 400 && (errMsg.includes('reset after') || errMsg.includes('quota') || errMsg.includes('rate limit'));
+
+      // 401 Unauthorized or true 400 Bad Request - don't retry, it's fatal
+      if ((status === 401 || status === 400) && !isFake400RateLimit) {
         console.error(`[LLM] Fatal Error ${status}: ${error.message}. Aborting.`);
         throw error;
       }
       
-      // 429 Rate Limit - rotate provider/key immediately and retry
-      if (status === 429) {
-        console.warn(`[LLM] Rate Limit (429) hit. Rotating key...`);
-        // getOpenAI() automatically rotates to next key if available
+      // 429 Rate Limit or Fake 400 Rate Limit - backoff and retry
+      if (status === 429 || isFake400RateLimit) {
+        console.warn(`[LLM] Rate Limit hit (${status}). Backing off...`);
         retries++;
         if (retries > maxRetries) throw error;
-        continue; // Try next key immediately
+        
+        let waitMs = 2000;
+        if (errMsg.includes('reset after')) {
+           const match = errMsg.match(/reset after (\d+)s/);
+           if (match && match[1]) {
+               waitMs = parseInt(match[1]) * 1000 + 1000;
+           }
+        }
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        continue;
       }
       
       // 500, 502, 503, Timeout, Network error - Exponential Backoff

@@ -211,7 +211,7 @@ export async function compressHistory(
   history: Message[],
   sessionId?: string,
 ): Promise<Message[]> {
-  if (history.length < SUMMARISE_THRESHOLD) return history;
+  if (!needsCompression(history)) return history;
 
   // ── Step 1: PRUNE PASS ──────────────────────────────────────────────────
   const pruned = _prunePassed(history);
@@ -284,7 +284,26 @@ export async function compressHistory(
 // ---------------------------------------------------------------------------
 // needsCompression()
 // ---------------------------------------------------------------------------
+import { getEstimatedMaxContext } from './llmUtils';
 
 export function needsCompression(history: Message[]): boolean {
-  return history.length >= SUMMARISE_THRESHOLD;
+  const config = loadConfig();
+  const maxContext = (config.llm as any).max_context || getEstimatedMaxContext(config.llm.model);
+  
+  let totalChars = 0;
+  for (const m of history) {
+    totalChars += (typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content ?? '').length);
+    if (m.tool_calls) {
+      totalChars += JSON.stringify(m.tool_calls).length;
+    }
+  }
+  
+  const estimatedTokens = totalChars / 4;
+  
+  if (estimatedTokens > maxContext * 0.8) {
+    return true;
+  }
+  
+  const dynamicTurnThreshold = Math.max(50, Math.floor(maxContext / 200));
+  return history.length >= dynamicTurnThreshold;
 }

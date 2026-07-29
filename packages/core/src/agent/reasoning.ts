@@ -164,6 +164,7 @@ function shouldPlan(input: string): boolean {
 async function runTaskPlanner(input: string, context: string): Promise<string> {
   const config = loadConfig();
   try {
+    const truncatedInput = input.length > 8000 ? input.substring(0, 8000) + '...[TRUNCATED]' : input;
     const planRes = await executeWithRetry(async (client) =>
       client.chat({
         model: config.llm.model,
@@ -177,7 +178,7 @@ Each bullet = one concrete action or tool call.
 Be extremely concise. No intros, no explanations.
 Context domain: ${context}`
           },
-          { role: 'user', content: `Plan execution for: ${input}` }
+          { role: 'user', content: `Plan execution for: ${truncatedInput}` }
         ]
       })
     );
@@ -280,10 +281,11 @@ CONTEXT HIERARCHY RULES:
 
 Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or formatting.`;
 
+    const truncatedRouterInput = input.length > 8000 ? input.substring(0, 8000) + '...[TRUNCATED]' : input;
     const routerMessages = [
         { role: 'system', content: routerPrompt },
         ...textOnlyHistory.slice(-10),
-        { role: 'user', content: input }
+        { role: 'user', content: truncatedRouterInput }
     ];
 
     try {
@@ -433,10 +435,11 @@ CONTEXT HIERARCHY RULES:
 3. Ignore user conversational noise. Focus strictly on execution domain.
 
 Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or formatting.`;
+      const truncatedRouterInput = input.length > 8000 ? input.substring(0, 8000) + '...[TRUNCATED]' : input;
       const routerMessages = [
         { role: 'system', content: routerPrompt },
         ...textOnlyHistory.slice(-10),
-        { role: 'user', content: input }
+        { role: 'user', content: truncatedRouterInput }
       ];
       try {
         const provider = (config?.llm?.provider || '').toLowerCase();

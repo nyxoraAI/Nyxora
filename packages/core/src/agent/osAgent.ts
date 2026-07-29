@@ -844,10 +844,37 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
         
       const sanitizedHistory = sanitizeHistoryForLLM(historyToUse, activeTools, config.llm.provider);
       // FIX: Use cached system prompt — no longer rebuilt every turn
-      const messages: any[] = [
+      let messages: any[] = [
         { role: 'system', content: cachedSystemPromptStream },
         ...sanitizedHistory
       ];
+
+      // --- TOTAL PAYLOAD SAFETY CHECK ---
+      const { getEstimatedMaxContext } = require('../utils/llmUtils');
+      const finalMaxContext = config.llm.max_context || getEstimatedMaxContext(config.llm.model);
+      const absTotalChars = Math.floor(finalMaxContext * 4 * 0.90);
+      
+      let payloadTotalChars = 0;
+      for (const m of messages) {
+         payloadTotalChars += typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content).length;
+      }
+
+      if (payloadTotalChars > absTotalChars) {
+         console.warn(`[osAgent] ⚠️ Final payload (${payloadTotalChars} chars) exceeds safe limit (${absTotalChars} chars). Forcing extreme truncation...`);
+         for (let i = 0; i < messages.length; i++) {
+            let m = messages[i];
+            const maxPerMsg = Math.floor(absTotalChars / messages.length);
+            if (typeof m.content === 'string' && m.content.length > maxPerMsg) {
+                m.content = m.content.substring(0, maxPerMsg - 100) + "\n\n...[TRUNCATED]";
+            } else if (Array.isArray(m.content)) {
+                for (const b of m.content) {
+                   if (b.type === 'text' && typeof b.text === 'string' && b.text.length > maxPerMsg) {
+                       b.text = b.text.substring(0, maxPerMsg - 100) + "\n\n...[TRUNCATED]";
+                   }
+                }
+            }
+         }
+      }
 
       let streamedContent = '';
       const turnStartTime = Date.now();

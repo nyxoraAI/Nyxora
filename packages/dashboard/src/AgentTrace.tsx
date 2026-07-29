@@ -105,7 +105,18 @@ export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progress
               <Cpu size={15} color="#f472b6" style={{ marginTop: '2px', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Thinking:</span>
-                <p style={{ marginTop: '4px', fontStyle: 'italic', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                <p 
+                  className="styled-scroll"
+                  style={{ 
+                    marginTop: '4px', 
+                    fontStyle: 'italic', 
+                    whiteSpace: 'pre-wrap', 
+                    lineHeight: 1.5,
+                    maxHeight: '150px',
+                    overflowY: 'auto',
+                    paddingRight: '8px'
+                  }}
+                >
                   {reasoningContent}
                 </p>
               </div>

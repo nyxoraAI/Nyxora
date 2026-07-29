@@ -51,6 +51,8 @@ export class PromptBuilder {
     // 1. Stable Tier (sync — no I/O)
     const stableParts = [
       this.buildIdentity(options),
+      this.buildNyxDaemonPersonas(),
+      this.buildPermanentMemories(),
       this.buildUniversalDiscipline(options.platform),
       this.buildModelSpecificSteering(options.modelFamily),
       this.buildDomainDiscipline(options.agentType),
@@ -92,22 +94,60 @@ export class PromptBuilder {
       this.buildUserPreferencesAndIdentity(options.sessionId),
       this.buildSecurityPolicy(),
       this.buildRiskProfile(),
-      this.buildNyxDaemonPersonas(),
     ];
 
-    const allParts = [
-      ...stableParts,
+    const stableText = stableParts.join('\n\n');
+    const criticalEnd = '\n\n' + SUPER_DISCIPLINE;
+    
+    // We want to prioritize narrativeMemories and episodicMemories over workspace context
+    const priorityOptionalParts = [
+      narrativeMemories,
+      episodicMemories,
+      this.buildUserPreferencesAndIdentity(options.sessionId),
       ...contextParts,
-      ...volatileParts,
-      SUPER_DISCIPLINE
+      this.buildPlaybookContext(),
+      this.buildSecurityPolicy(),
+      this.buildRiskProfile()
     ].filter(p => p && p.trim() !== '');
 
-    const result = allParts.join('\n\n');
+    const { getEstimatedMaxContext } = require('../utils/llmUtils');
+    const maxContext = options.config?.llm?.max_context || getEstimatedMaxContext(options.config?.llm?.model || '');
+    const maxSystemChars = Math.floor(maxContext * 4 * 0.5);
+
+    let finalResult = stableText;
+    const baseLength = stableText.length + criticalEnd.length;
+    let remainingBudget = maxSystemChars - baseLength;
+
+    if (remainingBudget > 0) {
+      let optionalText = '';
+      for (const part of priorityOptionalParts) {
+         if (optionalText.length + part.length + 2 <= remainingBudget) {
+            optionalText += '\n\n' + part;
+         } else {
+            const spaceLeft = remainingBudget - optionalText.length - 2;
+            if (spaceLeft > 500) {
+               optionalText += '\n\n' + part.substring(0, spaceLeft - 100) + "\n\n...[TRUNCATED TO FIT CONTEXT LIMIT]...";
+            }
+            break;
+         }
+      }
+      finalResult += optionalText;
+    } else {
+      console.warn(`[PromptBuilder] ⚠️ Stable parts (${baseLength} chars) already exceed limit (${maxSystemChars} chars). Dropping optional context!`);
+    }
+
+    finalResult += criticalEnd;
+
+    if (finalResult.length > maxSystemChars) {
+      console.warn(`[PromptBuilder] ⚠️ Performing middle-out compression to fit ${maxSystemChars} chars.`);
+      const half = Math.floor(maxSystemChars / 2);
+      finalResult = finalResult.substring(0, half - 100) + "\n\n...[SYSTEM PROMPT TRUNCATED IN THE MIDDLE TO FIT CONTEXT]...\n\n" + finalResult.substring(finalResult.length - half + 100);
+    }
 
     // Update cache with resolved string
-    buildCache.set(cacheKey, { result, ts: Date.now() });
+    buildCache.set(cacheKey, { result: finalResult, ts: Date.now() });
 
-    return result;
+    return finalResult;
     })();
     
     // Store promise immediately to prevent race conditions
@@ -128,7 +168,7 @@ CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as t
 CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config?.agent?.default_chain || 'base'} unless specified.
 CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
 CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
-CRITICAL RULE 6: NETWORK SAFETY VALIDATION. NEVER GUESS chains or tokens. Ask for confirmation if ambiguous. Supported MAINNETS include: ethereum, base, bsc, arbitrum, optimism, polygon, and robinhood. If a user asks to check "all networks" or "mainnets", you MUST include 'robinhood'.
+CRITICAL RULE 6: NETWORK SAFETY VALIDATION. NEVER GUESS chains or tokens. Ask for confirmation if ambiguous. Supported MAINNETS include: ethereum, base, bsc, arbitrum, optimism, polygon, and robinhood. Supported TESTNETS include: sepolia, base_sepolia, arbitrum_sepolia, optimism_sepolia, and robinhood_testnet. If a user asks to check "all networks", you MUST include 'robinhood' and 'robinhood_testnet'.
 CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data.
 CRITICAL RULE 8: AMOUNT PRECISION. Use 6 decimal places for precision, or 2 if >$10,000.
 CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' internally. Warn if < 40%.
@@ -876,8 +916,7 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
       if (userContent) {
         userContent = scanContextContent(userContent, userMdPath);
 
-        // Auto-extract preferred working directory and inject as a top-level directive
-        // so the LLM always resolves file paths correctly without needing to search memory.
+        // Auto-extract preferred working directory BEFORE stripping preferences
         let inferredWorkDir = '';
         
         // 1. Check if session belongs to a project workspace
@@ -897,10 +936,28 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
         
         // 2. Fallback to user preferences if no project is active
         if (!inferredWorkDir) {
-          const wdMatch = userContent.match(/(?:working directory|workspace|project root|direktori kerja).*?([`'"]?(\/[^\s`'"\n]+)[`'"]?)/i);
+          // Allow absolute paths starting with / or ~ 
+          const wdMatch = userContent.match(/(?:working directory|workspace|project root|direktori kerja|saving generated files|save).*?([`'"]?([/~][^\s`'"\n]+)[`'"]?)/i);
           if (wdMatch && wdMatch[2]) {
-            inferredWorkDir = wdMatch[2].replace(/[`'"]/g, '').trim();
+            let p = wdMatch[2].replace(/[`'"]/g, '').trim();
+            if (p.startsWith('~/')) {
+               p = require('path').join(require('os').homedir(), p.slice(2));
+            }
+            inferredWorkDir = p;
           }
+        }
+
+        // Strip out the autogenerated permanent preferences and recent observations
+        // because they are already handled intelligently by buildPermanentMemories() and ML narrative memories.
+        // We ONLY want the manual custom instructions and the # User Persona & Identity section.
+        const permIndex = userContent.indexOf('# Permanent Preferences');
+        if (permIndex !== -1) {
+          userContent = userContent.substring(0, permIndex).trim();
+        } else {
+           const recentIndex = userContent.indexOf('# Recent Observations');
+           if (recentIndex !== -1) {
+             userContent = userContent.substring(0, recentIndex).trim();
+           }
         }
         
         if (inferredWorkDir) {
@@ -1000,6 +1057,22 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
           result += `${label} ${p.trait}\n`;
         });
         result += `</override_user_communication_style>`;
+        return result;
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  private buildPermanentMemories(): string {
+    try {
+      const memories = episodicDB.getPermanentMemories();
+      if (memories.length > 0) {
+        let result = `<permanent_core_memories>\n--- CORE USER FACTS & RULES (PERMANENT) ---\n`;
+        result += `CRITICAL: The following facts about the user and their preferences are PERMANENT and MUST be respected at all times, regardless of the current context.\n\n`;
+        memories.forEach(m => {
+          result += `- ${m.fact}\n`;
+        });
+        result += `</permanent_core_memories>`;
         return result;
       }
     } catch (e) {}

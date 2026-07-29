@@ -3,6 +3,26 @@ import path from 'path';
 import fs from 'fs';
 import { getAppDir } from '../config/paths';
 
+// ---------------------------------------------------------------------------
+// Semantic similarity helper — pure JS, zero deps.
+// Computes Jaccard index on "meaningful" words (length > 3) between two strings.
+// Returns a value between 0 (completely different) and 1 (identical meaning).
+// ---------------------------------------------------------------------------
+function wordOverlapSimilarity(a: string, b: string): number {
+  const tokenise = (s: string) =>
+    new Set(
+      s.toLowerCase()
+        .split(/[\W_]+/)
+        .filter(w => w.length > 3)
+    );
+  const wa = tokenise(a);
+  const wb = tokenise(b);
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let intersection = 0;
+  wa.forEach(w => { if (wb.has(w)) intersection++; });
+  return intersection / Math.max(wa.size, wb.size);
+}
+
 export interface EpisodicMemory {
   id: number;
   fact: string;
@@ -63,26 +83,82 @@ export class EpisodicMemoryDB {
     } catch {}
   }
 
-  public addCandidateFact(fact: string, confidenceScore: number = 0.5, category: string = 'general', ruleType: 'temporary' | 'permanent' | 'observation' = 'observation', keyTopic?: string): void {
+  public addCandidateFact(
+    fact: string,
+    confidenceScore: number = 0.5,
+    category: string = 'general',
+    ruleType: 'temporary' | 'permanent' | 'observation' = 'observation',
+    keyTopic?: string
+  ): void {
     if (keyTopic) {
       this.invalidateTopic(keyTopic);
     }
-    
-    // Upsert logic
-    const existing = this.db.prepare('SELECT id, occurrences, confidence FROM episodic_memories WHERE fact = ?').get(fact) as any;
-    
-    const safeScore = Math.min(1.0, confidenceScore);
-    
-    if (existing) {
-      // Increment occurrences, boost confidence slightly up to max 1.0
-      const newOccurrences = existing.occurrences + 1;
-      const newConfidence = Math.min(1.0, existing.confidence + (safeScore * 0.2)); // Dampened boost
 
-      const stmt = this.db.prepare('UPDATE episodic_memories SET occurrences = ?, confidence = ?, rule_type = ?, key_topic = ?, lastSeen = CURRENT_TIMESTAMP WHERE id = ?');
-      stmt.run(newOccurrences, newConfidence, ruleType, keyTopic || null, existing.id);
-    } else {
-      const stmt = this.db.prepare('INSERT INTO episodic_memories (fact, confidence, category, rule_type, key_topic) VALUES (?, ?, ?, ?, ?)');
-      stmt.run(fact, safeScore, category, ruleType, keyTopic || null);
+    const cleanFact = fact.trim().replace(/[.!?]+$/, '');
+    const safeScore = Math.min(1.0, confidenceScore);
+
+    // ── Step 1: Exact / near-exact check (case-insensitive, trailing punct) ──
+    const exactMatch = this.db.prepare(
+      'SELECT id, occurrences, confidence FROM episodic_memories WHERE LOWER(fact) = ? OR LOWER(fact) = ?'
+    ).get(cleanFact.toLowerCase(), cleanFact.toLowerCase() + '.') as any;
+
+    if (exactMatch) {
+      const newOcc  = exactMatch.occurrences + 1;
+      const newConf = Math.min(1.0, exactMatch.confidence + safeScore * 0.2);
+      this.db.prepare(
+        'UPDATE episodic_memories SET occurrences = ?, confidence = ?, rule_type = ?, key_topic = ?, lastSeen = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(newOcc, newConf, ruleType, keyTopic ?? null, exactMatch.id);
+      return;
+    }
+
+    // ── Step 2: Semantic near-duplicate check within the same category ────────
+    // Fetch all facts in this category and compute word-overlap similarity.
+    // Threshold: 0.60 — anything ≥ 60% similar is considered a duplicate.
+    const SIMILARITY_THRESHOLD = 0.60;
+    const peers = this.db.prepare(
+      'SELECT id, fact, occurrences, confidence FROM episodic_memories WHERE category = ?'
+    ).all(category) as any[];
+
+    let bestMatch: any = null;
+    let bestSim = 0;
+    for (const peer of peers) {
+      const sim = wordOverlapSimilarity(cleanFact, peer.fact);
+      if (sim >= SIMILARITY_THRESHOLD && sim > bestSim) {
+        bestSim = sim;
+        bestMatch = peer;
+      }
+    }
+
+    if (bestMatch) {
+      // Merge into existing: increment occurrences and nudge confidence up.
+      // Keep the higher-confidence fact text (prefer the older, more reinforced one).
+      const newOcc  = bestMatch.occurrences + 1;
+      const newConf = Math.min(1.0, Math.max(bestMatch.confidence, safeScore) + 0.05);
+      this.db.prepare(
+        'UPDATE episodic_memories SET occurrences = ?, confidence = ?, rule_type = ?, key_topic = ?, lastSeen = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(newOcc, newConf, ruleType, keyTopic ?? null, bestMatch.id);
+      return;
+    }
+
+    // ── Step 3: No duplicate found — insert as new ────────────────────────────
+    try {
+      this.db.prepare(
+        'INSERT INTO episodic_memories (fact, confidence, category, rule_type, key_topic) VALUES (?, ?, ?, ?, ?)'
+      ).run(fact.trim(), safeScore, category, ruleType, keyTopic ?? null);
+    } catch (e: any) {
+      // UNIQUE constraint violation (race condition) — treat as exact match
+      if (e.message?.includes('UNIQUE constraint failed')) {
+        const dup = this.db.prepare('SELECT id, occurrences, confidence FROM episodic_memories WHERE fact = ?').get(fact.trim()) as any;
+        if (dup) {
+          const newOcc  = dup.occurrences + 1;
+          const newConf = Math.min(1.0, dup.confidence + safeScore * 0.2);
+          this.db.prepare(
+            'UPDATE episodic_memories SET occurrences = ?, confidence = ?, lastSeen = CURRENT_TIMESTAMP WHERE id = ?'
+          ).run(newOcc, newConf, dup.id);
+        }
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -104,16 +180,31 @@ export class EpisodicMemoryDB {
     return stmt.all() as unknown as EpisodicMemory[];
   }
 
+  public getPermanentMemories(): EpisodicMemory[] {
+    // Fetch top 60 DISTINCT facts sorted by confidence and occurrences to capture both permanent rules and highly reinforced observations.
+    // Limit set to 60 (not higher) to keep system prompt token usage reasonable — RAG episodic recall handles long-tail facts.
+    const stmt = this.db.prepare(`
+      SELECT fact, MAX(confidence) as confidence, MAX(occurrences) as occurrences, MAX(rule_type) as rule_type, MAX(lastSeen) as lastSeen
+      FROM episodic_memories 
+      GROUP BY fact 
+      ORDER BY MAX(confidence) DESC, MAX(occurrences) DESC, MAX(lastSeen) DESC 
+      LIMIT 60
+    `);
+    return stmt.all() as unknown as EpisodicMemory[];
+  }
+
   public deleteMemory(id: number): void {
     const stmt = this.db.prepare('DELETE FROM episodic_memories WHERE id = ?');
     stmt.run(id);
   }
 
-  public decayMemories(daysOld: number = 60, minConfidence: number = 0.3): void {
-    // Delete memories older than X days that never reached the minimum confidence
+  public decayMemories(daysOld: number = 30, minConfidence: number = 0.5): void {
+    // Delete single-occurrence observations that never got reinforced and are older than X days.
+    // Threshold raised from (60d, 0.3) → (30d, 0.5) so stale one-off observations are cleaned up
+    // more aggressively, keeping the DB lean while preserving well-reinforced facts.
     const stmt = this.db.prepare(`
       DELETE FROM episodic_memories 
-      WHERE confidence < ? AND lastSeen <= datetime('now', '-' || ? || ' days')
+      WHERE confidence < ? AND occurrences <= 1 AND lastSeen <= datetime('now', '-' || ? || ' days')
     `);
     stmt.run(minConfidence, daysOld);
   }
