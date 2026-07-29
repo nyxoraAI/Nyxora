@@ -1,4 +1,5 @@
 import { ChannelAdapter } from './ChannelManager';
+import { processUserInput } from '../agent/reasoning';
 
 export class WhatsappAdapter implements ChannelAdapter {
     id: string = 'whatsapp';
@@ -11,18 +12,18 @@ export class WhatsappAdapter implements ChannelAdapter {
 
     async start(): Promise<void> {
         // Lazy require — baileys is a runtime-optional dependency not bundled with Nyxora.
-        // Install separately if you want WhatsApp support: npm install baileys
+        // Install separately if you want WhatsApp support: npm install @whiskeysockets/baileys
         // Using require() instead of import() to bypass TypeScript type resolution for optional packages.
         let makeWASocket: any, useMultiFileAuthState: any, DisconnectReason: any;
         try {
             // @ts-ignore — intentional: baileys is optional and may not be installed
-            const baileys = require('baileys');
+            const baileys = require('@whiskeysockets/baileys');
             makeWASocket = baileys.default || baileys;
             useMultiFileAuthState = baileys.useMultiFileAuthState;
             DisconnectReason = baileys.DisconnectReason;
         } catch (e: any) {
-            console.error('[WhatsApp] Cannot start: missing optional dependency "baileys".');
-            console.error('[WhatsApp] Install it with: npm install baileys');
+            console.error('[WhatsApp] Cannot start: missing optional dependency "@whiskeysockets/baileys".');
+            console.error('[WhatsApp] Install it with: npm install @whiskeysockets/baileys');
             return;
         }
 
@@ -81,10 +82,10 @@ export class WhatsappAdapter implements ChannelAdapter {
 
             if (text && remoteJid) {
                 console.log(`[WhatsApp] Received from ${remoteJid}: ${text}`);
-                // const response = await processUserInput(text, 'user', undefined, remoteJid);
-                // if (response) {
-                //     await this.sendMessage(remoteJid, response);
-                // }
+                const response = await processUserInput(text, 'user', undefined, `whatsapp_${remoteJid}`);
+                if (response) {
+                    await this.sendMessage(remoteJid, response);
+                }
             }
         });
     }
