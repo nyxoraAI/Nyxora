@@ -62,3 +62,4 @@ __pycache__/
 .git/config
 scratch/
 packages/desktop/release/
+whatsapp_auth_info/

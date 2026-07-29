@@ -1625,6 +1625,20 @@ app.post('/api/terminal/kill', (req, res) => {
   }
 });
 
+// --- WhatsApp Status Endpoint ---
+app.get('/api/whatsapp/status', (req, res) => {
+  try {
+    const { channelManager } = require('../channels/ChannelManager');
+    const adapter = channelManager.getAdapter('whatsapp');
+    if (!adapter || typeof (adapter as any).getStatus !== 'function') {
+      return res.json({ status: 'disconnected', qrDataUrl: null, error: 'WhatsApp not enabled or initialized' });
+    }
+    res.json((adapter as any).getStatus());
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Swarm Endpoints ---
 app.get('/api/swarm/peers', (req, res) => {
   try {

@@ -78,6 +78,7 @@ const Webhooks: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>('telegram');
+  const [waStatus, setWaStatus] = useState<{status: string, qrDataUrl: string|null}>({status: 'disconnected', qrDataUrl: null});
 
   useEffect(() => {
     apiFetch('/api/config').then(r => r.json()).then((cfg: FullConfig) => {
@@ -99,6 +100,23 @@ const Webhooks: React.FC = () => {
     } catch { setStatus({ type: 'error', msg: 'Connection error.' }); }
     finally { setSaving(false); }
   };
+
+  // Poll WhatsApp status when expanded
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (expandedChannel === 'whatsapp' && whatsapp.enabled) {
+      interval = setInterval(() => {
+        apiFetch('/api/whatsapp/status')
+          .then(r => r.json())
+          .then(data => {
+            if (!data.error) setWaStatus({ status: data.status, qrDataUrl: data.qrDataUrl });
+          }).catch(() => {});
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [expandedChannel, whatsapp.enabled]);
 
   const liveCount = CHANNELS.filter(c => c.status === 'live').length;
   const betaCount = CHANNELS.filter(c => c.status === 'beta').length;
@@ -224,10 +242,44 @@ const Webhooks: React.FC = () => {
                     <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Enable WhatsApp Bot</span>
                   </div>
                   {whatsapp.enabled && (
-                    <div style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.15)', borderRadius: '6px', padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                      1. Enable the toggle and click <strong>Save</strong><br />
-                      2. Restart the backend (<code>npm run start</code>)<br />
-                      3. A QR code will be printed in the terminal for you to scan via WhatsApp Mobile.
+                    <div style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.15)', borderRadius: '6px', padding: '14px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                      <div style={{ marginBottom: '16px' }}>
+                        1. Enable the toggle and click <strong>Save</strong><br />
+                        2. Restart the backend (<code>nyxora start</code>)<br />
+                        3. Scan the QR code below using your WhatsApp Mobile App.
+                      </div>
+                      
+                      <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', border: '1px solid var(--glass-border)' }}>
+                        {waStatus.status === 'disconnected' && (
+                          <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            <Loader2 size={24} className="spinner" style={{ marginBottom: '8px', opacity: 0.5 }} />
+                            <div>Waiting for WhatsApp Adapter to initialize...</div>
+                            <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Make sure you saved and restarted the backend.</div>
+                          </div>
+                        )}
+                        {waStatus.status === 'connecting' && !waStatus.qrDataUrl && (
+                          <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            <Loader2 size={24} className="spinner" style={{ marginBottom: '8px' }} />
+                            <div>Generating QR Code...</div>
+                          </div>
+                        )}
+                        {waStatus.status === 'connecting' && waStatus.qrDataUrl && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', marginBottom: '12px' }}>
+                              <img src={waStatus.qrDataUrl} alt="WhatsApp QR Code" style={{ width: '200px', height: '200px' }} />
+                            </div>
+                            <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Scan QR Code with WhatsApp</div>
+                            <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Settings &gt; Linked Devices &gt; Link a Device</div>
+                          </div>
+                        )}
+                        {waStatus.status === 'connected' && (
+                          <div style={{ textAlign: 'center', color: '#10b981' }}>
+                            <CheckCircle size={32} style={{ marginBottom: '8px' }} />
+                            <div style={{ fontWeight: 700, fontSize: '1rem' }}>WhatsApp Connected!</div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>Bot is actively listening to messages.</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

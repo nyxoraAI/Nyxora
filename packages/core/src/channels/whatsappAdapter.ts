@@ -5,9 +5,18 @@ export class WhatsappAdapter implements ChannelAdapter {
     id: string = 'whatsapp';
     name: string = 'WhatsApp';
     private sock: any;
+    private currentStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
+    private qrDataUrl: string | null = null;
 
     async initialize(): Promise<void> {
         console.log(`[WhatsApp] Initializing...`);
+    }
+
+    getStatus() {
+        return {
+            status: this.currentStatus,
+            qrDataUrl: this.qrDataUrl
+        };
     }
 
     async start(): Promise<void> {
@@ -42,10 +51,11 @@ export class WhatsappAdapter implements ChannelAdapter {
         });
 
         this.sock.ev.on('creds.update', saveCreds);
+        this.currentStatus = 'connecting';
 
         let lastQr = '';
         let lastQrTime = 0;
-        this.sock.ev.on('connection.update', (update: any) => {
+        this.sock.ev.on('connection.update', async (update: any) => {
             const { connection, lastDisconnect, qr } = update;
             
             if (qr && qr !== lastQr) {
@@ -53,14 +63,20 @@ export class WhatsappAdapter implements ChannelAdapter {
                 if (now - lastQrTime > 15000) {
                     lastQr = qr;
                     lastQrTime = now;
-                    console.log('\n======================================================');
-                    console.log('📱 SCAN THIS QR CODE WITH WHATSAPP (Refreshed)');
-                    console.log('======================================================\n');
-                    require('qrcode-terminal').generate(qr, { small: true });
+                    try {
+                        const QRCode = require('qrcode');
+                        this.qrDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 5 });
+                        this.currentStatus = 'connecting';
+                        console.log('[WhatsApp] New QR code generated. Waiting for scan...');
+                    } catch (e) {
+                        console.error('[WhatsApp] Failed to generate QR data URL', e);
+                    }
                 }
             }
 
             if (connection === 'close') {
+                this.currentStatus = 'disconnected';
+                this.qrDataUrl = null;
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 if (statusCode !== DisconnectReason.loggedOut) {
                     console.log('[WhatsApp] Connection closed. Reconnecting...');
@@ -69,22 +85,49 @@ export class WhatsappAdapter implements ChannelAdapter {
                     console.log('[WhatsApp] Connection closed. You are logged out.');
                 }
             } else if (connection === 'open') {
+                this.currentStatus = 'connected';
+                this.qrDataUrl = null;
                 console.log('[WhatsApp] Connected!');
             }
         });
 
+        const botSentMessageIds = new Set<string>();
+
         this.sock.ev.on('messages.upsert', async (m: any) => {
-            const msg = m.messages[0];
-            if (!msg.message || msg.key.fromMe) return;
+            for (const msg of m.messages) {
+                if (!msg.message) continue;
 
-            const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
-            const remoteJid = msg.key.remoteJid;
+                // Debug log to see all incoming message keys
+                console.log(`[WhatsApp DEBUG] Key: ${JSON.stringify(msg.key)}, user.id: ${this.sock.user?.id}`);
 
-            if (text && remoteJid) {
-                console.log(`[WhatsApp] Received from ${remoteJid}: ${text}`);
-                const response = await processUserInput(text, 'user', undefined, `whatsapp_${remoteJid}`);
-                if (response) {
-                    await this.sendMessage(remoteJid, response);
+                // Prevent infinite loop from our own replies
+                if (msg.key.id && botSentMessageIds.has(msg.key.id)) continue;
+
+                const remoteJid = msg.key.remoteJid;
+                
+                // Calculate bot's own JID (stripping device id, e.g. :15)
+                const botJid = this.sock.user?.id?.split(':')[0] + '@s.whatsapp.net';
+                const isMessageYourself = (remoteJid === botJid || msg.key.remoteJidAlt === botJid);
+
+                // Ignore messages sent by us in OTHER chats (so bot doesn't reply to your friends when you type)
+                if (msg.key.fromMe && !isMessageYourself) continue;
+
+                const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+
+                if (text && remoteJid) {
+                    console.log(`[WhatsApp] Received from ${remoteJid}: ${text}`);
+                    // Use a fire-and-forget promise wrapper to avoid blocking the loop
+                    processUserInput(text, 'user', undefined, `whatsapp_${remoteJid}`)
+                        .then(async (response) => {
+                            if (response) {
+                                const sentMsg = await this.sendMessage(remoteJid, response);
+                                if (sentMsg?.key?.id) {
+                                    botSentMessageIds.add(sentMsg.key.id);
+                                    if (botSentMessageIds.size > 500) botSentMessageIds.clear(); // anti memory leak
+                                }
+                            }
+                        })
+                        .catch(err => console.error(`[WhatsApp] Error processing message:`, err));
                 }
             }
         });
@@ -94,11 +137,13 @@ export class WhatsappAdapter implements ChannelAdapter {
         if (this.sock) {
             this.sock.logout();
         }
+        this.currentStatus = 'disconnected';
+        this.qrDataUrl = null;
     }
 
-    async sendMessage(chatId: string, message: string): Promise<void> {
+    async sendMessage(chatId: string, message: string): Promise<any> {
         if (this.sock) {
-            await this.sock.sendMessage(chatId, { text: message });
+            return await this.sock.sendMessage(chatId, { text: message });
         }
     }
 
