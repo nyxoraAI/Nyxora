@@ -34,6 +34,7 @@ export interface PromptBuilderOptions {
   platform?: string; // e.g., 'telegram', 'cli'
   modelFamily?: 'openai' | 'google' | 'grok' | 'anthropic' | 'unknown';
   sessionId?: string;
+  workDir?: string | null;
 }
 
 export class PromptBuilder {
@@ -41,7 +42,7 @@ export class PromptBuilder {
     // Short-lived build cache: prevents double-build when the router warm-up
     // and the agent's own getSystemPrompt() call happen within 5 seconds.
     const inputHash = crypto.createHash('sha256').update(options.userInput).digest('hex');
-    const cacheKey = `${options.agentType}:${options.platform || 'cli'}:${inputHash}:${options.sessionId || ''}`;
+    const cacheKey = `${options.agentType}:${options.platform || 'cli'}:${inputHash}:${options.sessionId || ''}:${options.workDir || ''}`;
     const cached = buildCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < BUILD_CACHE_TTL_MS) {
       return Promise.resolve(cached.result);
@@ -49,14 +50,18 @@ export class PromptBuilder {
 
     const buildPromise = (async () => {
 
+    // Resolve working directory FIRST so it can be injected into domain discipline rules
+    // (workDir comes from session -> project_id -> project.path in the DB, or explicit override)
+    const workDir = options.workDir || (await this._resolveWorkDir(options.sessionId));
+
     // 1. Stable Tier (sync — no I/O)
     const stableParts = [
-      this.buildIdentity(options),
+      this.buildIdentity(options, workDir),
       this.buildNyxDaemonPersonas(),
       this.buildPermanentMemories(),
       this.buildUniversalDiscipline(options.platform),
       this.buildModelSpecificSteering(options.modelFamily),
-      this.buildDomainDiscipline(options.agentType),
+      this.buildDomainDiscipline(options.agentType, workDir),
       this.buildMemoryGuidance(),
       this.buildSkillsGuidance(),
     ];
@@ -66,10 +71,8 @@ export class PromptBuilder {
     }
 
     // 2. Context Tier (sync — file I/O only)
-    // Resolve working directory (project workspace if active, else undefined)
-    const workDir = await this._resolveWorkDir(options.sessionId);
     const contextParts = [
-      this.buildGitWorkspaceContext(),
+      this.buildGitWorkspaceContext(workDir),
       this.buildActiveCognitiveSkills(options.userInput),
       // Coding posture: only injected when a project workspace is active
       options.agentType === 'os' ? this.buildCodingPosture(workDir) : '',
@@ -158,7 +161,7 @@ export class PromptBuilder {
     return buildPromise;
   }
 
-  private buildIdentity(options: PromptBuilderOptions): string {
+  private buildIdentity(options: PromptBuilderOptions, workDir?: string | null): string {
     const { agentType, config } = options;
     let identity = '';
     
@@ -170,10 +173,10 @@ CRITICAL RULE 1: NEVER expose internal JSON tool calls. Explain the outcome natu
 CRITICAL RULE 2: STRICT LANGUAGE MATCHING. Reply in the exact same language as the user's LATEST prompt, UNLESS the Episodic Memories or Cognitive Skills specify a strict language preference.
 CRITICAL RULE 3: DEFAULT CHAIN HANDLING. Default to: ${config?.agent?.default_chain || 'base'} unless specified.
 CRITICAL RULE 4: CONDITIONAL PARALLEL EXECUTION. Parallel tool execution is ONLY allowed if there are zero data dependencies.
-CRITICAL RULE 5: TRANSACTION EXECUTION. For ALL state-changing transactions (swap, bridge, transfer), execute IMMEDIATELY. It will trigger a secure popup.
-CRITICAL RULE 6: NETWORK SAFETY VALIDATION. NEVER GUESS chains or tokens. Ask for confirmation if ambiguous. Supported MAINNETS include: ethereum, base, bsc, arbitrum, optimism, polygon, and robinhood. Supported TESTNETS include: sepolia, base_sepolia, arbitrum_sepolia, optimism_sepolia, and robinhood_testnet. If a user asks to check "all networks", you MUST include 'robinhood' and 'robinhood_testnet'.
-CRITICAL RULE 7: TOOL CONFIDENCE & HALUCINATION PREVENTION. NEVER fabricate blockchain data.
-CRITICAL RULE 8: AMOUNT PRECISION. Use 6 decimal places for precision, or 2 if >$10,000.
+CRITICAL RULE 5: TRANSACTION COMPLETION AND SIGNING PROTOCOL. A transaction is ONLY complete after the user executes and signs it.
+CRITICAL RULE 6: AMOUNT AND ASSET MAPPING. Map common slang words.
+CRITICAL RULE 7: NO IMPLICIT RE-PROMPTING. Never ask for confirmation before preparing transaction payloads.
+CRITICAL RULE 8: RESOLVE TOKEN ADDRESSES LOCALLY FIRST. Look up token addresses locally before querying APIs.
 CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' internally. Warn if < 40%.
 CRITICAL RULE 10: LIVE DATA MANDATORY. For ANY check involving on-chain data (balance, portfolio, price, gas, transaction status, NFT holdings, allowance), you MUST call the appropriate tool EVERY TIME — even if you think you already know the answer. NEVER answer from training memory or previous tool results. Your training data is ALWAYS outdated for on-chain state. No exceptions.
 CRITICAL RULE 11: ONE-PASS TOOL EXECUTION. When checking multiple chains, call ALL chain tools in a SINGLE parallel batch (one turn). After all results are received, produce your FINAL answer immediately. NEVER make a second batch of tool calls for data you already fetched in this session.`;
@@ -190,8 +193,11 @@ CRITICAL RULE 11: ONE-PASS TOOL EXECUTION. When checking multiple chains, call A
         hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
       });
       identity = `You are Nyxora's OS Agent (Local System Automation Specialist).
-Current Context: Date: ${_localDate} | Time: ${_localTime} | TZ: ${_tz} | ISO: ${_iso}
-CRITICAL: If the user asks about today's date or time, YOU MUST output the date/time provided in this context DIRECTLY without using any tools (e.g., do NOT use search_web or terminal).
+Current Context: Date: ${_localDate} | Time: ${_localTime} | TZ: ${_tz} | ISO: ${_iso}`;
+      if (workDir) {
+        identity += `\n\nACTIVE PROJECT WORKSPACE (HIGHEST PRIORITY COMMANDMENT):\nYou are currently working inside the project directory: ${workDir}\n1. ALL file reads, writes, edits, and terminal commands MUST target ${workDir}.\n2. When the user says "this project", "the code", "analisa project ini", "analisa ini", or asks to analyze without specifying a path, they mean: ${workDir}.\n3. NEVER ask the user which project they mean or what path to analyze. Autonomously explore ${workDir} using tools immediately.`;
+      }
+      identity += `\n\nCRITICAL: If the user asks about today's date or time, YOU MUST output the date/time provided in this context DIRECTLY without using any tools (e.g., do NOT use search_web or terminal).
 
 [CRITICAL EXECUTION RULES]
 1. OUTPUT RESTRICTION: Output ONLY your final natural language answer or direct tool calls. NEVER leak internal JSON payload syntax or raw planning steps into the chat response.
@@ -483,7 +489,7 @@ Your memory and user profile describe the USER, not the system you are running o
     return '';
   }
 
-  private buildDomainDiscipline(agentType: string): string {
+  private buildDomainDiscipline(agentType: string, workDir?: string | null): string {
     if (agentType === 'web3') {
       return `<mandatory_tool_use>
 NEVER answer the following using only your internal memory — ALWAYS use the relevant tool:
@@ -500,6 +506,25 @@ NEVER fetch the price and manually multiply it in your head. The LLM is prohibit
 NEVER use the 'analyze_market' tool for basic fiat conversions.
 </fiat_conversion_rule>`;
     } else {
+      const workDirRule = workDir
+        ? `<working_directory_rule>
+CRITICAL: This chat session is inside an ACTIVE PROJECT WORKSPACE. Working directory rules (highest to lowest priority):
+0. ACTIVE PROJECT WORKSPACE (NON-NEGOTIABLE — overrides everything below):
+   The current project is located at: ${workDir}
+   ALL file reads, writes, edits, and terminal commands MUST target this directory.
+   Do NOT navigate to the user's general workspace folder. Go DIRECTLY to: ${workDir}
+   When the user says "this project", "the code", "analisa ini", or similar — they mean: ${workDir}
+1. Use a sub-path explicitly stated by the user within THIS conversation.
+2. Default to the project root: ${workDir}
+NEVER use the user's general preferred working directory from their profile when an active project workspace exists.
+</working_directory_rule>`
+        : `<working_directory_rule>
+CRITICAL: When creating, writing, or moving ANY file, determine the absolute path using this priority order:
+1. Use the working directory explicitly stated by the user in THIS conversation.
+2. If the user has a preferred working directory in their profile, use THAT path.
+3. Default to the user's HOME directory (e.g., /home/username/) and ask for confirmation. Never assume a hardcoded path.
+</working_directory_rule>`;
+
       return `<mandatory_tool_use>
 NEVER answer the following from internal memory — ALWAYS use a tool:
 - Arithmetic, math, calculations → run_terminal_command (python3 -c "print(...)")
@@ -526,7 +551,7 @@ QUERY CONSTRUCTION:
 
 CONTEXT FILTER (critical — prevents result mixing):
 4. When search results include [CONTEXT FILTER: "X"] and [STRICT MATCH RULE], you MUST obey them absolutely:
-   - [CONTEXT: MATCH ✓] → include this result — it is confirmed relevant.
+   - [CONTEXT: MATCH \u2713] → include this result — it is confirmed relevant.
    - [CONTEXT: LIKELY MATCH] → include with a note that it's likely relevant.
    - [CONTEXT: UNVERIFIED] → EXCLUDE this result from your answer entirely. Do NOT use it to fill gaps.
 5. [CROSS-CONTEXT CONTAMINATION RULE] You MUST NEVER mix results from different contexts/stages/categories:
@@ -552,12 +577,7 @@ When asking for permission, simply ask: "Do you want me to run [command]?" or "Y
 Once the user replies "yes", you MUST immediately emit the tool call to execute the command.
 </act_dont_ask_os>
 
-<working_directory_rule>
-CRITICAL: When creating, writing, or moving ANY file, determine the absolute path using this priority order:
-1. Use the working directory explicitly stated by the user in THIS conversation.
-2. If the user has a preferred working directory in their profile, use THAT path.
-3. Default to the user's HOME directory (e.g., /home/username/) and ask for confirmation. Never assume a hardcoded path.
-</working_directory_rule>`;
+${workDirRule}`;
     }
   }
 
@@ -642,17 +662,24 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
 </skills_guidance>`;
   }
 
-  private buildGitWorkspaceContext(): string {
-    try {
-      const nyxoraMdPath = findNyxoraMd(process.cwd());
-      if (nyxoraMdPath) {
-        let content = fs.readFileSync(nyxoraMdPath, 'utf8');
-        content = stripYamlFrontmatter(content);
-        content = scanContextContent(content, nyxoraMdPath);
-        return `--- PROJECT CONTEXT (${nyxoraMdPath}) ---\n${content}`;
+  private buildGitWorkspaceContext(workDir?: string | null): string {
+    // Scan active project directory first; fall back to the server's cwd
+    const searchPaths = [
+      ...(workDir ? [workDir] : []),
+      process.cwd()
+    ];
+    for (const searchPath of searchPaths) {
+      try {
+        const nyxoraMdPath = findNyxoraMd(searchPath);
+        if (nyxoraMdPath) {
+          let content = fs.readFileSync(nyxoraMdPath, 'utf8');
+          content = stripYamlFrontmatter(content);
+          content = scanContextContent(content, nyxoraMdPath);
+          return `--- PROJECT CONTEXT (${nyxoraMdPath}) ---\n${content}`;
+        }
+      } catch (e) {
+        // Ignore if no git root or no file
       }
-    } catch (e) {
-      // Ignore if no git root or no file
     }
     return '';
   }
@@ -791,8 +818,14 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
         if (!narrativeRes.ok) return narrativeCached?.data ?? '';
         const { memory_md, user_md } = await narrativeRes.json();
         let part = '';
-        if (memory_md) part += `--- AI INFERRED ENVIRONMENT & WORKFLOWS (narrative_memory.md) ---\n${memory_md}\n\n`;
-        if (user_md)   part += `--- AI INFERRED USER NARRATIVE (narrative_user.md) ---\n${user_md}\n\n`;
+        if (memory_md) {
+          const mText = memory_md.length > 2000 ? memory_md.slice(0, 2000) + '\n...[TRUNCATED]' : memory_md;
+          part += `--- AI INFERRED ENVIRONMENT & WORKFLOWS (narrative_memory.md) ---\n${mText}\n\n`;
+        }
+        if (user_md) {
+          const uText = user_md.length > 3000 ? user_md.slice(0, 3000) + '\n...[TRUNCATED]' : user_md;
+          part += `--- AI INFERRED USER NARRATIVE (narrative_user.md) ---\n${uText}\n\n`;
+        }
         if (part) part = `<narrative_memories>\n${part}</narrative_memories>\n\n`;
         narrativeCache.set('narrative', { data: part, ts: now });
         return part;
@@ -814,8 +847,8 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
         const skillsData = await skillsRes.json();
         let part = '';
         if (skillsData.skills && skillsData.skills.length > 0) {
-          part += `--- ACQUIRED SKILLS ---\nAvailable self-learned skills:\n`;
-          skillsData.skills.forEach((s: any) => {
+          part += `--- ACQUIRED SKILLS ---\nAvailable self-learned skills (sample of ${skillsData.skills.length}):\n`;
+          skillsData.skills.slice(0, 15).forEach((s: any) => {
             part += `- ${s.name}: ${s.description}\n`;
           });
           part = `<acquired_skills>\n${part}</acquired_skills>\n\n`;
@@ -949,6 +982,11 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
             inferredWorkDir = p;
           }
         }
+        
+        // 3. Normalize userContent so the LLM doesn't see conflicting directories
+        if (inferredWorkDir) {
+          userContent = userContent.replace(/(?:working directory|workspace|project root|direktori kerja|saving generated files|save).*?([`'"]?([/~][^\s`'"\n)\]]+)[`'"]?)/gi, `working directory: ${inferredWorkDir}`);
+        }
 
         // Strip out the autogenerated permanent preferences and recent observations
         // because they are already handled intelligently by buildPermanentMemories() and ML narrative memories.
@@ -964,10 +1002,9 @@ Do NOT perform any web3 tasks or generic answers until they provide all 4 detail
         }
         
         if (inferredWorkDir) {
-          result += `--- ⚠️ USER WORKING DIRECTORY (MANDATORY) ---\n`;
-          result += `CRITICAL: The current workspace directory for ALL file operations is: ${inferredWorkDir}\n`;
-          result += `You MUST use this as the base path when constructing absolute paths for write_local_file, edit_local_file, run_terminal_command (mkdir, cp, mv, ls), etc.\n`;
-          result += `Example: to save "report.md", use "${inferredWorkDir}/report.md" — NOT a relative path, NOT the Nyxora install directory.\n\n`;
+          result += `CRITICAL CONTEXT: You are currently working inside the project directory: ${inferredWorkDir}\n`;
+          result += `If the user refers to "this project", "the code", or asks to do something without specifying a path, you MUST autonomously explore and operate on the project located at ${inferredWorkDir}.\n`;
+          result += `For ALL file creations or modifications, use absolute paths starting with ${inferredWorkDir}/ (e.g., "${inferredWorkDir}/report.md") — NEVER use relative paths, and NEVER use the Nyxora install directory.\n\n`;
         }
 
         result += `--- EXPLICIT USER PREFERENCES (user.md) ---\n${userContent}\n\n`;

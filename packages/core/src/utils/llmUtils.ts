@@ -22,7 +22,7 @@ export const PROVIDER_CONFIGS: Record<string, { baseURL?: string; requiresApiKey
 };
 
 export function getEstimatedMaxContext(model: string): number {
-  if (!model) return 8192;
+  if (!model) return 32768;
   const m = model.toLowerCase();
   
   // Detect small local models based on parameter size
@@ -32,13 +32,15 @@ export function getEstimatedMaxContext(model: string): number {
   if (m.includes('gemini-1.5-pro')) return 2000000;
   if (m.includes('gemini-1.5-flash') || m.includes('gemini-2')) return 1000000;
   if (m.includes('gemini')) return 1000000;
-  if (m.includes('gpt-4o') || m.includes('gpt-4-turbo')) return 128000;
-  if (m.includes('claude-3')) return 200000;
-  if (m.includes('grok-2')) return 128000;
-  if (m.includes('deepseek-chat') || m.includes('deepseek-coder') || m.includes('deepseek-reasoner') || m.includes('deepseek-r1')) return 128000;
-  if (m.includes('mixtral')) return 32000;
+  if (m.includes('gpt-4o') || m.includes('gpt-4-turbo') || m.includes('gpt-4')) return 128000;
+  if (m.includes('claude-3') || m.includes('claude-4')) return 200000;
+  if (m.includes('grok')) return 128000;
+  if (m.includes('deepseek')) return 128000;
+  if (m.includes('nemotron') || m.includes('qwen') || m.includes('command')) return 128000;
+  if (m.includes('mixtral') || m.includes('mistral')) return 32768;
+  if (m.includes('llama-3.1') || m.includes('llama-3.2') || m.includes('llama-3.3') || m.includes('llama3.1')) return 128000;
   if (m.includes('llama-3') || m.includes('llama3')) return 8192;
-  return 8192;
+  return 32768;
 }
 
 export async function getOpenAI(): Promise<OpenAI> {

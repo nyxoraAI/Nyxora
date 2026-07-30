@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Terminal, Search, Activity, Cpu, FileCode } from 'lucide-svelte';
+  import { untrack } from 'svelte';
 
   interface Props {
     toolCalls?: any[];
@@ -30,27 +31,32 @@
     }
   });
 
-  // Timer: reset each time streaming begins, freeze value when it stops
+  // Timer: start once when streaming begins, stop when it ends
   $effect(() => {
     if (isStreaming) {
-      startTime = Date.now();
-      elapsedTime = 0;
-      // Poll at 500ms so the display feels live
-      intervalId = setInterval(() => {
-        elapsedTime = Math.floor((Date.now() - startTime!) / 1000);
-      }, 500) as unknown as ReturnType<typeof setInterval>;
-    } else {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-      // Persist the last elapsed so we show "Worked for Xs" after streaming ends
-      if (elapsedTime > 0) finalElapsed = elapsedTime;
-    }
+      untrack(() => {
+        if (startTime === null) {
+          startTime = Date.now();
+          elapsedTime = 0;
+        }
+      });
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+      const interval = setInterval(() => {
+        if (startTime !== null) {
+          elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        }
+      }, 500);
+
+      return () => clearInterval(interval);
+    } else {
+      untrack(() => {
+        if (startTime !== null) {
+          const total = Math.floor((Date.now() - startTime) / 1000);
+          if (total > 0) finalElapsed = total;
+          startTime = null;
+        }
+      });
+    }
   });
 
   const hasContent = $derived(toolCalls.length > 0 || progressLogs.length > 0 || !!reasoningContent);
@@ -60,11 +66,11 @@
     if (isStreaming) {
       return `Working for ${elapsedTime}s`;
     }
-    if (finalElapsed > 0) {
-      return `Worked for ${finalElapsed}s`;
-    }
     if (durationMs > 0) {
       return `Worked for ${Math.max(1, Math.round(durationMs / 1000))}s`;
+    }
+    if (finalElapsed > 0) {
+      return `Worked for ${finalElapsed}s`;
     }
     if (progressLogs.length > 1) {
       const firstTime = progressLogs[0].time;

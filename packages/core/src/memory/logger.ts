@@ -308,6 +308,10 @@ export class Logger {
     return id;
   }
 
+  public updateSessionProject(sessionId: string, projectId: string) {
+    this.db.prepare('UPDATE sessions SET project_id = ? WHERE id = ?').run(projectId, sessionId);
+  }
+
   public deleteSession(sessionId: string) {
     const stmt = this.db.prepare('DELETE FROM sessions WHERE id = ?');
     stmt.run(sessionId);

@@ -166,7 +166,7 @@ function getToolLabel(n: string, firstArgValue: string): string {
 }
 
 
-async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userInput: string = '', sessionId?: string, platform?: string): Promise<string> {
+async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userInput: string = '', sessionId?: string, platform?: string, workDir?: string): Promise<string> {
     const config = loadConfig();
     const provider = (config?.llm?.provider || '').toLowerCase();
     let modelFamily: 'openai' | 'google' | 'anthropic' | 'grok' | 'unknown' = 'unknown';
@@ -181,11 +181,12 @@ async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'os', userIn
         config,
         sessionId,
         modelFamily,
-        platform: platform || (config as any)?.platform || process.env.NYXORA_PLATFORM
+        platform: platform || (config as any)?.platform || process.env.NYXORA_PLATFORM,
+        workDir
     });
 }
 
-export async function processOsIntent(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string, platform?: string): Promise<string> {
+export async function processOsIntent(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string, platform?: string, workDir?: string): Promise<string> {
   const config = loadConfig();
   const targetPlatform = platform || (config as any)?.platform || process.env.NYXORA_PLATFORM;
   // Add input to memory
@@ -237,7 +238,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   const scratchpad = new ReasoningScratchpad();
 
   // P3: Build system prompt ONCE per request — not per turn
-  const cachedSystemPrompt = await getSystemPrompt('os', input, sessionId, targetPlatform);
+  const cachedSystemPrompt = await getSystemPrompt('os', input, sessionId, targetPlatform, workDir);
 
   try {
     let turnCount = 0;
@@ -760,7 +761,8 @@ export async function processOsIntentStream(
   onProgress?: (msg: string) => void,
   sessionId?: string,
   onReasoning?: (text: string) => void,
-  platform?: string
+  platform?: string,
+  workDir?: string
 ): Promise<string> {
   const config = loadConfig();
   const targetPlatform = platform || (config as any)?.platform || process.env.NYXORA_PLATFORM;
@@ -807,7 +809,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
   }
 
   // FIX: Cache system prompt ONCE before loop (was being rebuilt every turn — wasteful)
-  const cachedSystemPromptStream = await getSystemPrompt('os', input, sessionId, targetPlatform);
+  const cachedSystemPromptStream = await getSystemPrompt('os', input, sessionId, targetPlatform, workDir);
 
   try {
     let turnCount = 0;
@@ -1093,8 +1095,8 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         let result = '';
         let args: any = {};
         
-        let cwd: string | undefined;
-        if (sessionId) {
+        let cwd: string | undefined = workDir;
+        if (!cwd && sessionId) {
           const session = logger.getSession(sessionId);
           if (session && session.project_id) {
             const project = logger.getProject(session.project_id);

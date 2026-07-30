@@ -13,14 +13,39 @@
   let activeWorkspace = $derived($appState.activeWorkspace);
   let expandedProjects = $state<Record<string, boolean>>({});
 
-  // Fetch desktop sessions from API on mount
+  // Fetch desktop sessions and projects from API on mount
   onMount(async () => {
     try {
-      const response = await apiFetch('/api/sessions?client=desktop');
-      const sessions = await response.json();
+      const [sessionsRes, projectsRes] = await Promise.all([
+        apiFetch('/api/sessions?client=desktop'),
+        apiFetch('/api/projects?client=desktop')
+      ]);
+      const sessions = await sessionsRes.json();
+      const projects = await projectsRes.json();
       chatStore.setSessions(sessions);
+      
+      // Restore projects to UI
+      projects.forEach((p: any) => {
+        if (p.path && !$appState.localWorkspaces.includes(p.path)) {
+          appState.addWorkspace(p.path);
+        }
+      });
+
+      // Sync UI workspaces to backend DB if missing
+      for (const ws of $appState.localWorkspaces) {
+        if (!projects.some((p: any) => p.path === ws)) {
+          const name = getFolderName(ws);
+          try {
+            await apiFetch('/api/projects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, path: ws, client: 'desktop' })
+            });
+          } catch (e) { /* ignore */ }
+        }
+      }
     } catch (err) {
-      console.error('Failed to fetch sessions:', err);
+      console.error('Failed to fetch data:', err);
     }
   });
 
@@ -62,6 +87,20 @@
       return project?.id || null;
     } catch {
       return null;
+    }
+  }
+
+  async function removeProject(workspace: string) {
+    try {
+      const projectId = await getProjectIdByPath(workspace);
+      if (projectId) {
+        await apiFetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+      }
+      appState.removeWorkspace(workspace);
+      delete expandedProjects[workspace];
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      appState.removeWorkspace(workspace);
     }
   }
 
@@ -236,7 +275,7 @@
                 </button>
                 <!-- Remove button -->
                 <button
-                  onclick={(e) => { e.stopPropagation(); appState.removeWorkspace(workspace); }}
+                  onclick={(e) => { e.stopPropagation(); removeProject(workspace); }}
                   class="text-gray-400 hover:text-red-500"
                   title="Remove Project"
                 >

@@ -18,6 +18,7 @@ export interface Message {
 export interface ChatSession {
   id: string;
   title: string;
+  project_id?: string | null;
 }
 
 function createChatStore() {

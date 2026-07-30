@@ -185,24 +185,51 @@
         }
       } else if (!currentSessionId && activeWorkspace) {
         // Create project-specific session
+        const title = userMsg.length > 30 ? userMsg.substring(0, 30) + '...' : userMsg;
         try {
           const projectsRes = await apiFetch('/api/projects?client=desktop');
           const projects = await projectsRes.json();
-          const project = projects.find((p: any) => p.path === activeWorkspace);
-          
-          if (project) {
-            const title = userMsg.length > 30 ? userMsg.substring(0, 30) + '...' : userMsg;
-            const response = await apiFetch('/api/sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ title, project_id: project.id, client: 'desktop' })
-            });
-            const data = await response.json();
-            currentSessionId = data.id;
-            appState.setActiveSession(currentSessionId);
+          let project = projects.find((p: any) => p.path === activeWorkspace);
+          if (!project && activeWorkspace) {
+            const name = activeWorkspace.split(/[/\\]/).pop() || activeWorkspace;
+            try {
+              const newProjRes = await apiFetch('/api/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, path: activeWorkspace, client: 'desktop' })
+              });
+              project = await newProjRes.json();
+            } catch (e) {
+              console.warn('Failed to auto-create project:', e);
+            }
           }
+          
+          const sessionBody = project && project.id
+            ? { title, project_id: project.id, client: 'desktop' }
+            : { title, client: 'desktop' };
+
+          const response = await apiFetch('/api/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sessionBody)
+          });
+          const data = await response.json();
+          currentSessionId = data.id;
+          appState.setActiveSession(currentSessionId);
+          // Include project_id so sidebar filter (s.project_id === projectId) finds this session
+          chatStore.setSessions([
+            { id: currentSessionId, title, project_id: project?.id ?? null },
+            ...$chatStore.sessions
+          ]);
         } catch (err) {
           console.error('Failed to create project session:', err);
+          // Fallback to local session so the message still goes through
+          currentSessionId = `desktop-${Date.now()}`;
+          appState.setActiveSession(currentSessionId);
+          chatStore.setSessions([
+            { id: currentSessionId, title },
+            ...$chatStore.sessions
+          ]);
         }
       }
 

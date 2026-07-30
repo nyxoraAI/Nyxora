@@ -199,7 +199,20 @@ import { processOsIntent } from './osAgent';
 import { processWeb3IntentStream } from './web3Agent';
 import { processOsIntentStream } from './osAgent';
 
-export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string): Promise<string> {
+async function ensureSessionProject(sessionId?: string, workDir?: string) {
+  if (!sessionId || !workDir) return;
+  try {
+    const session = logger.getSession(sessionId);
+    if (session && !session.project_id) {
+      const name = workDir.split(/[/\\]/).pop() || workDir;
+      const projId = logger.addProject(name, workDir, 'desktop');
+      logger.updateSessionProject(sessionId, projId);
+      console.log(pc.green(`[Orchestrator] Auto-linked session ${sessionId} to project ${name} (${workDir})`));
+    }
+  } catch (e) { /* ignore */ }
+}
+
+export async function processUserInput(input: string, role: 'user' | 'system' = 'user', onProgress?: (msg: string) => void, sessionId?: string, platform?: string, workDir?: string): Promise<string> {
   const lowerInput = input.toLowerCase();
   
   const config = loadConfig();
@@ -311,7 +324,9 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
                 agentType: 'os',
                 userInput: input,
                 config,
-                modelFamily
+                modelFamily,
+                sessionId,  // ← pass sessionId so workDir is resolved correctly
+                workDir
             }).catch(() => {}) // Non-blocking: failure here is fine
         ]);
         
@@ -327,6 +342,8 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
     console.log(pc.magenta(`[Orchestrator] Intent classified as: ${context.toUpperCase()}`));
   }
   
+  await ensureSessionProject(sessionId, workDir);
+
   if (context === 'web3') {
       // P7: Inject task plan as a system note (NOT prepended to user input to avoid context bloat)
       if (shouldPlan(input)) {
@@ -344,7 +361,7 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
           logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
         }
       }
-      return await processOsIntent(input, role, onProgress, sessionId);
+      return await processOsIntent(input, role, onProgress, sessionId, platform, workDir);
   }
 }
 
@@ -358,7 +375,8 @@ export async function processUserInputStream(
   originalOnChunk: (text: string) => void,
   onProgress?: (msg: string) => void,
   sessionId?: string,
-  onReasoning?: (text: string) => void
+  onReasoning?: (text: string) => void,
+  workDir?: string
 ): Promise<string> {
   const smartStream = createSmartStreamWrapper(originalOnChunk);
   const onChunk = smartStream.onChunk;
@@ -458,7 +476,9 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
             agentType: 'os',
             userInput: input,
             config,
-            modelFamily
+            modelFamily,
+            sessionId,  // ← pass sessionId so workDir is resolved correctly
+            workDir
           }).catch(() => {})
         ]);
         const cr = (routerResponse.message.content || 'os').toLowerCase().trim();
@@ -470,6 +490,8 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
     }
 
     console.log(pc.cyan(`[Stream Orchestrator] Intent classified as: ${context.toUpperCase()}`));
+
+    await ensureSessionProject(sessionId, workDir);
 
     let finalResult = '';
     if (context === 'web3') {
@@ -488,7 +510,7 @@ Reply with EXACTLY ONE WORD: web3 or os. DO NOT include punctuation, spaces, or 
           logger.addEntry({ role: 'system' as any, content: planInjection }, sessionId);
         }
       }
-      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId, onReasoning);
+      finalResult = await processOsIntentStream(input, onChunk, onProgress, sessionId, onReasoning, undefined, workDir);
     }
     
     return finalResult;

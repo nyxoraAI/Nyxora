@@ -45,11 +45,11 @@ export const AgentTrace: React.FC<AgentTraceProps> = ({ toolCalls = [], progress
     if (isStreaming) {
       return `Working for ${elapsedTime}s`;
     }
-    if (elapsedTime > 0) {
-      return `Worked for ${elapsedTime}s`;
-    }
     if (durationMs > 0) {
       return `Worked for ${Math.max(1, Math.round(durationMs / 1000))}s`;
+    }
+    if (elapsedTime > 0) {
+      return `Worked for ${elapsedTime}s`;
     }
     if (progressLogs && progressLogs.length > 1) {
       const firstTime = progressLogs[0].time;
