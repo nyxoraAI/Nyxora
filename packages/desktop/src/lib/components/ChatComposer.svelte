@@ -170,7 +170,7 @@
           currentSessionId = data.id;
           appState.setActiveSession(currentSessionId);
           chatStore.setSessions([
-            { id: currentSessionId, title },
+            { id: currentSessionId, title, project_id: null },
             ...$chatStore.sessions
           ]);
         } catch (err) {
@@ -179,7 +179,7 @@
           currentSessionId = `desktop-${Date.now()}`;
           appState.setActiveSession(currentSessionId);
           chatStore.setSessions([
-            { id: currentSessionId, title },
+            { id: currentSessionId, title, project_id: null },
             ...$chatStore.sessions
           ]);
         }

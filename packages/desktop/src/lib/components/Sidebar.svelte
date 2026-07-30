@@ -24,12 +24,43 @@
       const projects = await projectsRes.json();
       chatStore.setSessions(sessions);
       
-      // Restore projects to UI
+      // Restore projects to UI without overriding activeWorkspace
       projects.forEach((p: any) => {
         if (p.path && !$appState.localWorkspaces.includes(p.path)) {
-          appState.addWorkspace(p.path);
+          appState.addWorkspace(p.path, false);
         }
       });
+
+      // Restore user's last active workspace and session dynamically
+      const savedWs = localStorage.getItem('nyxora_last_active_workspace');
+      if (savedWs !== null) {
+        try {
+          const parsedWs = JSON.parse(savedWs);
+          appState.setActiveWorkspace(parsedWs);
+        } catch (e) { /* ignore */ }
+      } else {
+        appState.setActiveWorkspace(null);
+      }
+
+      const savedSession = localStorage.getItem('nyxora_last_active_session');
+      if (savedSession !== null) {
+        try {
+          const parsedSessionId = JSON.parse(savedSession);
+          if (parsedSessionId && sessions.some((s: any) => s.id === parsedSessionId)) {
+            appState.setActiveSession(parsedSessionId);
+            await loadSessionMessages(parsedSessionId);
+          } else {
+            appState.setActiveSession(null);
+            chatStore.setMessages([]);
+          }
+        } catch (e) {
+          appState.setActiveSession(null);
+          chatStore.setMessages([]);
+        }
+      } else {
+        appState.setActiveSession(null);
+        chatStore.setMessages([]);
+      }
 
       // Sync UI workspaces to backend DB if missing
       for (const ws of $appState.localWorkspaces) {
@@ -207,6 +238,7 @@
   function handleNewChat() {
     chatStore.setMessages([]);
     appState.setActiveSession(null);
+    appState.setActiveWorkspace(null);
     appState.setView('chat');
   }
 </script>
@@ -226,9 +258,9 @@
   
   <div class="flex-1 overflow-y-auto px-3 space-y-0.5 scrollbar-none">
     <!-- Main Links -->
-    <button onclick={handleNewChat} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {currentView === 'chat' && $chatStore.messages.length === 0 && !$appState.isSearchOpen ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
+    <button onclick={handleNewChat} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {currentView === 'chat' && $chatStore.messages.length === 0 && !$appState.isSearchOpen && !$appState.activeWorkspace ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
       <Edit size={16} />
-      <span>New Chat</span>
+      <span>New Conversations</span>
     </button>
     <button onclick={() => appState.toggleSearch()} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {$appState.isSearchOpen ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
       <Search size={16} />
@@ -290,20 +322,48 @@
                   <div class="space-y-0.5 ml-4 mt-1">
                     {#each $chatStore.sessions.filter(s => s.project_id === projectId) as session}
                       <div class="group/session relative w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-[13px] transition-colors {$appState.activeSessionId === session.id && !$appState.isSearchOpen && currentView === 'chat' ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'text-gray-600 dark:text-[#e5e5ea] hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-gray-200'}">
-                        <button 
-                          onclick={() => handleSessionClick(session.id, workspace)}
-                          class="flex items-center gap-2 min-w-0 flex-1"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                          <span class="truncate">{session.title}</span>
-                        </button>
-                        <button 
-                          onclick={(e) => deleteSession(session.id, e)}
-                          class="opacity-0 group-hover/session:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded"
-                          title="Delete Chat"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500 hover:text-red-500"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
+                        {#if renamingSessionId === session.id}
+                          <!-- Rename Input -->
+                          <div class="flex items-center gap-2 flex-1 min-w-0 px-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <input
+                              bind:this={renameInput}
+                              bind:value={renameValue}
+                              onblur={() => commitRename(session.id)}
+                              onkeydown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); commitRename(session.id); }
+                                if (e.key === 'Escape') { e.stopPropagation(); renamingSessionId = null; }
+                              }}
+                              onclick={(e) => e.stopPropagation()}
+                              class="flex-1 min-w-0 bg-white dark:bg-[#1c1c1e] border border-blue-400 dark:border-[#0a84ff] rounded px-1.5 py-0 text-[12px] text-gray-800 dark:text-[#ffffff] outline-none"
+                            />
+                          </div>
+                        {:else}
+                          <button 
+                            onclick={() => handleSessionClick(session.id, workspace)}
+                            ondblclick={(e) => startRename(session, e)}
+                            class="flex items-center gap-2 min-w-0 flex-1"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span class="truncate">{session.title}</span>
+                          </button>
+                          <div class="opacity-0 group-hover/session:opacity-100 transition-opacity flex items-center gap-0.5">
+                            <button
+                              onclick={(e) => startRename(session, e)}
+                              class="p-1 hover:bg-blue-500/10 dark:hover:bg-[#0a84ff]/10 rounded"
+                              title="Rename Chat"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 hover:text-blue-500 dark:hover:text-[#0a84ff]"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2 2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button 
+                              onclick={(e) => deleteSession(session.id, e)}
+                              class="p-1 hover:bg-red-500/10 rounded"
+                              title="Delete Chat"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500 hover:text-red-500"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </div>
+                        {/if}
                       </div>
                     {/each}
                     {#if $chatStore.sessions.filter(s => s.project_id === projectId).length === 0}
@@ -321,7 +381,12 @@
     {/if}
 
     <!-- Recent Chats -->
-    <div class="pt-4 pb-1 px-3 text-xs font-semibold text-gray-500">Recent</div>
+    <div class="pt-4 pb-1 px-3 text-xs font-semibold text-gray-500 flex justify-between items-center">
+      <span>Conversation</span>
+      <button onclick={handleNewChat} class="hover:text-black dark:hover:text-[#ffffff] transition-colors" title="New Conversation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </button>
+    </div>
     {#if $chatStore.sessions.filter(s => !s.project_id).length > 0}
       <div class="px-2 space-y-0.5">
         {#each $chatStore.sessions.filter(s => !s.project_id) as session}
