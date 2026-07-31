@@ -16,7 +16,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     
     let mlData;
     try {
-        mlData = await safeFetchJson<any>(`http://127.0.0.1:8000/web3/analyze?query=${tokenAddressOrSymbol}&chain=${chainName}`);
+        mlData = await safeFetchJson<any>(`http://127.0.0.1:8000/web3/analyze?query=${tokenAddressOrSymbol}&chain=${chainName}`, { timeoutMs: 35000, retries: 1 });
     } catch (error: any) {
         return `[System Error] Failed to reach Python ML Engine. Make sure the daemon is running (Error: ${error.message})`;
     }

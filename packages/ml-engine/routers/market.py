@@ -27,44 +27,46 @@ router = APIRouter()
 
 class MarketResponse(BaseModel):
     officialSymbol: str
-    contractAddress: Optional[str]
-    network: str
-    currentPrice: float
-    mcapUsd: float
-    liquidityUsd: float
-    volume24h: float
-    priceChange24h: float
+    contractAddress: Optional[str] = None
+    network: str = "UNKNOWN"
+    currentPrice: float = 0.0
+    mcapUsd: float = 0.0
+    liquidityUsd: float = 0.0
+    volume24h: float = 0.0
+    priceChange24h: float = 0.0
     
     poolCreatedAt: Optional[int] = None
     txns24h: Optional[int] = None
     
     # New indicators
-    rsi: Optional[float]
-    ma50: Optional[float]
-    ema20: Optional[float]
-    macd: Optional[float]
-    macdSignal: Optional[float]
-    macdHistogram: Optional[float]
-    bollingerUpper: Optional[float]
-    bollingerLower: Optional[float]
-    bollingerBandwidth: Optional[float]
-    atr14: Optional[float]
-    obv: Optional[float]
-    obvTrend: Optional[str]
+    rsi: Optional[float] = None
+    ma50: Optional[float] = None
+    ema20: Optional[float] = None
+    macd: Optional[float] = None
+    macdSignal: Optional[float] = None
+    macdHistogram: Optional[float] = None
+    bollingerUpper: Optional[float] = None
+    bollingerLower: Optional[float] = None
+    bollingerBandwidth: Optional[float] = None
+    atr14: Optional[float] = None
+    obv: Optional[float] = None
+    obvTrend: Optional[str] = None
     
     # Trend
-    trendClassification: Optional[str]
-    trendConfidence: Optional[float]
-    narrative: Optional[str]
+    trendClassification: Optional[str] = None
+    trendConfidence: Optional[float] = None
+    narrative: Optional[str] = None
     
-    isCexAsset: bool
+    isCexAsset: bool = False
     momentumSources: Optional[List[str]] = None
 
 async def fetch_dexscreener(query: str, is_ca: bool, chain: str = None):
     url = f"https://api.dexscreener.com/latest/dex/tokens/{query}" if is_ca else f"https://api.dexscreener.com/latest/dex/search?q={query}"
     async with httpx.AsyncClient(verify=SSL_VERIFY) as client:
         try:
-            resp = await client.get(url, timeout=10)
+            resp = await client.get(url, timeout=5.0)
+            if resp.status_code != 200:
+                return None
             data = resp.json()
             if data and data.get('pairs'):
                 pairs = data['pairs']
@@ -72,7 +74,7 @@ async def fetch_dexscreener(query: str, is_ca: bool, chain: str = None):
                     filtered = [p for p in pairs if p.get('chainId', '').lower() == chain.lower()]
                     if filtered:
                         pairs = filtered
-                pairs = sorted(pairs, key=lambda x: x.get('volume', {}).get('h24', 0), reverse=True)
+                pairs = sorted(pairs, key=lambda x: safe_float(x.get('volume', {}).get('h24', 0)), reverse=True)
                 return pairs[0]
         except Exception as e:
             print(f"DexScreener Error: {e}")
@@ -86,20 +88,24 @@ async def fetch_coingecko(symbol: str):
     
     async with httpx.AsyncClient(verify=SSL_VERIFY) as client:
         try:
-            search_resp = await client.get(f"{base_url}/search?query={symbol}", headers=headers, timeout=10)
+            search_resp = await client.get(f"{base_url}/search?query={symbol}", headers=headers, timeout=5.0)
+            if search_resp.status_code != 200:
+                return None
             coins = search_resp.json().get('coins', [])
             target = next((c for c in coins if c['symbol'].lower() == symbol.lower() or c['id'].lower() == symbol.lower()), None)
             
             if target:
-                detail = await client.get(f"{base_url}/coins/{target['id']}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false", headers=headers, timeout=10)
+                detail = await client.get(f"{base_url}/coins/{target['id']}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false", headers=headers, timeout=5.0)
+                if detail.status_code != 200:
+                    return None
                 market = detail.json().get('market_data', {})
                 return {
                     "symbol": target['symbol'].upper(),
-                    "price": market.get("current_price", {}).get("usd", 0),
-                    "mcap": market.get("market_cap", {}).get("usd", 0),
-                    "fdv": market.get("fully_diluted_valuation", {}).get("usd") or market.get("market_cap", {}).get("usd", 0),
-                    "vol": market.get("total_volume", {}).get("usd", 0),
-                    "change": market.get("price_change_percentage_24h", 0)
+                    "price": safe_float(market.get("current_price", {}).get("usd", 0)),
+                    "mcap": safe_float(market.get("market_cap", {}).get("usd", 0)),
+                    "fdv": safe_float(market.get("fully_diluted_valuation", {}).get("usd") or market.get("market_cap", {}).get("usd", 0)),
+                    "vol": safe_float(market.get("total_volume", {}).get("usd", 0)),
+                    "change": safe_float(market.get("price_change_percentage_24h", 0))
                 }
         except Exception as e:
             print(f"CoinGecko Error: {e}")
@@ -112,8 +118,10 @@ async def _closes_binance(client: httpx.AsyncClient, symbol: str) -> Optional[pd
     try:
         r = await client.get(
             f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=100",
-            timeout=10
+            timeout=4.0
         )
+        if r.status_code != 200:
+            return None
         data = r.json()
         if isinstance(data, list) and len(data) >= 20:
             df = pd.DataFrame(data, columns=['ts', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'trades', 'tbb', 'tbq', 'ignore'])
@@ -126,8 +134,10 @@ async def _closes_bybit(client: httpx.AsyncClient, symbol: str) -> Optional[pd.D
     try:
         r = await client.get(
             f"https://api.bybit.com/v5/market/kline?category=linear&symbol={symbol}USDT&interval=D&limit=100",
-            timeout=10
+            timeout=4.0
         )
+        if r.status_code != 200:
+            return None
         data = r.json()
         klines = data.get("result", {}).get("list", [])
         if isinstance(klines, list) and len(klines) >= 20:
@@ -141,8 +151,10 @@ async def _closes_okx(client: httpx.AsyncClient, symbol: str) -> Optional[pd.Dat
     try:
         r = await client.get(
             f"https://www.okx.com/api/v5/market/candles?instId={symbol}-USDT&bar=1D&limit=100",
-            timeout=10
+            timeout=4.0
         )
+        if r.status_code != 200:
+            return None
         data = r.json()
         klines = data.get("data", [])
         if isinstance(klines, list) and len(klines) >= 20:
@@ -159,8 +171,10 @@ async def _closes_kucoin(client: httpx.AsyncClient, symbol: str) -> Optional[pd.
         start = now - (100 * 86400)
         r = await client.get(
             f"https://api.kucoin.com/api/v1/market/candles?type=1day&symbol={symbol}-USDT&startAt={start}&endAt={now}",
-            timeout=10
+            timeout=4.0
         )
+        if r.status_code != 200:
+            return None
         data = r.json()
         klines = data.get("data", [])
         if isinstance(klines, list) and len(klines) >= 20:
@@ -174,8 +188,10 @@ async def _closes_mexc(client: httpx.AsyncClient, symbol: str) -> Optional[pd.Da
     try:
         r = await client.get(
             f"https://api.mexc.com/api/v3/klines?symbol={symbol}USDT&interval=1d&limit=100",
-            timeout=10
+            timeout=4.0
         )
+        if r.status_code != 200:
+            return None
         data = r.json()
         if isinstance(data, list) and len(data) >= 20:
             df = pd.DataFrame(data, columns=['ts', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'trades', 'tbb', 'tbq', 'ignore'])
@@ -185,9 +201,15 @@ async def _closes_mexc(client: httpx.AsyncClient, symbol: str) -> Optional[pd.Da
     return None
 
 def safe_float(v, default=0.0):
-    if pd.isna(v) or not np.isfinite(v):
+    if v is None:
         return default
-    return float(v)
+    try:
+        f = float(v)
+        if pd.isna(f) or not np.isfinite(f):
+            return default
+        return f
+    except (ValueError, TypeError):
+        return default
 
 def _compute_indicators(df: pd.DataFrame, current_price: float):
     close = df['close']
@@ -388,15 +410,15 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
             official_symbol = pair['baseToken']['symbol']
             contract_address = pair['baseToken']['address']
             network = pair.get('chainId', chain).upper()
-            current_price = float(pair.get('priceUsd', 0))
-            mcap_usd = float(pair.get('fdv', 0))
-            liquidity_usd = float(pair.get('liquidity', {}).get('usd', 0))
-            volume_24h = float(pair.get('volume', {}).get('h24', 0))
-            price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
+            current_price = safe_float(pair.get('priceUsd', 0))
+            mcap_usd = safe_float(pair.get('fdv', 0))
+            liquidity_usd = safe_float(pair.get('liquidity', {}).get('usd', 0))
+            volume_24h = safe_float(pair.get('volume', {}).get('h24', 0))
+            price_change_24h = safe_float(pair.get('priceChange', {}).get('h24', 0))
             
             pool_created_at = pair.get('pairCreatedAt')
             txns = pair.get('txns', {}).get('h24', {})
-            txns_24h = txns.get('buys', 0) + txns.get('sells', 0)
+            txns_24h = int(safe_float(txns.get('buys', 0)) + safe_float(txns.get('sells', 0)))
             
             mom = await calculate_momentum(official_symbol, current_price)
         else:
@@ -407,11 +429,11 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
             is_cex_asset = True
             network = "Global CEX/Market"
             official_symbol = cg_data['symbol']
-            current_price = cg_data['price']
-            volume_24h = cg_data['vol']
-            price_change_24h = cg_data['change']
-            mcap_usd = cg_data['fdv']
-            liquidity_usd = mcap_usd * 0.10
+            current_price = safe_float(cg_data.get('price'))
+            volume_24h = safe_float(cg_data.get('vol'))
+            price_change_24h = safe_float(cg_data.get('change'))
+            mcap_usd = safe_float(cg_data.get('fdv'))
+            liquidity_usd = safe_float(mcap_usd * 0.10)
             
             mom = await calculate_momentum(official_symbol, current_price)
         else:
@@ -420,15 +442,15 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
                 official_symbol = pair['baseToken']['symbol']
                 contract_address = pair['baseToken']['address']
                 network = pair.get('chainId', chain).upper()
-                current_price = float(pair.get('priceUsd', 0))
-                mcap_usd = float(pair.get('fdv', 0))
-                liquidity_usd = float(pair.get('liquidity', {}).get('usd', 0))
-                volume_24h = float(pair.get('volume', {}).get('h24', 0))
-                price_change_24h = float(pair.get('priceChange', {}).get('h24', 0))
+                current_price = safe_float(pair.get('priceUsd', 0))
+                mcap_usd = safe_float(pair.get('fdv', 0))
+                liquidity_usd = safe_float(pair.get('liquidity', {}).get('usd', 0))
+                volume_24h = safe_float(pair.get('volume', {}).get('h24', 0))
+                price_change_24h = safe_float(pair.get('priceChange', {}).get('h24', 0))
                 
                 pool_created_at = pair.get('pairCreatedAt')
                 txns = pair.get('txns', {}).get('h24', {})
-                txns_24h = txns.get('buys', 0) + txns.get('sells', 0)
+                txns_24h = int(safe_float(txns.get('buys', 0)) + safe_float(txns.get('sells', 0)))
                 
                 mom = await calculate_momentum(official_symbol, current_price)
             else:
@@ -438,11 +460,11 @@ async def analyze_market(query: str, chain: str = "UNKNOWN"):
         officialSymbol=official_symbol,
         contractAddress=contract_address,
         network=network,
-        currentPrice=current_price,
-        mcapUsd=mcap_usd,
-        liquidityUsd=liquidity_usd,
-        volume24h=volume_24h,
-        priceChange24h=price_change_24h,
+        currentPrice=safe_float(current_price),
+        mcapUsd=safe_float(mcap_usd),
+        liquidityUsd=safe_float(liquidity_usd),
+        volume24h=safe_float(volume_24h),
+        priceChange24h=safe_float(price_change_24h),
         
         poolCreatedAt=pool_created_at,
         txns24h=txns_24h,
