@@ -9,7 +9,17 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[Anti-Crash] Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', (error: any) => {
+  if (
+    error?.code === 'ERR_STREAM_DESTROYED' ||
+    error?.code === 'EPIPE' ||
+    error?.code === 'ECONNRESET' ||
+    error?.message?.includes('stream was destroyed') ||
+    error?.message?.includes('write after end')
+  ) {
+    console.warn('[Anti-Crash] Ignored stream/connection disconnect error:', error?.message || error?.code);
+    return;
+  }
   console.error('[Anti-Crash] Uncaught Exception:', error);
   process.exit(1);
 });
@@ -1301,8 +1311,20 @@ app.get('/api/chat/stream', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
   res.flushHeaders();
 
+  let clientDisconnected = false;
+  req.on('close', () => {
+    clientDisconnected = true;
+  });
+
   const sendEvent = (data: object) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (clientDisconnected || res.writableEnded || res.destroyed || res.socket?.destroyed) {
+      return;
+    }
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    } catch (e) {
+      clientDisconnected = true;
+    }
   };
 
   const onChunk = (text: string) => sendEvent({ chunk: text });
@@ -1326,16 +1348,22 @@ app.get('/api/chat/stream', async (req, res) => {
       sessionMessageCounts.set(streamKey, streamCount);
     }
   } catch (err: any) {
-    console.error(`[SSE] Stream error for session "${session_id}":`, {
-      message: err.message,
-      stack: err.stack,
-      status: err?.status,
-      response: err?.response
-    });
-    sendEvent({ error: err.message });
+    if (!clientDisconnected) {
+      console.error(`[SSE] Stream error for session "${session_id}":`, {
+        message: err.message,
+        stack: err.stack,
+        status: err?.status,
+        response: err?.response
+      });
+      sendEvent({ error: err.message });
+    }
   } finally {
-    res.write('data: [DONE]\n\n');
-    res.end();
+    if (!clientDisconnected && !res.writableEnded && !res.destroyed && !res.socket?.destroyed) {
+      try {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } catch (e) {}
+    }
   }
 });
 
