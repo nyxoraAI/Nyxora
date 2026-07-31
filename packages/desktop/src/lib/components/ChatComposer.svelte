@@ -329,7 +329,7 @@
       chatStore.setLoading(false);
     }
   }
-  import { Mic, Headphones, Paperclip, X, Plus } from 'lucide-svelte';
+  import { Mic, Headphones, Paperclip, X, Plus } from '@lucide/svelte';
   import NyxoraLogo from './NyxoraLogo.svelte';
 </script>
 

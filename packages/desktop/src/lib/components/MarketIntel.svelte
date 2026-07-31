@@ -2,7 +2,7 @@
   import { 
     LineChart, Activity, ArrowUpRight, ArrowDownRight, Search, RefreshCw, 
     Sparkles, Flame, Globe, Bot, Layers, Zap, Copy, Check 
-  } from 'lucide-svelte';
+  } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { configStore } from '$lib/stores/config.svelte';
   import { appState } from '$lib/stores/app';

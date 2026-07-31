@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Server, ShieldAlert, CheckCircle2, Save, AlertTriangle } from 'lucide-svelte';
+  import { Server, ShieldAlert, CheckCircle2, Save, AlertTriangle } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
   import { getChainLogoUrl } from '$lib/utils/logos';
 

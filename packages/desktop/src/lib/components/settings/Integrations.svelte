@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Key } from 'lucide-svelte';
+  import { Key } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
   import GoogleAuthWizard from './GoogleAuthWizard.svelte';
 

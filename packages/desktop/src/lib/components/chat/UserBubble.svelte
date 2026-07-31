@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, Copy, ChevronDown, ChevronUp } from 'lucide-svelte';
+  import { Check, Copy, ChevronDown, ChevronUp } from '@lucide/svelte';
 
   let { 
     content = '', 

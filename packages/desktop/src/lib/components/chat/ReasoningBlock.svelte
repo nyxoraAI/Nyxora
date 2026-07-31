@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, BrainCircuit } from 'lucide-svelte';
+  import { ChevronRight, BrainCircuit } from '@lucide/svelte';
   
   let { content = '', isStreaming = false } = $props();
   

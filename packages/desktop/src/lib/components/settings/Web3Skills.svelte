@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle, Droplet, Lock, Vault, Landmark, Flame } from 'lucide-svelte';
+  import { Compass, Search, Wallet, Send, Zap, ArrowRightLeft, RefreshCw, Image, Terminal, MapPin, User, Shield, PieChart, LineChart, WalletCards, Target, ListOrdered, XCircle, Droplet, Lock, Vault, Landmark, Flame } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
 
   interface SkillParam {

@@ -9,7 +9,7 @@
 	import SearchChat from '$lib/components/SearchChat.svelte';
 	import { appState } from '$lib/stores/app';
 	import { configStore } from '$lib/stores/config.svelte';
-	import { PanelLeftOpen, Check, Network, Shield, Bot } from 'lucide-svelte';
+	import { PanelLeftOpen, Check, Network, Shield, Bot } from '@lucide/svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { onMount } from 'svelte';
 	import { apiFetch } from '$lib/utils/api';

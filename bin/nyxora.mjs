@@ -402,10 +402,20 @@ async function main() {
       const desktopDir = path.join(projectRoot, 'packages/desktop');
       const isWin = process.platform === 'win32';
       const npxCmd = isWin ? 'npx.cmd' : 'npx';
-      const childDesktop = spawn(npxCmd, ['-y', 'electron@latest', desktopDir], {
+      const childDesktop = spawn(npxCmd, [
+        '-y',
+        'electron@latest',
+        desktopDir,
+        '--no-sandbox',
+        '--disable-gpu-sandbox',
+        '--disable-setuid-sandbox'
+      ], {
         cwd: projectRoot,
         stdio: 'inherit',
-        env: { ...process.env }
+        env: {
+          ...process.env,
+          ELECTRON_DISABLE_SANDBOX: '1'
+        }
       });
       await new Promise(resolve => childDesktop.on('close', resolve));
       break;

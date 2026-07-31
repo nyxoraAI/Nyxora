@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Network, ChevronDown } from 'lucide-svelte';
+  import { Network, ChevronDown } from '@lucide/svelte';
   import { getChainLogoUrl } from '$lib/utils/logos';
 
   let { value = $bindable(), showAllOption = false, onChange = undefined } = $props<{

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Wallet, RefreshCw, AlertTriangle, Copy, Check, Plus, X, Trash2 } from 'lucide-svelte';
+  import { Wallet, RefreshCw, AlertTriangle, Copy, Check, Plus, X, Trash2 } from '@lucide/svelte';
   import { formatUnits } from 'viem';
   import { getChainLogoUrl, getTokenLogoUrl } from '$lib/utils/logos';
   import NetworkSelector from './NetworkSelector.svelte';

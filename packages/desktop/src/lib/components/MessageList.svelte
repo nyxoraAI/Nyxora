@@ -5,7 +5,7 @@
   import AgentTrace from './AgentTrace.svelte';
 
   import { tick } from 'svelte';
-  import { ArrowDown, Copy, Check } from 'lucide-svelte';
+  import { ArrowDown, Copy, Check } from '@lucide/svelte';
 
   let messages = $derived($chatStore.messages);
   let container: HTMLDivElement;

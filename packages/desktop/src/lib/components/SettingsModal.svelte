@@ -7,7 +7,7 @@
     User, Cpu, Palette, ShieldCheck, 
     Globe, TerminalSquare, Plug, BookOpen, 
     AlertTriangle, Server, Landmark, LineChart, Link2, X, RefreshCw
-  } from 'lucide-svelte';
+  } from '@lucide/svelte';
   
   import AgentProfile from './settings/AgentProfile.svelte';
   import LlmEngine from './settings/LlmEngine.svelte';

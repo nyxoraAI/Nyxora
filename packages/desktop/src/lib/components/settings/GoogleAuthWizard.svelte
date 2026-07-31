@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Key, Upload, Shield, X, CheckCircle, Copy } from 'lucide-svelte';
+  import { Key, Upload, Shield, X, CheckCircle, Copy } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
 
   const { onClose } = $props<{ onClose: () => void }>();

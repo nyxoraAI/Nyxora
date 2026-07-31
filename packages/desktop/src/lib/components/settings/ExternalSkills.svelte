@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Plug, Search } from 'lucide-svelte';
+  import { Plug, Search } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
 
   interface SkillParam {

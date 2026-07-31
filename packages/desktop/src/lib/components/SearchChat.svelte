@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Search, MessageSquare } from 'lucide-svelte';
+  import { Search, MessageSquare } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
   import { chatStore } from '$lib/stores/chat';
   import { appState } from '$lib/stores/app';

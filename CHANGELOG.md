@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.8.1]
+### Bug Fixes & Architecture Enhancements
+- **Linux SUID Sandbox Fix for Nyxora Desktop (`bin/nyxora.mjs`, `packages/desktop/electron/main.ts`)**: Resolved a fatal Electron startup crash on Linux (`FATAL:sandbox/linux/suid/client/setuid_sandbox_host.cc:166`) when launching via `nyxora desktop` from unprivileged global or npx directories. Injected `--no-sandbox`, `--disable-gpu-sandbox`, and `--disable-setuid-sandbox` CLI flags and set `ELECTRON_DISABLE_SANDBOX=1` in the spawned process environment, ensuring reliable headless and desktop app execution across Linux distributions.
+- **Svelte Icon Library Migration (`packages/desktop`)**: Migrated deprecated `lucide-svelte` dependency to `@lucide/svelte` across all 24 Svelte UI components and workspace configuration files (`package.json`), resolving build deprecation warnings.
+- **Local Version Increment**: Bumped Nyxora version to `v26.8.1` across all workspace packages and submodules.
+
 ## [26.7.27]
 ### Features & UI/UX Enhancements
 - **CJK & Emoji Markdown Table Realignment (`markdownTables.ts`)**: Engineered CJK/emoji-aware markdown table realignment and responsive narrow-screen vertical fallback. Full-width ideographs, emojis, and combining symbols no longer cause table column borders to drift in terminal and CLI environments.

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiFetch } from '$lib/utils/api';
-  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from 'lucide-svelte';
+  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
 
   interface Playbook {
     filename: string;

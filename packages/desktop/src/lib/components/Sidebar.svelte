@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appState } from '$lib/stores/app';
-  import { PanelLeftClose, Edit, Search, Wallet, TrendingUp, Settings } from 'lucide-svelte';
+  import { PanelLeftClose, Edit, Search, Wallet, TrendingUp, Settings } from '@lucide/svelte';
   import NyxoraLogo from './NyxoraLogo.svelte';
   import { chatStore } from '$lib/stores/chat';
   import { apiFetch } from '$lib/utils/api';

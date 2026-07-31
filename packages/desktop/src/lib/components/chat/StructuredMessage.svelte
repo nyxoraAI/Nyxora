@@ -2,7 +2,7 @@
   import AgentTrace from '../AgentTrace.svelte';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { Copy, Check } from 'lucide-svelte';
+  import { Copy, Check } from '@lucide/svelte';
 
   let { msg } = $props();
   let copied = $state(false);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { KeyRound, ShieldAlert, CheckCircle2, Save, Eye, EyeOff } from 'lucide-svelte';
+  import { KeyRound, ShieldAlert, CheckCircle2, Save, Eye, EyeOff } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
   import { getRouterLogoUrl } from '$lib/utils/logos';
 

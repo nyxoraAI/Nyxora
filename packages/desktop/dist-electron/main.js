@@ -6,7 +6,7 @@ import l from "node:os";
 import u from "node:fs";
 t.name = "Nyxora", t.setAppUserModelId("Nyxora"), process.platform === "linux" && t.setDesktopName("Nyxora.desktop");
 var d = o.dirname(s(import.meta.url));
-t.commandLine.appendSwitch("no-sandbox"), t.commandLine.appendSwitch("disable-gpu"), t.commandLine.appendSwitch("disable-software-rasterizer"), t.commandLine.appendSwitch("disable-gpu-compositing"), process.env.APP_ROOT = o.join(d, "..");
+t.commandLine.appendSwitch("no-sandbox"), t.commandLine.appendSwitch("disable-setuid-sandbox"), t.commandLine.appendSwitch("disable-gpu-sandbox"), t.commandLine.appendSwitch("disable-gpu"), t.commandLine.appendSwitch("disable-software-rasterizer"), t.commandLine.appendSwitch("disable-gpu-compositing"), process.env.APP_ROOT = o.join(d, "..");
 var f = process.env.VITE_DEV_SERVER_URL, p = o.join(process.env.APP_ROOT, "dist-electron"), m = o.join(process.env.APP_ROOT, "build");
 process.env.VITE_PUBLIC = f ? o.join(process.env.APP_ROOT, "public") : m;
 var h, g = null;

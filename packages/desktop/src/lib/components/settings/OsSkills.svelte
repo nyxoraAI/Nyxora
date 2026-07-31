@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, MessageCircle, Layout, Mic, AlignLeft, Scissors } from 'lucide-svelte';
+  import { Compass, Search, Terminal, FileText, FileEdit, Globe, ShieldAlert, AlertTriangle, FileSearch, Search as SearchIcon, Mail, Calendar, FileSpreadsheet, BookOpen, ClipboardList, GitBranch, MessageCircle, Layout, Mic, AlignLeft, Scissors } from '@lucide/svelte';
   import { apiFetch } from '$lib/utils/api';
 
   interface SkillParam {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from 'lucide-svelte';
+  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
   import { playbooksStore, type Playbook } from '$lib/stores/playbooks';
   import { apiFetch } from '$lib/utils/api';
 

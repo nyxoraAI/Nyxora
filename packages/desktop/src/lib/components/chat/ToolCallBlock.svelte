@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, Wrench } from 'lucide-svelte';
+  import { ChevronRight, Wrench } from '@lucide/svelte';
   
   let { content = '', isStreaming = false } = $props();
   

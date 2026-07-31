@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Terminal, Search, Activity, Cpu, FileCode } from 'lucide-svelte';
+  import { Terminal, Search, Activity, Cpu, FileCode } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
   interface Props {
