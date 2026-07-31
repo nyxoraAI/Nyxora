@@ -391,14 +391,23 @@ async function main() {
     case 'desktop': {
       const desktopPkg = path.join(projectRoot, 'packages/desktop/package.json');
       const desktopDist = path.join(projectRoot, 'packages/desktop/dist-electron');
-      if (!fs.existsSync(desktopPkg) || !fs.existsSync(desktopDist)) {
-        console.error('❌ Desktop app is not available in the npm package.');
-        console.error('   The Desktop app must be built from source.');
-        console.error('   Clone the repo and run: git clone https://github.com/nyxoraAI/Nyxora && cd Nyxora && npm install && npm run desktop');
+      const desktopBuild = path.join(projectRoot, 'packages/desktop/build');
+      if (!fs.existsSync(desktopPkg) || !fs.existsSync(desktopDist) || !fs.existsSync(desktopBuild)) {
+        console.error('❌ Desktop app is not available (missing compiled output).');
+        console.error('   If you installed from npm, try: npm install -g nyxora@latest');
+        console.error('   If running from source: npm run build');
         process.exit(1);
       }
-      const { default: open } = await import('open');
-      await open(desktopDist);
+      console.log('Starting Nyxora Desktop...');
+      const desktopDir = path.join(projectRoot, 'packages/desktop');
+      const isWin = process.platform === 'win32';
+      const npxCmd = isWin ? 'npx.cmd' : 'npx';
+      const childDesktop = spawn(npxCmd, ['-y', 'electron@latest', desktopDir], {
+        cwd: projectRoot,
+        stdio: 'inherit',
+        env: { ...process.env }
+      });
+      await new Promise(resolve => childDesktop.on('close', resolve));
       break;
     }
 
@@ -443,6 +452,8 @@ Commands:
   chat           Chat interactively with the AI in terminal
   setup          Run the interactive Setup Wizard
   dashboard      Open the dashboard in your browser
+  desktop        Launch the native Desktop application (Electron)
+  tui            Open the interactive Terminal UI
   unlock         Unlock an inactive dashboard session
   doctor         Run system diagnostics and check requirements
   clear          Atomically clear the AI's short/long-term memory SQLite database

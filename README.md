@@ -222,6 +222,9 @@ nyxora start
 # Open the interactive UI dashboard
 nyxora dashboard
 
+# 🖥️ Open the native Desktop App (Electron)
+nyxora desktop
+
 # 🖥️ Open the interactive Terminal UI (for VPS/CLI users)
 nyxora tui
 
