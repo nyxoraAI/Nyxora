@@ -1,6 +1,7 @@
 import { safeFetchJson } from '../../utils/httpClient';
 import { loadMarketKeys } from '../../config/marketConfigManager';
 import { loadConfig } from '../../config/parser';
+import { ML_BASE_URL } from '../../config/constants';
 
 export const getPriceToolDefinition = {
   type: "function",
@@ -103,7 +104,7 @@ export async function getPrice(coinId: string, currency?: string, amount?: numbe
   // TIER 3: Nyxora Python ML Engine (For obscure/low-cap DEX tokens)
   if (tokenUsdPrice === 0) {
     try {
-      const mlData = await safeFetchJson<any>(`http://127.0.0.1:8000/web3/analyze?query=${coinId}&chain=ethereum`, { timeoutMs: 35000, retries: 1 });
+      const mlData = await safeFetchJson<any>(`${ML_BASE_URL}/web3/analyze?query=${coinId}&chain=ethereum`, { timeoutMs: 35000, retries: 1 });
       if (mlData && mlData.currentPrice) {
         tokenUsdPrice = mlData.currentPrice;
         change24h = mlData.priceChange24h || 0;

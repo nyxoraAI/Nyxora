@@ -106,7 +106,7 @@ export const Gateway: React.FC = () => {
                 </span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>ms</span>
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px' }}>Port 3000 • Core Router</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px' }}>Core Router</div>
             </div>
 
             {/* Python ML Engine Node */}
@@ -128,7 +128,7 @@ export const Gateway: React.FC = () => {
                 </span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>ms</span>
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px' }}>Port 8000 • Machine Learning</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px' }}>Machine Learning</div>
             </div>
           </div>
         </div>

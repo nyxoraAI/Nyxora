@@ -25,7 +25,7 @@ Here is how you can obtain private API keys for the natively supported Meta-Aggr
 #### 2. Installing the Keys in Nyxora
 Once you have obtained your keys, follow these steps to securely inject them into Nyxora:
 
-1. Open your Nyxora local web dashboard (typically `http://localhost:3000`).
+1. Open your Nyxora local web dashboard (typically `http://localhost:40000`).
 2. Navigate to the **DeFi Configuration** menu on the left sidebar.
 3. Paste the respective API keys into the dynamically generated input fields.
 4. Click the **Save** button next to each key.

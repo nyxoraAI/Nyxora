@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Key, Upload, Shield, X, CheckCircle, Copy } from '@lucide/svelte';
-  import { apiFetch } from '$lib/utils/api';
+  import { apiFetch, API_BASE_URL } from '$lib/utils/api';
 
   const { onClose } = $props<{ onClose: () => void }>();
 
@@ -146,8 +146,8 @@
             <li>Choose <strong>Desktop app</strong> (Recommended for CLI) OR <strong>Web application</strong>.</li>
             <li>If you chose Web application, under <strong>Authorized redirect URIs</strong>, add both of these URIs: 
               <ul class="mt-2 space-y-1 list-none pl-0">
-                <li><code class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">http://localhost:3000/api/auth/google/callback</code></li>
-                <li><code class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">http://localhost:8000/api/auth/google/callback</code></li>
+                <li><code class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{API_BASE_URL}/api/auth/google/callback</code></li>
+                <li><code class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">http://localhost:50000/api/auth/google/callback</code></li>
               </ul>
             </li>
             <li>Click Download JSON and upload the file here:</li>

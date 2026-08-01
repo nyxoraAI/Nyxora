@@ -12,6 +12,7 @@ import path from 'path';
 import os from 'os';
 import open from 'open';
 import { getAppDir, getPath } from '../config/paths';
+import { CORE_BASE_URL } from '../config/constants';
 console.log(`--- CLI.TS STARTED (PID: ${process.pid}) ---`);
 import { loadConfig, saveApiKeys } from '../config/parser';
 import { runSetupWizard } from './setup';
@@ -258,7 +259,7 @@ console.log(`================================`);
   await startServer();
   const token = getSessionToken(); // Initialize token file
   setTimeout(() => {
-    console.log(pc.cyan(`\n✨ Dashboard URL: http://localhost:3000/?token=${token}`));
+    console.log(pc.cyan(`\n✨ Dashboard URL: ${CORE_BASE_URL}/?token=${token}`));
     console.log(pc.gray(`   (Developers: Vite hot-reload available at http://localhost:5173/?token=${token})\n`));
   }, 1500);
 }

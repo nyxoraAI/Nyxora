@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { CORE_BASE_URL } from '../config/constants';
 
 // Secure key for signing file download tokens
 // We will use the INTERNAL_AUTH_TOKEN from environment if available,
@@ -44,5 +45,5 @@ export function getPublicUrl(): string {
       return fs.readFileSync(urlPath, 'utf8').trim();
     }
   } catch (e) {}
-  return 'http://localhost:3000';
+  return CORE_BASE_URL;
 }

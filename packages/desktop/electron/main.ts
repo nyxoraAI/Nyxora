@@ -39,7 +39,7 @@ function startNyxoraDaemon() {
     cwd: monorepoRoot,
     stdio: 'ignore', // 'ignore' is required for detached processes to survive without parent console
     detached: true,
-    env: { ...process.env, PORT: '3000' }
+    env: { ...process.env, PORT: process.env.PORT || '40000' }
   });
 
   // unref allows the parent to exit independently of the child

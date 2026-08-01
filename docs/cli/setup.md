@@ -50,7 +50,7 @@ Runs a comprehensive diagnostic check on your local Nyxora installation.
 **What it checks:**
 1. OS Keyring accessibility (ensures your vault is functioning).
 2. SQLite Database integrity (`episodic.db`).
-3. Port conflicts (verifies if Port 3000 is available).
+3. Port conflicts (verifies if Port 40000 is available).
 4. Node.js version compatibility.
 
 ```bash

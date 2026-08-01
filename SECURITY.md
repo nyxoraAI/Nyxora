@@ -12,7 +12,7 @@ Large Language Models (LLMs) are incredibly powerful reasoning engines, but they
 
 To achieve this, Nyxora uses a **3-Tier Monorepo IPC (Inter-Process Communication)** architecture:
 
-1. **Core Runtime (Port 3000):** Executes the LLM logic, handles the UI dashboard, processes NLP chat inputs, and utilizes OS/Web2 APIs.
+1. **Core Runtime (Port 40000):** Executes the LLM logic, handles the UI dashboard, processes NLP chat inputs, and utilizes OS/Web2 APIs.
 2. **Policy Engine (Unix Socket):** A strict middleware that evaluates all transaction requests against hard limits (e.g., `max_usd_per_tx`, `max_allowed_slippage`). It intercepts traffic via `/tmp/nyxora-policy.sock` to achieve zero-latency internal communication.
 3. **Signer Vault (Unix Socket):** A completely isolated Node.js process that holds the decrypted private keys in memory. It listens exclusively on `/tmp/nyxora-signer.sock`.
 

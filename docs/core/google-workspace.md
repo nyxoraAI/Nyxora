@@ -68,9 +68,9 @@ This is where you print the master key!
 3. For *Application type*, select **Web application**.
 4. Give it a name, e.g., `Nyxora Web Client`.
 5. Under **Authorized redirect URIs**, click *ADD URI* and enter these two URLs exactly:
-   `http://localhost:3000/api/auth/google/callback`
+   `http://localhost:40000/api/auth/google/callback`
    and
-   `http://127.0.0.1:3000/api/auth/google/callback`
+   `http://127.0.0.1:40000/api/auth/google/callback`
 6. Click **Create**.
 7. A pop-up will appear displaying your *Client ID* and *Client Secret*.
 8. Click the **DOWNLOAD JSON** button (the down-arrow icon) in that window.

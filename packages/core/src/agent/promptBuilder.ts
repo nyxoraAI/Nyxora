@@ -9,6 +9,7 @@ import { findNyxoraMd, stripYamlFrontmatter } from './workspaceUtils';
 import { detectProjectFacts, buildWorkspaceBlock } from './projectAnalyzer';
 import { SUPER_DISCIPLINE } from './superDiscipline';
 import { getEstimatedMaxContext } from '../utils/llmUtils';
+import { ML_BASE_URL } from '../config/constants';
 
 // ── TTL Caches ──────────────────────────────────────────────────────────────
 // Narrative memory + skills are fetched from the ML engine on every request.
@@ -832,7 +833,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
     try {
       // 1.5s timeout: if ML engine is still starting up, fail fast rather than
       // blocking the entire system prompt build for tens of seconds.
-      const ragRes = await fetch('http://127.0.0.1:8000/memory/rag', {
+      const ragRes = await fetch(`${ML_BASE_URL}/memory/rag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: userInput, top_k: 5 }),
@@ -865,7 +866,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
       }
       try {
         // 1.5s timeout: fail fast if ML engine is not yet ready at cold start
-        const narrativeRes = await fetch('http://127.0.0.1:8000/memory/narrative', {
+        const narrativeRes = await fetch(`${ML_BASE_URL}/memory/narrative`, {
           signal: AbortSignal.timeout(1500)
         });
         if (!narrativeRes.ok) return narrativeCached?.data ?? '';
@@ -893,7 +894,7 @@ After completing a complex task, fixing a tricky error, or discovering a non-tri
       }
       try {
         // 1.5s timeout: fail fast if ML engine is not yet ready at cold start
-        const skillsRes = await fetch('http://127.0.0.1:8000/skills/list', {
+        const skillsRes = await fetch(`${ML_BASE_URL}/skills/list`, {
           signal: AbortSignal.timeout(1500)
         });
         if (!skillsRes.ok) return skillsCached?.data ?? '';

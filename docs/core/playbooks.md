@@ -54,4 +54,4 @@ The OS Agent will dynamically abstract the chat history into a generalized Markd
 ## 🎛️ Managing Playbooks (Skill Store)
 
 You can manage your playbooks without touching the file system using the **Nyxora Dashboard**.
-Navigate to the **Skill Store** tab in the dashboard (`http://localhost:3000`) to access a modern split-pane Markdown editor. From there, you can browse, edit, delete, or create new playbooks seamlessly.
+Navigate to the **Skill Store** tab in the dashboard (`http://localhost:40000`) to access a modern split-pane Markdown editor. From there, you can browse, edit, delete, or create new playbooks seamlessly.

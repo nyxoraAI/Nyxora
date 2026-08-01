@@ -4,6 +4,7 @@ import net from 'net';
 import pc from 'picocolors';
 import { getPath } from '../config/paths';
 import { loadConfig } from '../config/parser';
+import { CORE_PORT, ML_PORT, ML_BASE_URL } from '../config/constants';
 
 export async function runDoctor() {
   console.log(pc.cyan('\n🔍 Nyxora System Doctor\n'));
@@ -86,7 +87,7 @@ export async function runDoctor() {
     });
   };
 
-  const port3000Free = await checkPort(3000);
+  const portCoreFree = await checkPort(CORE_PORT);
   const port3001Free = await checkPort(3001);
 
   let isDaemonRunning = false;
@@ -99,10 +100,10 @@ export async function runDoctor() {
     } catch {}
   }
 
-  if (isDaemonRunning && !port3000Free) {
-    console.log(`${pc.green('✓')} Port 3000 (Core/Gateway API) ${pc.cyan('[In Use by Nyxora]')}`);
+  if (isDaemonRunning && !portCoreFree) {
+    console.log(`${pc.green('✓')} Port ${CORE_PORT} (Core/Gateway API) ${pc.cyan('[In Use by Nyxora]')}`);
   } else {
-    printStatus(`Port 3000 (Core/Gateway API)`, port3000Free, `Port is already in use by another application.`);
+    printStatus(`Port ${CORE_PORT} (Core/Gateway API)`, portCoreFree, `Port is already in use by another application.`);
   }
 
   if (isDaemonRunning && !port3001Free) {
@@ -144,7 +145,7 @@ export async function runDoctor() {
   // 7. Check ML Engine (Python Sidecar)
   const checkMlEngine = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      const req = require('http').get('http://127.0.0.1:8000/health', (res: any) => {
+      const req = require('http').get(`${ML_BASE_URL}/health`, (res: any) => {
         resolve(res.statusCode < 500);
       });
       req.on('error', () => resolve(false));
@@ -155,9 +156,9 @@ export async function runDoctor() {
   const mlRunning = isDaemonRunning ? await checkMlEngine() : false;
   if (isDaemonRunning) {
     if (mlRunning) {
-      console.log(`${pc.green('✓')} ML Engine (port 8000) ${pc.cyan('[Running]')}`);
+      console.log(`${pc.green('✓')} ML Engine (port ${ML_PORT}) ${pc.cyan('[Running]')}`);
     } else {
-      console.log(`${pc.yellow('!')} ML Engine (port 8000) ${pc.yellow('[Not Running]')} — market analysis tools will return errors. Run: nyxora setup`);
+      console.log(`${pc.yellow('!')} ML Engine (port ${ML_PORT}) ${pc.yellow('[Not Running]')} — market analysis tools will return errors. Run: nyxora setup`);
     }
   } else {
     // Not running daemon, check if venv exists

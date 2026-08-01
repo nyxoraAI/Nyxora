@@ -54,11 +54,33 @@ export function padToDisplayWidth(str: string, targetWidth: number): string {
   return str + ' '.repeat(neededSpaces);
 }
 
-export function splitTableRow(row: string): string[] {
+export function splitTableRow(row: string, maxCols?: number): string[] {
   let s = row.trim();
   if (s.startsWith('|')) s = s.slice(1);
   if (s.endsWith('|')) s = s.slice(0, -1);
-  return s.split('|').map(cell => cell.trim());
+  
+  const rawCells: string[] = [];
+  let current = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '|' && i > 0 && s[i - 1] === '\\') {
+      current = current.slice(0, -1) + '|';
+    } else if (ch === '|') {
+      rawCells.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  rawCells.push(current.trim());
+
+  if (maxCols && maxCols > 0 && rawCells.length > maxCols) {
+    const head = rawCells.slice(0, maxCols - 1);
+    const tail = rawCells.slice(maxCols - 1).join(' | ');
+    return [...head, tail];
+  }
+
+  return rawCells;
 }
 
 export function isTableDivider(row: string): boolean {
@@ -148,11 +170,11 @@ export function realignMarkdownTables(text: string, availableWidth?: number): st
   if (!text || !text.includes('|')) return text;
 
   // 1. Un-flatten accidentally joined table rows (small model hallucination)
-  let normalizedText = text.replace(/([^\n])\s*(\|[^\n]+\|)\s*(?=\|\s*[-:]+[-| :]*\|)/g, '$1\n$2');
+  let normalizedText = text.replace(/(^|\n)([^|\r\n]+?)[ \t]*(\|[^\r\n]+\|)[ \t]*(?=\|[ \t]*[-:]+[-| :]*\|)/g, '$1$2\n$3');
   normalizedText = normalizedText
-    .replace(/\|\s*\|\s*(?=[-:]+[-| :]*\|)/g, '|\n|')
-    .replace(/(\|\s*[-:]+[-| :]*\|)\s*\|/g, '$1\n|');
-  normalizedText = normalizedText.replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
+    .replace(/\|[ \t]*\|[ \t]*(?=[-:]+[-| :]*\|)/g, '|\n|')
+    .replace(/(\|[ \t]*[-:]+[-| :]*\|)[ \t]*\|/g, '$1\n|');
+  normalizedText = normalizedText.replace(/\|[ \t]*\|[ \t]*(?=[^| \t\r\n])/g, '|\n|');
 
   const lines = normalizedText.split('\n');
   const out: string[] = [];
@@ -162,7 +184,16 @@ export function realignMarkdownTables(text: string, availableWidth?: number): st
   while (i < n) {
     const line = lines[i];
     if (line.includes('|') && i + 1 < n && isTableDivider(lines[i + 1])) {
-      const header = splitTableRow(line);
+      // Extract any text prefix before the first table pipe
+      // e.g. "Top Penyebab RAM & CPU: | Col1 | Col2 |" → prefix = "Top Penyebab RAM & CPU:", tableRow = "| Col1 | Col2 |"
+      const firstPipeIdx = line.indexOf('|');
+      const prefix = firstPipeIdx > 0 ? line.substring(0, firstPipeIdx).trimEnd() : '';
+      const tableRow = firstPipeIdx > 0 ? line.substring(firstPipeIdx) : line;
+
+      if (prefix) out.push(prefix);
+
+      const header = splitTableRow(tableRow);
+      const numCols = header.length;
       const body: string[][] = [];
       let j = i + 2;
       while (j < n && lines[j].includes('|') && lines[j].trim() !== '') {
@@ -170,7 +201,7 @@ export function realignMarkdownTables(text: string, availableWidth?: number): st
           j++;
           continue;
         }
-        body.push(splitTableRow(lines[j]));
+        body.push(splitTableRow(lines[j], numCols));
         j++;
       }
 

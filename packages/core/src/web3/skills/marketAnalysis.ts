@@ -3,6 +3,7 @@ import { ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { safeFetchJson } from '../../utils/httpClient';
 import { generateMarketHealthReport, MarketHealthResult } from '../utils/riskIntelligence';
 import { fetchTokenSecurityData, formatSecurityReport, CHAIN_IDS } from './checkSecurity';
+import { ML_BASE_URL } from '../../config/constants';
 
 export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: string): Promise<string> {
   try {
@@ -16,7 +17,7 @@ export async function analyzeMarket(chainName: ChainName, tokenAddressOrSymbol: 
     
     let mlData;
     try {
-        mlData = await safeFetchJson<any>(`http://127.0.0.1:8000/web3/analyze?query=${tokenAddressOrSymbol}&chain=${chainName}`, { timeoutMs: 35000, retries: 1 });
+        mlData = await safeFetchJson<any>(`${ML_BASE_URL}/web3/analyze?query=${tokenAddressOrSymbol}&chain=${chainName}`, { timeoutMs: 35000, retries: 1 });
     } catch (error: any) {
         return `[System Error] Failed to reach Python ML Engine. Make sure the daemon is running (Error: ${error.message})`;
     }

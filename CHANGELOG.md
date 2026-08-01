@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Svelte Icon Library Migration (`packages/desktop`)**: Migrated deprecated `lucide-svelte` dependency to `@lucide/svelte` across all 24 Svelte UI components and workspace configuration files (`package.json`), resolving build deprecation warnings.
 - **Market Engine Resilience & Timeout Optimization (`market.py`, `getPrice.ts`, `marketAnalysis.ts`)**: Enhanced `safe_float` null/type-safety handling in the Python ML Engine and increased HTTP timeout thresholds to 35s with retry logic when querying market analysis endpoints from the core gateway, preventing premature timeouts during heavy DEX/CEX data aggregation.
 - **Markdown Table Un-flattening Enhancement (`telegram.ts`, `markdownTables.ts`, `StructuredMessage.svelte`)**: Improved regex normalization for single-line table hallucinations produced by smaller models, reliably splitting joined table headers, separator rows, and data rows across Telegram HTML formatting, CLI markdown realignment, and Svelte Desktop chat rendering.
+- **Centralized Service Port Architecture & Documentation Refresh (`constants.ts`, `launcher.ts`, `docs/*`)**: Centralized Core Gateway (`40000`) and ML Engine (`50000`) ports and base URLs into a shared `constants.ts` configuration module across all workspace packages, launchers, and CLI tools, and updated system architecture documentation accordingly.
 - **Local Version Increment**: Bumped Nyxora version to `v26.8.1` across all workspace packages and submodules.
 
 ## [26.7.27]

@@ -26,14 +26,14 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
                                v
                     +--------------------+
                     |   Core LLM Runtime | <--- (NLP Parsing, Routing,
-                    |      Port 3000     |       Agent Logic)
+                    |     Port 40000     |       Agent Logic)
                     +--------------------+
                       ^                |
        (RAG & Math)   |                |  (Draft Transaction)
                       v                v
 +-------------------------+   +-------------------------------+
 |       ML Engine         |   |    Policy Engine (Guard)      |
-|       Port 8000         |   |  Unix Socket (IPC) / Loopback |
+|      Port 50000         |   |  Unix Socket (IPC) / Loopback |
 +-------------------------+   +-------------------------------+
                                                |
                                                | (Approved Payload)
@@ -49,7 +49,7 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
 
 When you launch Nyxora via the background daemon (`nyxora start`), the launcher orchestrates multiple independent microservices that communicate internally across your local system.
 
-### 1. Core Runtime (The Brain) - Port 3000
+### 1. Core Runtime (The Brain) - Port 40000
 The Core is the front-facing gateway. It serves the Dashboard UI, connects to the Telegram Bot API, and houses the LLM orchestration logic. 
 *   **Role:** Analyzes user intent, reads memory, and builds transaction payloads (unsigned drafts).
 *   **Highly Optimized Dependencies:** The Core relies on lightweight, secure dependencies to minimize overhead. It uses `grammy` for robust Telegram bot interactions, `croner` for precise timezone-aware scheduling, `write-excel-file` for secure zero-dependency reporting, and an ultra-fast *Native Fetch REST* implementation for Gemini communication (bypassing `@google/genai`), while retaining official vendor SDKs for OpenAI and Anthropic to ensure maximum stability.
@@ -63,7 +63,7 @@ The Core is the front-facing gateway. It serves the Dashboard UI, connects to th
 *   **[Playbooks (Markdown SOPs)](/playbooks):** Aside from code-based skills, Nyxora possesses a unique `PlaybookManager` which acts as an SOP (Standard Operating Procedure) interpreter. The LLM natively searches and reads instruction manuals written in plain Markdown (`.md`) from `packages/core/playbooks/` (synced to `~/.nyxora/playbooks/`). This allows the agent to execute complex workflows (like Social Fetch data gathering) by strictly following predefined human-readable steps without requiring hardcoded TypeScript logic.
 *   **Limitation:** It does not know your Private Key and cannot sign transactions.
 
-### 2. ML Engine (Cognitive Sidecar) - Port 8000
+### 2. ML Engine (Cognitive Sidecar) - Port 50000
 The ML Engine is a local Python FastAPI backend dedicated to heavy cognitive and analytical tasks.
 *   **Role:** Executes Semantic Search (RAG) and performs deterministic market calculations without clogging the Node.js event loop.
 *   **Semantic Memory & RAG:** Operates `langchain_huggingface` using the `all-MiniLM-L6-v2` embedding model. It synchronizes the SQLite episodic memory into a fast local ChromaDB vector store, enabling lightning-fast semantic context retrieval.

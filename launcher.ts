@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import dns from 'dns';
+import { CORE_PORT, CORE_BASE_URL, ML_PORT } from './packages/core/src/config/constants';
 
 // Fix Node 18+ native fetch randomly failing on dual-stack VPS (IPv6 issues)
 dns.setDefaultResultOrder('ipv4first');
@@ -166,7 +167,7 @@ setTimeout(() => {
     if (fs.existsSync(pythonPath)) {
       let mlDir = path.join(__dirnameResolved, 'packages', 'ml-engine');
       if (!fs.existsSync(mlDir)) mlDir = path.join(__dirnameResolved, '..', 'packages', 'ml-engine');
-      const mlArgs = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'];
+      const mlArgs = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', ML_PORT.toString()];
       const mlEngine = spawnService('ML Engine', pythonPath, mlArgs, env, false, mlDir);
       children.push(mlEngine);
     } else {
@@ -198,8 +199,8 @@ setTimeout(() => {
         } catch (e) {}
 
         if (cfEnabled) {
-          console.log('[Launcher] Starting Auto-Tunnel (Cloudflare) on port 3000...');
-          const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', 'http://localhost:3000'], { env, shell: true, windowsHide: true });
+          console.log(`[Launcher] Starting Auto-Tunnel (Cloudflare) on port ${CORE_PORT}...`);
+          const cf = spawn('npx', ['cloudflared', 'tunnel', '--url', CORE_BASE_URL], { env, shell: true, windowsHide: true });
 
           children.push({
             kill: () => { try { process.kill(cf.pid!, 'SIGTERM'); } catch(e){} },

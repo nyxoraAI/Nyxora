@@ -10,7 +10,11 @@ if (tokenFromUrl) {
 
 export const getToken = () => localStorage.getItem('nyxora_token') || '';
 
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = typeof window !== 'undefined' 
+  ? (window.location.protocol === 'http:' || window.location.protocol === 'https:' 
+      ? (window.location.port === '5173' ? 'http://localhost:40000' : window.location.origin)
+      : 'http://localhost:40000') 
+  : 'http://localhost:40000';
 
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const token = getToken();

@@ -1,10 +1,11 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { ML_BASE_URL } from '../../config/constants';
 
 export async function computerUse(args: any): Promise<any> {
     try {
-      const response = await fetch('http://127.0.0.1:8000/os/computer_use', {
+      const response = await fetch(`${ML_BASE_URL}/os/computer_use`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(args)

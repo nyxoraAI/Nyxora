@@ -35,7 +35,7 @@ docker run -it --rm -v ~/.nyxora_docker:/root/.nyxora ghcr.io/nyxoraai/nyxora:la
 ## 🚀 3. Start Nyxora (Background Daemon)
 Now that the setup is complete, it's time to start the main architecture (Core API, Policy Engine, and Signer Vault) as a non-stop background daemon:
 ```bash
-docker run -d --name nyxora-daemon -p 3000:3000 -p 3001:3001 -v ~/.nyxora_docker:/root/.nyxora ghcr.io/nyxoraai/nyxora:latest
+docker run -d --name nyxora-daemon -p 40000:40000 -p 50000:50000 -v ~/.nyxora_docker:/root/.nyxora ghcr.io/nyxoraai/nyxora:latest
 ```
 *(This command will output a long container ID indicating that the daemon is successfully running).*
 
@@ -53,7 +53,7 @@ Look for a line that says: `[Launcher] Generated Internal Auth Token: <LONG_TOKE
 ## 💻 5. Access the Web Dashboard
 Open your preferred web browser, and access the following URL (replace `<LONG_TOKEN_CODE>` with the token you copied in Step 4):
 ```text
-http://localhost:3000/?token=<LONG_TOKEN_CODE>
+http://localhost:40000/?token=<LONG_TOKEN_CODE>
 ```
 Congratulations! Your Nyxora Agent is now fully operational.
 

@@ -18,7 +18,7 @@ hero:
 
 features:
   - title: 🏛️ 6-Tier Hybrid Architecture
-    details: Complete process isolation between Core LLM (Port 3000), ML Engine (Port 8000), MCP Server, Dashboard, Policy Engine, and Signer Vault.
+    details: Complete process isolation between Core LLM (Port 40000), ML Engine (Port 50000), MCP Server, Dashboard, Policy Engine, and Signer Vault.
   - title: 🛡️ Replay Protection & Nonce Guard
     details: UI approvals are strictly cryptographically bound by 16-byte challenge nonces to eliminate Double-Spending and Replay Attacks.
   - title: 🖥️ Resilient UI & Auto-Lock

@@ -140,7 +140,8 @@ async function dashboard() {
         token = parsed.token;
       } catch (e) {}
     }
-    const url = `http://localhost:3000?token=${token}`;
+    const port = process.env.PORT || 40000;
+    const url = `http://localhost:${port}?token=${token}`;
     console.log(`Opening Dashboard at ${url}`);
     try {
         const { default: open } = await import('open');
@@ -335,7 +336,8 @@ async function unlock() {
       } catch (e) {}
     }
     try {
-      const res = await fetch('http://localhost:3000/api/status/unlock', {
+      const port = process.env.PORT || 40000;
+      const res = await fetch(`http://localhost:${port}/api/status/unlock`, {
         method: 'POST',
         headers: {
           'x-nyxora-token': token

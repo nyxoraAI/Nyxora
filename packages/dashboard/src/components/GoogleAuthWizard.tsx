@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Key, Upload, Shield, X, CheckCircle, Copy } from 'lucide-react';
-import { apiFetch } from '../utils/api';
+import { apiFetch, API_BASE_URL } from '../utils/api';
 
 interface GoogleAuthWizardProps {
   onClose: () => void;
@@ -160,10 +160,9 @@ export const GoogleAuthWizard: React.FC<GoogleAuthWizardProps> = ({ onClose }) =
               <li>Go to <strong>APIs & Services {'>'} Credentials</strong>.</li>
               <li>Click <strong>Create Credentials {'>'} OAuth client ID</strong>.</li>
               <li>Choose <strong>Desktop app</strong> (Recommended for CLI) OR <strong>Web application</strong>.</li>
-              <li>If you chose Web application, under <strong>Authorized redirect URIs</strong>, add both of these URIs: 
+              <li>If you chose Web application, under <strong>Authorized redirect URIs</strong>, add this URI: 
                 <ul style={{ marginTop: '8px' }}>
-                  <li><code style={{color: 'var(--accent)', padding: '2px 4px', background: 'var(--bg-sidebar)', borderRadius: '4px'}}>http://localhost:3000/api/auth/google/callback</code></li>
-                  <li><code style={{color: 'var(--accent)', padding: '2px 4px', background: 'var(--bg-sidebar)', borderRadius: '4px'}}>http://localhost:8000/api/auth/google/callback</code></li>
+                  <li><code style={{color: 'var(--accent)', padding: '2px 4px', background: 'var(--bg-sidebar)', borderRadius: '4px'}}>{API_BASE_URL}/api/auth/google/callback</code></li>
                 </ul>
               </li>
               <li>Click Download JSON and upload the file here:</li>

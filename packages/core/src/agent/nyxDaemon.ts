@@ -3,6 +3,7 @@ import { executeWithRetry } from '../utils/llmUtils';
 import { episodicDB } from '../memory/episodic';
 import { logger } from './reasoning';
 import pc from 'picocolors';
+import { ML_BASE_URL } from '../config/constants';
 
 export class NyxDaemon {
   private isProcessing = false;
@@ -63,7 +64,7 @@ export class NyxDaemon {
         return;
       }
       // Send conversation history to Python ML Engine for cognitive modeling
-      const res = await fetch('http://127.0.0.1:8000/cognitive/reason', {
+      const res = await fetch(`${ML_BASE_URL}/cognitive/reason`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversationOnly })

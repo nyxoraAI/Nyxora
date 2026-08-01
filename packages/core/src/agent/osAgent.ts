@@ -13,6 +13,7 @@ import { sanitizeHistoryForLLM, pruneLoopedHistory } from '../utils/historySanit
 import { TrajectoryLogger } from '../memory/trajectoryLogger';
 import { realignMarkdownTables } from '../utils/markdownTables';
 import { stripThinkBlocks, StreamingThinkScrubber } from '../utils/thinkScrubber';
+import { ML_BASE_URL } from '../config/constants';
 
 import { promptBuilder } from './promptBuilder';
 
@@ -114,7 +115,7 @@ const triggerBackgroundReview = async (sessionId?: string) => {
   try {
     const history = logger.getHistory(sessionId, 100);
     const sid = sessionId || 'default';
-    const res = await fetch('http://127.0.0.1:8000/cognitive/review', {
+    const res = await fetch(`${ML_BASE_URL}/cognitive/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

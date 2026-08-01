@@ -63,9 +63,9 @@ graph TD
     Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
     MCP["MCP Server<br/>Port 3001"]:::ui
 
-    Core["Core LLM Runtime<br/>Port 3000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
+    Core["Core LLM Runtime<br/>Port 40000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
 
-    ML["ML Engine<br/>Port 8000"]:::core
+    ML["ML Engine<br/>Port 50000"]:::core
     Policy["Policy Engine (Guard)<br/>Unix Socket (IPC) / Loopback"]:::policy
     Signer["Signer Vault (Safe)<br/>Unix Socket (IPC)"]:::signer
 

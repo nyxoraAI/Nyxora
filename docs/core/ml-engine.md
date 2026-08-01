@@ -8,7 +8,7 @@ Keberadaan *ML Engine* ini menjadikan Nyxora sebagai agen otonom hibrida yang se
 
 ## 🏗️ Arsitektur ML Engine
 
-ML Engine berjalan sebagai layanan *backend* FastAPI lokal di **Port 8000**, sepenuhnya terisolasi dari antrian peristiwa (*event loop*) Node.js utama. Pemisahan ini memastikan bahwa operasi matematika berat (komputasi matriks) tidak akan pernah membuat *chatbot* antarmuka Anda menjadi lambat atau tidak responsif.
+ML Engine berjalan sebagai layanan *backend* FastAPI lokal di **Port 50000**, sepenuhnya terisolasi dari antrian peristiwa (*event loop*) Node.js utama. Pemisahan ini memastikan bahwa operasi matematika berat (komputasi matriks) tidak akan pernah membuat *chatbot* antarmuka Anda menjadi lambat atau tidak responsif.
 
 Tiga komponen utama dalam ML Engine:
 
@@ -33,7 +33,7 @@ Keamanan adalah prioritas utama. Sebelum *Policy Engine* menyetujui transaksi, i
 
 Proses pertukaran data antara *Node.js Core* dan *Python ML Engine* sangat mulus dan efisien:
 
-1. **Permintaan**: Core Node.js mengumpulkan parameter (misal: "Analisis harga ETH saat ini") dan mengirim HTTP POST ke `/api/v1/analyze` di Port 8000.
+1. **Permintaan**: Core Node.js mengumpulkan parameter (misal: "Analisis harga ETH saat ini") dan mengirim HTTP POST ke `/api/v1/analyze` di Port 50000.
 2. **Komputasi**: FastAPI mendelegasikan tugas ke *worker* model prediktif (atau mengambil data RAG dari *ChromaDB*).
 3. **Respon Deterministik**: ML Engine membalas dengan struktur JSON murni yang berisi skor, deviasi standar, dan probabilitas.
 4. **Sintesis LLM**: Core Node.js memberikan angka deterministik ini kepada LLM. LLM kemudian menerjemahkan angka-angka "kering" tersebut menjadi kalimat bahasa alami yang mudah Anda pahami di jendela *chat*.

@@ -2,6 +2,7 @@ import { intro, text, spinner, isCancel, cancel, confirm } from '@clack/prompts'
 import pc from 'picocolors';
 import fs from 'fs';
 import { getPath } from '../config/paths';
+import { CORE_BASE_URL } from '../config/constants';
 
 export async function chatInteractive() {
   const tokenFile = getPath('auth.token');
@@ -56,7 +57,7 @@ export async function chatInteractive() {
         token,
       });
 
-      const response = await fetch(`http://localhost:3000/api/chat/stream?${params}`, {
+      const response = await fetch(`${CORE_BASE_URL}/api/chat/stream?${params}`, {
         headers: { 'x-nyxora-token': token },
       });
 
@@ -130,7 +131,7 @@ export async function chatInteractive() {
 
       // Check for pending transactions
       try {
-        const txRes = await fetch('http://localhost:3000/api/transactions', {
+        const txRes = await fetch(`${CORE_BASE_URL}/api/transactions`, {
           headers: { 'x-nyxora-token': token }
         });
         if (txRes.ok) {
@@ -141,7 +142,7 @@ export async function chatInteractive() {
             });
             
             if (isCancel(isApproved) || !isApproved) {
-               await fetch(`http://localhost:3000/api/transactions/${tx.id}/reject`, {
+               await fetch(`${CORE_BASE_URL}/api/transactions/${tx.id}/reject`, {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json', 'x-nyxora-token': token },
                  body: JSON.stringify({ nonce: tx.nonce, sessionId: 'cli-chat' })
@@ -150,7 +151,7 @@ export async function chatInteractive() {
                continue;
             }
 
-            const appRes = await fetch(`http://localhost:3000/api/transactions/${tx.id}/approve`, {
+            const appRes = await fetch(`${CORE_BASE_URL}/api/transactions/${tx.id}/approve`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'x-nyxora-token': token },
               body: JSON.stringify({ nonce: tx.nonce, sessionId: 'cli-chat' })
@@ -166,7 +167,7 @@ export async function chatInteractive() {
       } catch {}
     } catch (error) {
       s.stop(pc.red('Connection failed.'));
-      console.log(pc.red(`Is the daemon running? (http://localhost:3000)`));
+      console.log(pc.red(`Is the daemon running? (${CORE_BASE_URL})`));
     }
   }
 }

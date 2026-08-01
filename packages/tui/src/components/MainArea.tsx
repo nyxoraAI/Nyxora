@@ -22,6 +22,7 @@ const asciiLogo = `
 `
 
 export function MainArea() {
+  const port = process.env.PORT || 40000;
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<{role: 'user'|'assistant', content: string}[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -67,14 +68,14 @@ export function MainArea() {
 
       // Measure ping latency to gateway if 0
       const pingStart = Date.now()
-      const healthRes = await fetch('http://localhost:3000/api/health', { headers }).catch(() => null)
+      const healthRes = await fetch(`http://localhost:${port}/api/health`, { headers }).catch(() => null)
       if (healthRes && healthRes.ok) {
         const elapsed = Date.now() - pingStart
         setLatencyMs(prev => (prev === 0 ? elapsed : prev))
       }
 
       // Fetch user configuration
-      const configRes = await fetch('http://localhost:3000/api/config', { headers }).catch(() => null)
+      const configRes = await fetch(`http://localhost:${port}/api/config`, { headers }).catch(() => null)
       if (configRes && configRes.ok) {
         const cfg: any = await configRes.json()
         if (cfg?.llm?.model) setModelName(cfg.llm.model)
@@ -84,7 +85,7 @@ export function MainArea() {
       }
 
       // Fetch live token and skill stats
-      const statsRes = await fetch('http://localhost:3000/api/stats', { headers }).catch(() => null)
+      const statsRes = await fetch(`http://localhost:${port}/api/stats`, { headers }).catch(() => null)
       if (statsRes && statsRes.ok) {
         const stats: any = await statsRes.json()
         if (stats?.tokens !== undefined) setContextTokens(Number(stats.tokens) || 0)
@@ -133,7 +134,7 @@ export function MainArea() {
         token,
       })
 
-      const response = await fetch(`http://localhost:3000/api/chat/stream?${params}`, {
+      const response = await fetch(`http://localhost:${port}/api/chat/stream?${params}`, {
         headers: { 'x-nyxora-token': token },
       })
 
@@ -179,7 +180,7 @@ export function MainArea() {
       }
       setMessages(prev => [...prev, { role: 'assistant', content: finalReply }])
     } catch (e: any) {
-       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection failed. Is the daemon running? (http://localhost:3000)' }])
+       setMessages(prev => [...prev, { role: 'assistant', content: `Connection failed. Is the daemon running? (http://localhost:${port})` }])
     } finally {
       const totalLatency = Date.now() - startTime
       setLatencyMs(totalLatency)

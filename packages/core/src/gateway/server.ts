@@ -33,6 +33,7 @@ import crypto from 'crypto';
 import os from 'os';
 import si from 'systeminformation';
 import { getPath } from '../config/paths';
+import { CORE_PORT, ML_BASE_URL } from '../config/constants';
 import { validateToken, getSessionToken } from '../utils/state';
 
 import { initWebSocket } from './WebSocketManager';
@@ -258,7 +259,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
     
     try {
-      const mlRes = await fetch('http://127.0.0.1:8000/memory/document', {
+      const mlRes = await fetch(`${ML_BASE_URL}/memory/document`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: req.file.path })
@@ -1586,7 +1587,7 @@ app.get('/api/gateway/ping', async (req, res) => {
 
   try {
     const pStart = Date.now();
-    await fetch('http://127.0.0.1:8000/');
+    await fetch(`${ML_BASE_URL}/`);
     pythonPing = Date.now() - pStart;
     pythonOnline = true;
   } catch (e) {
@@ -1849,7 +1850,7 @@ export async function startServer() {
     }
   });
 
-  const PORT = Number(process.env.PORT || 3000);
+  const PORT = CORE_PORT;
   const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`🤖 Nyxora API Server running on port ${PORT}`);
     

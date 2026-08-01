@@ -36,14 +36,14 @@ Nyxora attempts to securely store your Web3 Private Keys in your Operating Syste
 ## 🖥️ 3. Web Dashboard Not Updating (Stuck on Old Version)
 
 **Symptoms:**
-You updated Nyxora or modified the source code, but the changes do not appear on `http://localhost:3000`.
+You updated Nyxora or modified the source code, but the changes do not appear on `http://localhost:40000`.
 
 **Cause:**
-Port 3000 serves the **production build** (`dist/` folder) of the dashboard. It does not auto-update when source files are changed.
+Port 40000 serves the **production build** (`dist/` folder) of the dashboard. It does not auto-update when source files are changed.
 
 **Resolution:**
 - If you are a developer, access the live hot-reload server at `http://localhost:5173`.
-- To update the production dashboard on port 3000, you must rebuild the frontend by running:
+- To update the production dashboard on port 40000, you must rebuild the frontend by running:
   ```bash
   npm run build --workspace=nyxora-dashboard
   ```
@@ -63,13 +63,13 @@ You do not need to do anything! Nyxora features an **L3 Auto-Failover Architectu
 
 ---
 
-## 5. Port 3000 Already in Use
+## 5. Port 40000 Already in Use
 
 **Symptoms:**
-`Error: listen EADDRINUSE: address already in use :::3000`
+`Error: listen EADDRINUSE: address already in use :::40000`
 
 **Cause:**
-Another application (like another Node.js project or React app) is already running on port 3000.
+Another application (like another Node.js project or React app) is already running on port 40000.
 
 **Resolution:**
 Stop the other application, or start Nyxora on a different port by setting the environment variable:

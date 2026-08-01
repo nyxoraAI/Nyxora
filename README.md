@@ -73,7 +73,7 @@ It operates under a **Zero-Trust, Defense-in-Depth Cryptographically Bound Human
 
 ### Advanced Security Architecture
 *   **🛡️ On-Chain AI Kill-Switch**: Nyxora is governed by a Base Smart Contract (`NyxoraAgentRegistry`). Users have absolute cryptographic power to instantly paralyze the AI's on-chain execution if compromised, solving the Web3 AI safety dilemma. [Read more about our Base Architecture](https://nyxoraai.github.io/Nyxora/smart-contract)
-*   **6-Tier Hybrid Architecture**: Nyxora is split into isolated microservices: **Dashboard** (Port 5173), **MCP Server** (Port 3001), **Core LLM** (Port 3000), **ML Engine** (Python Sidecar on Port 8000), **Policy Engine** (Unix Socket), and **Signer Vault** (Unix Socket).
+*   **6-Tier Hybrid Architecture**: Nyxora is split into isolated microservices: **Dashboard** (Port 5173), **MCP Server** (Port 3001), **Core LLM** (Port 40000), **ML Engine** (Python Sidecar on Port 50000), **Policy Engine** (Unix Socket), and **Signer Vault** (Unix Socket).
 *   **DeFi & Market Configuration BYOK & UI Masking**: All aggregator, provider, and oracle API keys are strictly isolated via a Bring Your Own Keys (BYOK) architecture into heavily guarded `~/.nyxora/defi_keys.yaml` and `~/.nyxora/market_keys.yaml` files. The local web Dashboard masks these injected secrets using `***********` and `IS_SET` censorship, completely neutralizing malicious browser extensions from exfiltrating your keys.
 *   **Approval Replay Protection (Nonce Guard)**: Transactions requested by the AI are drafted as hashes and signed with a randomized 16-byte Nonce. The `/api/transactions/:id/approve` endpoint strictly enforces Nonce matching to completely eliminate double-spending and Replay Attacks.
 *   **Native Asset Parameter Tampering Protection**: The internal cryptographic HMAC signature rigorously binds `toAddress`, `txData`, and `valueWei`, rendering the system mathematically immune to Native Token (ETH/BNB) destination or amount hijacking via Indirect Prompt Injections.
@@ -141,9 +141,9 @@ graph TD
     Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
     MCP["MCP Server<br/>(Stdio / JSON-RPC)"]:::ui
 
-    Core["Core LLM Runtime<br/>Port 3000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
-
-    ML["ML Engine<br/>Port 8000"]:::core
+    Core["Core LLM Runtime<br/>Port 40000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
+    Vault["Signer Vault<br/>Unix Socket<br/>(Private Keys)"]:::secure
+    ML["ML Engine<br/>Port 50000"]:::core
     Policy["Policy Engine (Guard)<br/>Unix Socket (IPC) / Loopback"]:::policy
     Signer["Signer Vault (Safe)<br/>Unix Socket (IPC)"]:::signer
 

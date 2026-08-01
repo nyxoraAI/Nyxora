@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 import httpx
 import json
 import logging
+import os
 
 from routers.llm import get_llm
 
@@ -105,12 +106,14 @@ async def background_review(req: ReviewRequest):
                     args = tool_call.get('args', {})
                     
                     if name == "MemoryManageTool":
-                        res = await client.post('http://127.0.0.1:8000/memory/manage', json=args)
+                        ml_port = os.getenv('ML_PORT', '50000')
+                        res = await client.post(f'http://127.0.0.1:{ml_port}/memory/manage', json=args)
                         if res.status_code == 200 and res.json().get('success'):
                             actions_taken.append(f"Memory updated: {args.get('action')} {args.get('target')}")
                             
                     elif name == "SkillManageTool":
-                        res = await client.post('http://127.0.0.1:8000/skills/manage', json=args)
+                        ml_port = os.getenv('ML_PORT', '50000')
+                        res = await client.post(f'http://127.0.0.1:{ml_port}/skills/manage', json=args)
                         if res.status_code == 200 and res.json().get('success'):
                             actions_taken.append(f"Skill '{args.get('name')}' updated: {args.get('action')}")
                             
