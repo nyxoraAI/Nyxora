@@ -95,9 +95,14 @@ export function formatToTelegramHTML(text: string): string {
   });
 
   // Un-flatten accidentally joined table rows (small model hallucination)
+  // 1. Separate table header from preceding text on same line (e.g., "4. Layanan: | col1 | col2 | |---|---|")
+  html = html.replace(/([^\n])\s*(\|[^\n]+\|)\s*(?=\|\s*[-:]+[-| :]*\|)/g, '$1\n$2');
+  // 2. Separate header row from separator row if stuck together
   html = html
-    .replace(/\|\s*\|\s*(?=:?-+:?\s*\|)/g, '|\n|')
-    .replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
+    .replace(/\|\s*\|\s*(?=[-:]+[-| :]*\|)/g, '|\n|')
+    .replace(/(\|\s*[-:]+[-| :]*\|)\s*\|/g, '$1\n|');
+  // 3. Separate table data rows that are joined on the same line
+  html = html.replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
 
   // Convert markdown tables to preformatted text
   const tableRegex = /(?:\|.*\|(?:\n|$))+/g;

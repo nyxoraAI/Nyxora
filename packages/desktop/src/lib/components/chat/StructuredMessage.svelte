@@ -46,8 +46,11 @@
     });
 
     // Fix single-line tables or tables with mismatched separators by ensuring newlines are preserved
-    t = t.replace(/\|\s*(\|\s*[-:]+[-| :]*\|)/g, '|\n$1');
-    t = t.replace(/(\|\s*[-:]+[-| :]*\|)\s+(?=\||\w)/g, '$1\n');
+    t = t.replace(/([^\n])\s*(\|[^\n]+\|)\s*(?=\|\s*[-:]+[-| :]*\|)/g, '$1\n$2');
+    t = t
+      .replace(/\|\s*\|\s*(?=[-:]+[-| :]*\|)/g, '|\n|')
+      .replace(/(\|\s*[-:]+[-| :]*\|)\s*\|/g, '$1\n|');
+    t = t.replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
     
     // Fix emoji lists by converting them to markdown lists with a hidden span for CSS targeting
     const emojiRegex = /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Regional_Indicator}{2})\s+(.*)/ugm;

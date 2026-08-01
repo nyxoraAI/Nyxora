@@ -147,10 +147,12 @@ function renderTableBlock(rows: string[][], availableWidth?: number): string[] {
 export function realignMarkdownTables(text: string, availableWidth?: number): string {
   if (!text || !text.includes('|')) return text;
 
-  // 1. Un-flatten accidentally joined table rows (e.g. when "| Col1 | Col2 | | :--- | :--- | | val1 | val2 |" is on one line)
-  const normalizedText = text
-    .replace(/\|\s*\|\s*(?=:?-+:?\s*\|)/g, '|\n|')
-    .replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
+  // 1. Un-flatten accidentally joined table rows (small model hallucination)
+  let normalizedText = text.replace(/([^\n])\s*(\|[^\n]+\|)\s*(?=\|\s*[-:]+[-| :]*\|)/g, '$1\n$2');
+  normalizedText = normalizedText
+    .replace(/\|\s*\|\s*(?=[-:]+[-| :]*\|)/g, '|\n|')
+    .replace(/(\|\s*[-:]+[-| :]*\|)\s*\|/g, '$1\n|');
+  normalizedText = normalizedText.replace(/(\|\s*(?::?-+:?|[^|\n]+)\s*\|)\s*\|\s*(?=[^|\n]+\|)/g, '$1\n|');
 
   const lines = normalizedText.split('\n');
   const out: string[] = [];
