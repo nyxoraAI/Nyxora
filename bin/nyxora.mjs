@@ -24,7 +24,15 @@ const command = process.argv[2];
 function isDaemonRunning(pidStr) {
   if (!pidStr) return false;
   try {
-    process.kill(parseInt(pidStr, 10), 0);
+    const pid = parseInt(pidStr, 10);
+    process.kill(pid, 0);
+    if (process.platform === 'linux' || process.platform === 'darwin') {
+      try {
+        const fs = require('fs');
+        const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').toLowerCase();
+        if (!cmdline.includes('node') && !cmdline.includes('nyxora')) return false;
+      } catch(e) {}
+    }
     return true;
   } catch (e) {
     return false;

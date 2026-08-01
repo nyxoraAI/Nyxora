@@ -181,11 +181,13 @@ export class EpisodicMemoryDB {
   }
 
   public getPermanentMemories(): EpisodicMemory[] {
-    // Fetch top 60 DISTINCT facts sorted by confidence and occurrences to capture both permanent rules and highly reinforced observations.
-    // Limit set to 60 (not higher) to keep system prompt token usage reasonable — RAG episodic recall handles long-tail facts.
+    // Fetch DISTINCT facts where rule_type is 'permanent'
+    // This ensures critical behavioral rules are always pinned in the system prompt.
+    // RAG episodic recall handles the rest of the observations.
     const stmt = this.db.prepare(`
-      SELECT fact, MAX(confidence) as confidence, MAX(occurrences) as occurrences, MAX(rule_type) as rule_type, MAX(lastSeen) as lastSeen
+      SELECT fact, MAX(confidence) as confidence, MAX(occurrences) as occurrences, 'permanent' as rule_type, MAX(lastSeen) as lastSeen
       FROM episodic_memories 
+      WHERE rule_type = 'permanent'
       GROUP BY fact 
       ORDER BY MAX(confidence) DESC, MAX(occurrences) DESC, MAX(lastSeen) DESC 
       LIMIT 60
