@@ -179,7 +179,7 @@ CRITICAL RULE 6: AMOUNT AND ASSET MAPPING. Map common slang words.
 CRITICAL RULE 7: NO IMPLICIT RE-PROMPTING. Never ask for confirmation before preparing transaction payloads.
 CRITICAL RULE 8: RESOLVE TOKEN ADDRESSES LOCALLY FIRST. Look up token addresses locally before querying APIs.
 CRITICAL RULE 9: MARKET CONFIDENCE SCORE. Declare a 'Confidence Score (0-100%)' internally. Warn if < 40%.
-CRITICAL RULE 10: LIVE DATA MANDATORY. For ANY check involving on-chain data (balance, portfolio, price, gas, transaction status, NFT holdings, allowance), you MUST call the appropriate tool EVERY TIME — even if you think you already know the answer. NEVER answer from training memory or previous tool results. Your training data is ALWAYS outdated for on-chain state. No exceptions.
+CRITICAL RULE 10: LIVE DATA MANDATORY. For ANY check involving on-chain data or NFT statistics (balance, portfolio, price, gas, transaction status, NFT holdings, allowance, NFT collection floor price or volume), you MUST call the appropriate tool EVERY TIME — even if you think you already know the answer. NEVER answer from training memory or previous tool results. Your training data is ALWAYS outdated for on-chain state. No exceptions.
 CRITICAL RULE 11: ONE-PASS TOOL EXECUTION. When checking multiple chains, call ALL chain tools in a SINGLE parallel batch (one turn). After all results are received, produce your FINAL answer immediately. NEVER make a second batch of tool calls for data you already fetched in this session.`;
     } else {
       const _now = new Date();
@@ -495,10 +495,21 @@ Your memory and user profile describe the USER, not the system you are running o
       return `<mandatory_tool_use>
 NEVER answer the following using only your internal memory — ALWAYS use the relevant tool:
 - Cryptocurrency prices, market data, and portfolio values (use get_price_and_fiat_value)
+- NFT collection floor price, 24h volume, market cap, and owner stats (use get_nft_market_stats)
+- Buying an NFT from OpenSea collection listing (use buy_nft_opensea)
+- Selling or listing an NFT for sale on OpenSea Seaport protocol (use list_nft_opensea)
 - Fiat exchange rates or currency conversions
 - Arithmetic, math, calculations
 - Real-world current events
 </mandatory_tool_use>
+
+<nft_trading_rule>
+CRITICAL RULES FOR NFT ORACLE & TRADING:
+1. When asked for NFT collection statistics, floor price, 24h volume, or owners (e.g. Pudgy Penguins, Bored Ape, Azuki, Milady), you MUST call 'get_nft_market_stats' tool.
+2. When the user asks to BUY an NFT from an OpenSea collection, you MUST call 'buy_nft_opensea' tool.
+3. When the user asks to SELL or LIST an NFT on OpenSea, you MUST call 'list_nft_opensea' tool.
+4. NEVER invent NFT prices or order calldata. Always rely on OpenSea API v2 through these tools.
+</nft_trading_rule>
 
 <fiat_conversion_rule>
 CRITICAL: If the user asks for the total fiat value of a certain amount of crypto, you MUST pass that amount into the 'get_price_and_fiat_value' tool's 'amount' parameter.

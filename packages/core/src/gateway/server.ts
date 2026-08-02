@@ -600,6 +600,13 @@ app.get('/api/market-keys', (req, res) => {
           required: false,
           docsUrl: 'https://pro.coinmarketcap.com/',
           configured: !!keys.cmc_key
+        },
+        {
+          id: 'opensea_key',
+          label: 'OpenSea API Key',
+          required: false,
+          docsUrl: 'https://docs.opensea.io/reference/api-overview',
+          configured: !!keys.opensea_key
         }
       ]
     });
@@ -631,7 +638,7 @@ app.delete('/api/market-keys/:id', (req, res) => {
 // Get skills from PluginManager dynamically
 const getWeb3Skills = () => {
   return pluginManager.getPlugins()
-    .filter(p => p.name.startsWith('Web3'))
+    .filter(p => p.name.startsWith('Web3') || p.name === 'MarketAnalysis')
     .flatMap(p => p.tools);
 };
 
@@ -641,7 +648,7 @@ const getExternalSkills = () => {
 
 const getSystemSkills = () => {
   return pluginManager.getPlugins()
-    .filter(p => !p.name.startsWith('Web3'))
+    .filter(p => !p.name.startsWith('Web3') && p.name !== 'MarketAnalysis')
     .flatMap(p => p.tools);
 };
 

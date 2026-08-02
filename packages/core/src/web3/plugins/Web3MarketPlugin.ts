@@ -88,14 +88,20 @@ async function fetchCexMomentum(symbol: string, currentP: number) {
 }
 
 import { marketAnalysisToolDefinition } from '../skills/marketAnalysis';
+import { getNftMarketStatsToolDefinition, getNftMarketStats } from '../skills/getNftMarketStats';
+import { buyNftOpenseaToolDefinition, buyNftOpensea } from '../skills/buyNftOpensea';
+import { listNftOpenseaToolDefinition, listNftOpensea } from '../skills/listNftOpensea';
 
 export class Web3MarketPlugin implements Plugin {
-  public name = 'MarketAnalysis';
-  public version = '1.0.1';
-  public description = 'Provides deep market intelligence and analysis for Web3 assets.';
+  public name = 'Web3MarketPlugin';
+  public version = '1.1.0';
+  public description = 'Provides deep market intelligence, NFT oracle data, and trading analysis for Web3 assets.';
 
   public tools = [
-    marketAnalysisToolDefinition
+    marketAnalysisToolDefinition,
+    getNftMarketStatsToolDefinition,
+    buyNftOpenseaToolDefinition,
+    listNftOpenseaToolDefinition
   ];
 
   public handlers = {
@@ -107,6 +113,31 @@ export class Web3MarketPlugin implements Plugin {
       } catch (error: any) {
         return `[Market Intelligence] Failed to aggregate data: ${error.message}`;
       }
+    },
+    'get_nft_market_stats': async (args: any, context?: any) => {
+      try {
+        const { collectionSlug, chain } = args;
+        return await getNftMarketStats(collectionSlug, chain);
+      } catch (error: any) {
+        return `[NFT Market Oracle] Error: ${error.message}`;
+      }
+    },
+    'buy_nft_opensea': async (args: any, context?: any) => {
+      try {
+        const { collectionSlug, chain, tokenId, contractAddress } = args;
+        return await buyNftOpensea(collectionSlug, chain, tokenId, contractAddress);
+      } catch (error: any) {
+        return `[OpenSea NFT Trading] Error: ${error.message}`;
+      }
+    },
+    'list_nft_opensea': async (args: any, context?: any) => {
+      try {
+        const { contractAddress, tokenId, priceEth, chain, expirationDays } = args;
+        return await listNftOpensea(contractAddress, tokenId, priceEth, chain, expirationDays);
+      } catch (error: any) {
+        return `[OpenSea NFT Trading] Error: ${error.message}`;
+      }
     }
   };
 }
+

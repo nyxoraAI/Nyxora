@@ -41,3 +41,20 @@ export function saveMarketKeys(keys: Record<string, string>, overwrite: boolean 
     throw error;
   }
 }
+
+export function getOpenSeaApiKey(): string | undefined {
+  const keys = loadMarketKeys();
+  return keys.opensea_key || undefined;
+}
+
+export function getOpenSeaHeaders(): Record<string, string> {
+  const key = getOpenSeaApiKey();
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+  };
+  if (key) {
+    headers['X-API-KEY'] = key;
+  }
+  return headers;
+}
+

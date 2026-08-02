@@ -33,7 +33,7 @@ try {
 
 
 export const TxRequestSchema = z.object({
-  type: z.enum(['transfer', 'swap', 'bridge', 'mint', 'custom']),
+  type: z.enum(['transfer', 'swap', 'bridge', 'mint', 'custom', 'nftBuy', 'nftList']),
   chainName: z.string(),
   details: z.any(),
   autoApprove: z.boolean().optional()

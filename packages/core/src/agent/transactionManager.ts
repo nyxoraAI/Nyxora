@@ -4,7 +4,7 @@ import path from 'path';
 import { getPath } from '../config/paths';
 import { logger } from '../memory/logger';
 
-export type TransactionType = 'transfer' | 'swap' | 'bridge' | 'mint' | 'custom' | 'approve' | 'revokeApproval' | 'aaveSupply' | 'vaultDeposit' | 'univ3Mint' | 'limit_order';
+export type TransactionType = 'transfer' | 'swap' | 'bridge' | 'mint' | 'custom' | 'approve' | 'revokeApproval' | 'aaveSupply' | 'vaultDeposit' | 'univ3Mint' | 'limit_order' | 'nftBuy' | 'nftList';
 
 export interface PendingTransaction {
   id: string;
