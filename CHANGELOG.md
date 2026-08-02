@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.8.3]
+### Bug Fixes & Agent Enhancements
+- **LLM Rate-Limit Reset Delay & Silent Stop Remediation (`llmUtils.ts`, `osAgent.ts`, `web3Agent.ts`)**: Enhanced `executeWithRetry` to automatically extract and obey `"reset after <N>s"` delay durations from 502/503/504 and rate-limit API errors (such as NVIDIA NIM / Nemotron timeouts). Added error-stream emission (`onChunk(errorMsg)`) inside agent streaming catch blocks so UI clients immediately receive informative rate-limit notifications instead of terminating silently after tool execution.
+- **MCP Server Test Timeout Resilience (`registry.test.ts`)**: Increased the `beforeAll` hook timeout from 30s to 60s when initializing sequential-thinking and long-term-memory stdio MCP servers in test suites, preventing false-positive CI test timeouts under heavy npm/npx I/O load.
+- **Local Version Increment**: Bumped Nyxora version to `v26.8.3` across all workspace packages and submodules.
+
 ## [26.8.1]
 ### Bug Fixes & Architecture Enhancements
 - **Linux SUID Sandbox Fix for Nyxora Desktop (`bin/nyxora.mjs`, `packages/desktop/electron/main.ts`)**: Resolved a fatal Electron startup crash on Linux (`FATAL:sandbox/linux/suid/client/setuid_sandbox_host.cc:166`) when launching via `nyxora desktop` from unprivileged global or npx directories. Injected `--no-sandbox`, `--disable-gpu-sandbox`, and `--disable-setuid-sandbox` CLI flags and set `ELECTRON_DISABLE_SANDBOX=1` in the spawned process environment, ensuring reliable headless and desktop app execution across Linux distributions.

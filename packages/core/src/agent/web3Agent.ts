@@ -889,6 +889,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       errorMsg = '⚠️ Failed to parse instruction. Please describe your command more specifically.';
     }
     logger.addEntry({ role: 'assistant', content: errorMsg }, sessionId);
+    try {
+      onChunk(errorMsg);
+    } catch {}
     return errorMsg;
   }
 }

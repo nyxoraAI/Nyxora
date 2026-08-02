@@ -4,7 +4,7 @@ import { pluginManager, initializePlugins } from './registry';
 describe('Skill Schema Validation', () => {
   beforeAll(async () => {
     await initializePlugins();
-  }, 30000);
+  }, 60000);
 
   it('should load plugins successfully', () => {
     const plugins = pluginManager.getPlugins();

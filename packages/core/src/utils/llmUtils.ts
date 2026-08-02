@@ -144,20 +144,23 @@ export async function executeWithRetry(
         throw error;
       }
       
+      // Check if any error message specifies a reset delay (e.g., NVIDIA/Nemotron 502 with "reset after 11s")
+      let waitMs = 0;
+      if (errMsg.includes('reset after')) {
+        const match = errMsg.match(/reset after (\d+)s/);
+        if (match && match[1]) {
+          waitMs = parseInt(match[1]) * 1000 + 1000;
+        }
+      }
+
       // 429 Rate Limit or Fake 400 Rate Limit - backoff and retry
       if (status === 429 || isFake400RateLimit) {
         console.warn(`[LLM] Rate Limit hit (${status}). Backing off...`);
         retries++;
         if (retries > maxRetries) throw error;
         
-        let waitMs = 2000;
-        if (errMsg.includes('reset after')) {
-           const match = errMsg.match(/reset after (\d+)s/);
-           if (match && match[1]) {
-               waitMs = parseInt(match[1]) * 1000 + 1000;
-           }
-        }
-        await new Promise(resolve => setTimeout(resolve, waitMs));
+        const delayMs = waitMs > 0 ? waitMs : 2000;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
         continue;
       }
       
@@ -168,7 +171,7 @@ export async function executeWithRetry(
         throw error;
       }
       
-      const delayMs = Math.pow(2, retries) * 1000; // 2s, 4s, 8s
+      const delayMs = waitMs > 0 ? waitMs : Math.pow(2, retries) * 1000; // waitMs or 2s, 4s, 8s
       console.warn(`[LLM] API Error (${status || error.message}). Retrying in ${delayMs}ms...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
