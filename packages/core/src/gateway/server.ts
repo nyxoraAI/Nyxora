@@ -356,7 +356,7 @@ app.get('/api/sessions/search', (req, res) => {
     if (!q) {
       return res.json(logger.getSessions(client));
     }
-    res.json(logger.searchSessions(q));
+    res.json(logger.searchSessions(q, client));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -1265,11 +1265,13 @@ app.post('/api/v1/trade', async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, session_id } = req.body;
+    const { message, session_id, client } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
-    
+    if (session_id) {
+      logger.ensureSession(session_id, message ? message.substring(0, 35) : 'New Chat', client);
+    }
     // Process input (this will automatically add to memory)
     const response = await processUserInput(message, 'user', undefined, session_id);
     
@@ -1299,7 +1301,7 @@ app.post('/api/chat', async (req, res) => {
 // Sends LLM tokens to the client as they arrive via Server-Sent Events.
 // The old /api/chat endpoint remains untouched for backward compatibility.
 app.get('/api/chat/stream', async (req, res) => {
-  const { message, session_id } = req.query as Record<string, string>;
+  const { message, session_id, client } = req.query as Record<string, string>;
   if (!message) {
     res.status(400).json({ error: 'Message is required' });
     return;
@@ -1333,6 +1335,9 @@ app.get('/api/chat/stream', async (req, res) => {
   const onReasoning = (text: string) => sendEvent({ reasoning: text });
 
   try {
+    if (session_id) {
+      logger.ensureSession(session_id, message ? message.substring(0, 35) : 'New Chat', client);
+    }
     await processUserInputStream(message, onChunk, onProgress, session_id, onReasoning);
     // Trigger memory mechanisms after response completes (per-session)
     resetIdleTimer(session_id);

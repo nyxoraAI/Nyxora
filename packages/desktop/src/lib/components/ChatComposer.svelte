@@ -237,6 +237,7 @@
         message: userMsg,
         session_id: currentSessionId || '',
         token: getToken(),
+        client: 'desktop',
       });
       if (activeWorkspace) {
         params.append('workspace', activeWorkspace);

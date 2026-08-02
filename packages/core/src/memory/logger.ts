@@ -273,21 +273,22 @@ export class Logger {
 
   public getSessions(client?: string): ChatSession[] {
     if (client === 'desktop') {
-      // Desktop: only show sessions explicitly created by desktop
+      // Desktop: only show sessions explicitly created by desktop or with desktop- prefix
       const rows = this.db.prepare(`
         SELECT id, title, timestamp, project_id
         FROM sessions
-        WHERE client = 'desktop'
+        WHERE client = 'desktop' OR id LIKE 'desktop-%'
         ORDER BY timestamp DESC
       `).all();
       return rows as unknown as ChatSession[];
     }
-    // Dashboard (default): show dashboard sessions + legacy null-client sessions
+    // Dashboard (default): show dashboard sessions + legacy null-client sessions (excluding desktop, telegram, discord, whatsapp, cli)
     const rows = this.db.prepare(`
       SELECT id, title, timestamp, project_id
       FROM sessions
-      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'whatsapp_%' AND id NOT LIKE 'cli-chat%'
-        AND (client = 'dashboard' OR client IS NULL)
+      WHERE id NOT LIKE 'telegram_%' AND id NOT LIKE 'discord_%' AND id NOT LIKE 'whatsapp_%' AND id NOT LIKE 'cli-chat%' AND id NOT LIKE 'desktop-%'
+        AND (client = 'dashboard' OR (client IS NULL AND id NOT LIKE 'desktop-%'))
+        AND (client IS NULL OR client = 'dashboard')
       ORDER BY timestamp DESC
     `).all();
     return rows as unknown as ChatSession[];
@@ -308,6 +309,30 @@ export class Logger {
     return id;
   }
 
+  public ensureSession(sessionId: string, title: string = 'New Session', client?: string) {
+    try {
+      const sessionExists = this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId);
+      if (!sessionExists) {
+        let finalClient = client || null;
+        let finalTitle = title;
+        if (sessionId.startsWith('telegram_')) {
+          finalTitle = 'Telegram Chat';
+          finalClient = 'telegram';
+        } else if (sessionId.startsWith('discord_')) {
+          finalTitle = 'Discord Chat';
+          finalClient = 'discord';
+        } else if (sessionId.startsWith('cli-chat')) {
+          finalTitle = 'CLI Chat';
+          finalClient = 'cli';
+        } else if (sessionId.startsWith('desktop-')) {
+          finalTitle = 'Desktop Chat';
+          finalClient = 'desktop';
+        }
+        this.db.prepare('INSERT INTO sessions (id, title, client) VALUES (?, ?, ?)').run(sessionId, finalTitle, finalClient);
+      }
+    } catch {}
+  }
+
   public updateSessionProject(sessionId: string, projectId: string) {
     this.db.prepare('UPDATE sessions SET project_id = ? WHERE id = ?').run(projectId, sessionId);
   }
@@ -323,14 +348,26 @@ export class Logger {
     this.db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(newTitle, sessionId);
   }
 
-  public searchSessions(query: string) {
+  public searchSessions(query: string, client?: string) {
     const term = `%${query}%`;
+    if (client === 'desktop') {
+      return this.db.prepare(`
+        SELECT DISTINCT s.* 
+        FROM sessions s
+        LEFT JOIN messages m ON s.id = m.session_id
+        WHERE (s.title LIKE ? OR m.content LIKE ?)
+        AND (s.client = 'desktop' OR s.id LIKE 'desktop-%')
+        ORDER BY s.timestamp DESC
+      `).all(term, term);
+    }
     return this.db.prepare(`
       SELECT DISTINCT s.* 
       FROM sessions s
       LEFT JOIN messages m ON s.id = m.session_id
       WHERE (s.title LIKE ? OR m.content LIKE ?)
-      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%' AND s.id NOT LIKE 'whatsapp_%' AND s.id NOT LIKE 'cli-chat%'
+      AND s.id NOT LIKE 'telegram_%' AND s.id NOT LIKE 'discord_%' AND s.id NOT LIKE 'whatsapp_%' AND s.id NOT LIKE 'cli-chat%' AND s.id NOT LIKE 'desktop-%'
+      AND (s.client = 'dashboard' OR (s.client IS NULL AND s.id NOT LIKE 'desktop-%'))
+      AND (s.client IS NULL OR s.client = 'dashboard')
       ORDER BY s.timestamp DESC
     `).all(term, term);
   }
@@ -405,30 +442,9 @@ export class Logger {
   }
 
 
-  public addEntry(entry: MemoryEntry, sessionId?: string) {
+  public addEntry(entry: MemoryEntry, sessionId?: string, clientParam?: string) {
     if (sessionId) {
-      // Auto-create session if it doesn't exist (e.g. for Telegram integration)
-      try {
-        const sessionExists = this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId);
-        if (!sessionExists) {
-          let title = 'New Session';
-          let client = null;
-          if (sessionId.startsWith('telegram_')) {
-            title = 'Telegram Chat';
-            client = 'telegram';
-          } else if (sessionId.startsWith('discord_')) {
-            title = 'Discord Chat';
-            client = 'discord';
-          } else if (sessionId.startsWith('cli-chat')) {
-            title = 'CLI Chat';
-            client = 'cli';
-          } else if (sessionId.startsWith('desktop-')) {
-            title = 'Desktop Chat';
-            client = 'desktop';
-          }
-          this.db.prepare('INSERT INTO sessions (id, title, client) VALUES (?, ?, ?)').run(sessionId, title, client);
-        }
-      } catch {}
+      this.ensureSession(sessionId, 'New Session', clientParam);
     }
 
     const insert = this.db.prepare(`

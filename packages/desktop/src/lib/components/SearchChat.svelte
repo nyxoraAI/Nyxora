@@ -23,7 +23,7 @@
     
     timeoutId = setTimeout(async () => {
       try {
-        const res = await apiFetch(`/api/sessions/search?q=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`/api/sessions/search?q=${encodeURIComponent(query)}&client=desktop`);
         if (res.ok) {
           const results = await res.json();
           // Filter only desktop sessions
