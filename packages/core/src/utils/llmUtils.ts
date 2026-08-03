@@ -135,8 +135,9 @@ export async function executeWithRetry(
       const status = error?.status || error?.response?.status;
       const errMsg = (error?.message || '').toLowerCase();
       
-      // If a 400 error contains "reset after" or "quota", it's actually a Rate Limit!
-      const isFake400RateLimit = status === 400 && (errMsg.includes('reset after') || errMsg.includes('quota') || errMsg.includes('rate limit'));
+      // If a 400 error contains "quota" or "rate limit", it's actually a Rate Limit. Exclude tool_call/schema errors!
+      const isSchemaError = errMsg.includes('tool call') || errMsg.includes('tool_calls') || errMsg.includes('schema') || errMsg.includes('invalid_request_error');
+      const isFake400RateLimit = status === 400 && !isSchemaError && (errMsg.includes('quota') || errMsg.includes('rate limit') || errMsg.includes('reset after'));
 
       // 401 Unauthorized or true 400 Bad Request - don't retry, it's fatal
       if ((status === 401 || status === 400) && !isFake400RateLimit) {

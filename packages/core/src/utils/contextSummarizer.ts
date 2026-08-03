@@ -96,6 +96,10 @@ function _snapBoundary(messages: Message[], index: number): number {
     else if (prev.role === 'tool' && curr.role === 'tool') {
       snapped++;
     }
+    // Rule 3: Never start a slice boundary on a 'tool' response (always advance past tool responses)
+    else if (curr.role === 'tool') {
+      snapped++;
+    }
     else {
       break;
     }

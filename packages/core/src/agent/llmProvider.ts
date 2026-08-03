@@ -74,19 +74,60 @@ export function extractExecuteTool(content: string, existingToolCalls: any[]): {
 
 function sanitizeOpenAIMessages(messages: any[]): any[] {
   if (!Array.isArray(messages)) return messages;
-  return messages.map(m => {
+
+  // Pass 1: Collect all assistant tool_call IDs and tool result IDs
+  const assistantCallIds = new Set<string>();
+  const toolResultIds = new Set<string>();
+
+  for (const m of messages) {
+    if (m.role === 'assistant' && m.tool_calls && Array.isArray(m.tool_calls)) {
+      for (const tc of m.tool_calls) {
+        if (tc?.id) assistantCallIds.add(tc.id);
+      }
+    }
+    if (m.role === 'tool' && m.tool_call_id) {
+      toolResultIds.add(m.tool_call_id);
+    }
+  }
+
+  // Pass 2: Clean and validate tool call pairing
+  const sanitized = messages.map(m => {
     const clean: Record<string, any> = {
       role: m.role,
       content: m.content
     };
     if (m.name !== undefined && m.name !== null) clean.name = m.name;
-    if (m.tool_call_id !== undefined && m.tool_call_id !== null) clean.tool_call_id = m.tool_call_id;
-    if (m.tool_calls !== undefined && m.tool_calls !== null) clean.tool_calls = m.tool_calls;
     if (m.role === 'assistant' && m.reasoning_content !== undefined && m.reasoning_content !== null) {
       clean.reasoning_content = m.reasoning_content;
     }
+
+    if (m.role === 'assistant' && m.tool_calls && Array.isArray(m.tool_calls)) {
+      const validCalls = m.tool_calls.filter((tc: any) => tc?.id && toolResultIds.has(tc.id));
+      if (validCalls.length > 0) {
+        clean.tool_calls = validCalls;
+      } else {
+        if (!clean.content || clean.content === '') {
+          clean.content = '[Executed external tools]';
+        }
+      }
+    }
+
+    if (m.role === 'tool' && m.tool_call_id) {
+      if (assistantCallIds.has(m.tool_call_id)) {
+        clean.tool_call_id = m.tool_call_id;
+      } else {
+        // Orphaned tool response — convert to user message so OpenAI does not throw 400 Bad Request
+        clean.role = 'user';
+        const contentStr = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
+        clean.content = `[Previous Tool Result (${m.name || 'tool'}): ${contentStr}]`;
+        delete clean.name;
+      }
+    }
+
     return clean;
   });
+
+  return sanitized;
 }
 
 export class OpenAIAdapter implements LLMProvider {
@@ -124,7 +165,7 @@ export class OpenAIAdapter implements LLMProvider {
             // Keep system prompt (index 0) and the most recent 2 messages
             const sysMsg = payload.messages[0];
             const recentMsgs = payload.messages.slice(-2);
-            payload.messages = [sysMsg, ...recentMsgs];
+            payload.messages = sanitizeOpenAIMessages([sysMsg, ...recentMsgs]);
         }
         
         // Truncate strings inside remaining messages aggressively (max 4000 chars per message)
