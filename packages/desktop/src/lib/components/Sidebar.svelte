@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appState } from '$lib/stores/app';
-  import { PanelLeftClose, Edit, Search, Wallet, TrendingUp, Settings } from '@lucide/svelte';
+  import { PanelLeftClose, Edit, Search, Wallet, TrendingUp, Settings, Clock } from '@lucide/svelte';
   import NyxoraLogo from './NyxoraLogo.svelte';
   import { chatStore } from '$lib/stores/chat';
   import { apiFetch } from '$lib/utils/api';
@@ -265,6 +265,10 @@
     <button onclick={() => appState.toggleSearch()} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {$appState.isSearchOpen ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
       <Search size={16} />
       <span>Search</span>
+    </button>
+    <button onclick={() => appState.setView('cron')} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {currentView === 'cron' ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
+      <Clock size={16} />
+      <span>Cron</span>
     </button>
     <button onclick={() => appState.setView('portfolio')} class="w-full flex items-center gap-3 px-3 py-1.5 rounded-full transition-colors {currentView === 'portfolio' ? 'bg-blue-500 dark:bg-[#0a84ff] text-white' : 'hover:bg-gray-200 dark:hover:bg-[#3a3a3c] hover:text-black dark:hover:text-[#ffffff]'}">
       <Wallet size={16} />

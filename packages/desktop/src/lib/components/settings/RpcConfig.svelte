@@ -69,66 +69,64 @@
   }
 </script>
 
-<div class="space-y-8 w-full">
+<div class="space-y-7 w-full">
   <div>
-    <div class="flex items-center gap-3 mb-1">
-      <Server size={24} class="text-blue-500" />
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">RPC Configuration</h2>
-    </div>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Configure your private RPC URLs (Alchemy, Infura, etc.) for High-Frequency execution.</p>
+    <h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-1">RPC Configuration</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Configure your private RPC URLs (Alchemy, Infura, etc.) for High-Frequency execution.</p>
 
-    <div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 p-4 rounded-xl mb-6 flex gap-4 items-start">
-      <ShieldAlert size={24} class="text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-      <div class="text-[0.85rem] text-yellow-800 dark:text-yellow-200/80 leading-relaxed">
-        <strong class="text-yellow-900 dark:text-yellow-500 font-semibold">Privacy & Security:</strong> Your RPC keys are saved in a highly isolated <code class="bg-yellow-100 dark:bg-black/20 px-1.5 py-0.5 rounded text-yellow-900 dark:text-yellow-400">~/.nyxora/config/rpc_key.yaml</code> file. 
+    <div class="bg-amber-50/80 dark:bg-amber-900/15 border border-amber-200/80 dark:border-amber-900/40 p-4 rounded-2xl mb-5 flex gap-3.5 items-start">
+      <ShieldAlert size={20} class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+      <div class="text-xs text-amber-800 dark:text-amber-200/90 leading-relaxed">
+        <strong class="text-amber-900 dark:text-amber-300 font-bold">Privacy & Security:</strong> Your RPC keys are saved in a highly isolated <code class="bg-amber-100/80 dark:bg-black/30 px-1.5 py-0.5 rounded text-amber-900 dark:text-amber-400 font-mono">~/.nyxora/config/rpc_key.yaml</code> file. 
         This guarantees that sharing your agent's config or prompts won't accidentally leak your premium node endpoints.
       </div>
     </div>
 
     {#if status}
-      <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 text-green-700 dark:text-green-400 p-3.5 rounded-xl mb-6 flex items-center gap-3 text-sm">
-        <CheckCircle2 size={18} /> <strong>{status}</strong>
+      <div class="bg-green-50/80 dark:bg-green-900/20 border border-green-200/80 dark:border-green-900/40 text-green-700 dark:text-green-300 p-3.5 rounded-2xl mb-5 flex items-center gap-2.5 text-xs font-medium">
+        <CheckCircle2 size={16} /> <span>{status}</span>
       </div>
     {/if}
 
-    <div class="mb-4">
-      <div class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 text-red-700 dark:text-red-400 p-3 rounded-lg mb-8 inline-flex items-center gap-2 text-[0.85rem]">
-        <AlertTriangle size={16} /> Leaving a field empty will trigger the Agent's automatic <strong>Public Fallback Mechanism</strong>.
+    <div class="mb-2">
+      <div class="bg-red-50/70 dark:bg-red-900/15 border border-red-200/60 dark:border-red-900/30 text-red-700 dark:text-red-300 px-3.5 py-2.5 rounded-xl mb-5 inline-flex items-center gap-2 text-xs">
+        <AlertTriangle size={14} class="flex-shrink-0" /> Leaving a field empty will trigger the Agent's automatic <strong>Public Fallback Mechanism</strong>.
       </div>
       
-      <div class="space-y-4">
+      <div class="text-[0.75rem] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">Network Nodes</div>
+      <div class="flex flex-col bg-white dark:bg-[#222226] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-200/60 dark:divide-white/10">
         {#each SUPPORTED_CHAINS as chain (chain.id)}
-          <div class="bg-white dark:bg-[#27272a]/50 p-5 rounded-xl border border-gray-200 dark:border-white/10 flex gap-6 items-center">
+          <div class="p-4 flex gap-4 items-center justify-between hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
             
-            <div class="flex gap-3 items-center w-[240px] flex-shrink-0">
+            <div class="flex gap-3 items-center w-[210px] flex-shrink-0">
               <!-- svelte-ignore a11y_missing_attribute -->
               <img 
                 src={getChainLogoUrl(chain.id)} 
-                class="w-8 h-8 rounded-full"
+                class="w-7 h-7 rounded-full bg-gray-100 dark:bg-white/5 p-0.5"
                 onerror={(e) => { e.currentTarget.style.display = 'none'; }}
               />
-              <div>
-                <strong class="text-gray-900 dark:text-gray-100 text-[0.95rem] block">{chain.name}</strong>
-                <span class="text-gray-500 text-[0.75rem] font-mono">{chain.id}</span>
+              <div class="min-w-0">
+                <strong class="text-gray-900 dark:text-gray-100 text-xs font-semibold block truncate">{chain.name}</strong>
+                <span class="text-gray-400 dark:text-gray-500 text-[0.7rem] font-mono block truncate">{chain.id}</span>
               </div>
             </div>
             
-            <div class="flex-1 flex gap-3">
+            <div class="flex-1 flex gap-2 items-center">
               <input
                 type="password"
-                class="flex-1 bg-gray-50 dark:bg-[#18181b]/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[0.85rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                class="flex-1 bg-gray-100/80 dark:bg-black/30 border border-gray-200/50 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 placeholder="e.g. https://base-mainnet.g.alchemy.com/v2/..."
                 bind:value={inputValues[chain.id]}
               />
               <button 
-                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
+                class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 transition-all shadow-sm"
                 onclick={() => handleSave(chain.id, inputValues[chain.id])}
                 disabled={isSaving[chain.id]}
               >
                 {#if isSaving[chain.id]}
                   <div class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 {:else}
-                  <Save size={14} /> Save
+                  <Save size={13} /> Save
                 {/if}
               </button>
             </div>
@@ -139,3 +137,4 @@
     </div>
   </div>
 </div>
+

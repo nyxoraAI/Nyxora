@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
+  import { BookOpen, Workflow, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
   import { playbooksStore, type Playbook } from '$lib/stores/playbooks';
   import { apiFetch } from '$lib/utils/api';
 
@@ -58,8 +58,8 @@
   function handleCreateNew() {
     isCreating = true;
     selectedFilename = null;
-    newFilename = 'my-new-skill.md';
-    editContent = '---\nname: my-new-skill\ndescription: "Description here"\n---\n\n# Instructions\n\n1. Run command `...`\n';
+    newFilename = 'my-new-workflow.md';
+    editContent = '---\nname: my-new-workflow\ndescription: "Description here"\n---\n\n# Instructions\n\n1. Run command `...`\n';
   }
 
   async function handleSave() {
@@ -103,9 +103,9 @@
   <div class="w-72 border-r border-gray-200 dark:border-[#3a3a3c] flex flex-col bg-gray-50 dark:bg-gray-950">
     <div class="p-4 border-b border-gray-200 dark:border-[#3a3a3c] flex justify-between items-center bg-gray-50 dark:bg-gray-950">
       <div class="flex items-center gap-2 font-semibold">
-        <BookOpen size={18} /> Skill Store
+        <Workflow size={18} /> Workflows
       </div>
-      <button onclick={handleCreateNew} class="text-blue-500 hover:text-blue-600 p-1" title="New Playbook">
+      <button onclick={handleCreateNew} class="text-blue-500 hover:text-blue-600 p-1" title="New Workflow">
         <Plus size={18} />
       </button>
     </div>
@@ -197,7 +197,7 @@
       <div class="flex-1 p-6 flex flex-col">
         <div class="mb-4 flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-lg border border-yellow-200 dark:border-yellow-700/50">
           <AlertTriangle size={16} />
-          Playbooks are written in Markdown. Nyxora reads these instructions to execute terminal commands autonomously.
+          Workflows are written in Markdown. Nyxora reads these instructions to execute terminal commands autonomously.
         </div>
         
         <textarea
@@ -207,9 +207,9 @@
       </div>
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center text-gray-400">
-        <BookOpen size={48} class="mb-4 opacity-20" />
-        <h3 class="text-xl font-medium text-gray-600 dark:text-[#e5e5ea]">Select a Playbook</h3>
-        <p class="mt-2 text-sm">Or create a new one to teach Nyxora new skills.</p>
+        <Workflow size={48} class="mb-4 opacity-20" />
+        <h3 class="text-xl font-medium text-gray-600 dark:text-[#e5e5ea]">Select a Workflow</h3>
+        <p class="mt-2 text-sm">Or create a new one to teach Nyxora new workflows.</p>
       </div>
     {/if}
   </div>

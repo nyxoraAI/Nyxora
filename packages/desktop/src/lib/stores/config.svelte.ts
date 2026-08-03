@@ -15,6 +15,9 @@ export interface NyxoraConfig {
     provider: string;
     model: string;
     temperature: number;
+    frequency_penalty?: number;
+    presence_penalty?: number;
+    repetition_penalty?: number;
     reasoning_effort?: 'low' | 'medium' | 'high' | 'none';
     api_keys?: string[];
     base_url?: string;
@@ -64,6 +67,8 @@ export interface PolicyConfig {
   require_approval?: boolean;
   auto_approve_limit_usd?: number;
   custom_llm_rules?: string[];
+  auto_approve_shell?: boolean;
+  blacklisted_addresses?: string[];
 }
 
 export interface UserProfile {
@@ -95,7 +100,15 @@ function createConfigStore() {
           apiFetch('/api/profile')
         ]);
         
-        if (configRes.ok) config = await configRes.json();
+        if (configRes.ok) {
+          const loaded = await configRes.json();
+          if (loaded?.llm) {
+            loaded.llm.frequency_penalty = loaded.llm.frequency_penalty ?? 0.6;
+            loaded.llm.presence_penalty = loaded.llm.presence_penalty ?? 0.3;
+            loaded.llm.repetition_penalty = loaded.llm.repetition_penalty ?? 1.0;
+          }
+          config = loaded;
+        }
         if (policyRes.ok) policy = await policyRes.json();
         if (profileRes.ok) profile = await profileRes.json();
       } catch (e) {
@@ -131,6 +144,22 @@ function createConfigStore() {
         this.load();
       } finally {
         isSaving = false;
+      }
+    },
+
+    async savePolicy(newPolicy?: Partial<PolicyConfig>) {
+      if (newPolicy && policy) {
+        policy = { ...policy, ...newPolicy } as PolicyConfig;
+      }
+      if (!policy) return;
+      try {
+        await apiFetch('/api/policy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(policy)
+        });
+      } catch (e) {
+        console.error('Failed to save policy to ~/.nyxora/config:', e);
       }
     },
     

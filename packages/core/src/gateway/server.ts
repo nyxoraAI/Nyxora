@@ -1460,6 +1460,65 @@ app.post('/api/policy', (req, res) => {
   }
 });
 
+// --- MCP Servers / Tools Configuration Endpoints (nyxmcp.yaml) ---
+app.get('/api/mcp-servers', (req, res) => {
+  try {
+    const nyxmcpPath = getPath('nyxmcp.yaml');
+    let mcpServers: Record<string, any> = {};
+    if (fs.existsSync(nyxmcpPath)) {
+      const nyxmcpParsed = yaml.parse(fs.readFileSync(nyxmcpPath, 'utf8')) || {};
+      mcpServers = nyxmcpParsed.mcp_servers || nyxmcpParsed || {};
+    }
+    res.json({ mcp_servers: mcpServers });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/mcp-servers', (req, res) => {
+  try {
+    const { name, command, args, env, disabled } = req.body;
+    if (!name || !command) {
+      return res.status(400).json({ error: 'Name and command are required' });
+    }
+    const nyxmcpPath = getPath('nyxmcp.yaml');
+    let nyxmcpParsed: any = { mcp_servers: {} };
+    if (fs.existsSync(nyxmcpPath)) {
+      nyxmcpParsed = yaml.parse(fs.readFileSync(nyxmcpPath, 'utf8')) || { mcp_servers: {} };
+      if (!nyxmcpParsed.mcp_servers && typeof nyxmcpParsed === 'object') {
+        nyxmcpParsed = { mcp_servers: nyxmcpParsed };
+      }
+    }
+    nyxmcpParsed.mcp_servers = nyxmcpParsed.mcp_servers || {};
+    nyxmcpParsed.mcp_servers[name] = { command, args: args || [], env: env || {}, disabled: !!disabled };
+    fs.writeFileSync(nyxmcpPath, yaml.stringify(nyxmcpParsed), 'utf8');
+    res.json({ success: true, mcp_servers: nyxmcpParsed.mcp_servers });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/mcp-servers/:name', (req, res) => {
+  try {
+    const { name } = req.params;
+    const nyxmcpPath = getPath('nyxmcp.yaml');
+    let nyxmcpParsed: any = { mcp_servers: {} };
+    if (fs.existsSync(nyxmcpPath)) {
+      nyxmcpParsed = yaml.parse(fs.readFileSync(nyxmcpPath, 'utf8')) || { mcp_servers: {} };
+      if (!nyxmcpParsed.mcp_servers && typeof nyxmcpParsed === 'object') {
+        nyxmcpParsed = { mcp_servers: nyxmcpParsed };
+      }
+    }
+    if (nyxmcpParsed.mcp_servers && nyxmcpParsed.mcp_servers[name]) {
+      delete nyxmcpParsed.mcp_servers[name];
+      fs.writeFileSync(nyxmcpPath, yaml.stringify(nyxmcpParsed), 'utf8');
+    }
+    res.json({ success: true, mcp_servers: nyxmcpParsed.mcp_servers || {} });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- User Persona / Risk Profile Endpoints (V3) ---
 app.get('/api/profile', (req, res) => {
   try {

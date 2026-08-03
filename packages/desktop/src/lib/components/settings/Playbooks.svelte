@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiFetch } from '$lib/utils/api';
-  import { BookOpen, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
+  import { BookOpen, Workflow, Plus, Save, Trash2, Code, FileText, AlertTriangle, Folder, ChevronDown, ChevronRight } from '@lucide/svelte';
 
   interface Playbook {
     filename: string;
@@ -74,8 +74,8 @@
   function handleCreateNew() {
     isCreating = true;
     selectedFilename = null;
-    newFilename = 'my-new-skill.md';
-    editContent = '---\nname: my-new-skill\ndescription: "Description here"\n---\n\n# Instructions\n\n1. Run command `...`\n';
+    newFilename = 'my-new-workflow.md';
+    editContent = '---\nname: my-new-workflow\ndescription: "Description here"\n---\n\n# Instructions\n\n1. Run command `...`\n';
   }
 
   async function handleSave() {
@@ -114,25 +114,25 @@
   }
 </script>
 
-<div class="flex h-[72vh] w-full overflow-hidden rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#18181b]/50 shadow-sm">
+<div class="flex h-[72vh] w-full overflow-hidden rounded-2xl border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#222226] shadow-sm">
   <!-- Left Sidebar -->
-  <div class="w-[280px] border-r border-gray-200 dark:border-white/10 flex flex-col bg-gray-50 dark:bg-[#27272a]/30">
-    <div class="p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-transparent">
-      <div class="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
-        <BookOpen size={18} class="text-blue-500" /> Skill Store
+  <div class="w-[280px] border-r border-gray-200/60 dark:border-white/10 flex flex-col bg-gray-100/60 dark:bg-[#1c1c1e]/60">
+    <div class="p-4 border-b border-gray-200/60 dark:border-white/10 flex justify-between items-center">
+      <div class="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-xs tracking-tight">
+        <Workflow size={16} class="text-blue-500" /> Workflows
       </div>
       <button 
         onclick={handleCreateNew} 
-        class="text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" 
-        title="New Playbook"
+        class="text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 p-1.5 rounded-lg hover:bg-blue-500/10 transition-colors" 
+        title="New Workflow"
       >
-        <Plus size={18} />
+        <Plus size={16} />
       </button>
     </div>
     
     <div class="flex-1 overflow-y-auto p-2">
       {#if isLoading && playbooks.length === 0}
-        <div class="p-4 text-center text-gray-500 text-sm">Loading...</div>
+        <div class="p-4 text-center text-gray-500 text-xs">Loading...</div>
       {:else}
         {#each Object.entries(groupedPlaybooks()).sort((a, b) => a[0].localeCompare(b[0])) as [folder, items] (folder)}
           {@const isExpanded = expandedFolders[folder] === true}
@@ -141,31 +141,31 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div 
               onclick={() => toggleFolder(folder)}
-              class="px-3 py-2 cursor-pointer flex items-center gap-2 text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wide hover:bg-gray-200/50 dark:hover:bg-white/5 rounded-md transition-colors select-none"
+              class="px-3 py-1.5 cursor-pointer flex items-center gap-2 text-gray-500 dark:text-gray-400 font-bold text-[0.7rem] uppercase tracking-wider hover:bg-gray-200/50 dark:hover:bg-white/5 rounded-lg transition-colors select-none"
             >
               {#if isExpanded}
-                <ChevronDown size={14} />
+                <ChevronDown size={13} />
               {:else}
-                <ChevronRight size={14} />
+                <ChevronRight size={13} />
               {/if}
-              <Folder size={14} class="text-gray-400" />
+              <Folder size={13} class="text-gray-400" />
               <span class="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
                 {folder} ({items.length})
               </span>
             </div>
             
             {#if isExpanded}
-              <div class="flex flex-col mt-0.5">
+              <div class="flex flex-col mt-0.5 space-y-0.5">
                 {#each items as p (p.filename)}
                   {@const isSelected = selectedFilename === p.filename && !isCreating}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div 
                     onclick={() => handleSelect(p)}
-                    class="pl-10 pr-3 py-2 cursor-pointer flex items-center gap-2 text-[0.85rem] transition-colors select-none {isSelected ? 'bg-blue-50 dark:bg-blue-500/10 border-l-2 border-blue-500 text-blue-700 dark:text-blue-400 font-medium' : 'border-l-2 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'}"
+                    class="pl-9 pr-3 py-1.5 cursor-pointer flex items-center gap-2 text-xs transition-all select-none rounded-lg {isSelected ? 'bg-blue-500 text-white font-medium shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-white/5'}"
                     title={p.filename}
                   >
-                    <FileText size={14} class={isSelected ? 'text-blue-500' : 'text-gray-400'} />
+                    <FileText size={13} class={isSelected ? 'text-white' : 'text-gray-400'} />
                     <span class="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
                       {p.label}
                     </span>
@@ -180,54 +180,54 @@
   </div>
 
   <!-- Right Editor -->
-  <div class="flex-1 flex flex-col bg-white dark:bg-transparent min-h-0">
+  <div class="flex-1 flex flex-col bg-transparent min-h-0">
     {#if selectedFilename || isCreating}
-      <div class="px-5 py-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-[#18181b]/50">
-        <div class="flex items-center gap-3 flex-1">
-          <Code size={18} class="text-gray-400" />
+      <div class="px-5 py-3.5 border-b border-gray-200/60 dark:border-white/10 flex justify-between items-center bg-gray-50/40 dark:bg-black/20">
+        <div class="flex items-center gap-2.5 flex-1">
+          <Code size={16} class="text-gray-400" />
           {#if isCreating}
             <input 
               bind:value={newFilename}
               placeholder="e.g. custom-skill.md"
-              class="flex-1 max-w-[300px] px-3 py-1.5 bg-white dark:bg-[#27272a]/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+              class="flex-1 max-w-[300px] px-3 py-1 bg-white dark:bg-[#27272a] border border-gray-200/60 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs"
             />
           {:else}
-            <span class="font-semibold text-gray-800 dark:text-gray-200 text-sm">{selectedFilename}</span>
+            <span class="font-bold text-gray-800 dark:text-gray-200 text-xs tracking-tight">{selectedFilename}</span>
           {/if}
         </div>
         <div class="flex gap-2">
           {#if !isCreating && selectedFilename}
             <button 
               onclick={() => handleDelete(selectedFilename as string)}
-              class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md cursor-pointer text-sm font-medium transition-colors"
+              class="flex items-center gap-1.5 px-3 py-1 bg-transparent border border-red-500/50 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer text-xs font-medium transition-colors"
             >
-              <Trash2 size={14} /> Delete
+              <Trash2 size={13} /> Delete
             </button>
           {/if}
           <button 
             onclick={handleSave}
-            class="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-md cursor-pointer text-sm font-medium transition-colors shadow-sm"
+            class="flex items-center gap-1.5 px-3.5 py-1 bg-blue-600 hover:bg-blue-500 text-white border-none rounded-lg cursor-pointer text-xs font-medium transition-colors shadow-sm"
           >
-            <Save size={14} /> Save
+            <Save size={13} /> Save
           </button>
         </div>
       </div>
       <div class="flex-1 flex flex-col p-5 min-h-0">
-        <div class="mb-3 flex items-center gap-2 text-[0.8rem] text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/10 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/20">
+        <div class="mb-3 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-900/15 px-3 py-2 rounded-xl border border-amber-200/60 dark:border-amber-900/30">
           <AlertTriangle size={14} class="flex-shrink-0" />
-          <span>Playbooks are written in Markdown. Nyxora reads these instructions to execute terminal commands autonomously.</span>
+          <span>Workflows are written in Markdown. Nyxora reads these instructions to execute terminal commands autonomously.</span>
         </div>
         <textarea
           bind:value={editContent}
-          class="flex-1 w-full resize-none p-4 font-mono text-[0.85rem] leading-relaxed bg-gray-50 dark:bg-[#18181b]/50 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-white/10 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+          class="flex-1 w-full resize-none p-4 font-mono text-xs leading-relaxed bg-gray-50/50 dark:bg-black/20 text-gray-900 dark:text-gray-100 border border-gray-200/60 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
           spellcheck="false"
         ></textarea>
       </div>
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-        <BookOpen size={48} class="opacity-20 mb-4" />
-        <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">Select a Playbook</h3>
-        <p class="text-sm">Or create a new one to teach Nyxora new skills.</p>
+        <BookOpen size={40} class="opacity-30 mb-3" />
+        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Select a Playbook</h3>
+        <p class="text-xs">Or create a new one to teach Nyxora new skills.</p>
       </div>
     {/if}
   </div>

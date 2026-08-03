@@ -62,3 +62,7 @@ __pycache__/
 .git/config
 scratch/
 packages/desktop/release/
+.svelte-kit/
+**/.svelte-kit/
+build/
+**/build/

@@ -52,11 +52,42 @@
     };
   });
 
+  function initRecognition() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onresult = (event: any) => {
+        input = event.results[0][0].transcript;
+        isListening = false;
+        handleSubmit(); // Auto submit on voice input
+      };
+      recognition.onerror = (e: any) => {
+        console.warn('Speech recognition error:', e);
+        isListening = false;
+      };
+      recognition.onend = () => {
+        isListening = false;
+      };
+    }
+  }
+
   function startListening() {
+    if (!recognition) {
+      initRecognition();
+    }
+    if (!recognition) {
+      alert('Speech recognition is not supported in this desktop/browser environment.');
+      return;
+    }
     try {
-      recognition?.start();
+      recognition.start();
       isListening = true;
-    } catch (e) {}
+    } catch (e) {
+      isListening = true;
+    }
   }
 
   function speak(text: string) {
@@ -78,9 +109,11 @@
     if (isVoiceMode) {
       startListening();
     } else {
-      recognition?.stop();
+      try { recognition?.stop(); } catch (e) {}
       isListening = false;
-      window.speechSynthesis.cancel();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       isSpeaking = false;
     }
   }
@@ -369,19 +402,96 @@
         </div>
       {/if}
       
+      <!-- Live Audio Mode Indicator Banner -->
+      {#if isVoiceMode || isListening || isSpeaking}
+        <div class="mx-3 mt-3 px-3.5 py-2 rounded-2xl flex items-center justify-between {isSpeaking ? 'bg-purple-500/10 border border-purple-500/20 dark:border-purple-400/20' : isListening ? 'bg-red-500/10 border border-red-500/20 dark:border-red-400/20' : 'bg-blue-500/10 border border-blue-500/20 dark:border-blue-400/20'} transition-all">
+          <div class="flex items-center gap-2.5">
+            {#if isSpeaking}
+              <div class="flex items-center gap-1">
+                <span class="w-1 h-3 bg-purple-500 dark:bg-purple-400 rounded-full animate-pulse"></span>
+                <span class="w-1 h-4 bg-purple-500 dark:bg-purple-400 rounded-full animate-pulse" style="animation-delay: 150ms;"></span>
+                <span class="w-1 h-2.5 bg-purple-500 dark:bg-purple-400 rounded-full animate-pulse" style="animation-delay: 300ms;"></span>
+              </div>
+              <span class="text-xs font-medium text-purple-700 dark:text-purple-300">Nyxora is speaking...</span>
+            {:else if isListening}
+              <div class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+              </div>
+              <span class="text-xs font-medium text-red-600 dark:text-red-400">Listening to microphone...</span>
+            {:else if isVoiceMode}
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 animate-pulse"></span>
+                <span class="text-xs font-medium text-blue-600 dark:text-blue-400">Listen mode active</span>
+              </div>
+            {/if}
+          </div>
+          <div class="flex items-center gap-2">
+            {#if isSpeaking}
+              <button
+                onclick={() => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); isSpeaking = false; }}
+                class="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-white/80 dark:bg-[#2c2c2e] hover:bg-white dark:hover:bg-[#3a3a3c] text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-white/10 transition-colors"
+              >
+                Mute
+              </button>
+            {/if}
+            {#if isVoiceMode}
+              <button
+                onclick={toggleVoiceMode}
+                class="text-[11px] font-medium px-2.5 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 transition-colors flex items-center gap-1"
+              >
+                End Listen Mode
+              </button>
+            {:else if isListening}
+              <button
+                onclick={() => { try { recognition?.stop(); } catch(e){} isListening = false; }}
+                class="text-[11px] font-medium px-2.5 py-0.5 rounded-lg bg-gray-200/80 dark:bg-[#2c2c2e] hover:bg-gray-300 dark:hover:bg-[#3a3a3c] text-gray-700 dark:text-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
       <div class="flex items-end w-full">
         <!-- Action Menu (Plus button) inside left -->
         <div class="pl-3 pb-2 shrink-0 relative flex items-center justify-center">
            {#if showActions}
              <!-- Click outside overlay to close -->
              <div class="fixed inset-0 z-0" onclick={() => showActions = false}></div>
-             <div class="absolute bottom-12 left-0 flex flex-col gap-1 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] p-2 rounded-2xl shadow-lg z-10 w-36">
-               <button onclick={() => { fileInput.click(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl text-gray-500 dark:text-[#e5e5ea] transition-colors flex items-center gap-3" title="Upload Document"><Paperclip size={16}/><span class="text-sm font-medium">File</span></button>
-               <button onclick={() => { startListening(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl {isListening ? 'text-red-500' : 'text-gray-500 dark:text-[#e5e5ea]'} transition-colors flex items-center gap-3" title="Voice Input"><Mic size={16}/><span class="text-sm font-medium">Voice</span></button>
-               <button onclick={() => { toggleVoiceMode(); showActions = false; }} class="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl {isVoiceMode ? 'text-blue-500' : 'text-gray-500 dark:text-[#e5e5ea]'} transition-colors flex items-center gap-3" title="Headphone Mode"><Headphones size={16}/><span class="text-sm font-medium">Listen</span></button>
+             <div class="absolute bottom-12 left-0 flex flex-col gap-1 bg-white dark:bg-[#1d1d1f] border border-gray-200 dark:border-[#48484a] p-2 rounded-2xl shadow-lg z-10 w-44">
+               <button onclick={() => { fileInput.click(); showActions = false; }} class="p-2.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-xl text-gray-600 dark:text-[#e5e5ea] transition-colors flex items-center gap-3 w-full" title="Upload Document">
+                 <Paperclip size={16}/>
+                 <span class="text-sm font-medium">File</span>
+               </button>
+               <button onclick={() => { startListening(); showActions = false; }} class="p-2.5 rounded-xl transition-colors flex items-center justify-between w-full {isListening ? 'bg-red-500/15 text-red-600 dark:text-red-400 font-semibold' : 'hover:bg-gray-100 dark:hover:bg-[#3a3a3c] text-gray-600 dark:text-[#e5e5ea]'}" title="Voice Input">
+                 <div class="flex items-center gap-3">
+                   <Mic size={16}/>
+                   <span class="text-sm font-medium">Voice</span>
+                 </div>
+                 {#if isListening}
+                   <span class="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold">
+                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                     REC
+                   </span>
+                 {/if}
+               </button>
+               <button onclick={() => { toggleVoiceMode(); showActions = false; }} class="p-2.5 rounded-xl transition-colors flex items-center justify-between w-full {isVoiceMode ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold' : 'hover:bg-gray-100 dark:hover:bg-[#3a3a3c] text-gray-600 dark:text-[#e5e5ea]'}" title="Headphone Mode">
+                 <div class="flex items-center gap-3">
+                   <Headphones size={16}/>
+                   <span class="text-sm font-medium">Listen</span>
+                 </div>
+                 {#if isVoiceMode}
+                   <span class="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
+                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                     ON
+                   </span>
+                 {/if}
+               </button>
              </div>
            {/if}
-           <button onclick={() => showActions = !showActions} class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-[#e5e5ea] transition-all duration-200 {showActions ? 'rotate-45 bg-gray-100 dark:bg-gray-700' : ''}"><Plus size={18}/></button>
+           <button onclick={() => showActions = !showActions} class="p-2 rounded-full transition-all duration-200 {showActions ? 'rotate-45 bg-gray-100 dark:bg-gray-700' : ''} {isListening ? 'text-red-500 bg-red-500/10 animate-pulse' : isVoiceMode ? 'text-blue-500 bg-blue-500/10' : 'text-gray-500 dark:text-[#e5e5ea] hover:bg-gray-100 dark:hover:bg-gray-700'}" title="More Actions"><Plus size={18}/></button>
         </div>
         
         <textarea 
@@ -389,7 +499,7 @@
           oninput={adjustHeight}
           onkeydown={handleKeydown}
           class="w-full bg-transparent resize-none outline-none py-3.5 px-2 min-h-[52px] max-h-64 text-[15px] text-gray-900 dark:text-[#ffffff] placeholder-gray-400 scrollbar-none disabled:opacity-50" 
-          placeholder="How can I help you today?" 
+          placeholder={isListening ? "Listening to microphone..." : isVoiceMode ? "Listen mode active... speak or type" : "How can I help you today?"} 
           rows="1"
         ></textarea>
         

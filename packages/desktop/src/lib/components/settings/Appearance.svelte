@@ -6,18 +6,18 @@
 </script>
 
 {#if configStore.config}
-<div class="space-y-8 w-full">
+<div class="space-y-7 w-full">
   <div>
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Appearance</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Configure the agent's visual theme and display preferences.</p>
+    <h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-1">Appearance</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Configure the agent's visual theme and display preferences.</p>
     
-    <div class="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-3">Display Settings</div>
-    <div class="flex flex-col bg-white dark:bg-[#27272a]/50 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">
+    <div class="text-[0.75rem] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">Display Settings</div>
+    <div class="flex flex-col bg-white dark:bg-[#222226] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm overflow-visible">
       
-      <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-white/10">
+      <div class="flex justify-between items-center py-3.5 px-5 border-b border-gray-200/60 dark:border-white/10">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Theme</div>
-          <div class="text-[0.75rem] text-gray-500">Select light, dark, or system default.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Theme</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">Select light, dark, or system default.</div>
         </div>
         <Dropdown 
           value={$themeStore} 
@@ -31,10 +31,10 @@
         />
       </div>
 
-      <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-white/10">
+      <div class="flex justify-between items-center py-3.5 px-5 border-b border-gray-200/60 dark:border-white/10">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Base Fiat Currency</div>
-          <div class="text-[0.75rem] text-gray-500">Currency for displaying portfolio balances.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Base Fiat Currency</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">Currency for displaying portfolio balances.</div>
         </div>
         <Dropdown 
           bind:value={configStore.config.agent.base_fiat}
@@ -49,10 +49,10 @@
         />
       </div>
 
-      <div class="flex justify-between items-center py-3 px-4">
+      <div class="flex justify-between items-center py-3.5 px-5">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Log Level</div>
-          <div class="text-[0.75rem] text-gray-500">Verbosity of background process logs.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Log Level</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">Verbosity of background process logs.</div>
         </div>
         <Dropdown 
           bind:value={configStore.config.agent.log_level}
@@ -69,8 +69,6 @@
 
     </div>
   </div>
-
-  
 
 </div>
 {/if}

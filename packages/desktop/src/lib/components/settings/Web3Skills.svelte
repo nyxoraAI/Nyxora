@@ -102,51 +102,56 @@
 </script>
 
 {#if isLoading}
-  <div class="text-gray-500 p-8 text-center text-sm">Loading skills...</div>
+  <div class="flex items-center justify-center py-16 text-gray-500 dark:text-gray-400 text-xs">
+    <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+    Loading installed Web3 skills...
+  </div>
 {:else}
-  <div class="space-y-8 w-full">
+  <div class="space-y-7 w-full">
     <div>
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Web3 Skills</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Installed on-chain capabilities and their status.</p>
+      <h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-1">Web3 Skills</h2>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Installed on-chain capabilities and their activation status.</p>
 
-      <div class="flex items-center bg-gray-50 dark:bg-[#27272a]/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 mb-6 focus-within:ring-1 focus-within:ring-blue-500 transition-shadow">
-        <Search size={18} class="text-gray-400" />
+      <div class="flex items-center bg-gray-200/60 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-xl px-3.5 mb-6 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
+        <Search size={15} class="text-gray-400 mr-2.5" />
         <input 
           type="text" 
           placeholder="Filter installed skills..." 
           bind:value={searchQuery}
-          class="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 py-3.5 px-3 text-[0.95rem] placeholder-gray-400"
+          class="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 py-2 text-xs placeholder-gray-400"
         />
-        <span class="text-gray-500 text-[0.85rem]">{filteredSkills.length} shown</span>
+        <span class="text-gray-400 dark:text-gray-500 text-[0.75rem] font-medium">{filteredSkills.length} available</span>
       </div>
 
-      <div class="space-y-2.5">
+      <div class="text-[0.75rem] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">Installed Capabilities</div>
+      <div class="flex flex-col bg-white dark:bg-[#222226] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-200/60 dark:divide-white/10">
         {#each filteredSkills as skill (skill.function.name)}
           {@const isActive = skill.isActive !== false}
           {@const formattedName = formatSkillName(skill.function.name)}
           {@const IconComponent = iconMap[formattedName.toLowerCase()] || Compass}
           
-          <div class="flex items-center justify-between bg-white dark:bg-[#18181b]/50 p-5 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm transition-colors {isActive ? 'border-gray-300 dark:border-white/10' : ''}">
-            <div class="flex items-start gap-4 flex-1">
-              <div class="mt-0.5">
-                <IconComponent size={20} class={isActive ? 'text-blue-500' : 'text-gray-400'} />
+          <div class="flex items-center justify-between p-4 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+            <div class="flex items-center gap-3.5 flex-1 pr-4">
+              <div class="w-8 h-8 rounded-xl {isActive ? 'bg-blue-500/10 text-blue-500 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-gray-200/60 text-gray-400 dark:bg-white/5 dark:text-gray-500'} flex items-center justify-center flex-shrink-0 transition-colors">
+                <IconComponent size={16} strokeWidth={2.2} />
               </div>
-              <div>
-                <h3 class="m-0 mb-1.5 text-[1rem] font-semibold {isActive ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500'}">
+              <div class="min-w-0 flex-1">
+                <h3 class="m-0 text-xs font-semibold {isActive ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'} truncate">
                   {formattedName}
                 </h3>
-                <p class="m-0 text-gray-500 dark:text-gray-400 text-[0.85rem] leading-relaxed max-w-[800px]">
+                <p class="m-0 mt-0.5 text-gray-500 dark:text-gray-400 text-[0.75rem] leading-normal line-clamp-1">
                   {skill.function.description}
                 </p>
               </div>
             </div>
             
-            <div class="ml-6 flex-shrink-0">
+            <div class="flex-shrink-0">
               <button 
                 onclick={() => handleToggle(skill.function.name, isActive)}
-                class="relative w-10 h-5.5 rounded-full border-none cursor-pointer transition-colors duration-300 p-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#18181b] {isActive ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-700'}"
+                class="relative w-9 h-5 rounded-full border-none cursor-pointer transition-colors duration-200 p-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#18181b] {isActive ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-700'}"
+                aria-label="Toggle {formattedName}"
               >
-                <div class="absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] {isActive ? 'left-[20px]' : 'left-[2px]'}"></div>
+                <div class="absolute top-[2px] w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200 ease-out {isActive ? 'left-[18px]' : 'left-[2px]'}"></div>
               </button>
             </div>
           </div>

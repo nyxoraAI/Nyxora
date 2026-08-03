@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type ViewType = 'chat' | 'overview' | 'market' | 'portfolio' | 'playbooks' | 'settings';
+export type ViewType = 'chat' | 'overview' | 'market' | 'portfolio' | 'playbooks' | 'settings' | 'cron';
 
 function createAppState() {
   const { subscribe, set, update } = writable({

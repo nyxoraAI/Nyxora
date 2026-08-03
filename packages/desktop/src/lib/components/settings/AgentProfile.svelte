@@ -4,24 +4,24 @@
 </script>
 
 {#if configStore.config}
-<div class="space-y-8 w-full">
+<div class="space-y-7 w-full">
   <div>
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Agent Profile</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Configure the core identity and behavior parameters of your agent.</p>
+    <h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-1">Agent Profile</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Configure the core identity and behavior parameters of your agent.</p>
     
-    <div class="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-3">Identity</div>
-    <div class="flex flex-col bg-white dark:bg-[#27272a]/50 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">
+    <div class="text-[0.75rem] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">Identity</div>
+    <div class="flex flex-col bg-white dark:bg-[#222226] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm overflow-visible">
       
-      <div class="flex justify-between items-center py-3 px-4">
+      <div class="flex justify-between items-center py-3.5 px-5">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Agent Name</div>
-          <div class="text-[0.75rem] text-gray-500">The displayed name of your agent.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Agent Name</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">The displayed name of your agent.</div>
         </div>
         <input 
           type="text" 
           bind:value={configStore.config.agent.name}
           onchange={() => configStore.updateConfig({agent: configStore.config.agent})}
-          class="bg-gray-100 dark:bg-[#3f3f46]/50 border border-transparent dark:border-white/5 rounded-lg px-3 py-1.5 text-[0.85rem] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 w-[240px] text-right"
+          class="bg-gray-100/80 dark:bg-black/30 border border-gray-200/50 dark:border-white/10 rounded-xl px-3.5 py-1.5 text-xs font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-[240px] text-right transition-all"
         />
       </div>
 
@@ -29,13 +29,13 @@
   </div>
 
   <div>
-    <div class="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-3">Trading Parameters</div>
-    <div class="flex flex-col bg-white dark:bg-[#27272a]/50 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">
+    <div class="text-[0.75rem] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">Trading Parameters</div>
+    <div class="flex flex-col bg-white dark:bg-[#222226] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm overflow-visible">
       
-      <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-white/10">
+      <div class="flex justify-between items-center py-3.5 px-5 border-b border-gray-200/60 dark:border-white/10">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Default Chain</div>
-          <div class="text-[0.75rem] text-gray-500">Primary blockchain network.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Default Chain</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">Primary blockchain network.</div>
         </div>
         <Dropdown 
           bind:value={configStore.config.agent.default_chain}
@@ -58,10 +58,10 @@
         />
       </div>
 
-      <div class="flex justify-between items-center py-3 px-4">
+      <div class="flex justify-between items-center py-3.5 px-5">
         <div>
-          <div class="text-[0.9rem] font-medium text-gray-800 dark:text-gray-200">Default Slippage</div>
-          <div class="text-[0.75rem] text-gray-500">Maximum allowed slippage for swaps.</div>
+          <div class="text-[0.875rem] font-medium text-gray-900 dark:text-gray-100">Default Slippage</div>
+          <div class="text-[0.75rem] text-gray-500 dark:text-gray-400">Maximum allowed slippage for swaps.</div>
         </div>
         <div class="flex items-center gap-2">
           <input 
@@ -78,16 +78,14 @@
             }}
             onchange={() => configStore.updateConfig({agent: configStore.config.agent})}
             placeholder="e.g. 0.5 or auto"
-            class="bg-gray-100 dark:bg-[#3f3f46]/50 border border-transparent dark:border-white/5 rounded-lg px-3 py-1.5 text-[0.85rem] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 w-[120px] text-right"
+            class="bg-gray-100/80 dark:bg-black/30 border border-gray-200/50 dark:border-white/10 rounded-xl px-3.5 py-1.5 text-xs font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-[120px] text-right transition-all"
           />
-          <span class="text-[0.85rem] text-gray-500 dark:text-gray-400">%</span>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">%</span>
         </div>
       </div>
 
     </div>
   </div>
-
-  
 
 </div>
 {/if}

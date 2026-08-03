@@ -5,6 +5,7 @@
 	import WalletPortfolio from '$lib/components/WalletPortfolio.svelte';
 	import MarketIntel from '$lib/components/MarketIntel.svelte';
 	import Playbooks from '$lib/components/Playbooks.svelte';
+	import Cron from '$lib/components/Cron.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import SearchChat from '$lib/components/SearchChat.svelte';
 	import { appState } from '$lib/stores/app';
@@ -151,6 +152,8 @@
 			<WalletPortfolio baseFiat={configStore.config?.agent?.base_fiat || 'usd'} />
 		{:else if currentView === 'market'}
 			<MarketIntel />
+		{:else if currentView === 'cron'}
+			<Cron />
 		{:else if currentView === 'playbooks'}
 			<Playbooks />
 		{/if}

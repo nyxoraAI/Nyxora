@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, ipcMain, nativeImage, shell } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, nativeImage, session, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -51,6 +51,14 @@ function createWindow() {
 			contextIsolation: true,
 			nodeIntegration: false
 		}
+	});
+	session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+		if (permission === "media") return true;
+		return true;
+	});
+	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+		if (permission === "media") return callback(true);
+		callback(true);
 	});
 	win.webContents.setWindowOpenHandler((details) => {
 		if (details.url.startsWith("http://") || details.url.startsWith("https://")) {
