@@ -8,7 +8,7 @@ We introduced the **Policy Engine**, a robust gatekeeper that enforces immutable
 
 ## 📌 The Policy Enforcement Layer
 
-The Policy Engine (beroperasi sebagai proses independen di direktori `packages/policy`) sits between the Core LLM Runtime and the Signer Vault. It acts as an absolute firewall. 
+The Policy Engine (operating as an independent service in the `packages/policy` directory) sits between the Core LLM Runtime and the Signer Vault. It acts as an absolute firewall. 
 Even if the LLM is somehow convinced via Prompt Injection to send all your funds to an attacker, the transaction will be intercepted by the Policy Engine.
 
 <div style="background-color: #1e1e20; color: #f3f4f6; padding: 1.5rem; border-radius: 8px; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">

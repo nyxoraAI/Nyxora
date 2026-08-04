@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.8.4]
+### Documentation & Ecosystem Enhancements
+- **Comprehensive Documentation Refresh & New Guides**: Added detailed documentation for Desktop CLI (`docs/cli/desktop.md`), OpenSea API v2 NFT Trading Skills (`docs/core/nft.md`), and External MCP Servers (`docs/mcp/external-servers.md`). Updated core guides across architecture, CLI, chains, Etherscan, Market Oracles, ML Engine, native skills, playbooks, dashboard, privacy, security, and sandbox instructions.
+- **Local Version Increment**: Bumped Nyxora version to `v26.8.4` across all workspace packages and submodules.
+
 ## [26.8.3]
 ### Features & Web3 Enhancements
 - **OpenSea API v2 NFT Trading & Market Oracle Integration (`getNftMarketStats.ts`, `buyNftOpensea.ts`, `listNftOpensea.ts`)**: Engineered comprehensive NFT market intelligence and trading capabilities using OpenSea API v2 across supported EVM mainnet networks (`ethereum`, `polygon`, `arbitrum`, `optimism`, `base`, `bsc`, and `robinhood`).

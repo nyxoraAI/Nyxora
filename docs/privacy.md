@@ -14,7 +14,7 @@ To provide AI and Web3 capabilities, Nyxora must communicate with third-party pr
 - **LLM Providers:** (e.g., OpenAI, Anthropic, Google Gemini). Your chat prompts and contextual data are sent to these providers to generate responses.
 - **Web Search Engines:** (e.g., Tavily, Brave). Search queries are sent to these engines to fetch real-time data.
 - **Google Workspace:** If you connect your Google account, Nyxora will access your Gmail, Calendar, or Docs strictly to perform tasks you explicitly request. We do not store this data centrally.
-- **RPC Nodes & Blockchains:** Transaction details are broadcast to public blockchain networks (Ethereum, Polygon, Base, etc.) via RPC endpoints.
+- **RPC Nodes & Blockchains:** Transaction details are broadcast to public blockchain networks (Ethereum, Polygon, Base, Robinhood, etc.) via RPC endpoints.
 - **Social Intelligence APIs:** (e.g., Social Fetch). If you use social media [playbooks](/playbooks), Nyxora will send search queries (such as usernames or topics) and your provided API keys to these services to fetch real-time data from platforms like Twitter, TikTok, and Instagram.
 
 ## 🛡️ 3. Data Security

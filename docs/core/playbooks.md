@@ -1,8 +1,8 @@
-# 📚 Playbooks (Markdown SOPs)
+# 📚 Workflows / Playbooks (Markdown SOPs)
 
-While Nyxora is equipped with hardcoded TypeScript skills for complex API interactions, its true cognitive flexibility comes from **Playbooks**. 
+While Nyxora is equipped with hardcoded TypeScript skills for complex API interactions, its true cognitive flexibility comes from **Workflows (Playbooks)**. 
 
-Playbooks are human-readable Standard Operating Procedures (SOPs) written entirely in plain Markdown (`.md`). They teach the Nyxora AI Agent how to perform multi-step workflows, interact with specific websites, or interpret complex DeFi strategies without requiring you to write a single line of code.
+Playbooks are human-readable Standard Operating Procedures (SOPs) written entirely in plain Markdown (`.md`). In the Dashboard and Desktop UI, these are presented under the **Workflows** menu. They teach the Nyxora AI Agent how to perform multi-step tasks, interact with specific websites, or interpret complex DeFi strategies without requiring you to write a single line of code.
 
 ## 🧠 How It Works
 
@@ -51,7 +51,7 @@ If you guide the agent through a complex, multi-step problem in the terminal (e.
 
 The OS Agent will dynamically abstract the chat history into a generalized Markdown SOP and save it to the Playbooks directory. The next time the agent encounters the same issue, it already knows the solution!
 
-## 🎛️ Managing Playbooks (Skill Store)
+## 🎛️ Managing Workflows in Dashboard & Desktop
 
-You can manage your playbooks without touching the file system using the **Nyxora Dashboard**.
-Navigate to the **Skill Store** tab in the dashboard (`http://localhost:40000`) to access a modern split-pane Markdown editor. From there, you can browse, edit, delete, or create new playbooks seamlessly.
+You can manage your playbooks without touching the file system using the **Nyxora Dashboard** or **Desktop Application**.
+Navigate to the **Workflows** menu (previously titled "Skill Store" or "Playbooks") in the interface (`http://localhost:40000`) to access a modern Markdown editor. From there, you can browse, edit, delete, or create new Standard Operating Procedures seamlessly.

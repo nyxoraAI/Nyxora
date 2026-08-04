@@ -15,11 +15,11 @@ The policy configuration acts as the ultimate risk control center for the system
 
 ## 2. The Policy Gatekeeper (Transaction Interceptor)
 
-Before any transaction reaches the OS-Native Secure Vault for signing, it must pass through the local **Policy Gatekeeper** (berjalan sebagai layanan mikro terpisah di `packages/policy`). 
+Before any transaction reaches the OS-Native Secure Vault for signing, it must pass through the local **Policy Gatekeeper** (running as a dedicated microservice in `packages/policy`).
 
-Gatekeeper ini berkomunikasi melalui *Hyper-Optimized IPC Unix Socket*. Bahkan jika AI mengalami halusinasi atau diserang melalui *Prompt Injection* dan mencoba mengeksekusi perdagangan yang melanggar pengaturan Anda (misal: mengatur *slippage* 50% padahal batas maksimal Anda 2%), Gatekeeper akan secara fisik mencegat muatan Web3 tersebut. Ia akan langsung menolak transaksi, secara efektif mengunci kekuatan eksekusi AI di dalam batas yang telah Anda tentukan.
+The Gatekeeper communicates via a **Hyper-Optimized IPC Unix Socket**. Even if the AI experiences a hallucination or is targeted by a Prompt Injection attack and attempts to execute a trade that violates your safety rules (for example: setting a 50% slippage when your maximum limit is 2%), the Gatekeeper physically intercepts the Web3 payload. It immediately rejects the transaction, effectively confining the AI's execution capabilities within your defined security boundaries.
 
-Dengan memisahkan pembangkitan bahasa (LLM di Core) dari verifikasi keamanan (*Policy Engine*) dan eksekusi kriptografi (*Signer Vault*), Nyxora mencapai keandalan **Zero-Trust** yang mutlak.
+By separating natural language generation (LLM in Core) from security verification (Policy Engine) and cryptographic signing (Signer Vault), Nyxora achieves absolute **Zero-Trust** reliability.
 
 <br>
 

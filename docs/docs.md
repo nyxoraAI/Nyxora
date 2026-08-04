@@ -61,12 +61,12 @@ graph TD
     User["User / External Client"]:::external
 
     Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
-    MCP["MCP Server<br/>Port 3001"]:::ui
+    MCP["MCP Server<br/>STDIO (Process)"]:::ui
 
     Core["Core LLM Runtime<br/>Port 40000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core
 
     ML["ML Engine<br/>Port 50000"]:::core
-    Policy["Policy Engine (Guard)<br/>Unix Socket (IPC) / Loopback"]:::policy
+    Policy["Policy Engine (Guard)<br/>Unix Socket / Port 3001 (TCP)"]:::policy
     Signer["Signer Vault (Safe)<br/>Unix Socket (IPC)"]:::signer
 
     RPC["Blockchain RPC"]:::blockchain

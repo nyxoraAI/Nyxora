@@ -1,6 +1,6 @@
 # ⚙️ Etherscan API V2 Configuration
 
-Nyxora uses the **Etherscan API V2 (Unified API)** to securely fetch your deep transaction history (Native & ERC-20) across more than 60 L1 and L2 networks (Ethereum, Base, Arbitrum, BSC, Optimism, Polygon, and their respective Testnets).
+Nyxora uses the **Etherscan API V2 (Unified API)** to securely fetch your deep transaction history (Native & ERC-20) across more than 60 L1 and L2 networks (Ethereum, Base, Arbitrum, BSC, Optimism, Polygon, Robinhood, and their respective Testnets).
 
 Thanks to the V2 architectural upgrade, you **no longer need** multiple API Keys for different networks. Just **one API Key** from your Etherscan account is enough, and the system will intelligently route it across all supported chains simultaneously!
 

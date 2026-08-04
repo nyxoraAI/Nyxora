@@ -22,7 +22,7 @@ export async function initializeMcpServers(): Promise<void> {
 
       const client = new Client({
         name: "nyxora-agent",
-        version: "26.8.3"
+        version: "26.8.4"
       }, {
         capabilities: {}
       });

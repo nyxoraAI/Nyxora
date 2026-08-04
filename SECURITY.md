@@ -25,10 +25,10 @@ When the LLM processes a transaction instruction, the actual cryptographic execu
 
 ## 2. On-Chain AI Kill-Switch (Decentralized Registry)
 
-To provide users with absolute, trustless control over their AI agents, Nyxora embeds a core security layer natively on the **Arbitrum Network**.
+To provide users with absolute, trustless control over their AI agents, Nyxora embeds a core security layer natively on the **Base Network**.
 
 Before any AI-generated transaction is forwarded to the OS-Native Keyring for signing, the transaction manager invokes an asynchronous RPC call to verify the user's status on the `NyxoraAgentRegistry` Smart Contract. 
-If a user suspects their local machine is compromised, they can trigger the `toggleAgentStatus(false)` function via a block explorer (e.g., Arbiscan) from any secure device. The local Gateway process immediately detects this and terminates the execution thread, making it physically impossible for the AI to transmit the payload.
+If a user suspects their local machine is compromised, they can trigger the `toggleAgentStatus(false)` function via a block explorer (e.g., Basescan) from any secure device. The local Gateway process immediately detects this and terminates the execution thread, making it physically impossible for the AI to transmit the payload.
 
 ---
 

@@ -22,8 +22,16 @@ npm start
 
 ---
 
-## 🔌 Membangun MCP Plugin Kustom
+## 🔌 Building Custom MCP Plugins
 
-Nyxora juga memungkinkan Anda untuk menyuntikkan (inject) kemampuan baru ke dalam MCP Server dengan membuat plugin secara mandiri. Hal ini sangat berguna jika Anda ingin menghubungkan API internal perusahaan atau *smart contract* privat Anda agar dapat diakses oleh AI.
+Nyxora also allows you to inject new custom capabilities into the MCP Server by building your own plugins. This is especially useful for connecting enterprise internal APIs or private smart contracts so they can be accessed by the AI.
 
-Untuk panduan mendalam (*step-by-step*) beserta *code snippet* tentang cara membuat MCP Plugin kustom, silakan merujuk ke halaman **[Plugin Registry > Custom MCP Plugin](/plugins/#tutorial-mendalam-membuat-custom-mcp-plugin)**.
+For a comprehensive step-by-step guide and code snippets on building custom MCP plugins, please refer to **[Plugin Registry > Custom MCP Plugin](/plugins/#in-depth-tutorial-building-a-custom-mcp-plugin)**.
+
+---
+
+## 🛠️ Managing External MCP Servers (Nyxora as an MCP Client)
+
+In addition to acting as an MCP Server for external IDEs, Nyxora also operates as an **MCP Client** that can dynamically connect to and consume third-party MCP servers (such as `sequential-thinking` or `memory`).
+
+To learn how to add, remove, and synchronize external MCP servers via the Dashboard/Desktop GUI or the `~/.nyxora/config/nyxmcp.yaml` configuration file, please consult **[Managing External MCP Servers](/mcp/external-servers)**.

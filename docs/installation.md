@@ -94,9 +94,9 @@ npm run setup
 # Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
 npm start
 
-# (Optional) Run the Desktop App locally
+# (Optional) Run the Native Desktop App locally
 npm run desktop
-> ⚠️ The Desktop app (`npm run desktop`) is only available when running from source. It is not included in the npm package.
+> 💡 **Linux Sandbox Compatibility**: The Desktop app automatically applies `--no-sandbox` and `ELECTRON_DISABLE_SANDBOX=1` flags to run safely on Linux distributions without SUID permissions.
 ```
 *(If you are actively developing and modifying the source code, use `npm run dev` to enable hot-reloading for the frontend and backend).*
 

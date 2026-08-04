@@ -16,9 +16,8 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
     [ User / External Client ]
                |
                v
-+-----------------------------+       +-------------------------+
 |     Dashboard (UI)          |       |      MCP Server         |
-|        Port 5173            |       |       Port 3001         |
+|        Port 5173            |       |      STDIO (Process)    |
 +-----------------------------+       +-------------------------+
                |                                  |
                +---------------+------------------+
@@ -33,7 +32,7 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
                       v                v
 +-------------------------+   +-------------------------------+
 |       ML Engine         |   |    Policy Engine (Guard)      |
-|      Port 50000         |   |  Unix Socket (IPC) / Loopback |
+|      Port 50000         |   | Unix Socket / Port 3001 (TCP) |
 +-------------------------+   +-------------------------------+
                                                |
                                                | (Approved Payload)
@@ -69,9 +68,9 @@ The ML Engine is a local Python FastAPI backend dedicated to heavy cognitive and
 *   **Semantic Memory & RAG:** Operates `langchain_huggingface` using the `all-MiniLM-L6-v2` embedding model. It synchronizes the SQLite episodic memory into a fast local ChromaDB vector store, enabling lightning-fast semantic context retrieval.
 *   **Market Intelligence Delegation:** Utilizes Pandas (`pandas-ta`) to calculate advanced technical indicators (RSI, MA50) directly from Binance K-Lines, feeding deterministic market scores back to the Core Runtime to prevent LLM hallucinations.
 *   **Proactive Skill Evolution (Background Review):** After every 10 tool iterations, the ML engine autonomously analyzes the last 100 conversational turns (via LangChain), identifies frustration or user corrections, and aggressively patches or writes new Python/Node.js skills to self-improve across sessions.
-*   **Reinforcement Learning (RL):** Menjalankan PPOAgent untuk mengevaluasi strategi eksekusi token.
+*   **Reinforcement Learning (RL):** Executes PPOAgent to evaluate token execution and trading strategies.
 
-### 3. MCP Server (Context Provider) - Port 3001
+### 3. MCP Server (Context Provider) - STDIO
 The MCP (Model Context Protocol) Server acts as an open standard interface between Nyxora and external environments.
 *   **Role:** Allows Nyxora to read files, execute terminal commands, and search local knowledge bases natively.
 *   **Extensibility:** Developers can plug in any standard MCP tool into Nyxora seamlessly.
@@ -82,8 +81,8 @@ A suite of beautiful, highly interactive client interfaces tailored for real-tim
 *   **Nyxora Desktop MVP:** A native standalone Electron application mirroring the web dashboard with a localized OS-level experience (auto-bootstraps the daemon on launch).
 *   **Terminal UI (TUI):** A native terminal multi-pane interface using `blessed` and SSE streaming for non-GUI or VPS users (`nyxora chat`).
 
-### 5. Policy Engine (The Guard) - Unix Socket
-The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It communicates via a combination of Hyper-Optimized IPC (Unix Socket) at `/tmp/nyxora-policy.sock` and local TCP Loopback (`127.0.0.1`) for secure internal routing.
+### 5. Policy Engine (The Guard) - Unix Socket / Port 3001
+The Policy Engine acts as a strict middleware firewall between the Brain and the Vault. It communicates via a combination of Hyper-Optimized IPC (Unix Socket) at `/tmp/nyxora-policy.sock` and local TCP Loopback (`127.0.0.1:3001` fallback on Windows) for secure internal routing.
 *   **Role:** Receives transaction drafts from the Core. It parses the payload and checks it against immutable rules defined in `policy.yaml` (e.g., maximum daily spend, whitelisted addresses).
 *   **Security:** If a transaction exceeds the allowed risk parameters, the Policy Engine drops it immediately.
 

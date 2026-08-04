@@ -12,6 +12,7 @@ Nyxora natively supports EVM-compatible chains through `viem`. Agents can read d
 - **Base (L2):** Coinbase's ultra-fast rollup for low-fee trading and micro-transactions.
 - **Polygon (PoS):** Fully integrated for high-throughput DeFi operations.
 - **Arbitrum, Optimism, & Base (L2):** Fully compatible via Custom RPC injections, featuring Native OP Stack Bridge integration and Asynchronous L2 Withdrawal Watchers.
+- **Robinhood (`robinhood`):** Supported natively for EVM transactions, Etherscan API V2 lookups, and OpenSea API v2 Seaport NFT trading.
 
 ---
 

@@ -31,57 +31,57 @@ Nyxora will dynamically generate the Node.js execution logic and the required sc
 
 ---
 
-## 🛠️ Tutorial Mendalam: Membuat Custom MCP Plugin
+## 🛠️ In-Depth Tutorial: Building a Custom MCP Plugin
 
-Selain skill otonom, Anda juga dapat menulis plugin MCP secara manual untuk menghubungkan Nyxora dengan layanan eksternal (misalnya API harga kustom atau database internal). 
+In addition to autonomous skills, you can manually write custom MCP plugins to connect Nyxora with external services (such as custom price APIs or internal databases).
 
-Plugin MCP Nyxora diimplementasikan menggunakan arsitektur modular TypeScript. Berikut adalah contoh cara membuat plugin sederhana.
+Nyxora MCP plugins are implemented using a modular TypeScript architecture. Below is an example of how to create a simple custom plugin.
 
-### 1. Struktur File
-Buat file TypeScript baru di dalam direktori `packages/mcp-server/src/plugins/`:
+### 1. File Structure
+Create a new TypeScript file inside the `packages/mcp-server/src/plugins/` directory:
 ```bash
 touch packages/mcp-server/src/plugins/priceOraclePlugin.ts
 ```
 
-### 2. Implementasi Kode Plugin (Code Snippet)
-Berikut adalah pola dasar (`boilerplate`) untuk membuat plugin MCP Nyxora yang valid:
+### 2. Plugin Implementation (Code Snippet)
+Here is the standard boilerplate for creating a valid Nyxora MCP plugin:
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 /**
- * Mendaftarkan plugin khusus ke dalam MCP Server Nyxora
+ * Registers a custom plugin into the Nyxora MCP Server
  */
 export function registerPriceOraclePlugin(server: McpServer) {
   
-  // Daftarkan tool 'get_custom_price' agar bisa dipanggil oleh AI eksternal
+  // Register tool 'get_custom_price' so it can be invoked by external AI clients
   server.tool(
     "get_custom_price",
-    "Mendapatkan harga aset kripto dari Oracle Internal",
+    "Fetches crypto asset price from an Internal Oracle",
     {
-      symbol: z.string().describe("Simbol aset (contoh: ETH, BTC)"),
+      symbol: z.string().describe("Asset symbol (e.g., ETH, BTC)"),
     },
     async ({ symbol }) => {
       try {
-        // Logika eksekusi plugin Anda
+        // Execute your custom plugin logic
         const price = await fetchInternalOraclePrice(symbol);
         
-        // Response wajib dikembalikan dalam format MCP TextContent
+        // Response must be returned in MCP TextContent format
         return {
           content: [
             {
               type: "text",
-              text: `Harga saat ini untuk ${symbol} adalah $${price}`,
+              text: `The current price of ${symbol} is $${price}`,
             }
           ]
         };
-      } catch (error) {
+      } catch (error: any) {
         return {
           content: [
             {
               type: "text",
-              text: `Gagal mengambil harga: ${error.message}`,
+              text: `Failed to fetch price: ${error.message}`,
             }
           ],
           isError: true,
@@ -91,15 +91,15 @@ export function registerPriceOraclePlugin(server: McpServer) {
   );
 }
 
-// Fungsi internal simulasi
+// Simulated internal helper function
 async function fetchInternalOraclePrice(symbol: string): Promise<number> {
-  // Panggil API Anda di sini
+  // Invoke your API here
   return 3500.50; 
 }
 ```
 
-### 3. Mendaftarkan Plugin ke Entry Point
-Setelah file plugin dibuat, daftarkan plugin tersebut ke dalam eksekusi utama MCP Server di `packages/mcp-server/src/index.ts`:
+### 3. Registering the Plugin with the Entry Point
+Once your plugin file is created, register it within the main MCP Server entry point at `packages/mcp-server/src/index.ts`:
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -110,10 +110,10 @@ const server = new McpServer({
   version: "1.0.0"
 });
 
-// Panggil fungsi registrasi
+// Invoke the registration function
 registerPriceOraclePlugin(server);
 
 // ... setup transport (StdioServerTransport)
 ```
 
-Dengan langkah ini, plugin kustom Anda (misalnya `get_custom_price`) akan segera dikenali oleh klien eksternal seperti Claude Desktop yang terhubung ke daemon Nyxora!
+With this configuration, your custom plugin (e.g., `get_custom_price`) will immediately be recognized by external clients such as Claude Desktop connected to the Nyxora daemon!

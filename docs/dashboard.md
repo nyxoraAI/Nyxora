@@ -40,15 +40,20 @@ The Dashboard is designed to be a transparent window into the background daemon'
 *   **Active CRON Jobs:** The Overview page actively polls the `/api/cron` endpoint to display the exact number of recurring background tasks currently registered by the AI Scheduler.
 *   **Agent Identity Sync:** If you instruct the AI to change its name via a chat command (e.g., "Change your name to Jarvis"), the backend instantly updates the global `nyxora.config.json` file. This guarantees that your Dashboard UI and Telegram Bot always reflect the AI's latest personality and naming configurations.
 
-## 🛠️ Unified Agent Capabilities (Settings)
+## 🛠️ Unified Control Panel & Navigation
 
-To provide a cleaner, more organized user experience, all modular capabilities of the AI have been consolidated under the **Settings ➔ AGENT CAPABILITIES** menu. 
-*   **[Skill Store (Playbooks)](/playbooks):** Manage and install Markdown-based Standard Operating Procedures (SOPs).
-*   **Web3 Skills:** Configure native blockchain transaction tools.
-*   **OS Skills:** Toggle permissions for the AI to interact with your host operating system (file system, command execution).
-*   **External Skills:** Manage `agentskills.io` standard code-based plugins and API keys for external services.
+To provide a clean, professional user experience, all core agent capabilities and system controls are organized across dedicated navigation views:
 
-This ensures the primary dashboard sidebar remains clutter-free while centralizing all agent configuration into a single logical control panel.
+*   **[Workflows (SOPs)](/core/playbooks):** Manage, create, and execute Markdown-based Standard Operating Procedures (previously titled "Playbooks").
+*   **Cron / Scheduled Tasks:** Quickly inspect and configure recurring background time-based tasks via the dedicated clock icon button located in the header bar (immediately below the Search button in both Dashboard and Desktop interfaces).
+*   **Memory:** Review episodic database records, short-term conversational context, and stored notes.
+*   **Security & Wallets:** Inspect Keyring status, configure policy rules, and manage EVM addresses.
+*   **System & Advanced Settings:**
+    *   **MCP Servers & Tools:** Directly add, view, or remove external Model Context Protocol servers synced with `~/.nyxora/config/nyxmcp.yaml`.
+    *   **LLM Engine Penalties:** Adjust interactive sliders for **Frequency Penalty**, **Presence Penalty**, and **Repetition Penalty** to fine-tune AI output randomness and repetition.
+    *   **Skill Toggles:** Enable or disable Web3, OS, and External skill groups.
+
+This ensures the main interface remains uncluttered while centralizing all agent configuration into a single logical control panel.
 
 ## 🖥️ Policy Engine Dashboard (Hard-coded Firewall)
 

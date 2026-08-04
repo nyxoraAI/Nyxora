@@ -106,6 +106,7 @@ export default defineConfig({
           items: [
             { text: 'Overview & Flags', link: '/cli/' },
             { text: 'Daemon & Interface', link: '/cli/daemon' },
+            { text: 'Desktop Application', link: '/cli/desktop' },
             { text: 'TUI Interface', link: '/cli/tui' },
             { text: 'Setup & Diagnostics', link: '/cli/setup' }
           ]
@@ -118,6 +119,7 @@ export default defineConfig({
             { text: 'Overview & Setup', link: '/mcp/' },
             { text: 'Claude Desktop', link: '/mcp/claude' },
             { text: 'Cursor IDE', link: '/mcp/cursor' },
+            { text: 'Managing External MCPs', link: '/mcp/external-servers' },
             { text: 'Available Capabilities', link: '/mcp/capabilities' }
           ]
         }
@@ -127,7 +129,8 @@ export default defineConfig({
           text: '🧠 CORE CAPABILITIES',
           items: [
             { text: 'Native Skills', link: '/core/native' },
-            { text: 'Playbooks (SOPs)', link: '/core/playbooks' },
+            { text: 'Workflows (Playbooks)', link: '/core/playbooks' },
+            { text: 'NFT Trading & OpenSea', link: '/core/nft' },
             { text: 'Python ML Engine', link: '/core/ml-engine' },
             { text: 'Market Intelligence', link: '/core/market-intelligence' },
             { text: 'Web Search & Deep Research', link: '/core/web-search' },

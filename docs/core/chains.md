@@ -30,6 +30,8 @@ Nyxora currently has 100% native support for the following EVM-compatible networ
     - Supported for testing Base L2 integrations.
 10. **Optimism Sepolia (`optimism_sepolia`)**
     - Supported for testing OP Stack integrations.
+11. **Robinhood (`robinhood`)**
+    - Supported natively for EVM transactions, Etherscan API V2 lookups, and OpenSea API v2 NFT trading.
 
 > [!TIP]
 > Nyxora uses a dynamic `SUPPORTED_CHAIN_NAMES` registry. If you want to add a new EVM chain (e.g., Avalanche or Linea), you only need to add it to `packages/core/src/web3/config.ts`. The rest of the AI's logic will automatically adapt!

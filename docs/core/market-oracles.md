@@ -21,9 +21,12 @@ By registering and entering a paid or private API key (such as a **CoinGecko Pro
 
 You can set your Private API Keys through the provided graphical interface:
 
-1. Open your local Nyxora Dashboard.
-2. Navigate to the **Market Oracles Configuration** menu on the left sidebar.
-3. Enter the API Key you obtained from the data provider (e.g., the CoinGecko dashboard) into the corresponding field.
+1. Open your local Nyxora Dashboard or Desktop App.
+2. Navigate to **Settings ➔ Market Oracles**.
+3. Enter your API keys for supported providers:
+   - **CoinGecko Pro Key (`coingecko_key`)**: Bypasses public rate limits for high-frequency token analysis.
+   - **OpenSea API v2 Key (`opensea_key`)**: Enables real-time NFT collection floor prices, holder distributions, and Seaport trading without HTTP 429 rate limits.
+   - **CoinMarketCap Pro Key (`coinmarketcap_key`)**: Secondary token price oracle.
 4. Click **Save**.
 
 ::: tip Security Notice (Zero-Trust)

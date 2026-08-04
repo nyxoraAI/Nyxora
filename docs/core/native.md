@@ -35,6 +35,11 @@ Unlike generic AI assistants, Nyxora was built from the ground up for the blockc
 *   **Dual-Routing API Waterfall:** Whenever a user asks for crypto prices, market analysis, or deep dives, the AI **must** prioritize using dedicated Web3 APIs. It uses a dual-routing system: Symbol queries (e.g., $ETH) are routed to CoinGecko and CEX APIs for highly accurate global FDV and liquidity metrics. Contract Address queries (e.g., 0x...) are routed to DexScreener for live on-chain pool data.
 *   **Smart Contract Auditing:** The AI can read a smart contract's ABI and source code (if verified on Etherscan) to detect obvious honeypots or vulnerabilities before interacting with it.
 
+### 🖼️ NFT Trading & OpenSea API v2
+*   **NFT Market Oracle (`get_nft_market_stats`):** Queries live collection floor prices, 24h volume, market cap, and owner statistics directly from OpenSea API v2 across 7 supported EVM networks (`ethereum`, `polygon`, `arbitrum`, `optimism`, `base`, `bsc`, and `robinhood`).
+*   **Seaport NFT Buying (`buy_nft_opensea`):** Autonomously fetches official Seaport fulfillment calldata (`/api/v2/listings/fulfillment_data`) and safely routes NFT purchases through the Policy Gate (`require_approval`).
+*   **Off-Chain Seaport Listings (`list_nft_opensea`):** Prepares and signs off-chain listings for ERC-721/ERC-1155 tokens, automatically verifying `isApprovedForAll` status against the official Seaport Conduit (`0x1E0049783F008A0085193E00003D00cd54003c71`).
+
 ### ✨ ⏰ Asynchronous Watchdog & AI Scheduler
 *   **Time-Based AI Scheduler (CRON):** Nyxora features a robust internal Cron Engine. The AI can autonomously schedule recurring prompts or tasks in the background (e.g., *"Check BTC price every hour and notify me"*). The engine runs detached from the main chat session and pushes clean, formatted analysis reports directly to your Telegram bot.
 
