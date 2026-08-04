@@ -26,18 +26,18 @@
             configStore.updateConfig({llm: configStore.config!.llm});
           }}
           options={[
-            {value: 'gemini', label: 'Google Gemini'},
-            {value: 'anthropic', label: 'Anthropic (Claude)'},
-            {value: 'openai', label: 'OpenAI'},
-            {value: 'nvidia', label: 'NVIDIA (NIM)'},
-            {value: 'openrouter', label: 'OpenRouter'},
-            {value: '9router', label: '9Router (Local)'},
-            {value: 'ollama', label: 'Ollama (Local)'},
-            {value: 'groq', label: 'Groq'},
-            {value: 'mistral', label: 'Mistral AI'},
-            {value: 'xai', label: 'xAI (Grok)'},
-            {value: 'deepseek', label: 'DeepSeek'},
-            {value: 'custom_provider', label: 'Custom Provider'}
+            {value: 'gemini', label: 'Google Gemini', provider: 'gemini'},
+            {value: 'anthropic', label: 'Anthropic (Claude)', provider: 'anthropic'},
+            {value: 'openai', label: 'OpenAI', provider: 'openai'},
+            {value: 'nvidia', label: 'NVIDIA (NIM)', provider: 'nvidia'},
+            {value: 'openrouter', label: 'OpenRouter', provider: 'openrouter'},
+            {value: '9router', label: '9Router (Local)', provider: '9router'},
+            {value: 'ollama', label: 'Ollama (Local)', provider: 'ollama'},
+            {value: 'groq', label: 'Groq', provider: 'groq'},
+            {value: 'mistral', label: 'Mistral AI', provider: 'mistral'},
+            {value: 'xai', label: 'xAI (Grok)', provider: 'xai'},
+            {value: 'deepseek', label: 'DeepSeek', provider: 'deepseek'},
+            {value: 'custom_provider', label: 'Custom Provider', provider: 'custom_provider'}
           ]}
           className="min-w-[180px]"
         />
@@ -183,8 +183,8 @@
           bind:value={configStore.config.llm.image_provider}
           onchange={() => configStore.updateConfig({llm: configStore.config.llm})}
           options={[
-            {value: 'openai', label: 'OpenAI (DALL-E)'},
-            {value: 'gemini', label: 'Google Gemini'}
+            {value: 'openai', label: 'OpenAI (DALL-E)', provider: 'openai'},
+            {value: 'gemini', label: 'Google Gemini', provider: 'gemini'}
           ]}
           className="min-w-[180px]"
         />

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { tick } from 'svelte';
+  import LlmIcon from './LlmIcon.svelte';
 
   let { 
     value = $bindable(), 
@@ -9,14 +10,15 @@
     className = "" 
   } = $props<{
     value: string | number;
-    options: {value: string | number, label: string}[];
+    options: {value: string | number, label: string, iconUrl?: string, provider?: string}[];
     onchange?: (val: string | number) => void;
     className?: string;
   }>();
 
   let isOpen = $state(false);
 
-  const selectedLabel = $derived(options.find(o => o.value === value)?.label || (value !== undefined && value !== null && value !== '' ? value : 'Select...'));
+  const selectedOption = $derived(options.find(o => o.value === value));
+  const selectedLabel = $derived(selectedOption?.label || (value !== undefined && value !== null && value !== '' ? value : 'Select...'));
 
   async function handleSelect(val: string | number) {
     value = val;
@@ -29,10 +31,17 @@
 <div class="relative inline-block {className}">
   <button 
     onclick={() => isOpen = !isOpen}
-    class="w-full flex items-center justify-between bg-gray-100 dark:bg-[#3f3f46]/50 border border-transparent dark:border-white/5 rounded-lg px-3 py-1.5 text-[0.85rem] text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition-colors"
+    class="w-full flex items-center justify-between bg-[#0A84FF] hover:bg-[#0070E0] dark:bg-[#007AFF] dark:hover:bg-[#0062CC] text-white border-none rounded-full px-4 py-2 text-[13.5px] font-semibold focus:outline-none focus:ring-2 focus:ring-[#0A84FF]/50 cursor-pointer transition-all shadow-sm"
   >
-    <span class="truncate">{selectedLabel}</span>
-    <svg class="w-4 h-4 text-gray-500 shrink-0 ml-3 transition-transform duration-200 {isOpen ? 'rotate-180' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="flex items-center gap-2 truncate">
+      {#if selectedOption?.iconUrl}
+        <img src={selectedOption.iconUrl} alt="icon" class="w-4 h-4 rounded-full object-cover shrink-0" />
+      {:else if selectedOption?.provider}
+        <LlmIcon provider={selectedOption.provider} size={14} color="currentColor" />
+      {/if}
+      <span class="truncate">{selectedLabel}</span>
+    </div>
+    <svg class="w-4 h-4 text-white/80 shrink-0 ml-3 transition-transform duration-200 {isOpen ? 'rotate-180' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
     </svg>
   </button>
@@ -54,8 +63,13 @@
         {#each options as option}
           <button
             onclick={() => handleSelect(option.value)}
-            class="w-full text-left px-4 py-2 text-[0.85rem] whitespace-nowrap transition-colors {value === option.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'}"
+            class="w-full flex items-center gap-2 text-left px-4 py-2 text-[13.5px] whitespace-nowrap transition-colors {value === option.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'}"
           >
+            {#if option.iconUrl}
+              <img src={option.iconUrl} alt="icon" class="w-4 h-4 rounded-full object-cover shrink-0" />
+            {:else if option.provider}
+              <LlmIcon provider={option.provider} size={14} color="currentColor" />
+            {/if}
             {option.label}
           </button>
         {/each}

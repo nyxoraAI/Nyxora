@@ -376,7 +376,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onConfigChange, autoLockTim
                     onChange={(val) => handleChange('agent', 'default_chain', val)}
 
                     options={[
-                      { id: 'all', label: 'All Chains (Auto)', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
+                      { id: 'all', label: 'All Chain', icon: <Globe size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> },
                       { id: 'ethereum', label: 'Ethereum Mainnet', icon: <ChainIcon id="ethereum" /> },
                       { id: 'bsc', label: 'BNB Chain', icon: <ChainIcon id="bsc" /> },
                       { id: 'base', label: 'Base', icon: <ChainIcon id="base" /> },

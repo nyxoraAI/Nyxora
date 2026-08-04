@@ -133,14 +133,14 @@
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div 
                       onclick={() => activeTab = item.id}
-                      class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all select-none {activeTab === item.id 
-                        ? 'bg-blue-500 text-white font-medium shadow-sm' 
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/5'}"
+                      class="w-full flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all select-none {activeTab === item.id 
+                        ? 'bg-gray-200/80 dark:bg-white/10 text-gray-900 dark:text-white font-semibold' 
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-white/5'}"
                     >
-                      <div class="w-5 h-5 rounded-md flex items-center justify-center {activeTab === item.id ? 'bg-white/20 text-white' : 'text-gray-500 dark:text-gray-400'}">
-                        <Icon size={14} strokeWidth={2.2} />
+                      <div class="w-7 h-7 rounded-[8px] flex items-center justify-center transition-all {activeTab === item.id ? 'bg-[#0A84FF] text-white shadow-[0_4px_12px_rgba(10,132,255,0.25)]' : 'text-gray-500 dark:text-gray-400'}">
+                        <Icon size={16} strokeWidth={activeTab === item.id ? 2.5 : 2.2} />
                       </div>
-                      <span class="text-xs truncate flex-1">{item.label}</span>
+                      <span class="text-[13.5px] truncate flex-1">{item.label}</span>
                     </div>
                   {/each}
                 </div>
