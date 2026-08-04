@@ -26,6 +26,15 @@ export default defineConfig({
 			},
 			preload: {
 				input: 'electron/preload.ts',
+				vite: {
+					build: {
+						rollupOptions: {
+							output: {
+								format: 'es'
+							}
+						}
+					}
+				}
 			},
 		})
 	]
