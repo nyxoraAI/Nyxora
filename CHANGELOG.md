@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features & Desktop Enhancements
 - **Desktop LLM Engine Parameter Parity (`LlmEngine.svelte`, `config.svelte.ts`)**: Added interactive slider controls for **Frequency Penalty** (-2.0 to 2.0), **Presence Penalty** (-2.0 to 2.0), and **Repetition Penalty** (0.0 to 2.0) to the Desktop app's LLM Engine modal, achieving full parameter parity with the Dashboard web interface.
 - **Desktop Settings Dropdown Clipping Fix (`LlmEngine.svelte`, `Appearance.svelte`, `RiskPolicy.svelte`, `SecurityPrivacy.svelte`, `AgentProfile.svelte`)**: Replaced `overflow-hidden` with `overflow-visible` across settings card containers so dropdown menus (such as **Reasoning Effort** in LLM Engine) are no longer clipped or hidden when opened near the bottom of a container.
+- **Unified Dropdown & Provider Icons (`Dropdown.svelte`, `LlmIcon.svelte`, `Settings.tsx`)**: Standardized dropdown component typography, alignment, and hover-states across Desktop and Dashboard, and injected visual LLM Provider Icons for enhanced visual consistency.
 
 ### Documentation & Ecosystem Enhancements
 - **Comprehensive Documentation Refresh & New Guides**: Added detailed documentation for Desktop CLI (`docs/cli/desktop.md`), OpenSea API v2 NFT Trading Skills (`docs/core/nft.md`), and External MCP Servers (`docs/mcp/external-servers.md`). Updated core guides across architecture, CLI, chains, Etherscan, Market Oracles, ML Engine, native skills, playbooks, dashboard, privacy, security, and sandbox instructions.
