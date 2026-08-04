@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Desktop Settings Dropdown Clipping Fix (`LlmEngine.svelte`, `Appearance.svelte`, `RiskPolicy.svelte`, `SecurityPrivacy.svelte`, `AgentProfile.svelte`)**: Replaced `overflow-hidden` with `overflow-visible` across settings card containers so dropdown menus (such as **Reasoning Effort** in LLM Engine) are no longer clipped or hidden when opened near the bottom of a container.
 - **Unified Dropdown & Provider Icons (`Dropdown.svelte`, `LlmIcon.svelte`, `Settings.tsx`)**: Standardized dropdown component typography, alignment, and hover-states across Desktop and Dashboard, and injected visual LLM Provider Icons for enhanced visual consistency.
 
+### Security & Dependency Maintenance
+- **NPM Audit Vulnerability Remediation (`package.json`, `package-lock.json`)**: Resolved 6 moderate-to-high security vulnerabilities across core dependencies (including `brace-expansion`, `fast-uri`, `hono`, `ip-address`, `postcss`, and `undici`) by updating lockfile versions and overriding outdated `tar` package resolution. Registered trusted lifecycle scripts in `allowScripts` to maintain secure build environments.
+
 ### Documentation & Ecosystem Enhancements
 - **Comprehensive Documentation Refresh & New Guides**: Added detailed documentation for Desktop CLI (`docs/cli/desktop.md`), OpenSea API v2 NFT Trading Skills (`docs/core/nft.md`), and External MCP Servers (`docs/mcp/external-servers.md`). Updated core guides across architecture, CLI, chains, Etherscan, Market Oracles, ML Engine, native skills, playbooks, dashboard, privacy, security, and sandbox instructions.
 - **Local Version Increment**: Bumped Nyxora version to `v26.8.4` across all workspace packages and submodules.
