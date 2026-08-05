@@ -57,8 +57,10 @@ function createWindow() {
     width: 1200,
     height: 800,
     titleBarStyle: 'hidden',
+    // On Linux: frameless window without transparent to avoid click-through issues
+    // transparent mode conflicts with disable-gpu-compositing causing buttons to be unclickable
     frame: process.platform === 'darwin',
-    transparent: process.platform === 'linux', // Trick to force GNOME compositing to respect frameless maximize bounds
+    backgroundColor: '#1c1c1e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,

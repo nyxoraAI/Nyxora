@@ -411,22 +411,44 @@ async function main() {
       console.log('Starting Nyxora Desktop...');
       const desktopDir = path.join(projectRoot, 'packages/desktop');
       const isWin = process.platform === 'win32';
-      const npxCmd = isWin ? 'npx.cmd' : 'npx';
-      const childDesktop = spawn(npxCmd, [
-        '-y',
-        'electron@latest',
-        desktopDir,
-        '--no-sandbox',
-        '--disable-gpu-sandbox',
-        '--disable-setuid-sandbox'
-      ], {
-        cwd: projectRoot,
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SANDBOX: '1'
-        }
-      });
+      // Resolve electron binary from the desktop package's local node_modules first,
+      // then fall back to npx with a pinned version matching the build (43.3.0).
+      // Using electron@latest can cause ABI mismatch with the prebuilt renderer/preload.
+      const localElectron = path.join(desktopDir, 'node_modules', '.bin', isWin ? 'electron.cmd' : 'electron');
+      const electronAvailable = fs.existsSync(localElectron);
+      let childDesktop;
+      if (electronAvailable) {
+        childDesktop = spawn(localElectron, [
+          desktopDir,
+          '--no-sandbox',
+          '--disable-gpu-sandbox',
+          '--disable-setuid-sandbox'
+        ], {
+          cwd: projectRoot,
+          stdio: 'inherit',
+          env: {
+            ...process.env,
+            ELECTRON_DISABLE_SANDBOX: '1'
+          }
+        });
+      } else {
+        const npxCmd = isWin ? 'npx.cmd' : 'npx';
+        childDesktop = spawn(npxCmd, [
+          '-y',
+          'electron@43.3.0',
+          desktopDir,
+          '--no-sandbox',
+          '--disable-gpu-sandbox',
+          '--disable-setuid-sandbox'
+        ], {
+          cwd: projectRoot,
+          stdio: 'inherit',
+          env: {
+            ...process.env,
+            ELECTRON_DISABLE_SANDBOX: '1'
+          }
+        });
+      }
       await new Promise(resolve => childDesktop.on('close', resolve));
       break;
     }
