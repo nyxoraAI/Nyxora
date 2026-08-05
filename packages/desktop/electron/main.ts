@@ -15,10 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-setuid-sandbox');
-app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-software-rasterizer');
-app.commandLine.appendSwitch('disable-gpu-compositing');
+
 
 process.env.APP_ROOT = path.join(__dirname, '..');
 
@@ -51,20 +48,24 @@ function startNyxoraDaemon() {
 }
 
 function createWindow() {
+  const isLinux = process.platform === 'linux';
+  const isMac   = process.platform === 'darwin';
+
   win = new BrowserWindow({
     title: 'Nyxora',
     icon: nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, 'nyxora-icon.png')),
     width: 1200,
     height: 800,
-    titleBarStyle: 'hidden',
-    // On Linux: frameless window without transparent to avoid click-through issues
-    // transparent mode conflicts with disable-gpu-compositing causing buttons to be unclickable
-    frame: process.platform === 'darwin',
+    // macOS: use hidden title bar with native traffic lights
+    // Linux/Windows: frameless window with custom HTML window controls
+    titleBarStyle: isMac ? 'hidden' : 'hidden',
+    frame: false, // frameless on all platforms; macOS traffic lights via titleBarStyle:hidden
     backgroundColor: '#1c1c1e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
   });
 
@@ -118,12 +119,12 @@ function createWindow() {
 }
 
 ipcMain.on('window-minimize', (event) => {
-  const w = BrowserWindow.fromWebContents(event.sender);
+  const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
   if (w) w.minimize();
 });
 
 ipcMain.on('window-maximize', (event) => {
-  const w = BrowserWindow.fromWebContents(event.sender);
+  const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
   if (w) {
     if (w.isMaximized()) w.unmaximize();
     else w.maximize();
@@ -131,7 +132,7 @@ ipcMain.on('window-maximize', (event) => {
 });
 
 ipcMain.on('window-close', (event) => {
-  const w = BrowserWindow.fromWebContents(event.sender);
+  const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
   if (w) w.close();
 });
 

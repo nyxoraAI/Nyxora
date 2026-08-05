@@ -246,12 +246,18 @@
 {#if !isCollapsed}
 <div class="flex-shrink-0 w-[240px] h-full bg-gray-50 dark:bg-[#1d1d1f] border-r border-gray-200 dark:border-[#3a3a3c] flex flex-col text-sm text-gray-700 dark:text-[#e5e5ea] transition-all duration-300">
   <!-- Header -->
-  <div class="p-3 pt-4 flex items-center justify-between drag-region mb-2">
-    <div class="flex items-center gap-2 px-2 no-drag-region cursor-pointer text-blue-500 hover:text-blue-600 dark:text-[#0a84ff] dark:hover:text-blue-400 transition-colors">
+  <div class="p-3 pt-4 flex items-center mb-2">
+    <!-- Left Logo -->
+    <div class="flex items-center gap-2 px-2 cursor-pointer text-blue-500 hover:text-blue-600 dark:text-[#0a84ff] dark:hover:text-blue-400 transition-colors">
       <NyxoraLogo size={24} color="currentColor" />
       <span class="font-medium text-[15px] text-blue-500 dark:text-[#0a84ff]">Nyxora<span class="text-blue-500 dark:text-[#0a84ff]">.</span></span>
     </div>
-    <button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] no-drag-region cursor-pointer" aria-label="Close sidebar">
+    
+    <!-- Drag Handle Spacer -->
+    <div class="flex-1 h-8" style="-webkit-app-region: drag;"></div>
+    
+    <!-- Close Button -->
+    <button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] cursor-pointer" aria-label="Close sidebar">
       <PanelLeftClose size={18} />
     </button>
   </div>

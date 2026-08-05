@@ -11,10 +11,6 @@ if (process.platform === "linux") app.setDesktopName("Nyxora.desktop");
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("disable-setuid-sandbox");
-app.commandLine.appendSwitch("disable-gpu-sandbox");
-app.commandLine.appendSwitch("disable-gpu");
-app.commandLine.appendSwitch("disable-software-rasterizer");
-app.commandLine.appendSwitch("disable-gpu-compositing");
 process.env.APP_ROOT = path.join(__dirname, "..");
 var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 var MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
@@ -38,18 +34,21 @@ function startNyxoraDaemon() {
 	});
 }
 function createWindow() {
+	process.platform;
+	const isMac = process.platform === "darwin";
 	win = new BrowserWindow({
 		title: "Nyxora",
 		icon: nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, "nyxora-icon.png")),
 		width: 1200,
 		height: 800,
-		titleBarStyle: "hidden",
-		frame: process.platform === "darwin",
+		titleBarStyle: isMac ? "hidden" : "hidden",
+		frame: false,
 		backgroundColor: "#1c1c1e",
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
 			contextIsolation: true,
-			nodeIntegration: false
+			nodeIntegration: false,
+			sandbox: false
 		}
 	});
 	session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
@@ -92,16 +91,16 @@ function createWindow() {
 	} else win.loadFile(path.join(RENDERER_DIST, "index.html"), token ? { query: { token } } : {});
 }
 ipcMain.on("window-minimize", (event) => {
-	const w = BrowserWindow.fromWebContents(event.sender);
+	const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
 	if (w) w.minimize();
 });
 ipcMain.on("window-maximize", (event) => {
-	const w = BrowserWindow.fromWebContents(event.sender);
+	const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
 	if (w) if (w.isMaximized()) w.unmaximize();
 	else w.maximize();
 });
 ipcMain.on("window-close", (event) => {
-	const w = BrowserWindow.fromWebContents(event.sender);
+	const w = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow() || win;
 	if (w) w.close();
 });
 ipcMain.handle("open-directory", async (event) => {

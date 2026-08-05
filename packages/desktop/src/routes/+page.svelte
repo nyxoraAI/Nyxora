@@ -29,8 +29,13 @@
 
 	// Robust IPC sender — safe in both Electron and browser dev mode
 	function sendIpc(channel: string) {
+		console.log('sendIpc called with channel:', channel);
 		if (typeof window !== 'undefined' && window.ipcRenderer) {
+			console.log('ipcRenderer found, sending message');
 			window.ipcRenderer.send(channel);
+		} else {
+			console.error('ipcRenderer not found!');
+			alert('Error: ipcRenderer not found. Are you running in Electron?');
 		}
 	}
 
@@ -126,27 +131,44 @@
 	<!-- Main Area -->
 	<div class="flex-1 h-full flex flex-col relative bg-white dark:bg-[#1c1c1e]">
 		<!-- Topbar -->
-		<div class="h-14 flex items-center px-4 justify-between drag-region relative z-30">
-			<div class="flex items-center gap-2 relative">
+		<div class="h-14 flex items-center px-4 relative z-30">
+			<!-- Left Items -->
+			<div class="flex items-center gap-2 relative z-20">
 				{#if isSidebarCollapsed}
-					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] no-drag-region cursor-pointer" aria-label="Open sidebar">
+					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] cursor-pointer" aria-label="Open sidebar">
 						<PanelLeftOpen size={18} />
 					</button>
 				{/if}
 				
 				<!-- LLM Indicator -->
-				<div class="flex items-center gap-2 no-drag-region px-3 py-1.5 rounded-xl border border-[#e5e5ea] dark:border-[#3a3a3c] bg-gray-50/50 dark:bg-[#2c2c2e]/50">
+				<div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#e5e5ea] dark:border-[#3a3a3c] bg-gray-50/50 dark:bg-[#2c2c2e]/50">
 					<span class="font-medium text-[14px]">{getCurrentLlmDisplay().name}</span>
 				</div>
 			</div>
 			
-			<div class="flex items-center gap-4 no-drag-region mb-3">
-				<!-- Window controls -->
-				<div class="flex items-center gap-2">
-					<button onclick={() => sendIpc('window-minimize')} class="w-3.5 h-3.5 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors cursor-pointer" aria-label="Minimize"></button>
-					<button onclick={() => sendIpc('window-maximize')} class="w-3.5 h-3.5 rounded-full bg-green-500 hover:bg-green-600 transition-colors cursor-pointer" aria-label="Maximize"></button>
-					<button onclick={() => sendIpc('window-close')} class="w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors cursor-pointer" aria-label="Close"></button>
-				</div>
+			<!-- Drag Handle Spacer (Only this empty area is draggable) -->
+			<div class="flex-1 h-full" style="-webkit-app-region: drag;"></div>
+			
+			<!-- Window controls: completely outside drag region, on top layer -->
+			<div class="wc-group flex items-center gap-2 relative z-20" style="-webkit-app-region: no-drag;">
+				<button
+					onclick={() => sendIpc('window-minimize')}
+					class="wc-btn w-3.5 h-3.5 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors cursor-pointer"
+					style="-webkit-app-region: no-drag; pointer-events: auto;"
+					aria-label="Minimize"
+				></button>
+				<button
+					onclick={() => sendIpc('window-maximize')}
+					class="wc-btn w-3.5 h-3.5 rounded-full bg-green-500 hover:bg-green-600 transition-colors cursor-pointer"
+					style="-webkit-app-region: no-drag; pointer-events: auto;"
+					aria-label="Maximize"
+				></button>
+				<button
+					onclick={() => sendIpc('window-close')}
+					class="wc-btn w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors cursor-pointer"
+					style="-webkit-app-region: no-drag; pointer-events: auto;"
+					aria-label="Close"
+				></button>
 			</div>
 		</div>
 
