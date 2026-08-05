@@ -99,7 +99,8 @@ textarea::placeholder {
 }
 
 .drag-region a,
-.drag-region button {
+.drag-region button,
+.drag-region [style*="no-drag"] {
 	-webkit-app-region: no-drag;
 }
 
@@ -107,9 +108,33 @@ textarea::placeholder {
 	-webkit-app-region: no-drag;
 }
 
+/* macOS-style window control buttons */
+.wc-group .wc-icon {
+	opacity: 0;
+	transition: opacity 80ms ease;
+}
+
+.wc-group:hover .wc-icon {
+	opacity: 1;
+}
+
+.wc-btn {
+	-webkit-app-region: no-drag !important;
+	pointer-events: auto !important;
+}
+
+.wc-btn:hover {
+	filter: brightness(0.88);
+}
+
+.wc-btn:active {
+	filter: brightness(0.72) scale(0.92);
+}
+
 li p {
 	display: inline;
 }
+
 
 ::-webkit-scrollbar-thumb {
 	--tw-border-opacity: 1;

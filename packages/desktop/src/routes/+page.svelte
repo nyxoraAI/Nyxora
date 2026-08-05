@@ -21,12 +21,23 @@
 	let isSearchOpen = $derived($appState.isSearchOpen);
 
 	let isLlmDropdownOpen = $state(false);
+	let isElectron = $state(false);
 	
 	let isLocked = $state(false);
 	let lockedAt = $state(0);
 	let lastActivity = Date.now();
 
+	// Robust IPC sender — safe in both Electron and browser dev mode
+	function sendIpc(channel: string) {
+		if (typeof window !== 'undefined' && window.ipcRenderer) {
+			window.ipcRenderer.send(channel);
+		}
+	}
+
 	onMount(() => {
+		// Detect if running inside Electron (preload exposes ipcRenderer)
+		isElectron = typeof window !== 'undefined' && !!window.ipcRenderer;
+
 		const handleActivity = () => { lastActivity = Date.now(); };
 		window.addEventListener('mousemove', handleActivity);
 		window.addEventListener('keydown', handleActivity);
@@ -115,28 +126,47 @@
 	<!-- Main Area -->
 	<div class="flex-1 h-full flex flex-col relative bg-white dark:bg-[#1c1c1e]">
 		<!-- Topbar -->
-		<div class="h-14 flex items-center px-4 justify-between drag-region relative z-30">
-			<div class="flex items-center gap-2 relative">
+		<div class="h-14 flex items-center px-3 justify-between drag-region relative z-30">
+			<!-- LEFT: macOS-style window controls + sidebar toggle -->
+			<div class="flex items-center gap-2 relative" style="-webkit-app-region: no-drag;">
+				{#if isElectron}
+					<!-- macOS Traffic Light Buttons -->
+					<div class="wc-group flex items-center gap-[6px] mr-1" style="-webkit-app-region: no-drag;">
+						<button
+							onclick={() => sendIpc('window-close')}
+							class="wc-btn wc-close w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
+							style="background:#FF5F57; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
+							aria-label="Close">
+							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#4d0000; line-height:1; user-select:none;">×</span>
+						</button>
+						<button
+							onclick={() => sendIpc('window-minimize')}
+							class="wc-btn wc-minimize w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
+							style="background:#FFBD2E; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
+							aria-label="Minimize">
+							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#4d3000; line-height:1; user-select:none;">−</span>
+						</button>
+						<button
+							onclick={() => sendIpc('window-maximize')}
+							class="wc-btn wc-maximize w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
+							style="background:#28CA41; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
+							aria-label="Maximize">
+							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#004d00; line-height:1; user-select:none;">+</span>
+						</button>
+					</div>
+				{/if}
+
 				{#if isSidebarCollapsed}
-					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] no-drag-region cursor-pointer" aria-label="Open sidebar">
+					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] cursor-pointer" style="-webkit-app-region: no-drag;" aria-label="Open sidebar">
 						<PanelLeftOpen size={18} />
 					</button>
 				{/if}
-				
-				<!-- LLM Indicator -->
-				<div 
-					class="flex items-center gap-2 no-drag-region px-3 py-1.5 rounded-xl border border-[#e5e5ea] dark:border-[#3a3a3c] bg-gray-50/50 dark:bg-[#2c2c2e]/50"
-				>
-					<span class="font-medium text-[14px]">{getCurrentLlmDisplay().name}</span>
-				</div>
 			</div>
-			
-			<div class="flex items-center gap-4 no-drag-region mb-3">
-				<!-- Window controls -->
-				<div class="flex items-center gap-2">
-					<button onclick={() => window.ipcRenderer?.send('window-minimize')} class="w-3.5 h-3.5 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors cursor-pointer" aria-label="Minimize"></button>
-					<button onclick={() => window.ipcRenderer?.send('window-maximize')} class="w-3.5 h-3.5 rounded-full bg-green-500 hover:bg-green-600 transition-colors cursor-pointer" aria-label="Maximize"></button>
-					<button onclick={() => window.ipcRenderer?.send('window-close')} class="w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors cursor-pointer" aria-label="Close"></button>
+
+			<!-- RIGHT: LLM Indicator -->
+			<div class="flex items-center gap-2" style="-webkit-app-region: no-drag;">
+				<div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#e5e5ea] dark:border-[#3a3a3c] bg-gray-50/50 dark:bg-[#2c2c2e]/50">
+					<span class="font-medium text-[14px]">{getCurrentLlmDisplay().name}</span>
 				</div>
 			</div>
 		</div>
