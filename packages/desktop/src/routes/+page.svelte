@@ -127,35 +127,8 @@
 	<div class="flex-1 h-full flex flex-col relative bg-white dark:bg-[#1c1c1e]">
 		<!-- Topbar -->
 		<div class="h-14 flex items-center px-3 justify-between drag-region relative z-30">
-			<!-- LEFT: macOS-style window controls + sidebar toggle -->
+			<!-- LEFT: Sidebar toggle -->
 			<div class="flex items-center gap-2 relative" style="-webkit-app-region: no-drag;">
-				{#if isElectron}
-					<!-- macOS Traffic Light Buttons -->
-					<div class="wc-group flex items-center gap-[6px] mr-1" style="-webkit-app-region: no-drag;">
-						<button
-							onclick={() => sendIpc('window-close')}
-							class="wc-btn wc-close w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
-							style="background:#FF5F57; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
-							aria-label="Close">
-							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#4d0000; line-height:1; user-select:none;">×</span>
-						</button>
-						<button
-							onclick={() => sendIpc('window-minimize')}
-							class="wc-btn wc-minimize w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
-							style="background:#FFBD2E; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
-							aria-label="Minimize">
-							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#4d3000; line-height:1; user-select:none;">−</span>
-						</button>
-						<button
-							onclick={() => sendIpc('window-maximize')}
-							class="wc-btn wc-maximize w-3 h-3 rounded-full flex items-center justify-center cursor-pointer transition-all duration-100"
-							style="background:#28CA41; border: 0.5px solid rgba(0,0,0,0.18); -webkit-app-region: no-drag; pointer-events: auto;"
-							aria-label="Maximize">
-							<span class="wc-icon" style="font-size:7px; font-weight:800; color:#004d00; line-height:1; user-select:none;">+</span>
-						</button>
-					</div>
-				{/if}
-
 				{#if isSidebarCollapsed}
 					<button onclick={() => appState.toggleSidebar()} class="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3a3a3c] rounded-md text-gray-500 dark:text-[#e5e5ea] hover:text-black dark:hover:text-[#ffffff] cursor-pointer" style="-webkit-app-region: no-drag;" aria-label="Open sidebar">
 						<PanelLeftOpen size={18} />
@@ -163,13 +136,40 @@
 				{/if}
 			</div>
 
-			<!-- RIGHT: LLM Indicator -->
-			<div class="flex items-center gap-2" style="-webkit-app-region: no-drag;">
+			<!-- RIGHT: LLM Indicator + macOS-style window controls -->
+			<div class="flex items-center gap-3" style="-webkit-app-region: no-drag;">
+				<!-- LLM Indicator -->
 				<div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#e5e5ea] dark:border-[#3a3a3c] bg-gray-50/50 dark:bg-[#2c2c2e]/50">
 					<span class="font-medium text-[14px]">{getCurrentLlmDisplay().name}</span>
 				</div>
+
+				<!-- macOS Traffic Light Buttons -->
+				<div class="wc-group flex items-center gap-[6px]" style="-webkit-app-region: no-drag;">
+					<button
+						onclick={() => sendIpc('window-minimize')}
+						class="wc-btn w-3 h-3 rounded-full flex items-center justify-center cursor-pointer"
+						style="background:#FFBD2E; border: 0.5px solid rgba(0,0,0,0.2); -webkit-app-region: no-drag; pointer-events: auto;"
+						aria-label="Minimize">
+						<span class="wc-icon" style="font-size:7px; font-weight:900; color:#5a3800; line-height:1; user-select:none;">−</span>
+					</button>
+					<button
+						onclick={() => sendIpc('window-maximize')}
+						class="wc-btn w-3 h-3 rounded-full flex items-center justify-center cursor-pointer"
+						style="background:#28CA41; border: 0.5px solid rgba(0,0,0,0.2); -webkit-app-region: no-drag; pointer-events: auto;"
+						aria-label="Maximize">
+						<span class="wc-icon" style="font-size:7px; font-weight:900; color:#004d00; line-height:1; user-select:none;">+</span>
+					</button>
+					<button
+						onclick={() => sendIpc('window-close')}
+						class="wc-btn w-3 h-3 rounded-full flex items-center justify-center cursor-pointer"
+						style="background:#FF5F57; border: 0.5px solid rgba(0,0,0,0.2); -webkit-app-region: no-drag; pointer-events: auto;"
+						aria-label="Close">
+						<span class="wc-icon" style="font-size:7px; font-weight:900; color:#4d0000; line-height:1; user-select:none;">×</span>
+					</button>
+				</div>
 			</div>
 		</div>
+
 
 		{#if isSearchOpen}
 			<SearchChat />
