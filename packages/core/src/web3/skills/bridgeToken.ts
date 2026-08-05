@@ -23,17 +23,23 @@ export async function prepareBridgeToken(
     
     const userAddress = await getAddress();
 
-    // Auto-correct: If one is testnet and the other is mainnet, assume they meant testnet
-    if (fromChain.includes('sepolia') && !toChain.includes('sepolia')) {
+    // Auto-correct: If one side is testnet and the other is mainnet, assume they meant testnet.
+    // This prevents accidental cross-environment (testnet→mainnet) bridge attempts.
+    const isFromTestnet = fromChain.includes('sepolia') || fromChain === 'robinhood_testnet';
+    const isToTestnet = toChain.includes('sepolia') || toChain === 'robinhood_testnet';
+
+    if (isFromTestnet && !isToTestnet) {
       if (toChain === 'base') toChain = 'base_sepolia';
       else if (toChain === 'arbitrum') toChain = 'arbitrum_sepolia';
       else if (toChain === 'optimism') toChain = 'optimism_sepolia';
       else if (toChain === 'ethereum') toChain = 'sepolia';
-    } else if (toChain.includes('sepolia') && !fromChain.includes('sepolia')) {
+      else if (toChain === 'robinhood') toChain = 'robinhood_testnet';
+    } else if (isToTestnet && !isFromTestnet) {
       if (fromChain === 'base') fromChain = 'base_sepolia';
       else if (fromChain === 'arbitrum') fromChain = 'arbitrum_sepolia';
       else if (fromChain === 'optimism') fromChain = 'optimism_sepolia';
       else if (fromChain === 'ethereum') fromChain = 'sepolia';
+      else if (fromChain === 'robinhood') fromChain = 'robinhood_testnet';
     }
     
     // We assume the same token symbol on both chains for a standard bridge

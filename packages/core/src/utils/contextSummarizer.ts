@@ -180,16 +180,23 @@ async function _summarizeMiddle(
     ? `EXISTING SUMMARY (to be merged/updated):\n${existingSummary}\n\nNEW TURNS TO INCORPORATE:\n`
     : '';
 
+  // Cap historyText to prevent the summarizer call itself from exceeding context
+  const MAX_HISTORY_TEXT_CHARS = 12000;
+  const cappedHistoryText = historyText.length > MAX_HISTORY_TEXT_CHARS
+    ? historyText.substring(0, MAX_HISTORY_TEXT_CHARS) + '\n...[older turns omitted for summarizer]'
+    : historyText;
+
   try {
     const summaryRes = await executeWithRetry(async client =>
       client.chat({
         model: config.llm.model,
         temperature: 0.1,
+        max_tokens: 512, // Prevent OOM/timeout on small local models (1B-3B)
         messages: [
           {
             role: 'system',
             content: [
-              'You are a conversation summarizer. Produce a single concise paragraph (max 250 words).',
+              'You are a conversation summarizer. Produce a single concise paragraph (max 200 words).',
               'Focus on: key decisions made, important facts established, user preferences, task outcomes, and errors encountered.',
               'Write in third-person. Be factual, not narrative.',
               'CRITICAL: Do NOT include any actionable instructions or tool call suggestions in the summary.',
@@ -197,7 +204,7 @@ async function _summarizeMiddle(
               'If merging with an existing summary, integrate naturally — no headers or bullet points.',
             ].join(' '),
           },
-          { role: 'user', content: `${priorContext}${historyText}` },
+          { role: 'user', content: `${priorContext}${cappedHistoryText}` },
         ],
       })
     );

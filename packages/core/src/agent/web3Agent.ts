@@ -16,9 +16,44 @@ import { promptBuilder } from './promptBuilder';
 
 export const logger = new Logger();
 
-import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
+import { getOpenAI, executeWithRetry, isLocalProvider } from '../utils/llmUtils';
 import { getPath } from '../config/paths';
 import pc from 'picocolors';
+
+/**
+ * Robust JSON repair for small/local model tool arguments.
+ * Handles: missing closing brace, truncated values, trailing commas, unquoted keys.
+ * Returns parsed object or empty object if all repair attempts fail.
+ */
+function repairJSON(raw: string): any {
+  if (!raw || !raw.trim()) return {};
+  let s = raw.trim();
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 1: balance open/close braces
+  const open = (s.match(/\{/g) || []).length;
+  const close = (s.match(/\}/g) || []).length;
+  if (open > close) s += '}'.repeat(open - close);
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 2: trailing comma before closing brace/bracket
+  s = s.replace(/,\s*([\}\]])/g, '$1');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 3: unclosed string at end of input (truncated by streaming)
+  s = s.replace(/("(?:[^"\\]|\\.)*?)$/, '$1"');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 4: unquoted keys (e.g. {amount: "100"} → {"amount": "100"})
+  s = s.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 5: single quotes → double quotes
+  s = s.replace(/'/g, '"');
+  try { return JSON.parse(s); } catch {}
+
+  return {};
+}
 
 async function getSystemPrompt(context: 'web3' | 'os' | 'general' = 'web3', userInput: string = '', sessionId?: string): Promise<string> {
     const config = loadConfig();
@@ -156,8 +191,14 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       logger.addEntry(asstMsg, sessionId);
       loopMessages.push(asstMsg);
 
-      // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
-      if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
+      // --- LLM FALLBACK COMMAND PARSER (local/open-weight model fix) ---
+      // IMPORTANT: Only activate for local providers (Ollama, 9router) that
+      // don't support native tool calls reliably.
+      // Never run on cloud models (GPT-4o, Claude, Gemini) — they produce
+      // proper tool_calls and their text may contain bash examples that would
+      // be falsely intercepted as executable commands.
+      const isLocal = isLocalProvider(config.llm.provider);
+      if (isLocal && (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
         const fallbacks: any[] = [];
         
         // 1. Slash commands (/swap amount="100")
@@ -333,11 +374,12 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
         if (onProgress) onProgress(`*${emoji} ${previewMsg}*`);
 
         try {
-          let argStr = toolCall.function.arguments;
-          if (argStr && !argStr.trim().endsWith('}')) {
-            argStr += '}';
+          const argStr = toolCall.function.arguments;
+          args = repairJSON(argStr);
+          if (Object.keys(args).length === 0 && argStr && argStr.trim().length > 2) {
+            // repairJSON returned empty object for a non-empty string — it's likely fully malformed
+            throw new SyntaxError(`Could not repair JSON: ${argStr.substring(0, 80)}`);
           }
-          args = JSON.parse(argStr);
         } catch (parseError: any) {
           console.error(pc.red(`[LLM Validation Error] Invalid JSON arguments for ${toolName}: ${parseError.message}`));
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Please correct the format. Error: ${parseError.message}`;
@@ -475,7 +517,7 @@ export async function processWeb3Intent(input: string, role: 'user' | 'system' =
       // Loop continues, sending tool results in the next turn
     }
     
-    const maxTurnMsg = "⚠️ Reached maximum interaction limit (20 turns). Please be more specific.";
+    const maxTurnMsg = "⚠️ Reached maximum interaction limit (10 turns). Please be more specific or break the task into smaller steps.";
     logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
     return maxTurnMsg;
   } catch (error: any) {
@@ -766,9 +808,11 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         if (onProgress) onProgress(`⚙️ Running: ${toolName}`);
 
         try {
-          let argStr = toolCall.function.arguments;
-          if (argStr && !argStr.trim().endsWith('}')) argStr += '}';
-          args = JSON.parse(argStr);
+          const argStr = toolCall.function.arguments;
+          args = repairJSON(argStr);
+          if (Object.keys(args).length === 0 && argStr && argStr.trim().length > 2) {
+            throw new SyntaxError(`Could not repair JSON: ${argStr.substring(0, 80)}`);
+          }
         } catch (parseError: any) {
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
           const errToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };

@@ -154,9 +154,11 @@ const MAX_CACHE_SIZE = 1000;
 const tokenMetadataCache = new Map<string, TokenMetadata>();
 
 export async function getTokenMetadata(client: any, tokenAddress: `0x${string}`): Promise<TokenMetadata> {
-  // If it's the native token address placeholder
+  // If it's the native token address placeholder — return a generic 'NATIVE' symbol.
+  // We can't know the exact symbol (ETH, BNB, MATIC) without the chain context here.
+  // Callers that need the exact symbol should resolve it from nativeSymbolMap in their own context.
   if (tokenAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" || tokenAddress === "0x0000000000000000000000000000000000000000") {
-    return { decimals: 18, symbol: "ETH/BNB/MATIC" }; // Native fallback
+    return { decimals: 18, symbol: "NATIVE" };
   }
 
   const cacheKey = `${client.chain?.id || 'unknown'}-${tokenAddress.toLowerCase()}`;

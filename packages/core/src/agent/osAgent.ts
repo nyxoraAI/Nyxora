@@ -33,7 +33,9 @@ pluginManager.registerHook({
       const hasThinkingTag = /<(think|thought|thinking|reasoning|analysis|reflection)>[\s\S]*?<\/\1>/i.test(responseMessage.content || '');
       const hasNativeReasoning = !!(responseMessage as any).reasoning_content;
       // Allow smart models (like Claude 3.5 Sonnet) to pass if they output standard chain-of-thought text before the tool call.
-      const hasStandardCoT = (responseMessage.content || '').trim().length > 30;
+      // 80 chars ≈ one short sentence — enough to confirm the model provided reasoning.
+      // 30 was too low: models that write "Sure, let me help!" (22 chars) got blocked.
+      const hasStandardCoT = (responseMessage.content || '').trim().length > 80;
       
       if (!hasThinkingTag && !hasNativeReasoning && !hasStandardCoT) {
         const msg = `[System Error] BLOCKED BY REASONING GATE: You MUST explain your plan (or use a <think> block) BEFORE calling the '${toolName}' tool. Please rethink and try again.`;
@@ -140,8 +142,63 @@ const triggerBackgroundReview = async (sessionId?: string) => {
 };
 
 
-import { getOpenAI, executeWithRetry } from '../utils/llmUtils';
+import { getOpenAI, executeWithRetry, isLocalProvider } from '../utils/llmUtils';
+
+/**
+ * Robust JSON repair for small/local model tool arguments.
+ * Handles: missing closing brace, truncated values, trailing commas, unquoted keys.
+ * Returns parsed object or empty object if all repair attempts fail.
+ */
+function repairJSON(raw: string): any {
+  if (!raw || !raw.trim()) return {};
+  let s = raw.trim();
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 1: balance open/close braces
+  const open = (s.match(/\{/g) || []).length;
+  const close = (s.match(/\}/g) || []).length;
+  if (open > close) s += '}'.repeat(open - close);
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 2: trailing comma before closing brace/bracket
+  s = s.replace(/,\s*([\}\]])/g, '$1');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 3: unclosed string at end of input (truncated by streaming)
+  s = s.replace(/("(?:[^"\\]|\\.)*?)$/, '$1"');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 4: unquoted keys (e.g. {amount: "100"} → {"amount": "100"})
+  s = s.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+  try { return JSON.parse(s); } catch {}
+
+  // Fix 5: single quotes → double quotes
+  s = s.replace(/'/g, '"');
+  try { return JSON.parse(s); } catch {}
+
+  return {};
+}
+
+// Per-session guard: prevents concurrent background-review calls from OOM-ing
+// small local models (Ollama) that can't handle 2 simultaneous LLM requests.
+const _activeReviews = new Set<string>();
 import crypto from 'crypto';
+
+/**
+ * Tools that run silently in the background — never shown to the user in the UI.
+ * Add any internal/memory/recall tools here to keep the interface clean.
+ */
+const SILENT_TOOLS = new Set([
+  'search_memory',
+  'recall_memory',
+  'get_user_profile',
+  'update_user_profile',
+  'get_user_preferences',
+  'save_memory',
+  'delete_memory',
+  'list_memories',
+  'memory_search',
+]);
 
 function getToolLabel(n: string, firstArgValue: string): string {
   const safeArg = firstArgValue ? String(firstArgValue) : '';
@@ -334,8 +391,14 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       logger.addEntry(asstMsg, sessionId);
       loopMessages.push(asstMsg);
 
-      // --- LLM FALLBACK COMMAND PARSER (Minimax/Open-weight fix) ---
-      if ((!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
+      // --- LLM FALLBACK COMMAND PARSER (local/open-weight model fix) ---
+      // IMPORTANT: Only activate for local providers (Ollama, 9router) that
+      // don't support native tool calls reliably.
+      // Never run on cloud models (GPT-4o, Claude, Gemini) — they produce
+      // proper tool_calls and their text may contain bash examples that would
+      // be falsely intercepted as executable commands.
+      const _isLocalFallback = isLocalProvider(config.llm.provider);
+      if (_isLocalFallback && (!responseMessage.tool_calls || responseMessage.tool_calls.length === 0) && responseMessage.content) {
         const fallbacks: any[] = [];
         
         // 1. Slash commands (/swap amount="100")
@@ -550,9 +613,11 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
         // Parse arguments
         try {
-          let argStr = toolCall.function.arguments;
-          if (argStr && !argStr.trim().endsWith('}')) argStr += '}';
-          args = JSON.parse(argStr);
+          const argStr = toolCall.function.arguments;
+          args = repairJSON(argStr);
+          if (Object.keys(args).length === 0 && argStr && argStr.trim().length > 2) {
+            throw new SyntaxError(`Could not repair JSON: ${argStr.substring(0, 80)}`);
+          }
         } catch (parseError: any) {
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
           console.error(pc.red(`[LLM Validation Error] ${toolName}: ${parseError.message}`));
@@ -738,7 +803,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       // Loop continues, sending tool results in the next turn
     }
     
-    const maxTurnMsg = "⚠️ Reached maximum interaction limit (30 turns). Please be more specific.";
+    const maxTurnMsg = "⚠️ Reached maximum interaction limit (50 turns). Please be more specific or break the task into smaller steps.";
     logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
     triggerBackgroundReview(sessionId);
     return maxTurnMsg;
@@ -863,19 +928,38 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
       }
 
       if (payloadTotalChars > absTotalChars) {
-         console.warn(`[osAgent] ⚠️ Final payload (${payloadTotalChars} chars) exceeds safe limit (${absTotalChars} chars). Forcing extreme truncation...`);
-         for (let i = 0; i < messages.length; i++) {
-            let m = messages[i];
-            const maxPerMsg = Math.floor(absTotalChars / messages.length);
-            if (typeof m.content === 'string' && m.content.length > maxPerMsg) {
-                m.content = m.content.substring(0, maxPerMsg - 100) + "\n\n...[TRUNCATED]";
-            } else if (Array.isArray(m.content)) {
-                for (const b of m.content) {
-                   if (b.type === 'text' && typeof b.text === 'string' && b.text.length > maxPerMsg) {
-                       b.text = b.text.substring(0, maxPerMsg - 100) + "\n\n...[TRUNCATED]";
-                   }
-                }
-            }
+         console.warn(`[osAgent] ⚠️ Final payload (${payloadTotalChars} chars) exceeds safe limit (${absTotalChars} chars). Priority-based truncation...`);
+         // Priority-based truncation:
+         //   1. System prompt (messages[0]) — NEVER truncate (contains tool schemas + identity)
+         //   2. Last 3 messages — NEVER truncate (LLM needs recent context to continue)
+         //   3. Middle messages — truncate proportionally to reclaim budget
+         const KEEP_TAIL = 3;
+         const middleStart = 1; // skip system prompt
+         const middleEnd = Math.max(1, messages.length - KEEP_TAIL);
+         const middleMessages = messages.slice(middleStart, middleEnd);
+
+         if (middleMessages.length > 0) {
+           // Calculate how many chars the protected messages (system + tail) consume
+           const systemChars = typeof messages[0].content === 'string' ? messages[0].content.length : JSON.stringify(messages[0].content).length;
+           const tailChars = messages.slice(middleEnd).reduce((acc, m) => acc + (typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content).length), 0);
+           const budgetForMiddle = Math.max(0, absTotalChars - systemChars - tailChars - 500);
+           const maxPerMiddle = middleMessages.length > 0 ? Math.floor(budgetForMiddle / middleMessages.length) : 0;
+
+           for (let i = middleStart; i < middleEnd; i++) {
+             const m = messages[i];
+             if (maxPerMiddle < 200) {
+               // No budget left — drop middle message content entirely, leave role intact
+               m.content = '[context omitted — exceeded context window]';
+             } else if (typeof m.content === 'string' && m.content.length > maxPerMiddle) {
+               m.content = m.content.substring(0, maxPerMiddle - 80) + '\n...[TRUNCATED]';
+             } else if (Array.isArray(m.content)) {
+               for (const b of m.content) {
+                 if (b.type === 'text' && typeof b.text === 'string' && b.text.length > maxPerMiddle) {
+                   b.text = b.text.substring(0, maxPerMiddle - 80) + '\n...[TRUNCATED]';
+                 }
+               }
+             }
+           }
          }
       }
 
@@ -1014,11 +1098,12 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       }
 
       // Tool calls detected — pause stream visually and execute tools concurrently
-      // BUG#1 FIX: Signal to Telegram to wipe turn-1 planning text from the buffer.
-      // LLM often generates "thinking out loud" text before calling a tool (e.g. "Let me check...").
-      // This text should NOT be shown to users. [TOOL_CALL_DETECTED] resets the buffer to a
-      // clean progress indicator, hiding the planning text without losing the message handle.
-      await onChunk('[TOOL_CALL_DETECTED]');
+      // Only emit [TOOL_CALL_DETECTED] if at least one tool is NOT a silent background tool.
+      // Silent tools (search_memory, recall_memory, etc.) run invisibly without UI feedback.
+      const hasVisibleToolsStream = responseMessage.tool_calls?.some((tc: any) => !SILENT_TOOLS.has(tc.function.name));
+      if (hasVisibleToolsStream) {
+        await onChunk('[TOOL_CALL_DETECTED]');
+      }
       let shouldFastReturn = false;
       const accumulatedResults: string[] = [];
 
@@ -1080,6 +1165,8 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
 
       if (uniqueToolCalls.length > 0 && onProgress) {
         uniqueToolCalls.forEach((tc: any) => {
+          // Skip progress notification for silent background tools
+          if (SILENT_TOOLS.has(tc.function.name)) return;
           let firstArgValue = '';
           try {
             const parsedPreview = JSON.parse(tc.function.arguments || '{}');
@@ -1112,9 +1199,11 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
 
         try {
-          let argStr = toolCall.function.arguments;
-          if (argStr && !argStr.trim().endsWith('}')) argStr += '}';
-          args = JSON.parse(argStr);
+          const argStr = toolCall.function.arguments;
+          args = repairJSON(argStr);
+          if (Object.keys(args).length === 0 && argStr && argStr.trim().length > 2) {
+            throw new SyntaxError(`Could not repair JSON: ${argStr.substring(0, 80)}`);
+          }
         } catch (parseError: any) {
           result = `[System Error] Arguments for ${toolName} must be valid JSON. Error: ${parseError.message}`;
           const errToolMsg = { role: 'tool' as any, tool_call_id: toolCall.id, name: toolName, content: result };
@@ -1182,7 +1271,9 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
       const results = await Promise.all(promises);
       results.forEach(r => accumulatedResults.push(r.result));
 
-      await onChunk('[TOOL_CALL_FINISHED]');
+      if (hasVisibleToolsStream) {
+        await onChunk('[TOOL_CALL_FINISHED]');
+      }
 
       if (shouldFastReturn && accumulatedResults.length > 0) {
         const finalContent = accumulatedResults.join('\n\n---\n\n');
@@ -1201,7 +1292,7 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
     }
 
     if (!fullResponse) {
-      const maxTurnMsg = '⚠️ Reached maximum interaction limit (30 turns). Please be more specific.';
+      const maxTurnMsg = '⚠️ Reached maximum interaction limit (50 turns). Please be more specific or break the task into smaller steps.';
       logger.addEntry({ role: 'assistant', content: maxTurnMsg }, sessionId);
       fullResponse = maxTurnMsg;
       triggerBackgroundReview(sessionId);

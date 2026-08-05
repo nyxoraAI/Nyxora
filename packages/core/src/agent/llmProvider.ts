@@ -149,9 +149,9 @@ export class OpenAIAdapter implements LLMProvider {
       payload.repetition_penalty = request.repetition_penalty;
     }
     if (payload.top_p === undefined) payload.top_p = 0.95;
-    if (payload.max_tokens && payload.max_tokens > 4096) {
-      payload.max_tokens = 4096;
-    }
+    // Enforce max_tokens bounds: min 256 (small models reject lower values), max 8192
+    if (!payload.max_tokens || payload.max_tokens < 256) payload.max_tokens = 256;
+    if (payload.max_tokens > 8192) payload.max_tokens = 8192;
     let response: any;
     try {
       response = await this.client.chat.completions.create(payload);
@@ -236,9 +236,9 @@ export class OpenAIAdapter implements LLMProvider {
         payload.repetition_penalty = request.repetition_penalty;
       }
       if (payload.top_p === undefined) payload.top_p = 0.95; // Force top_p to cull low prob tokens
-      if (payload.max_tokens && payload.max_tokens > 4096) {
-        payload.max_tokens = 4096;
-      }
+      // Enforce max_tokens bounds: min 256 (small models reject lower values), max 8192
+      if (!payload.max_tokens || payload.max_tokens < 256) payload.max_tokens = 256;
+      if (payload.max_tokens > 8192) payload.max_tokens = 8192;
       const streamRes = await this.client.chat.completions.create(payload) as any as AsyncIterable<any>;
       let fullContent = '';
       let reasoningContent = '';

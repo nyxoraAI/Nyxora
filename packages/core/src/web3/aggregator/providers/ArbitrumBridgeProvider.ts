@@ -1,6 +1,5 @@
 import { DefiAggregatorProvider, ProviderExecutionContext, ProviderHealth, ProviderManifest, QuoteRequest, CanonicalRouteQuote } from '../types';
-import { encodeFunctionData, parseAbi, createPublicClient, http } from 'viem';
-import { sepolia } from 'viem/chains';
+import { encodeFunctionData, parseAbi } from 'viem';
 import crypto from 'crypto';
 
 export class ArbitrumBridgeProvider implements DefiAggregatorProvider {

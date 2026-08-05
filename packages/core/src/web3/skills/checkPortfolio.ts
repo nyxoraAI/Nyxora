@@ -35,7 +35,10 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const nativeSymbolMap: Record<string, string> = {
       ethereum: 'ETH', bsc: 'BNB', polygon: 'MATIC',
       base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
-      sepolia: 'ETH', base_sepolia: 'ETH'
+      sepolia: 'ETH', base_sepolia: 'ETH',
+      // BUG #1 FIX: Complete the map for all supported chains
+      arbitrum_sepolia: 'ETH', optimism_sepolia: 'ETH',
+      robinhood: 'ETH', robinhood_testnet: 'ETH'
     };
     const nativeSymbol = nativeSymbolMap[chainName] || 'ETH';
 
@@ -44,6 +47,26 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     ];
 
     const chainTokens = TOKEN_MAP[chainName];
+
+    // BUG #2 FIX: Map each chain's native token to its wrapped version for price lookup.
+    // Previously, Polygon MATIC was always $0 because TOKEN_MAP.polygon has no 'WETH' or 'WBNB'.
+    // Must be declared AFTER chainTokens to avoid "used before declaration" TS error.
+    const NATIVE_WRAPPED_MAP: Record<string, string | undefined> = {
+      ethereum:          chainTokens?.WETH,
+      base:              chainTokens?.WETH,
+      arbitrum:          chainTokens?.WETH,
+      optimism:          chainTokens?.WETH,
+      sepolia:           chainTokens?.WETH,
+      base_sepolia:      chainTokens?.WETH,
+      arbitrum_sepolia:  chainTokens?.WETH,
+      optimism_sepolia:  chainTokens?.WETH,
+      bsc:               chainTokens?.WBNB,
+      polygon:           chainTokens?.WMATIC || chainTokens?.WPOL,
+      robinhood:         chainTokens?.WETH,
+      robinhood_testnet: chainTokens?.WETH,
+    };
+    const nativeWrappedAddress = NATIVE_WRAPPED_MAP[chainName];
+
     if (chainTokens) {
       for (const [sym, addr] of Object.entries(chainTokens)) {
         if (addr !== "0x0000000000000000000000000000000000000000") {
@@ -101,18 +124,24 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
     const CHUNK_SIZE = 60; // 30 tokens (2 calls per token)
     const multicallResults: any[] = [];
     
+    // BUG #9 FIX: Use an aborted flag to prevent the background multicall loop from
+    // pushing to multicallResults after we've already read it (race condition).
+    let multicallAborted = false;
     try {
       if (contracts.length > 0) {
-        // Create a timeout promise for 5 seconds (more tolerant for large portfolios)
         const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('RPC request timed out')), 5000)
+          setTimeout(() => {
+            multicallAborted = true;
+            reject(new Error('RPC request timed out'));
+          }, 5000)
         );
 
         const executionPromise = (async () => {
           for (let i = 0; i < contracts.length; i += CHUNK_SIZE) {
+            if (multicallAborted) break; // Stop fetching new chunks if timed out
             const chunk = contracts.slice(i, i + CHUNK_SIZE);
             const res = await client.multicall({ contracts: chunk, allowFailure: true } as any);
-            multicallResults.push(...res);
+            if (!multicallAborted) multicallResults.push(...res);
           }
         })();
 
@@ -146,7 +175,11 @@ export async function checkPortfolio(chainName: ChainName, address?: `0x${string
 
     // Now fetch prices from Dexscreener
     // Prepare addresses to fetch
-    const addressesToFetch = nonZeroBalances.map(b => b.isNative ? (chainTokens?.WETH || chainTokens?.WBNB) : b.address).filter(Boolean);
+    // BUG #2 FIX: Use chain-specific wrapped address for native price lookup.
+    // Previously used chainTokens?.WETH which was undefined on polygon (causing $0 price for MATIC).
+    const addressesToFetch = nonZeroBalances
+      .map(b => b.isNative ? nativeWrappedAddress : b.address)
+      .filter(Boolean);
     
     const priceMap: Record<string, number> = {};
     if (addressesToFetch.length > 0) {

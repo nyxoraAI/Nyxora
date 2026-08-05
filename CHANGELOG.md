@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Skill Curator System (`curator.ts`, `playbookManager.ts`)**: Engineered a lightweight background daemon to monitor and auto-archive idle cognitive skills (`.usage.json`), configurable directly via the Dashboard (`curator.archive_after_days`). Web3-related skills and system defaults are strictly safeguarded from archival. Added a dedicated `restore_playbook` skill so the agent can autonomously recall archived playbooks when needed.
 - **Advanced Persistent Scheduler (`cronManager.ts`)**: Modernized the `cronManager` with an advanced Catch-up Window. The scheduler now persists execution timestamps (`lastRunAt`) and autonomously detects and re-executes any critical tasks that were missed while the system or daemon was powered off.
 
+### Bug Fixes & Agent Enhancements
+- **Small LLM Context Amnesia Fix (`promptBuilder.ts`)**: Removed the hardcoded `.slice(0, 5)` limit for user memory injection in the compact system prompt. Small models (≤8K context) now correctly receive 100% of explicit user instructions, strong personas, and all permanent episodic memories. To accommodate this within strict token limits without crashing, the 39KB `SUPER_DISCIPLINE` rule is now selectively deferred on small models while remaining fully active for standard/large models.
+- **Silent Tools UI Cleanup (`osAgent.ts`)**: Introduced a `SILENT_TOOLS` registry for background cognitive skills (e.g., `search_memory`). These tools now execute entirely in the background without emitting `[TOOL_CALL_DETECTED]` and `[TOOL_CALL_FINISHED]` streaming markers, preventing unnecessary loading spinners on the Telegram/Web frontend when the agent is merely recalling internal memory.
+
 ## [26.8.4]
 ### Features & Desktop Enhancements
 - **Desktop LLM Engine Parameter Parity (`LlmEngine.svelte`, `config.svelte.ts`)**: Added interactive slider controls for **Frequency Penalty** (-2.0 to 2.0), **Presence Penalty** (-2.0 to 2.0), and **Repetition Penalty** (0.0 to 2.0) to the Desktop app's LLM Engine modal, achieving full parameter parity with the Dashboard web interface.

@@ -1,10 +1,9 @@
 import { normalizeChainName } from '../utils/chains';
-import { parseUnits } from 'viem';
-import * as process from 'process';
-import crypto from 'crypto';
+import { encodeFunctionData } from 'viem';
 import { getPublicClient, getAddress, ChainName, SUPPORTED_CHAIN_NAMES } from '../config';
 import { txManager } from '../../agent/transactionManager';
 import { resolveToken, ERC20_ABI, getTokenMetadata } from '../utils/tokens';
+import { submitTransaction } from '../utils/vaultClient';
 
 export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOrSymbol: string, spenderAddress: `0x${string}`): Promise<string> {
   try {
@@ -45,10 +44,20 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
         return `Simulation failed! Cannot prepare revoke approval. Ensure the spender address is a valid contract. Error: ${simError.message}`;
     }
 
+    // Generate the approve(spender, 0) calldata here so it's ready when the user confirms.
+    // Without this, executeRevokeApproval would receive `dataHex: undefined` and broadcast
+    // a transaction with empty calldata, causing it to fail on-chain.
+    const dataHex = encodeFunctionData({
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [spenderAddress, 0n]
+    });
+
     const tx = txManager.createPendingTransaction('revokeApproval', chainName, { 
       spenderAddress,
       tokenAddress, 
       symbol,
+      dataHex,
       gasEstimate: gasEstimate.toString()
     });
 
@@ -58,7 +67,6 @@ export async function prepareRevokeApproval(chainName: ChainName, tokenAddressOr
   }
 }
 
-import { submitTransaction } from '../utils/vaultClient';
 
 export async function executeRevokeApproval(chainName: ChainName, params: any, autoApprove: boolean = false): Promise<string> {
   try {

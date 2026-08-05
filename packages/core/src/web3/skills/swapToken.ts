@@ -26,10 +26,10 @@ export async function prepareSwapToken(
     const toTokenAddress = resolveToken(toToken, chainName);
     const isNativeIn = fromTokenAddress === "0x0000000000000000000000000000000000000000" || fromTokenAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
-    // Auto-save to Degen Whitelist
-    if (!isNativeIn) await saveTokenToWhitelist(userAddress, chainName, fromTokenAddress, 'swap');
+    // Auto-save to Degen Whitelist (fire-and-forget: whitelist failure must not block a valid swap)
+    if (!isNativeIn) saveTokenToWhitelist(userAddress, chainName, fromTokenAddress, 'swap').catch(e => console.warn('[swapToken] Failed to save fromToken to whitelist:', e));
     if (toTokenAddress !== "0x0000000000000000000000000000000000000000" && toTokenAddress !== "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
-      await saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap');
+      saveTokenToWhitelist(userAddress, chainName, toTokenAddress, 'swap').catch(e => console.warn('[swapToken] Failed to save toToken to whitelist:', e));
     }
 
     let decimals = 18;

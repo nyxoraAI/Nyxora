@@ -45,7 +45,9 @@ export class OpenOceanProvider implements DefiAggregatorProvider {
     const amount = request.amountFormatted;
     const account = request.userAddress;
 
-    const url = `https://open-api.openocean.finance/v3/${chainId}/swap_quote?inTokenAddress=${inTokenAddress}&outTokenAddress=${outTokenAddress}&amount=${amount}&slippage=${slippage}&account=${account}&gasPrice=5`;
+    // NOTE: We omit gasPrice from the query to let OpenOcean estimate it dynamically.
+    // Hard-coding gasPrice=5 (gwei) was too low for Ethereum mainnet and caused stuck transactions.
+    const url = `https://open-api.openocean.finance/v3/${chainId}/swap_quote?inTokenAddress=${inTokenAddress}&outTokenAddress=${outTokenAddress}&amount=${amount}&slippage=${slippage}&account=${account}`;
 
     const res = await safeFetch(url, {
       signal: context.abortSignal,

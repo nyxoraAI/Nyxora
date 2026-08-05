@@ -3,7 +3,10 @@ import { safeFetch } from '../../../utils/httpClient';
 import crypto from 'crypto';
 
 const CHAIN_IDS: Record<string, number> = {
-  ethereum: 1, base: 8453, bsc: 56, arbitrum: 42161, optimism: 10, polygon: 137, robinhood: 4663
+  // Mainnets
+  ethereum: 1, base: 8453, bsc: 56, arbitrum: 42161, optimism: 10, polygon: 137, robinhood: 4663,
+  // Testnets — LiFi supports these for cross-chain routing
+  sepolia: 11155111, base_sepolia: 84532, arbitrum_sepolia: 421614, optimism_sepolia: 11155420
 };
 
 export class LifiProvider implements DefiAggregatorProvider {

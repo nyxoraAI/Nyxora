@@ -83,7 +83,20 @@ export class NyxoraSigner {
     const normalized = chainName.toLowerCase().replace(/_/g, '-');
     const normalizedSpace = chainName.toLowerCase().replace(/_/g, ' ');
     // @ts-ignore
-    return Object.values(chains).find(c => c.name.toLowerCase() === normalizedSpace || c.name.toLowerCase() === normalized || (c as any).network === normalized) || chains.mainnet;
+    const found = Object.values(chains).find(
+      (c) => c.name.toLowerCase() === normalizedSpace ||
+              c.name.toLowerCase() === normalized ||
+              (c as any).network === normalized
+    );
+    if (!found) {
+      // SECURITY: Never silently fall back to mainnet.
+      // An unknown chain name must throw explicitly to prevent funds being sent to the wrong chain.
+      throw new Error(
+        `[NyxoraSigner] Unknown chain: "${chainName}". ` +
+        `Cannot sign transaction. Please use a supported chain name (e.g. 'ethereum', 'base', 'arbitrum').`
+      );
+    }
+    return found;
   }
 
   public async signTransaction(txPayload: any): Promise<string> {

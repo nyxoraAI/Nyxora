@@ -58,8 +58,10 @@ export async function getAddress(): Promise<string> {
       reject(new Error(`Failed to get address from vault: ${error.message}`));
     });
 
-    req.setTimeout(120000, () => {
-      req.destroy(new Error('Timeout'));
+    // getAddress is a simple GET — if the Policy Engine is not responding within 5s,
+    // fail fast instead of hanging all Web3 skills for up to 2 minutes.
+    req.setTimeout(5000, () => {
+      req.destroy(new Error('Timeout: Policy Engine did not respond to /address within 5s. Is it running?'));
     });
 
     req.end();
