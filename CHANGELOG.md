@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.8.5]
+### Features & AI Memory Enhancements
+- **FTS5 SQLite Memory Search (`logger.ts`, `searchMemory.ts`)**: Upgraded the core SQLite memory database to utilize the FTS5 extension. Nyxora now automatically syncs and indexes conversational memory, allowing the AI to instantly recall past interactions and user preferences using the new `search_memory` cognitive skill.
+- **Skill Curator System (`curator.ts`, `playbookManager.ts`)**: Engineered a lightweight background daemon to monitor and auto-archive idle cognitive skills (`.usage.json`), configurable directly via the Dashboard (`curator.archive_after_days`). Web3-related skills and system defaults are strictly safeguarded from archival. Added a dedicated `restore_playbook` skill so the agent can autonomously recall archived playbooks when needed.
+- **Advanced Persistent Scheduler (`cronManager.ts`)**: Modernized the `cronManager` with an advanced Catch-up Window. The scheduler now persists execution timestamps (`lastRunAt`) and autonomously detects and re-executes any critical tasks that were missed while the system or daemon was powered off.
+
 ## [26.8.4]
 ### Features & Desktop Enhancements
 - **Desktop LLM Engine Parameter Parity (`LlmEngine.svelte`, `config.svelte.ts`)**: Added interactive slider controls for **Frequency Penalty** (-2.0 to 2.0), **Presence Penalty** (-2.0 to 2.0), and **Repetition Penalty** (0.0 to 2.0) to the Desktop app's LLM Engine modal, achieving full parameter parity with the Dashboard web interface.

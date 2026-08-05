@@ -189,6 +189,46 @@ export class Logger {
       this.db.prepare('ALTER TABLE messages ADD COLUMN duration_ms INTEGER').run();
     } catch {}
 
+    // FTS5 Initialization (Semantic/Keyword Search)
+    try {
+      this.db.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(content, name, role, session_id UNINDEXED, message_id UNINDEXED, tokenize='porter');
+      `);
+
+      this.db.exec(`
+        CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN
+          INSERT INTO messages_fts(rowid, content, name, role, session_id, message_id)
+          VALUES (new.id, new.content, new.name, new.role, new.session_id, new.id);
+        END;
+      `);
+
+      this.db.exec(`
+        CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
+          INSERT INTO messages_fts(messages_fts, rowid, content, name, role, session_id, message_id)
+          VALUES ('delete', old.id, old.content, old.name, old.role, old.session_id, old.id);
+        END;
+      `);
+
+      this.db.exec(`
+        CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE ON messages BEGIN
+          INSERT INTO messages_fts(messages_fts, rowid, content, name, role, session_id, message_id)
+          VALUES ('delete', old.id, old.content, old.name, old.role, old.session_id, old.id);
+          INSERT INTO messages_fts(rowid, content, name, role, session_id, message_id)
+          VALUES (new.id, new.content, new.name, new.role, new.session_id, new.id);
+        END;
+      `);
+
+      const count = this.db.prepare('SELECT COUNT(*) as c FROM messages_fts').get() as {c: number};
+      if (count.c === 0) {
+         this.db.exec(`
+           INSERT INTO messages_fts(rowid, content, name, role, session_id, message_id)
+           SELECT id, content, name, role, session_id, id FROM messages WHERE active = 1 AND content IS NOT NULL AND content != '';
+         `);
+      }
+    } catch (err) {
+      console.warn('[Nyxora Memory] FTS5 not supported or error initializing search index:', err);
+    }
+
     // Migration logic from old memory.json to SQLite
     const config = loadConfig() || {};
     const oldJsonPath = getPath((config && (config as any).memory && (config as any).memory.path) ? (config as any).memory.path : 'memory.json');
@@ -439,6 +479,37 @@ export class Logger {
       if (row.duration_ms != null) entry.duration_ms = row.duration_ms;
       return entry;
     });
+  }
+
+  public searchMemoryByKeyword(query: string, limit: number = 10): MemoryEntry[] {
+    try {
+      const rows = this.db.prepare(`
+        SELECT m.*
+        FROM messages_fts fts
+        JOIN messages m ON fts.message_id = m.id
+        WHERE messages_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `).all(query, limit);
+
+      return rows.map((row: any) => {
+        const entry: MemoryEntry = {
+          role: row.role,
+          content: (row.content && typeof row.content === 'string' && row.content.startsWith('[') && row.content.endsWith(']')) ? (()=>{try{return JSON.parse(row.content)}catch(e){return row.content}})() : row.content,
+        };
+        if (row.reasoning_content) entry.reasoning_content = row.reasoning_content;
+        if (row.name) entry.name = row.name;
+        if (row.tool_call_id) entry.tool_call_id = row.tool_call_id;
+        if (row.tool_calls) entry.tool_calls = JSON.parse(row.tool_calls);
+        if (row.session_id) entry.session_id = row.session_id;
+        if (row.id) entry.id = row.id;
+        if (row.duration_ms != null) entry.duration_ms = row.duration_ms;
+        return entry;
+      });
+    } catch (err) {
+      console.warn('[Nyxora Memory] FTS5 Search failed:', err);
+      return [];
+    }
   }
 
 

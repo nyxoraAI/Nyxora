@@ -19,6 +19,24 @@ function computeMD5(filePath: string): string {
   return crypto.createHash('md5').update(content).digest('hex');
 }
 
+export function logSkillUsage(filename: string) {
+  try {
+    const usageFile = path.join(getPlaybooksDir(), '.usage.json');
+    let usage: Record<string, { last_accessed: number, use_count: number }> = {};
+    if (fs.existsSync(usageFile)) {
+      usage = JSON.parse(fs.readFileSync(usageFile, 'utf-8'));
+    }
+    if (!usage[filename]) {
+      usage[filename] = { last_accessed: Date.now(), use_count: 0 };
+    }
+    usage[filename].last_accessed = Date.now();
+    usage[filename].use_count += 1;
+    fs.writeFileSync(usageFile, JSON.stringify(usage, null, 2));
+  } catch (err) {
+    // silently fail
+  }
+}
+
 export function ensurePlaybookDir() {
   const userDir = getPlaybooksDir();
   
@@ -46,6 +64,7 @@ export function ensurePlaybookDir() {
     if (!fs.existsSync(dir)) return fileMap;
     const files = fs.readdirSync(dir);
     for (const file of files) {
+      if (file === '.archive') continue; // Exclude archive from normal traversal
       const filePath = path.join(dir, file);
       const relPath = path.join(relativePrefix, file);
       if (fs.statSync(filePath).isDirectory()) {
@@ -149,6 +168,7 @@ export async function search_playbook(query: string): Promise<string> {
       if (!fs.existsSync(dir)) return;
       const files = fs.readdirSync(dir);
       for (const file of files) {
+        if (file === '.archive') continue;
         const filePath = path.join(dir, file);
         const relPath = path.join(relativePrefix, file);
         if (fs.statSync(filePath).isDirectory()) {
@@ -192,6 +212,7 @@ export function list_playbooks(): string[] {
       if (!fs.existsSync(dir)) return;
       const files = fs.readdirSync(dir);
       for (const file of files) {
+        if (file === '.archive') continue;
         const filePath = path.join(dir, file);
         const relPath = path.join(relativePrefix, file);
         if (fs.statSync(filePath).isDirectory()) {
@@ -239,12 +260,39 @@ export async function read_playbook(filename: string): Promise<string> {
       
       const systemNote = `> [SYSTEM NOTE TO AI]: \n> Playbook Name: \`${filename}\`\n> 1. Your Working Directory: \`${userDirName}\` (User Overrides)\n> 2. System Assets Directory: \`${defaultDirName}\` (Original Scripts/Templates)\n> \n> If you need to run local scripts (e.g. .py, .sh, Makefile) or read template files (.tex, .json) mentioned in this playbook, check the Working Directory first. If the files don't exist there, they are guaranteed to be in the System Assets Directory. Use absolute paths when executing them.\n\n`;
       
+      logSkillUsage(filename);
       return systemNote + content;
     }
     
     return `Playbook '${filename}' not found.`;
   } catch (err: any) {
     return `Error reading playbook: ${err.message}`;
+  }
+}
+
+export async function restore_playbook(filename: string): Promise<string> {
+  try {
+    const userDir = getPlaybooksDir();
+    const archivePath = path.resolve(userDir, '.archive', filename);
+    const destPath = path.resolve(userDir, filename);
+
+    if (!archivePath.startsWith(path.resolve(userDir, '.archive'))) {
+      return "Error: Invalid path.";
+    }
+
+    if (!fs.existsSync(archivePath)) {
+      return `Error: Archived skill '${filename}' not found.`;
+    }
+
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.renameSync(archivePath, destPath);
+    
+    // Reset usage stats
+    logSkillUsage(filename);
+
+    return `Success! Skill '${filename}' has been restored from the archive and is now active again.`;
+  } catch (err: any) {
+    return `Failed to restore skill: ${err.message}`;
   }
 }
 
@@ -277,6 +325,24 @@ export const readPlaybookToolDefinition = {
         filename: {
           type: "string",
           description: "The relative path to the .md file (e.g., 'github/github-pr-workflow/SKILL.md').",
+        }
+      },
+      required: ["filename"],
+    },
+  },
+};
+
+export const restorePlaybookToolDefinition = {
+  type: "function",
+  function: {
+    name: "restore_playbook",
+    description: "Restores a previously archived skill/playbook back to active status.",
+    parameters: {
+      type: "object",
+      properties: {
+        filename: {
+          type: "string",
+          description: "The filename of the archived skill to restore (e.g., 'trading_logic.md').",
         }
       },
       required: ["filename"],

@@ -180,6 +180,10 @@ export interface NyxoraConfig {
     active: string[];
   };
   mcp_servers?: Record<string, any>;
+  curator?: {
+    enabled: boolean;
+    archive_after_days: number;
+  };
 }
 
 let cachedNyxoraConfig: NyxoraConfig | null = null;
@@ -309,7 +313,8 @@ export function loadConfig(): NyxoraConfig {
       security: parsed.security || { dashboard_password: '123456' },
       skills: parsed.skills,
       channels: parsed.channels,
-      mcp_servers: parsed.mcp_servers || {}
+      mcp_servers: parsed.mcp_servers || {},
+      curator: parsed.curator || { enabled: true, archive_after_days: 14 }
     };
 
     cachedNyxoraConfig = validatedConfig;
@@ -351,7 +356,8 @@ export function loadConfig(): NyxoraConfig {
         telegram: { enabled: false },
         discord: { enabled: false }
       },
-      mcp_servers: {}
+      mcp_servers: {},
+      curator: { enabled: true, archive_after_days: 14 }
     };
     
     cachedNyxoraConfig = defaultConfig;

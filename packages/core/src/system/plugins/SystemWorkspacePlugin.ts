@@ -6,7 +6,7 @@ import { generateExcelToolDefinition, generateExcelFile } from '../skills/genera
 import { runTerminalCommandToolDefinition, runTerminalCommand } from '../skills/executeShell';
 import { runTerminalCommandPTYToolDefinition, runTerminalCommandPTY } from '../skills/executeShellPTY';
 import { createCognitiveSkillToolDefinition, createCognitiveSkill } from '../skills/createCognitiveSkill';
-import { searchPlaybookToolDefinition, readPlaybookToolDefinition, search_playbook, read_playbook } from '../skills/playbookManager';
+import { searchPlaybookToolDefinition, readPlaybookToolDefinition, restorePlaybookToolDefinition, search_playbook, read_playbook, restore_playbook } from '../skills/playbookManager';
 import { generateDownloadLinkToolDefinition, generateDownloadLink } from '../skills/fileDownloader';
 import { analyzeLocalImageToolDefinition, analyzeLocalImage } from '../skills/analyzeImage';
 import { generateImageToolDefinition, generateImage } from '../skills/generateImage';
@@ -15,6 +15,7 @@ import { searchFilesToolDefinition, searchFiles } from '../skills/searchFiles';
 import { todoWriteToolDefinition, todoReadToolDefinition, todoWrite, todoRead } from '../skills/todoTool';
 import { computerUseToolDefinition, computerUse } from '../skills/computerUse';
 import { delegateSubagentToolDefinition, delegateSubagent } from '../skills/delegateSubagent';
+import { searchMemoryToolDefinition, executeSearchMemory } from '../skills/searchMemory';
 
 // ---------------------------------------------------------------------------
 // CWD resolution — multi-source, with sentinel rejection.
@@ -64,6 +65,7 @@ export class SystemWorkspacePlugin implements Plugin {
     createCognitiveSkillToolDefinition,
     searchPlaybookToolDefinition,
     readPlaybookToolDefinition,
+    restorePlaybookToolDefinition,
     generateDownloadLinkToolDefinition,
     analyzeLocalImageToolDefinition,
     generateImageToolDefinition,
@@ -73,7 +75,8 @@ export class SystemWorkspacePlugin implements Plugin {
     todoWriteToolDefinition,
     todoReadToolDefinition,
     computerUseToolDefinition,
-    delegateSubagentToolDefinition
+    delegateSubagentToolDefinition,
+    searchMemoryToolDefinition
   ];
 
   public handlers = {
@@ -108,6 +111,9 @@ export class SystemWorkspacePlugin implements Plugin {
     ['read_playbook']: async (args: any) => {
       return await read_playbook(args.filename);
     },
+    ['restore_playbook']: async (args: any) => {
+      return await restore_playbook(args.filename);
+    },
     ['generate_download_link']: async (args: any) => {
       return await generateDownloadLink(args.absolutePath);
     },
@@ -136,6 +142,9 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['delegate_subagent']: async (args: any) => {
       return await delegateSubagent(args.task, args.roleName);
+    },
+    ['search_memory']: async (args: any) => {
+      return executeSearchMemory(args.query, args.limit);
     },
   };
 }
