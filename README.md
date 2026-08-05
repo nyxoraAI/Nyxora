@@ -190,8 +190,10 @@ To dive deeper into the technical details of our Zero-Knowledge security archite
 ### Prerequisites
 Nyxora requires **Node.js 22+** and **Python 3.10+** (for the ML Cognitive Engine) to be installed on your system.
 
-### Option 1: One-Line Installation (Recommended)
-The fastest way to install Nyxora is via our smart installation wrapper. This script automatically prepares Node.js (if missing) and securely fetches the Nyxora daemon directly from the NPM Registry. *(Note: You must have Python 3.10+ pre-installed on your system, as this script only handles Node.js dependencies).*
+---
+
+### ⚡ Option 1: One-Line Installer (Recommended)
+The cleanest way to install Nyxora. This script automatically handles Node.js setup, installs Nyxora with zero warnings, and sets up the ML Engine.
 
 **Linux & macOS:**
 ```bash
@@ -203,55 +205,62 @@ curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
 iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
 ```
 
-### Option 2: Global Installation (NPM)
-If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+> ✅ **Zero warnings.** The installer handles all dependency permissions automatically.
+
+---
+
+### 📦 Option 2: Global NPM Install
+If you already have Node.js 22+ installed and prefer npm directly:
 
 ```bash
-# Install globally
 npm install -g nyxora
+```
 
-> 💡 **ML Engine Setup**: When you run `npm install -g nyxora`, the Python ML Engine dependencies are automatically installed via the `postinstall` script. Requires Python 3.10+.
+> ℹ️ You may see `npm warn allow-scripts` during install — this is normal and expected. All components still install correctly. Run `nyxora setup` afterward to complete the ML Engine setup.
 
-# Run the interactive setup wizard 
-# (Automatically validates Node.js & Python 3.10+ requirements, configures API Keys, Wallet, and ML Environment)
+Then get started:
+```bash
+# Run the interactive setup wizard
 nyxora setup
 
 # Start the background daemon
 nyxora start
 
-# Open the interactive UI dashboard
+# Open the dashboard in your browser
 nyxora dashboard
 
-# 🖥️ Open the native Desktop App (Electron)
+# Open the native Desktop App (Electron)
 nyxora desktop
 
-# 🖥️ Open the interactive Terminal UI (for VPS/CLI users)
+# Open the Terminal UI (for VPS/CLI users)
 nyxora tui
 
-# 💬 Chat interactively via the terminal
+# Chat interactively via the terminal
 nyxora chat
 ```
 
-### Option 2: Local Development (Source Code)
-Nyxora operates on a Monorepo architecture. To run it locally from the source code, modify its behaviors, or contribute to the repository, follow these steps:
+---
+
+### 🛠️ Option 3: Local Development (Source Code)
+To run from source, modify behaviors, or contribute to the repository:
 
 ```bash
 git clone https://github.com/nyxoraAI/Nyxora.git
 cd Nyxora
 
-# 1. Install Dependencies
+# 1. Install dependencies
 npm install
 
-# 2. Build the Core, TUI, MCP Server, and Dashboard UI
+# 2. Build Core, TUI, MCP Server, and Dashboard
 npm run build
 
-# 3. Interactive Setup Wizard (Will also install Python ML requirements via pip)
+# 3. Run setup wizard (configures API keys, wallet, and ML Engine)
 npm run setup
 
-# 4. Start the Application (Spawns Node.js Core and Python FastAPI sidecar)
+# 4. Start the application
 npm start
 
-# 5. (Optional) Run the Desktop App locally
+# (Optional) Run the Desktop App locally
 npm run desktop
 ```
 

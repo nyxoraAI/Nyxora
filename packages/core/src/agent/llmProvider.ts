@@ -1,6 +1,7 @@
 import { OpenAI } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadConfig, loadApiKeys } from '../config/parser';
+import { StreamingToolInterceptor } from '../utils/toolInterceptor';
 
 export interface NormalizedChatRequest {
   model: string;
@@ -243,12 +244,16 @@ export class OpenAIAdapter implements LLMProvider {
       let fullContent = '';
       let reasoningContent = '';
       const toolCallsMap: Record<number, any> = {};
+      const toolInterceptor = new StreamingToolInterceptor();
 
       for await (const chunk of streamRes) {
         const delta = chunk.choices[0]?.delta;
         if (delta?.content) {
-          fullContent += delta.content;
-          onChunk(delta.content);
+          const safeText = toolInterceptor.feed(delta.content);
+          if (safeText) {
+            fullContent += safeText;
+            onChunk(safeText);
+          }
         }
         const rText = delta?.reasoning_content ||
                       (delta as any)?.reasoning ||
@@ -270,6 +275,17 @@ export class OpenAIAdapter implements LLMProvider {
             }
           }
         }
+      }
+
+      const flushed = toolInterceptor.flush();
+      if (flushed) {
+        fullContent += flushed;
+        onChunk(flushed);
+      }
+      const interceptedTools = toolInterceptor.getExtractedTools();
+      let toolIdx = Object.keys(toolCallsMap).length;
+      for (const t of interceptedTools) {
+        toolCallsMap[toolIdx++] = t;
       }
 
       const toolCalls = Object.values(toolCallsMap);
@@ -478,11 +494,15 @@ export class AnthropicAdapter implements LLMProvider {
       let fullContent = '';
       let reasoningContent = '';
       const toolCalls: any[] = [];
+      const toolInterceptor = new StreamingToolInterceptor();
 
       for await (const event of stream) {
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          fullContent += event.delta.text;
-          onChunk(event.delta.text);
+          const safeText = toolInterceptor.feed(event.delta.text);
+          if (safeText) {
+            fullContent += safeText;
+            onChunk(safeText);
+          }
         }
         if (event.type === 'content_block_delta' && (event.delta as any).type === 'thinking_delta') {
           const rText = (event.delta as any).thinking;
@@ -496,6 +516,16 @@ export class AnthropicAdapter implements LLMProvider {
           const last = toolCalls[toolCalls.length - 1];
           if (last) last.function.arguments += event.delta.partial_json;
         }
+      }
+
+      const flushed = toolInterceptor.flush();
+      if (flushed) {
+        fullContent += flushed;
+        onChunk(flushed);
+      }
+      const interceptedTools = toolInterceptor.getExtractedTools();
+      for (const t of interceptedTools) {
+        toolCalls.push(t);
       }
 
       if (fullContent) {
@@ -802,6 +832,7 @@ export class GeminiAdapter implements LLMProvider {
       const toolCalls: any[] = [];
       let totalTokens = 0;
       let reasoningContent: string | null = null;
+      const toolInterceptor = new StreamingToolInterceptor();
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -830,8 +861,11 @@ export class GeminiAdapter implements LLMProvider {
                       continue;
                     }
                     if (part.text) {
-                      contentStr += part.text;
-                      onChunk(part.text);
+                      const safeText = toolInterceptor.feed(part.text);
+                      if (safeText) {
+                        contentStr += safeText;
+                        onChunk(safeText);
+                      }
                     } else if (part.functionCall) {
                       toolCalls.push({
                         id: `call_${Math.random().toString(36).substring(7)}`,
@@ -846,6 +880,16 @@ export class GeminiAdapter implements LLMProvider {
             } catch {}
           }
         }
+      }
+
+      const flushed = toolInterceptor.flush();
+      if (flushed) {
+        contentStr += flushed;
+        onChunk(flushed);
+      }
+      const interceptedTools = toolInterceptor.getExtractedTools();
+      for (const t of interceptedTools) {
+        toolCalls.push(t);
       }
 
       // For non-thinking models that emit <think>...</think> in text stream

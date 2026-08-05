@@ -13,9 +13,9 @@ Before installing Nyxora, ensure your system meets the following requirements:
 
 ---
 
-## ⚡ Option 1: One-Line Installation (Recommended)
+## ⚡ Option 1: One-Line Installer (Recommended)
 
-The fastest way to install Nyxora is via our smart installation wrapper. This script automatically checks for Node.js, installs it if missing, and securely fetches the Nyxora daemon directly from the NPM Registry.
+The cleanest way to install Nyxora. This script automatically handles Node.js setup, installs Nyxora with **zero warnings**, and sets up the Python ML Engine.
 
 **Linux & macOS:**
 ```bash
@@ -27,18 +27,22 @@ curl -fsSL https://nyxoraai.github.io/Nyxora/install.sh | bash
 iwr -useb https://nyxoraai.github.io/Nyxora/install.ps1 | iex
 ```
 
+> ✅ **Zero warnings.** The installer handles all dependency permissions automatically via `--allow-scripts`.
+
 ---
 
 ## 📦 Option 2: Global Installation (NPM)
 
-If you already have Node.js installed, you can natively install Nyxora globally via NPM, allowing you to use the `nyxora` CLI command from anywhere on your machine.
+If you already have Node.js 22+ installed, you can natively install Nyxora globally via NPM:
 
 ```bash
-# Install globally
 npm install -g nyxora
+```
 
-> 💡 **ML Engine Setup**: When you run `npm install -g nyxora`, the Python ML Engine dependencies are automatically installed via the `postinstall` script. Requires Python 3.10+.
+> ℹ️ You may see `npm warn allow-scripts` during install — this is **normal and expected**. All components still install correctly. Run `nyxora setup` afterward to complete the ML Engine setup.
 
+Then get started:
+```bash
 # ⚙️ Run the interactive setup wizard
 nyxora setup
 
@@ -55,7 +59,7 @@ nyxora tui
 nyxora chat
 ```
 
-The interactive command-line wizard (`nyxora setup`) acts as a smart system doctor that automatically validates your Node.js installation (and automatically downloads an isolated Portable Python runtime if missing) before guiding you through:
+The interactive command-line wizard (`nyxora setup`) guides you through:
 1. **AI Engine Selection:** Choose your primary LLM provider (OpenAI, 9Router, Custom Provider, DeepSeek, etc.) and your preferred Web Search provider. Input your API keys or Base URLs securely.
 2. **Skill Selection (Pure Assistant Mode):** The CLI will ask if you want to enable Web3 Skills. If you select "No", the CLI generates a `disabled_skills.json` file. This securely locks the agent out of the Web3 Signer and Wallet capabilities, creating a pure, lightweight coding/OS assistant.
 3. **Wallet Setup:** Auto-generate or manually securely input an Ethereum/EVM private key into your OS-Native Keyring (if Web3 skills are enabled).

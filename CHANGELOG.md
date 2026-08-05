@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [26.8.6]
+### Bug Fixes
+- **Streaming Tool Interceptor (`toolInterceptor.ts`)**: Fixed 4 critical bugs in `StreamingToolInterceptor`:
+  - **Raw JSON Leak on Stream End**: `flush()` previously returned the raw JSON payload verbatim to the caller when the LLM stream ended mid-tool-block, causing internal JSON to be displayed in the user interface. Now performs best-effort extraction and returns an empty string instead.
+  - **Buffer Overflow Inside Tool Block**: When the internal buffer exceeded `MAX_PAYLOAD_BYTES` while `inToolBlock = true`, the entire buffer (containing raw tool JSON) was returned to the caller. Now silently discards the buffer and returns an empty string to prevent any JSON leakage.
+  - **`tool_params` Type Safety**: `tool_params` is now strictly validated before serialization. Pre-serialized JSON strings are validated and passed through directly; `null`, `undefined`, arrays, or non-objects are safely normalized to `{}`, preventing downstream argument parsing errors.
+  - **Empty Payload Guard**: Added early return in `extractTool()` for empty or whitespace-only cleaned strings, preventing unnecessary `JSON.parse('')` exceptions in logs.
+
+### Installation & Distribution
+- **One-Line Installer Script (`docs/public/install.sh`)**: Introduced a new Linux & macOS installer script served at `https://nyxoraai.github.io/Nyxora/install.sh`. The script automatically installs Node.js 22+ via `nvm` if missing, installs Nyxora using `npm install -g --allow-scripts` to produce a **zero npm warning** output, and sets up the Python ML Engine virtual environment if Python 3.10+ is detected.
+- **Windows Installer (`docs/public/install.ps1`)**: Introduced a PowerShell installer for Windows, served at `https://nyxoraai.github.io/Nyxora/install.ps1`. Installs Node.js via `winget` (fallback to Chocolatey) and follows the same zero-warning install pattern.
+- **3-Option Installation Documentation (`README.md`)**: Restructured the Quick Start section to clearly present three installation paths: **Option 1** (`curl` installer — zero warnings, recommended for end users), **Option 2** (`npm install -g nyxora` — for users already on Node.js, warn is expected and normal), and **Option 3** (local development from source). Added inline notes to set correct expectations for the `npm warn allow-scripts` message.
+
 ## [26.8.5]
 ### Features & AI Memory Enhancements
 - **FTS5 SQLite Memory Search (`logger.ts`, `searchMemory.ts`)**: Upgraded the core SQLite memory database to utilize the FTS5 extension. Nyxora now automatically syncs and indexes conversational memory, allowing the AI to instantly recall past interactions and user preferences using the new `search_memory` cognitive skill.
