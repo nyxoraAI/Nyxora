@@ -200,8 +200,18 @@ const SILENT_TOOLS = new Set([
   'memory_search',
 ]);
 
-function getToolLabel(n: string, firstArgValue: string): string {
-  const safeArg = firstArgValue ? String(firstArgValue) : '';
+/** Strip XML-like parameter tags that may appear in raw tool argument values */
+function sanitizeLabel(text: string): string {
+  return text
+    .replace(/<parameter=[^>]*>/gi, '')  // remove <parameter=xxx>
+    .replace(/<\/parameter>/gi, '')       // remove </parameter>
+    .replace(/<[a-z_][a-z0-9_]*>/gi, '') // remove any other bare XML tags
+    .replace(/\s+/g, ' ')               // collapse newlines/whitespace
+    .trim();
+}
+
+function getToolLabel(n: string, firstArgValue: string, rawArgs?: any): string {
+  const safeArg = firstArgValue ? sanitizeLabel(String(firstArgValue)) : '';
   if (n === 'run_terminal_command' || n === 'run_terminal_command_pty') return `💻 terminal\n\`\`\`shell\n${safeArg.substring(0, 100)}${safeArg.length > 100 ? '...' : ''}\n\`\`\``;
   if (n === 'write_local_file') return `✍️ Writing ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
   if (n === 'read_local_file') return `📖 Reading ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
@@ -212,7 +222,13 @@ function getToolLabel(n: string, firstArgValue: string): string {
   if (n.includes('git')) return `🐙 Git: ${safeArg.substring(0, 50)}`;
   if (n === 'generate_image') return `🎨 Generating image...`;
   if (n === 'analyze_local_image') return `👁️ Analyzing image...`;
-  if (n === 'computer') return `🖱️ Computer Use: ${safeArg.substring(0, 50)}`;
+  if (n === 'computer') {
+    // Use the 'action' key directly — first arg value may contain raw multiline
+    // parameter XML tags (e.g. <parameter=coordinate> [100, 100]) that leak into UI
+    const action = rawArgs?.action || rawArgs?.type || safeArg;
+    const cleanAction = sanitizeLabel(String(action)).substring(0, 40);
+    return `🖥️ Computer Use: ${cleanAction}`;
+  }
   if (n.includes('skill') || n.includes('playbook')) return `🧠 Updating AI Knowledge (${n})...`;
   if (n.includes('write') || n.includes('create')) {
     let name = safeArg ? safeArg.split('/').pop() || 'item' : 'item';
@@ -602,12 +618,13 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
         // Progress notification
         let firstArgValue = '';
+        let parsedPreview: any = {};
         try {
-          const parsedPreview = JSON.parse(toolCall.function.arguments || '{}');
+          parsedPreview = JSON.parse(toolCall.function.arguments || '{}');
           const firstKey = Object.keys(parsedPreview)[0];
           if (firstKey) firstArgValue = String(parsedPreview[firstKey]);
         } catch { /* ignore */ }
-        const previewMsg = getToolLabel(toolName, firstArgValue);
+        const previewMsg = getToolLabel(toolName, firstArgValue, parsedPreview);
         console.log(pc.yellow(`[⚡ Tool Execution] AI is calling ${toolName}...`));
         if (onProgress) onProgress(previewMsg);
 
