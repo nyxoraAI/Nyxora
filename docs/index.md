@@ -119,5 +119,17 @@ features:
       <h3>🏦 DeFi Yield Automation</h3>
       <p>Stop letting assets sit idle. Command Nyxora to autonomously supply liquidity to Aave V3 or route LP tokens into Beefy Finance auto-compounding vaults.</p>
     </div>
+    <div class="why-card">
+      <h3>🎯 Long-Horizon Task System</h3>
+      <p>Assign complex, multi-day tasks. Nyxora breaks them down, executes them asynchronously in the background, saves checkpoints, and sends push notifications to your Telegram upon milestone completions.</p>
+    </div>
+    <div class="why-card">
+      <h3>👁️ Vision & UI Verification</h3>
+      <p>Equipped with a multi-modal ML Engine, Nyxora can read encrypted PDFs, extract structured data from charts, and autonomously screenshot and verify its own UI code changes in real-time.</p>
+    </div>
+    <div class="why-card">
+      <h3>🔧 Autonomous Software Engineering</h3>
+      <p>More than just an autocomplete assistant. Nyxora runs your test suites, analyzes error logs, fixes the code, and repeats the loop until the tests pass. It can even orchestrate large-scale codebase migrations safely.</p>
+    </div>
   </div>
 </div>
