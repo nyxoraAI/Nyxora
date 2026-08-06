@@ -130,6 +130,9 @@ const spawnService = (name: string, command: string, args: string[], env: any, i
 };
 
 console.log('[Launcher] Starting Monorepo Services...');
+import { startGoalWorker } from './packages/core/src/agent/goalWorker';
+startGoalWorker();
+console.log('[Launcher] Goal worker started.');
 
 const socketPath = env.SIGNER_SOCKET_PATH;
 if (fs.existsSync(socketPath)) {

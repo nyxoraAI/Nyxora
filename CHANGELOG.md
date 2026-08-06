@@ -5,17 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [26.8.6]
+
+### 🔭 Vision & Analysis
+- **Multi-Modal `analyze_local_image` Upgrade (`analyzeImage.ts`)**: Migrated from hardcoded Gemini SDK to the user-configured LLM provider via `executeWithRetry`. Now supports any OpenAI-compatible vision provider (OpenAI, Anthropic, Gemini, xAI, etc.) using the standard `image_url` message format. Added automatic content-type detection (screenshot, chart, diagram, document, photo) to inject specialized analysis instructions per content type.
+- **Native PDF Analysis Skill (`analyzePdf.ts`)**: Introduced `analyze_pdf` skill wrapping the existing `extract_pymupdf.py` playbook script. Supports three modes — `text` (raw extraction), `structured` (pages + metadata), and `summary` (LLM-generated summary of extracted content). Gracefully handles encrypted and scanned PDFs, returning page count and word count metadata.
+- **Chart & Diagram Analyzer (`analyzeChart.ts`, `vision.py`)**: Added `analyze_chart` skill backed by a new `POST /vision/analyze-chart` ML Engine endpoint. Returns structured data: title, axes, data points, trend direction, and natural-language key insight. Uses the configured LLM's vision capabilities — no hardcoded provider.
+- **Visual Verification Loop (`verifyVisual.ts`, `vision.py`)**: Added `verify_visual_output` skill backed by `POST /vision/verify-screenshot`. Agent can autonomously screenshot → describe expected state → verify → iterate. Returns `{ matches, confidence, issues[], suggestions[] }`. Pairs naturally with the existing `computer_use` skill for full autonomous UI testing.
+- **ML Engine Vision Router (`packages/ml-engine/routers/vision.py`)**: New FastAPI router registered at `/vision/*` providing chart analysis and visual verification endpoints. Uses configured LLM provider via `config.py` — no hardcoded API keys.
+
+### 🔧 Software Engineering Upgrade
+- **Autonomous Test Runner (`runTestsAndFix.ts`)**: New `run_tests_and_fix` skill that executes the project's test command, parses output (vitest, jest, pytest, cargo test), and returns a structured report: passing count, failing count, per-failure details (file, line, error). Designed as an iterative tool — LLM reads results, applies fixes via `edit_local_file`, then calls again. State tracked via `~/.nyxora/test_loop_state.json`. Max iterations configurable (default 5).
+- **Migration Plan Orchestrator (`planMigration.ts`)**: New `plan_migration` skill that scans the codebase for affected files, assesses migration scope, and generates a structured step-by-step migration plan with recommended execution order, module batching, and test gates. Returns actionable plan text — execution is handled by the LLM via existing tools.
+- **Software Engineering SOP Prompts (3 new cognitive skills)**:
+  - `large-scale-refactor.md`: Pre-refactor checklist, batch-by-module strategy, rollback triggers, progress tracking with `todo_write`.
+  - `autonomous-testing.md`: Test-fix loop strategy, flaky test detection, regression prevention, escalation rules.
+  - `migration-orchestration.md`: Scope assessment, incremental migration, circular dependency handling, checkpoint + rollback strategy.
+- **Cognitive Manager SOP Mappings (`cognitiveManager.ts`)**: Registered keyword triggers for all 3 new SOPs — `migrate/migration/migrasi`, `run tests/fix tests/test loop`, `large scale/bulk change/refactoring` — enabling automatic SOP injection when relevant tasks are requested.
+
+### 🎯 Long-Horizon Task System
+- **Persistent Goal Manager (`goalManager.ts`)**: Introduced `goalManager` — a JSON-backed persistent store at `~/.nyxora/goals.json` for multi-day autonomous tasks. Supports full lifecycle: `createGoal`, `advanceStep`, `updateCheckpoint`, `pauseGoal`, `resumeGoal`, `markComplete`, `markFailed`. Auto-pauses goals after 3 consecutive failures. Unlike `cronManager` (recurring schedules), `goalManager` handles one-time multi-step tasks that span days.
+- **Background Goal Worker (`goalWorker.ts`)**: `startGoalWorker()` polls active goals every 5 minutes. For each due goal, resumes from last checkpoint, calls `processUserInput` with accumulated context, saves progress, then advances the step counter. Pushes Telegram notifications on step completion, milestone, and failure. Auto-starts 30 seconds after daemon boot to allow services to initialize.
+- **Goal Management Skills (`goalSkills.ts`)**: Four new LLM-callable tools: `create_long_term_goal` (register a multi-step async goal), `get_goal_status` (formatted overview of all goals), `pause_goal` / `resume_goal` (lifecycle control).
+- **Active Goals System Prompt Injection (`promptBuilder.ts`)**: Active goals are now injected into every system prompt turn via `getGoalSummary()`, keeping the LLM aware of ongoing long-running work without requiring the user to re-explain context.
+- **Goal Worker Daemon Integration (`launcher.ts`)**: `startGoalWorker()` is now called at daemon startup, ensuring long-horizon tasks survive restarts and automatically resume from their last checkpoint.
+
 ### Bug Fixes
-- **Streaming Tool Interceptor (`toolInterceptor.ts`)**: Fixed 4 critical bugs in `StreamingToolInterceptor`:
-  - **Raw JSON Leak on Stream End**: `flush()` previously returned the raw JSON payload verbatim to the caller when the LLM stream ended mid-tool-block, causing internal JSON to be displayed in the user interface. Now performs best-effort extraction and returns an empty string instead.
-  - **Buffer Overflow Inside Tool Block**: When the internal buffer exceeded `MAX_PAYLOAD_BYTES` while `inToolBlock = true`, the entire buffer (containing raw tool JSON) was returned to the caller. Now silently discards the buffer and returns an empty string to prevent any JSON leakage.
-  - **`tool_params` Type Safety**: `tool_params` is now strictly validated before serialization. Pre-serialized JSON strings are validated and passed through directly; `null`, `undefined`, arrays, or non-objects are safely normalized to `{}`, preventing downstream argument parsing errors.
-  - **Empty Payload Guard**: Added early return in `extractTool()` for empty or whitespace-only cleaned strings, preventing unnecessary `JSON.parse('')` exceptions in logs.
+- **Streaming Tool Interceptor (`toolInterceptor.ts`)**: Fixed 4 critical bugs — raw JSON leak on stream end, buffer overflow inside tool block, `tool_params` type safety, and empty payload guard.
+- **Telegram Tool Status Flood (`telegram.ts`)**: Fixed `onProgress` sending a new Telegram message per tool call when `Computer Use` tool runs multiple sequential actions (click, key, screenshot, etc.). Reverted to intended multi-bubble behavior while fixing the root cause.
+- **Computer Use XML Parameter Leak (`osAgent.ts`)**: `getToolLabel()` was passing raw `firstArgValue` for `computer` tool which contained multiline XML-like parameter tags (`<parameter=coordinate> [100, 100]`). Fixed by: (1) reading `args.action` key directly for computer tool, (2) adding `sanitizeLabel()` helper that strips all `<parameter=...>` XML tags and collapses whitespace across all tool labels.
+- **Self-Healer 5 Bugs (`selfHealer.ts`, `agentskills.ts`)**: Fixed invalid `max_tokens` field, broken `?t=` query string cache-bust (replaced with proper `require.cache` deletion), greedy first-match code block regex (now takes last/largest match), over-strict export sanity check (added `module.exports` support), and wasteful LLM calls on un-healable runtime errors (added `isHealableError()` filter).
 
 ### Installation & Distribution
-- **One-Line Installer Script (`docs/public/install.sh`)**: Introduced a new Linux & macOS installer script served at `https://nyxoraai.github.io/Nyxora/install.sh`. The script automatically installs Node.js 22+ via `nvm` if missing, installs Nyxora using `npm install -g --allow-scripts` to produce a **zero npm warning** output, and sets up the Python ML Engine virtual environment if Python 3.10+ is detected.
-- **Windows Installer (`docs/public/install.ps1`)**: Introduced a PowerShell installer for Windows, served at `https://nyxoraai.github.io/Nyxora/install.ps1`. Installs Node.js via `winget` (fallback to Chocolatey) and follows the same zero-warning install pattern.
-- **3-Option Installation Documentation (`README.md`)**: Restructured the Quick Start section to clearly present three installation paths: **Option 1** (`curl` installer — zero warnings, recommended for end users), **Option 2** (`npm install -g nyxora` — for users already on Node.js, warn is expected and normal), and **Option 3** (local development from source). Added inline notes to set correct expectations for the `npm warn allow-scripts` message.
+- **One-Line Installer Script (`docs/public/install.sh`)**: Linux & macOS zero-warning installer via `curl`.
+- **Windows Installer (`docs/public/install.ps1`)**: PowerShell installer via `winget`/Chocolatey.
+- **3-Option Installation Documentation**: `npm install -g`, `curl` installer, and developer source install.
 
 ## [26.8.5]
 ### Features & AI Memory Enhancements

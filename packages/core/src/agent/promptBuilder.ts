@@ -10,6 +10,7 @@ import { detectProjectFacts, buildWorkspaceBlock } from './projectAnalyzer';
 import { SUPER_DISCIPLINE } from './superDiscipline';
 import { getEstimatedMaxContext, isSmallModel } from '../utils/llmUtils';
 import { ML_BASE_URL } from '../config/constants';
+import { getGoalSummary } from './goalManager';
 
 // ── TTL Caches ──────────────────────────────────────────────────────────────
 // Narrative memory + skills are fetched from the ML engine on every request.
@@ -124,13 +125,17 @@ export class PromptBuilder {
     const stableText = stableParts.join('\n\n') + '\n\n' + identityParts.join('\n\n');
     const criticalEnd = '\n\n' + SUPER_DISCIPLINE;
     
-    // We want to prioritize workspace context
     const priorityOptionalParts = [
       ...contextParts,
       this.buildPlaybookContext(),
       this.buildSecurityPolicy(),
       this.buildRiskProfile()
     ].filter(p => p && p.trim() !== '');
+
+    const goalSummary = getGoalSummary();
+    if (goalSummary) {
+      priorityOptionalParts.push(goalSummary);
+    }
 
     const maxContextFull = options.config?.llm?.max_context || getEstimatedMaxContext(options.config?.llm?.model || '');
     const maxSystemChars = Math.floor(maxContextFull * 4 * 0.5);

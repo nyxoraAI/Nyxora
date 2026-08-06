@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { loadApiKeys } from '../../config/parser';
+import { loadConfig, loadApiKeys } from '../../config/parser';
+import { executeWithRetry } from '../../utils/llmUtils';
 
 export const analyzeLocalImageToolDefinition = {
   type: 'function',
@@ -29,44 +30,79 @@ export async function analyzeLocalImage(imagePath: string, prompt: string): Prom
     return `[Error] Image file not found at path: ${imagePath}`;
   }
 
+  const buffer = fs.readFileSync(imagePath);
+  const base64Data = buffer.toString('base64');
+  
+  const ext = path.extname(imagePath).toLowerCase();
+  let mimeType = 'image/jpeg';
+  if (ext === '.png') mimeType = 'image/png';
+  else if (ext === '.webp') mimeType = 'image/webp';
+  else if (ext === '.heic') mimeType = 'image/heic';
+  else if (ext === '.heif') mimeType = 'image/heif';
+
+  const p = prompt.toLowerCase();
+  let contentType = 'photo';
+  if (p.includes('screenshot') || p.includes('ui')) contentType = 'screenshot';
+  else if (p.includes('chart') || p.includes('graph')) contentType = 'chart';
+  else if (p.includes('diagram') || p.includes('flowchart')) contentType = 'diagram';
+  else if (p.includes('document') || p.includes('text') || p.includes('markdown')) contentType = 'document';
+
+  const config = loadConfig();
+  const model = config.llm?.model || 'gpt-4o-mini';
+
+  let sysPrompt = 'You are a helpful vision assistant. Analyze the image and answer the prompt.';
+  if (contentType !== 'photo') {
+      sysPrompt += `\nThe user is asking about a ${contentType}. Provide a structured, well-formatted response with clear sections.`;
+  }
+
   try {
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const keys = await loadApiKeys();
-    const geminiKey = keys['gemini_key'];
-    
-    if (!geminiKey) {
-        return `[Security Error] No gemini_key found in the vault. Please run 'nyxora set-key gemini' first.`;
-    }
-
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash',
-        generationConfig: { temperature: 0.1 }
+    const response = await executeWithRetry(async (client) => {
+      return await client.chat({
+        model: model,
+        messages: [
+          { role: 'system', content: sysPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Data}` } },
+              { type: 'text', text: prompt }
+            ]
+          }
+        ],
+        temperature: 0.1
+      });
     });
-    
-    // Read file and determine mime type
-    const buffer = fs.readFileSync(imagePath);
-    const base64Data = buffer.toString('base64');
-    
-    const ext = path.extname(imagePath).toLowerCase();
-    let mimeType = 'image/jpeg';
-    if (ext === '.png') mimeType = 'image/png';
-    else if (ext === '.webp') mimeType = 'image/webp';
-    else if (ext === '.heic') mimeType = 'image/heic';
-    else if (ext === '.heif') mimeType = 'image/heif';
 
-    const response = await model.generateContent([
-        prompt,
-        {
-            inlineData: {
-                data: base64Data,
-                mimeType: mimeType
-            }
-        }
-    ]);
-
-    return response.response.text() || "[Error] No content generated.";
+    return response.message.content || "[Error] No content generated.";
   } catch (error: any) {
+    if (config.llm?.provider === 'gemini') {
+      try {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        const keys = await loadApiKeys();
+        const geminiKey = keys['gemini_key'];
+        
+        if (geminiKey) {
+          const genAI = new GoogleGenerativeAI(geminiKey);
+          const geminiModel = genAI.getGenerativeModel({ 
+              model: 'gemini-2.5-flash',
+              generationConfig: { temperature: 0.1 }
+          });
+          
+          const response = await geminiModel.generateContent([
+              prompt,
+              {
+                  inlineData: {
+                      data: base64Data,
+                      mimeType: mimeType
+                  }
+              }
+          ]);
+          return response.response.text() || "[Error] No content generated.";
+        }
+      } catch (geminiError: any) {
+        return `[System Error] Primary and Gemini fallback failed: ${error.message} / ${geminiError.message}`;
+      }
+    }
     return `[System Error] Failed to analyze image: ${error.message}`;
   }
 }

@@ -16,6 +16,11 @@ import { todoWriteToolDefinition, todoReadToolDefinition, todoWrite, todoRead } 
 import { computerUseToolDefinition, computerUse } from '../skills/computerUse';
 import { delegateSubagentToolDefinition, delegateSubagent } from '../skills/delegateSubagent';
 import { searchMemoryToolDefinition, executeSearchMemory } from '../skills/searchMemory';
+import { runTestsAndFixToolDefinition, runTestsAndFix } from '../skills/runTestsAndFix';
+import { planMigrationToolDefinition, planMigration } from '../skills/planMigration';
+import { analyzePdfToolDefinition, analyzePdf } from '../skills/analyzePdf';
+import { analyzeChartToolDefinition, analyzeChart } from '../skills/analyzeChart';
+import { verifyVisualToolDefinition, verifyVisual } from '../skills/verifyVisual';
 
 // ---------------------------------------------------------------------------
 // CWD resolution — multi-source, with sentinel rejection.
@@ -76,7 +81,12 @@ export class SystemWorkspacePlugin implements Plugin {
     todoReadToolDefinition,
     computerUseToolDefinition,
     delegateSubagentToolDefinition,
-    searchMemoryToolDefinition
+    searchMemoryToolDefinition,
+    runTestsAndFixToolDefinition,
+    planMigrationToolDefinition,
+    analyzePdfToolDefinition,
+    analyzeChartToolDefinition,
+    verifyVisualToolDefinition
   ];
 
   public handlers = {
@@ -145,6 +155,23 @@ export class SystemWorkspacePlugin implements Plugin {
     },
     ['search_memory']: async (args: any) => {
       return executeSearchMemory(args.query, args.limit);
+    },
+    ['run_tests_and_fix']: async (args: any, context?: any) => {
+      const cwd = resolveCwd(context, args);
+      return await runTestsAndFix({ ...args, workDir: cwd ?? args.workDir });
+    },
+    ['plan_migration']: async (args: any, context?: any) => {
+      const cwd = resolveCwd(context, args);
+      return await planMigration({ ...args, workDir: cwd ?? args.workDir });
+    },
+    ['analyze_pdf']: async (args: any) => {
+      return await analyzePdf(args);
+    },
+    ['analyze_chart']: async (args: any) => {
+      return await analyzeChart(args);
+    },
+    ['verify_visual_output']: async (args: any) => {
+      return await verifyVisual(args);
     },
   };
 }

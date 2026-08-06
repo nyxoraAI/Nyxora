@@ -26,6 +26,18 @@ export class CognitiveManager {
         keywords: ['plan', 'architecture', 'design', 'structure', 'blueprint', 'refactor'],
         file: 'software-development/plan.md'
       },
+      {
+        keywords: ['large scale', 'bulk change', 'mass refactor', 'refactor all', 'refactoring'],
+        file: 'software-engineering/large-scale-refactor.md'
+      },
+      {
+        keywords: ['run tests', 'fix tests', 'test loop', 'autonomous test', 'test and fix', 'failing tests'],
+        file: 'software-engineering/autonomous-testing.md'
+      },
+      {
+        keywords: ['migrate', 'migration', 'migrasi', 'upgrade library', 'upgrade package', 'port codebase'],
+        file: 'software-engineering/migration-orchestration.md'
+      },
     ];
 
     // ── Web3 / Trading SOPs ────────────────────────────────────────────────
