@@ -401,21 +401,15 @@ function createStreamBubble(ctx: any, replyToMsgId?: number): StreamBubble {
   };
 
   // ── Public: onProgress ─────────────────────────────────────────────────────
-  // Always creates a new Bubble B if one is already occupied by a tool, to support multiple distinct tool bubbles.
+  // Always edits Bubble B in place — never sends a new message per tool call.
+  // Prevents tool status floods (Computer Use: click, key, screenshot...)
+  // from appearing as separate Telegram messages.
   const onProgress = (msg: string): void => {
     enqueue(async () => {
       if (isFinalized) return;
       if (pendingFlushTimer) { clearTimeout(pendingFlushTimer); pendingFlushTimer = null; }
       const newHtml = formatToTelegramHTML(msg);
-      if (lastProgressHtml === '⏳ Processing...') {
-        await editProgressBubble(newHtml);
-      } else {
-        const newMsgId = await sendNew(newHtml);
-        if (newMsgId) {
-          progressMsgId = newMsgId;
-          lastProgressHtml = newHtml;
-        }
-      }
+      await editProgressBubble(newHtml);
     });
   };
 
