@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'yaml';
 import { getPath } from '../config/paths';
+import { attemptSelfHeal } from '../plugin/selfHealer';
 
 export interface SkillParameter {
   type: string;
@@ -171,21 +172,46 @@ export class AgentSkills {
       }
     }
 
-    try {
-      // Dynamic import of the TS/JS module
-      const module = await import(scriptPath);
-      
-      // We expect every skill module to export a default function or an 'execute' function
-      if (module.execute && typeof module.execute === 'function') {
-        return await module.execute(args);
-      } else if (module.default && typeof module.default === 'function') {
-        return await module.default(args);
-      } else {
-        throw new Error(`Skill module '${name}' must export an 'execute' or 'default' function.`);
+    let retries = 0;
+    while (retries <= 1) {
+      try {
+        // Bug #2 fix: ?t= query string does NOT bust Node.js module cache for local
+        // file paths — the resolved path is the key, not the full specifier.
+        // Correct approach: delete every require.cache entry whose filename starts
+        // with scriptPath before re-importing, so the patched file is loaded fresh.
+        const resolvedScript = require.resolve(scriptPath);
+        Object.keys(require.cache).forEach(key => {
+          if (key.startsWith(resolvedScript)) delete require.cache[key];
+        });
+
+        // Dynamic import — module cache is now clean for this path
+        const module = await import(scriptPath);
+
+        // We expect every skill module to export a default function or an 'execute' function
+        if (module.execute && typeof module.execute === 'function') {
+          return await module.execute(args);
+        } else if (module.default && typeof module.default === 'function') {
+          return await module.default(args);
+        } else {
+          throw new Error(`Skill module '${name}' must export an 'execute' or 'default' function.`);
+        }
+      } catch (err: any) {
+        if (retries === 0) {
+          console.log(`[AgentSkills] Error detected in ${name}. Triggering Self-Healer...`);
+          try {
+            const healed = await attemptSelfHeal(name, scriptPath, args, err.message);
+            if (healed) {
+              retries++;
+              continue; // retry with fresh module load
+            }
+          } catch (healErr) {
+            console.error(`[AgentSkills] Self-healing failed for '${name}':`, healErr);
+          }
+        }
+        console.error(`[AgentSkills] Error executing skill '${name}':`, err);
+        return `Failed to execute skill '${name}': ${err.message}`;
       }
-    } catch (err: any) {
-      console.error(`[AgentSkills] Error executing skill '${name}':`, err);
-      return `Failed to execute skill '${name}': ${err.message}`;
     }
+    return `Failed to execute skill '${name}' after healing attempt.`;
   }
 }
