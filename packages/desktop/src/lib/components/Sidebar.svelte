@@ -125,15 +125,37 @@
     try {
       const projectId = await getProjectIdByPath(workspace);
       if (projectId) {
+        // ── Cascade: delete all sessions inside this project first ──────────
+        // Without this, the project re-appears on refresh because onMount
+        // re-adds any project that still has sessions in the backend DB.
+        const sessionsInProject = $chatStore.sessions.filter(s => s.project_id === projectId);
+        await Promise.all(
+          sessionsInProject.map(s =>
+            apiFetch(`/api/sessions/${s.id}`, { method: 'DELETE' }).catch(() => {})
+          )
+        );
+        // ── Now delete the project itself ────────────────────────────────────
         await apiFetch(`/api/projects/${projectId}`, { method: 'DELETE' });
       }
+      // ── Update UI state ───────────────────────────────────────────────────
       appState.removeWorkspace(workspace);
       delete expandedProjects[workspace];
+      // Clear active session if it was inside this project
+      if ($appState.activeWorkspace === workspace) {
+        appState.setActiveSession(null);
+        appState.setActiveWorkspace(null);
+        chatStore.setMessages([]);
+      }
+      // Refresh session list to reflect deletions
+      await fetchSessions();
     } catch (err) {
       console.error('Failed to delete project:', err);
+      // Even on error, remove from UI so user isn't stuck
       appState.removeWorkspace(workspace);
+      delete expandedProjects[workspace];
     }
   }
+
 
   async function createProjectSession(workspace: string) {
     try {
