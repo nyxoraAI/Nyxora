@@ -145,7 +145,7 @@
     "react-markdown": "^10.1.0",
     "react-reconciler": "^0.33.0",
     "remark-gfm": "^4.0.1",
-    "scheduler": "^0.23.2",
+    "scheduler": "^0.27.0",
     "semver": "^7.6.0",
     "signal-exit": "^4.1.0",
     "silk-wasm": "^3.7.1",
