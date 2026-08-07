@@ -60,7 +60,7 @@ graph TD
 
     User["User / External Client"]:::external
 
-    Dashboard["Dashboard (UI)<br/>Port 5173"]:::ui
+    Dashboard["Dashboard (UI)\nPort 40000\n(Served by Core in production)"]:::ui
     MCP["MCP Server<br/>STDIO (Process)"]:::ui
 
     Core["Core LLM Runtime<br/>Port 40000<br/>(NLP Parsing, Routing, Agent Logic)"]:::core

@@ -982,8 +982,10 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
 
       let streamedContent = '';
       const turnStartTime = Date.now();
+      let lastEmittedChunkLength = 0; // Track how much was actually pushed to UI this turn
       const response = await executeWithRetry(async (client) => {
         streamedContent = '';
+        lastEmittedChunkLength = 0;
         // RC#1 FIX: Always clear the buffer at the start of the stream turn.
         // This ensures the client UI doesn't append duplicate preambles across multi-turn executions.
         onChunk('[CLEAR_STREAM]');
@@ -994,6 +996,7 @@ The user explicitly stated your previous response was WRONG, STALE, or INACCURAT
             streamedContent += chunk;
             const scrubbedChunk = scrubber.feed(chunk);
             if (scrubbedChunk) {
+              lastEmittedChunkLength += scrubbedChunk.length;
               onChunk(scrubbedChunk);
             }
           },
@@ -1111,6 +1114,16 @@ Do NOT output filler text like "Wait, I will check". Act now.`;
 
         fullResponse = finalContent;
         triggerBackgroundReview(sessionId);
+
+        // ── COMPLETION GUARANTEE ──────────────────────────────────────────
+        // The final text was streamed real-time via onChunk above, but if the
+        // stream was interrupted (e.g. rate-limit, Nemotron silent stop) the
+        // UI may have received a [CLEAR_STREAM] without the follow-up text.
+        // Re-emit the final content if nothing was actually pushed to the UI
+        // this turn, so the user ALWAYS gets a completion message.
+        if (finalContent && lastEmittedChunkLength === 0) {
+          await onChunk(finalContent);
+        }
         break;
       }
 

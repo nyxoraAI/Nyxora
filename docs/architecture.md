@@ -17,7 +17,7 @@ By isolating concerns across three separate processes, Nyxora ensures that even 
                |
                v
 |     Dashboard (UI)          |       |      MCP Server         |
-|        Port 5173            |       |      STDIO (Process)    |
+|  Port 40000 (production)    |       |      STDIO (Process)    |
 +-----------------------------+       +-------------------------+
                |                                  |
                +---------------+------------------+
@@ -75,9 +75,9 @@ The MCP (Model Context Protocol) Server acts as an open standard interface betwe
 *   **Role:** Allows Nyxora to read files, execute terminal commands, and search local knowledge bases natively.
 *   **Extensibility:** Developers can plug in any standard MCP tool into Nyxora seamlessly.
 
-### 4. Client Interfaces - Port 5173 / CLI
+### 4. Client Interfaces - Port 40000 (production) / CLI
 A suite of beautiful, highly interactive client interfaces tailored for real-time monitoring and conversational execution.
-*   **Web Dashboard:** A local React (Vite) interface that visualizes Web3 portfolios and handles real-time WebSockets.
+*   **Web Dashboard:** A local React (Vite) interface served at `http://localhost:40000` (the same port as Core, which serves the pre-built `dashboard/dist/` folder as static files). During development only, the Vite dev server runs on a separate port (default 5173) and proxies API calls to Core.
 *   **Nyxora Desktop MVP:** A native standalone Electron application mirroring the web dashboard with a localized OS-level experience (auto-bootstraps the daemon on launch).
 *   **Terminal UI (TUI):** A native terminal multi-pane interface using `blessed` and SSE streaming for non-GUI or VPS users (`nyxora chat`).
 
