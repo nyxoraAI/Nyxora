@@ -204,15 +204,13 @@ export class Logger {
 
       this.db.exec(`
         CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
-          INSERT INTO messages_fts(messages_fts, rowid, content, name, role, session_id, message_id)
-          VALUES ('delete', old.id, old.content, old.name, old.role, old.session_id, old.id);
+          DELETE FROM messages_fts WHERE rowid = old.id;
         END;
       `);
 
       this.db.exec(`
         CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE ON messages BEGIN
-          INSERT INTO messages_fts(messages_fts, rowid, content, name, role, session_id, message_id)
-          VALUES ('delete', old.id, old.content, old.name, old.role, old.session_id, old.id);
+          DELETE FROM messages_fts WHERE rowid = old.id;
           INSERT INTO messages_fts(rowid, content, name, role, session_id, message_id)
           VALUES (new.id, new.content, new.name, new.role, new.session_id, new.id);
         END;

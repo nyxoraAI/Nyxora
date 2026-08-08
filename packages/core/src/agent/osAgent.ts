@@ -213,9 +213,10 @@ function sanitizeLabel(text: string): string {
 function getToolLabel(n: string, firstArgValue: string, rawArgs?: any): string {
   const safeArg = firstArgValue ? sanitizeLabel(String(firstArgValue)) : '';
   if (n === 'run_terminal_command' || n === 'run_terminal_command_pty') return `💻 terminal\n\`\`\`shell\n${safeArg.substring(0, 100)}${safeArg.length > 100 ? '...' : ''}\n\`\`\``;
-  if (n === 'write_local_file') return `✍️ Writing ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
-  if (n === 'read_local_file') return `📖 Reading ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
-  if (n === 'edit_local_file') return `✏️ Editing ${safeArg ? safeArg.split('/').pop() : 'file'}...`;
+  const fileArg = rawArgs?.filePath || rawArgs?.path || rawArgs?.file || safeArg;
+  if (n === 'write_local_file') return `✍️ Writing ${fileArg ? String(fileArg).split('/').pop() : 'file'}...`;
+  if (n === 'read_local_file') return `📖 Reading ${fileArg ? String(fileArg).split('/').pop() : 'file'}...`;
+  if (n === 'edit_local_file') return `✏️ Editing ${fileArg ? String(fileArg).split('/').pop() : 'file'}...`;
   if (n === 'search_web' || n === 'search_files') return `🔍 Searching for: ${safeArg.substring(0, 50)}...`;
   if (n === 'todo_write' || n === 'todo_read') return `📋 Task tracker: ${n}`;
   if (n === 'send_telegram_file') return `📤 Sending file to Telegram...`;
